@@ -22,7 +22,10 @@ def sample_zephyr_json():
                 "name": "Sample Test Case",
                 "description": "A sample test case description",
                 "steps": [
-                    {"action": "Do something", "expectedResult": "Something happens"}
+                    {
+                        "action": "Do something",
+                        "expectedResult": "Something happens",
+                    }
                 ],
             }
         ]
@@ -34,7 +37,8 @@ def cleanup_test_files():
     """Automatically clean up any test-generated files after each test.
 
     This fixture ensures that tests don't leave behind artifacts by
-    tracking files before and after each test execution.
+    tracking files before and
+    after each test execution.
     """
     # Store initial state of common test file types
     initial_files = set(Path(".").glob("*.robot")) | set(Path(".").glob("*.json"))

@@ -1,0 +1,29 @@
+{
+  "tests": [
+    {
+      "name": "Verify User Login Functionality",
+      "objective": "To ensure that users can successfully log in to the application with valid credentials.",
+      "precondition": "User has a registered account and valid login credentials.",
+      "labels": ["authentication", "smoke_test", "regression"],
+      "priority": "High",
+      "status": "Approved",
+      "steps": [
+        {
+          "description": "Navigate to the application login page.",
+          "testData": "URL: https://example.com/login",
+          "expectedResult": "The login page is displayed with username and password fields."
+        },
+        {
+          "description": "Enter valid username and password.",
+          "testData": "Username: testuser, Password: password123",
+          "expectedResult": "The username and password fields are populated."
+        },
+        {
+          "description": "Click the 'Login' button.",
+          "testData": "N/A",
+          "expectedResult": "User is successfully logged in and redirected to the dashboard page."
+        }
+      ]
+    }
+  ]
+}
