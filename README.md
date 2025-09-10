@@ -1,5 +1,12 @@
 # Importobot - Universal Test Framework Converter
 
+[![Test](https://github.com/athola/importobot/actions/workflows/test.yml/badge.svg)](https://github.com/athola/importobot/actions/workflows/test.yml)
+[![Lint](https://github.com/athola/importobot/actions/workflows/lint.yml/badge.svg)](https://github.com/athola/importobot/actions/workflows/lint.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Linting: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Package manager: uv](https://img.shields.io/badge/package%20manager-uv-blue.svg)](https://github.com/astral-sh/uv)
+
 **Importobot** is a powerful automation tool designed to **fully automate the conversion** of test cases from various test management frameworks (like Atlassian Zephyr, JIRA/Xray, TestLink) into Robot Framework format. This eliminates the time-consuming and error-prone manual migration process that teams typically face when adopting Robot Framework.
 
 ## Why Importobot Matters
@@ -99,13 +106,60 @@ User Login Functionality
 - **Validated Output**: Every conversion is tested automatically
 - **Reversible Process**: Original test cases remain unchanged
 
-## Installation
+## Prerequisites & Installation
 
-To install the project dependencies:
+### Installing uv Package Manager
+
+This project uses [uv](https://github.com/astral-sh/uv) for fast, reliable Python package management. Install uv first:
+
+**macOS/Linux:**
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+**Windows (PowerShell):**
+```bash
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+**Alternative installation methods:**
+```bash
+# Using pip
+pip install uv
+
+# Using Homebrew (macOS)
+brew install uv
+
+# Using pipx
+pipx install uv
+```
+
+Verify installation:
+```bash
+uv --version
+```
+
+### Project Setup
+
+Once uv is installed, set up the project:
 
 ```bash
-uv sync
+# Clone the repository
+git clone https://github.com/athola/importobot.git
+cd importobot
+
+# Install project dependencies (including dev dependencies)
+uv sync --dev
+
+# Verify installation by running tests
+uv run pytest
 ```
+
+**Why uv?**
+- **Speed**: 10-100x faster than pip for dependency resolution
+- **Reliability**: Deterministic builds with lock file support
+- **Python Management**: Automatically manages Python versions
+- **Modern Standards**: Built-in support for pyproject.toml and modern Python packaging
 
 ## Quick Start Guide
 
@@ -141,7 +195,9 @@ robot automated_suite.robot          # Execute tests
 ```
 
 ### Sample Files
-An example Zephyr JSON file is provided in `example_zephyr.json` to help you understand the expected input format.
+Example Zephyr JSON files are provided in `examples/json/` to help you understand the expected input format:
+- `examples/json/example_zephyr.json` - Basic Zephyr export format
+- `examples/json/new_zephyr_test_data.json` - Enhanced format with metadata
 
 ## Development
 
@@ -186,15 +242,31 @@ The test suite includes:
 
 ### Code Quality & Standards
 
-All code must pass automated quality gates:
+All code must pass automated quality gates (enforced by GitHub Actions):
 
 ```bash
-# Linting and formatting
-uv run bash -c "ruff check src tests && pylint src tests"
+# Run all linting tools (same as CI)
+uv run ruff check .                    # Code linting
+uv run ruff format --check .          # Format checking
+uv run black --check .                # Additional formatting
+uv run pycodestyle src/ tests/        # PEP 8 compliance
+uv run pydocstyle src/                 # Docstring standards
+uv run pylint src/ tests/              # Comprehensive analysis
 
 # Auto-fix common issues
-uv run ruff check --fix src tests
+uv run ruff check --fix .
+uv run ruff format .
+uv run black .
 ```
+
+### Continuous Integration
+
+The project uses GitHub Actions for automated testing and quality assurance:
+
+- **Test Workflow** (`.github/workflows/test.yml`): Runs complete test suite across Python 3.10, 3.11, and 3.12 with coverage reporting and Codecov integration
+- **Lint Workflow** (`.github/workflows/lint.yml`): Enforces code quality using ruff, black, pycodestyle, pydocstyle, and pylint
+
+All pull requests must pass both workflows before merging. Workflow status is visible via badges at the top of this README.
 
 ### Why TDD Matters for This Project
 

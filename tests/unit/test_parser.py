@@ -51,7 +51,7 @@ class TestParser:
         """Verifies parsing of Zephyr-like test data."""
         import json
 
-        with open("/home/alex/importobot/new_zephyr_test_data.json", "r") as f:
+        with open("/home/alex/importobot/examples/json/new_zephyr_test_data.json", "r") as f:
             zephyr_data = json.load(f)
         result = parse_json(zephyr_data)
         assert "Verify User Login Functionality" in result
