@@ -116,6 +116,12 @@ When working with this project, Claude should follow these guidelines:
 4. Verify no regressions were introduced
 5. Push changes will trigger GitHub Actions workflows for automated testing and linting
 
+### Commit Signing
+This project uses GPG signing for commit verification:
+- All commits should be signed with your GPG key for security and authenticity
+- GPG signing is configured locally for this repository
+- See the "GPG Commit Signing" section in README.md for setup instructions
+
 ## Project-Specific Conventions
 
 1. **Error Handling**: Core library functions (e.g., in `converter.py`, `parser.py`) should raise specific exceptions on failure. The main executable (`__main__.py`) is responsible for catching these exceptions and exiting with an appropriate status code.
@@ -156,7 +162,7 @@ To ensure the generated `.robot` files are executable and verifiable, the conver
 ### CI/CD Infrastructure
 - **GitHub Actions**: Automated testing across Python 3.10, 3.11, 3.12
 - **Automated Quality Gates**: All linting tools run automatically on PRs
-- **Coverage Reporting**: Integrated with Codecov for coverage tracking
+- **Coverage Reporting**: Integrated with Codecov for coverage tracking (requires `CODECOV_TOKEN` repository secret)
 
 ### Project Structure
 - **examples/json/**: Contains sample input files for testing and documentation
