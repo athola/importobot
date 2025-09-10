@@ -72,3 +72,15 @@ line-ending = "auto"
 [tool.pylint]
 rcfile = "pylintrc"
 ignore = [".venv"]
+
+[tool.black]
+exclude = '''
+/(?:
+    \.venv
+)/
+'''
+
+
+
+[tool.pydocstyle]
+match-dir = "^(?!.venv).*"

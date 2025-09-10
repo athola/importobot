@@ -14,7 +14,8 @@ class TestCommandLineInterface:
     @patch("sys.argv", ["importobot", "input.json", "output.robot"])
     @patch("importobot.__main__.convert_to_robot")
     def test_main_calls_converter(self, mock_convert):
-        """Ensures the main CLI function calls the converter with correct args."""
+        """Ensures the main CLI function calls the converter
+        with correct args."""
         main()
         mock_convert.assert_called_once_with("input.json", "output.robot")
 

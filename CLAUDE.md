@@ -4,7 +4,25 @@ This document provides guidance for Claude when analyzing or working with this P
 
 ## Project Overview
 
-This is a Python project that converts various test framework formats into Robot Framework format. The project strictly follows TDD and XP practices.
+**Importobot** is a Python automation tool designed to **fully automate the conversion process** from various test management frameworks (Atlassian Zephyr, JIRA/Xray, TestLink, etc.) into Robot Framework format. The project eliminates manual migration work by providing 100% automated conversion with zero human intervention required.
+
+### Core Mission
+- **Complete Automation**: No manual conversion steps - entire test suites convert with single commands
+- **Preserve Business Logic**: Maintain all test structure, metadata, and verification points during conversion
+- **Production-Ready Output**: Generate immediately executable Robot Framework files
+- **Universal Compatibility**: Support multiple input formats with consistent conversion quality
+
+The project strictly follows TDD and XP practices to ensure conversion reliability and maintainability.
+
+### Why Full Automation Matters
+In the context of test framework conversion, "full automation" means:
+1. **Zero Manual Steps**: No copy-paste, no field-by-field mapping, no manual verification
+2. **Batch Processing**: Handle hundreds or thousands of test cases in a single operation
+3. **Consistent Quality**: Every conversion follows identical patterns and standards
+4. **Immediate Executability**: Generated Robot Framework files run without modification
+5. **Preserve Traceability**: Original test metadata and structure maintained for audit purposes
+
+This automation focus drives every architectural decision and feature implementation.
 
 ## TDD/XP Principles in This Project
 
@@ -22,11 +40,13 @@ This is a Python project that converts various test framework formats into Robot
 ## Project Structure Interpretation
 
 ### Source Code Organization
-- `src/zephyr_to_robot/`: Main source code following the Python package structure
+- `src/importobot/`: Main source code following the Python package structure
   - `core/`: Contains core business logic separated by concern
-    - `parser.py`: Handles parsing of Zephyr JSON data
+    - `parser.py`: Handles parsing of input format data (currently Zephyr JSON)
     - `converter.py`: Manages file conversion operations, including loading and saving data
   - `__main__.py`: Entry point for the command-line interface
+
+The modular structure is designed to easily accommodate new input formats while maintaining consistent conversion patterns.
 
 ### Test Organization
 - `tests/`: Comprehensive test suite following TDD principles
@@ -101,6 +121,16 @@ When working with this project, Claude should follow these guidelines:
 3. **File Operations**: Use the dedicated functions in `converter.py` for file I/O operations.
 4. **Command-Line Interface**: All CLI functionality should be in `__main__.py` with core logic in separate modules.
 5. **Test Cleanup**: Tests should not leave behind artifacts; use pytest fixtures or try/finally blocks for cleanup.
+
+### Generating Functional Robot Framework Tests
+
+To ensure the generated `.robot` files are executable and verifiable, the conversion process now includes:
+
+1.  **Concrete Keyword Mapping**: `No Operation` placeholders are replaced with specific `SeleniumLibrary` keywords (e.g., `Go To`, `Input Text`, `Click Button`).
+2.  **Generic Locators**: Since Zephyr JSON does not provide UI element locators, generic `id` locators (e.g., `id=username_field`, `id=login_button`) are hardcoded into the generated Robot Framework steps. These are intended to be used with a controlled test environment (like a mock web server) where elements with these IDs are present.
+3.  **Basic Verification**: `expectedResult` fields from the Zephyr JSON are translated into `Page Should Contain` or `Textfield Value Should Be` keywords for basic assertion.
+4.  **Mock Server Integration**: Functional tests of the generated `.robot` files are performed against a mock web server (`tests/mock_server.py`) that serves a simple HTML page with the expected UI elements. This allows for end-to-end verification of the generated Robot Framework logic without relying on a live application.
+5.  **Handling Unmapped Steps**: Steps that cannot be mapped to a concrete Robot Framework keyword will generate a `Log` warning in the `.robot` file, indicating that manual implementation is required.
 
 ## Dependencies and Tooling
 

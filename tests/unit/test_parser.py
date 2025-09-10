@@ -46,3 +46,23 @@ class TestParser:
         sample_data = {"tests": [{"steps": [{"action": "Do something"}]}]}
         result = parse_json(sample_data)
         assert "Unnamed Test" in result
+
+    def test_parser_handles_zephyr_data(self):
+        """Verifies parsing of Zephyr-like test data."""
+        import json
+
+        with open("/home/alex/importobot/new_zephyr_test_data.json", "r") as f:
+            zephyr_data = json.load(f)
+        result = parse_json(zephyr_data)
+        assert "Verify User Login Functionality" in result
+        assert "Navigate to the application login page." in result
+        assert "Enter valid username and password." in result
+        assert "Click the 'Login' button." in result
+        assert (
+            "The login page is displayed with username and password fields." in result
+        )
+        assert "The username and password fields are populated." in result
+        assert (
+            "User is successfully logged in and redirected "
+            "to the dashboard page." in result
+        )
