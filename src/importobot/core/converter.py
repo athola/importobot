@@ -7,7 +7,7 @@ from importobot.core.parser import parse_json
 
 
 def load_json(file_path: str) -> Dict[str, Any]:
-    """Loads test data from a JSON file."""
+    """Load test data from a JSON file."""
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -18,7 +18,7 @@ def load_json(file_path: str) -> Dict[str, Any]:
 
 
 def save_robot_file(content: str, file_path: str) -> None:
-    """Saves content to a Robot Framework file."""
+    """Save content to a Robot Framework file."""
     try:
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(content)
@@ -27,7 +27,7 @@ def save_robot_file(content: str, file_path: str) -> None:
 
 
 def convert_to_robot(input_file: str, output_file: str) -> None:
-    """Converts a JSON file to a Robot Framework file."""
+    """Convert a JSON file to a Robot Framework file."""
     json_data = load_json(input_file)
     robot_content = parse_json(json_data)
     save_robot_file(robot_content, output_file)

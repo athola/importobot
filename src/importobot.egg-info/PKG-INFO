@@ -69,9 +69,10 @@ uv run bash -c "ruff check src tests && pylint src tests"
 Many issues can be fixed automatically with:
 
 ```bash
-uv run ruff check --fix src tests
+uv run check --fix
 ```
 
 ## Project Philosophy
 
 This project follows Test-Driven Development (TDD) and Extreme Programming (XP) principles. For detailed guidance on how to interpret and work with this project following these principles, see [CLAUDE.md](CLAUDE.md).
+with this project following these principles, see [CLAUDE.md](CLAUDE.md).
