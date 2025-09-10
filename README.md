@@ -1,0 +1,70 @@
+# Zephyr to Robot Framework Converter
+
+This tool converts Zephyr test cases exported in JSON format to Robot Framework test suite files (.robot).
+
+## Features
+
+- Converts Zephyr test cases to Robot Framework syntax
+- Preserves test structure and metadata
+- Generates properly formatted Robot Framework files ready for execution
+
+## Installation
+
+To install the project dependencies:
+
+```bash
+uv sync
+```
+
+## Usage
+
+```bash
+uv run importobot input.json output.robot
+```
+
+An example Zephyr JSON file is provided in `example_zephyr.json`.
+
+## Development
+
+This project uses `uv` for dependency management and task running.
+
+### Setup
+
+To set up the development environment, including dev dependencies, run:
+
+```bash
+# Install all dependencies
+uv sync --dev
+
+# Install the project in editable mode to make it available in the environment
+uv pip install -e .
+```
+
+### Running Tests
+
+Tests are written using `pytest` and can be run with:
+
+```bash
+uv run pytest
+```
+
+The test suite is organized into `unit` and `integration` tests. A key testing pattern in this project is the use of `pytest.raises(SystemExit)` to verify that the command-line interface exits correctly when given invalid arguments.
+
+### Code Quality
+
+Linting is performed by `ruff` and `pylint`. To run the linters:
+
+```bash
+uv run bash -c "ruff check src tests && pylint src tests"
+```
+
+Many issues can be fixed automatically with:
+
+```bash
+uv run check --fix
+```
+
+## Project Philosophy
+
+This project follows Test-Driven Development (TDD) and Extreme Programming (XP) principles. For detailed guidance on how to interpret and work with this project following these principles, see [CLAUDE.md](CLAUDE.md).
+with this project following these principles, see [CLAUDE.md](CLAUDE.md).

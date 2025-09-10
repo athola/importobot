@@ -1,0 +1,48 @@
+{
+  "tests": [
+    {
+      "name": "Login with Valid Credentials",
+      "description": "Test that a user can login with valid credentials",
+      "steps": [
+        {
+          "action": "Open browser to login page",
+          "expectedResult": "Login page is displayed"
+        },
+        {
+          "action": "Enter valid username",
+          "expectedResult": "Username is accepted"
+        },
+        {
+          "action": "Enter valid password",
+          "expectedResult": "Password is accepted"
+        },
+        {
+          "action": "Click login button",
+          "expectedResult": "User is redirected to dashboard"
+        }
+      ]
+    },
+    {
+      "name": "Login with Invalid Credentials",
+      "description": "Test that a user cannot login with invalid credentials",
+      "steps": [
+        {
+          "action": "Open browser to login page",
+          "expectedResult": "Login page is displayed"
+        },
+        {
+          "action": "Enter invalid username",
+          "expectedResult": "Username is accepted"
+        },
+        {
+          "action": "Enter invalid password",
+          "expectedResult": "Password is accepted"
+        },
+        {
+          "action": "Click login button",
+          "expectedResult": "Error message is displayed"
+        }
+      ]
+    }
+  ]
+}

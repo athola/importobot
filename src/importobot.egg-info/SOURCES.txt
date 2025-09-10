@@ -1,0 +1,14 @@
+README.md
+pyproject.toml
+src/importobot/__init__.py
+src/importobot/__main__.py
+src/importobot.egg-info/PKG-INFO
+src/importobot.egg-info/SOURCES.txt
+src/importobot.egg-info/dependency_links.txt
+src/importobot.egg-info/entry_points.txt
+src/importobot.egg-info/requires.txt
+src/importobot.egg-info/top_level.txt
+src/importobot/core/__init__.py
+src/importobot/core/converter.py
+src/importobot/core/parser.py
+src/importobot/utils/__init__.py

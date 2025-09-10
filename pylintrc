@@ -1,0 +1,43 @@
+[MASTER]
+# Ignore .venv directory
+ignore-patterns = .venv
+
+# Load pylint extensions
+load-plugins =
+
+[MESSAGES CONTROL]
+# Disable broad-exception-caught warning since we need to catch general exceptions
+# in the converter module for proper error handling
+disable = W0718
+
+[FORMAT]
+# Maximum number of characters on a single line
+max-line-length = 88
+
+[DESIGN]
+# Maximum number of arguments for function / method
+max-args = 10
+
+# Maximum number of locals for function / method body
+max-locals = 20
+
+# Maximum number of return / yield for function / method body
+max-returns = 10
+
+# Maximum number of branch for function / method body
+max-branches = 20
+
+# Maximum number of statements in function / method body
+max-statements = 50
+
+# Maximum number of parents for a class (see R0901).
+max-parents = 10
+
+# Maximum number of attributes for a class (see R0902).
+max-attributes = 10
+
+# Minimum number of public methods for a class (see R0903).
+min-public-methods = 0
+
+# Maximum number of public methods for a class (see R0904).
+max-public-methods = 20

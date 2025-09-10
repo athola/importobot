@@ -1,0 +1,2 @@
+[console_scripts]
+importobot = importobot.__main__:main
