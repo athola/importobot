@@ -89,6 +89,7 @@ def _generate_web_step_keyword(
         lines.extend(
             [
                 "    Click Button    id=login_button",
+                "    Sleep    1s    # Wait for JavaScript to execute",
                 f"    Page Should Contain    {expected}",
             ]
         )

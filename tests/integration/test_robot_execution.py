@@ -54,14 +54,12 @@ Library    SeleniumLibrary
 Retrieve File From Remote Host
     [Documentation]    To retrieve a file from a remote host using SSH.
     # Description: Open an SSH connection and log in to the remote host.
-    # Action: Remote Host: ${REMOTE_HOST}, Username: ${USERNAME},
-    # Password: ${PASSWORD}
+    # Action: Remote Host: ${REMOTE_HOST}, Username: ${USERNAME}, Password: ${PASSWORD}
     # Expected: Successfully connected and logged in to the remote host.
     No Operation  # TODO: Implement step
 
     # Description: Retrieve the specified file from the remote host.
-    # Action: Remote File Path: ${REMOTE_FILE_PATH},
-    # Local Destination Path: ${LOCAL_DEST_PATH}
+    # Action: Remote File Path: ${REMOTE_FILE_PATH}, Local Destination Path: ${LOCAL_DEST_PATH}
     # Expected: File successfully downloaded to the local destination.
     No Operation  # TODO: Implement step
 
