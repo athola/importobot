@@ -1,0 +1,58 @@
+name: Lint
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "src/**/*.py"
+      - "tests/**/*.py"
+      - "pyproject.toml"
+      - "Makefile"
+      - ".github/workflows/lint.yml"
+  pull_request:
+    types: [opened, synchronize]
+    branches: [ main ]
+    paths:
+      - "src/**/*.py"
+      - "tests/**/*.py"
+      - "pyproject.toml"
+      - "Makefile"
+      - ".github/workflows/lint.yml"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version-file: "pyproject.toml"
+    
+    - name: Install dependencies
+      run: uv sync --dev
+    
+    - name: Run ruff check
+      run: uv run ruff check .
+    
+    - name: Run ruff format check
+      run: uv run ruff format --check .
+    
+    - name: Run black check
+      run: uv run black --check .
+    
+    - name: Run pycodestyle
+      run: uv run pycodestyle src/ tests/
+    
+    - name: Run pydocstyle
+      run: uv run pydocstyle src/
+    
+    - name: Run pylint
+      run: uv run pylint src/ tests/

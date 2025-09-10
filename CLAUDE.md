@@ -89,9 +89,10 @@ When working with this project, Claude should follow these guidelines:
 - Use pytest fixtures for setup and teardown when appropriate
 
 ### 4. Code Quality
-- Follow the existing code style as enforced by ruff
-- Ensure all new code passes linting checks
-- Maintain consistent docstring style
+- Follow the existing code style as enforced by ruff, black, pycodestyle, pydocstyle, and pylint
+- Ensure all new code passes automated quality gates (enforced by GitHub Actions)
+- All linting tools are configured in pyproject.toml and run automatically in CI
+- Maintain consistent docstring style (enforced by pydocstyle)
 - Use type hints where appropriate
 - Keep dependencies minimal and well-justified
 
@@ -110,9 +111,10 @@ When working with this project, Claude should follow these guidelines:
 
 ### After Changes
 1. Run all tests: `make test`
-2. Check code quality: `make lint`
+2. Check code quality: `make lint` (runs all linting tools matching CI configuration)
 3. Format code: `make format`
 4. Verify no regressions were introduced
+5. Push changes will trigger GitHub Actions workflows for automated testing and linting
 
 ## Project-Specific Conventions
 
@@ -134,10 +136,30 @@ To ensure the generated `.robot` files are executable and verifiable, the conver
 
 ## Dependencies and Tooling
 
-1. **uv**: Used for package management and virtual environment management
-2. **pytest**: Testing framework with fixture support
-3. **ruff**: Primary linting and formatting tool
-4. **pylint**: Additional code quality checks
-5. **Robot Framework**: Target output format for converted tests
+### Package Management
+1. **uv**: Fast, reliable package management and virtual environment management
 
-This project is designed to be maintainable, testable, and extensible following industry best practices for TDD and XP. and XP.
+### Testing Framework
+2. **pytest**: Testing framework with fixture support and comprehensive test discovery
+3. **coverage**: Code coverage reporting integrated with Codecov
+
+### Code Quality Tools (CI/CD Enforced)
+4. **ruff**: Primary linting and formatting tool
+5. **black**: Additional code formatting
+6. **pycodestyle**: PEP 8 style guide enforcement  
+7. **pydocstyle**: Docstring style checking
+8. **pylint**: Comprehensive code analysis
+
+### Target Framework
+9. **Robot Framework**: Target output format for converted tests
+
+### CI/CD Infrastructure
+- **GitHub Actions**: Automated testing across Python 3.10, 3.11, 3.12
+- **Automated Quality Gates**: All linting tools run automatically on PRs
+- **Coverage Reporting**: Integrated with Codecov for coverage tracking
+
+### Project Structure
+- **examples/json/**: Contains sample input files for testing and documentation
+- **.github/workflows/**: GitHub Actions configuration for CI/CD
+
+This project is designed to be maintainable, testable, and extensible following industry best practices for TDD and XP.
