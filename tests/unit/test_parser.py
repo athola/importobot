@@ -50,8 +50,14 @@ class TestParser:
     def test_parser_handles_zephyr_data(self):
         """Verifies parsing of Zephyr-like test data."""
         import json
+        import os
 
-        with open("/home/alex/importobot/examples/json/new_zephyr_test_data.json", "r") as f:
+        # Use relative path from project root
+        test_data_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+            "examples", "json", "new_zephyr_test_data.json"
+        )
+        with open(test_data_path, "r") as f:
             zephyr_data = json.load(f)
         result = parse_json(zephyr_data)
         assert "Verify User Login Functionality" in result

@@ -1,4 +1,3 @@
-
 import json
 import socketserver
 import subprocess
@@ -96,7 +95,10 @@ def test_zephyr_to_robot_conversion_new_format(tmp_path):
 
     # Define the expected parsed keywords
     expected_keywords = [
-        {"keyword": "Open Browser", "args": ["http://localhost:8000/login.html", "chrome"]},
+        {
+            "keyword": "Open Browser",
+            "args": ["http://localhost:8000/login.html", "chrome"],
+        },
         {"keyword": "Go To", "args": ["http://localhost:8000/login.html"]},
         {"keyword": "Page Should Contain", "args": ["Login"]},
         {

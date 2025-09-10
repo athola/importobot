@@ -41,6 +41,14 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     
+    - name: Cache uv dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/uv
+        key: ${{ runner.os }}-uv-${{ hashFiles('pyproject.toml', 'uv.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-uv-
+
     - name: Install dependencies
       run: uv sync --dev
     
@@ -57,4 +65,5 @@ jobs:
       uses: codecov/codecov-action@v4
       with:
         file: ./coverage.xml
+        token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: false

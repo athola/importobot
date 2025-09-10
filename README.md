@@ -268,6 +268,56 @@ The project uses GitHub Actions for automated testing and quality assurance:
 
 All pull requests must pass both workflows before merging. Workflow status is visible via badges at the top of this README.
 
+#### Required Repository Secrets
+
+For full CI/CD functionality, configure these repository secrets in GitHub Settings > Secrets and variables > Actions:
+
+- `CODECOV_TOKEN`: Token for uploading test coverage reports to Codecov
+- `CLAUDE_CODE_OAUTH_TOKEN`: OAuth token for Claude Code Review workflow (if using claude-code-review.yml)
+
+### GPG Commit Signing
+
+This project requires GPG-signed commits for security and authenticity verification.
+
+**Setup GPG signing:**
+
+1. **Generate a GPG key** (if you don't have one):
+   ```bash
+   gpg --full-generate-key
+   # Choose RSA, 4096 bits, set expiration, provide name/email
+   ```
+
+2. **Get your GPG key ID**:
+   ```bash
+   gpg --list-secret-keys --keyid-format=long
+   # Copy the key ID after 'sec   rsa4096/'
+   ```
+
+3. **Configure Git to use GPG signing**:
+   ```bash
+   # Set your GPG key (replace with your key ID)
+   git config --global user.signingkey YOUR_GPG_KEY_ID
+   
+   # Enable commit signing globally
+   git config --global commit.gpgsign true
+   
+   # For this project only (already configured)
+   git config --local commit.gpgsign true
+   ```
+
+4. **Add GPG key to GitHub**:
+   ```bash
+   # Export your public key
+   gpg --armor --export YOUR_GPG_KEY_ID
+   # Copy the output and add it to GitHub Settings > SSH and GPG keys
+   ```
+
+**Verify signing is working:**
+```bash
+git commit -m "test: verify GPG signing"
+# Should show "gpg: using RSA key..." in output
+```
+
 ### Why TDD Matters for This Project
 
 - **Conversion Accuracy**: Complex parsing logic is validated before implementation
