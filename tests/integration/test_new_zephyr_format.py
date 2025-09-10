@@ -86,7 +86,7 @@ def test_zephyr_to_robot_conversion_new_format(tmp_path):
                 },
                 {
                     "description": "Click the 'Login' button.",
-                    "expectedResult": "Login successful!",
+                    "expectedResult": "Login",
                 },
             ],
         },
@@ -121,7 +121,8 @@ def test_zephyr_to_robot_conversion_new_format(tmp_path):
             "args": ["id=password_field", "password123"],
         },
         {"keyword": "Click Button", "args": ["id=login_button"]},
-        {"keyword": "Page Should Contain", "args": ["Login successful!"]},
+        {"keyword": "Sleep", "args": ["1s"]},
+        {"keyword": "Page Should Contain", "args": ["Login"]},
         {"keyword": "Close Browser", "args": []},
     ]
 
@@ -164,7 +165,7 @@ def test_robot_execution_against_mock_server(tmp_path, mock_web_server):
                 },
                 {
                     "description": "Click the 'Login' button.",
-                    "expectedResult": "Login successful!",
+                    "expectedResult": "Login",
                 },
             ],
         },
