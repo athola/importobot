@@ -32,7 +32,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 <p id="status_message"></p>
                 <script>
                     document.getElementById('login_button').onclick = function() {
-                        document.getElementById('status_message').innerText = 'Login successful!';
+                        document.getElementById('status_message').innerText = (
+                            'Login successful!'
+                        );
                     };
                 </script>
             </body>

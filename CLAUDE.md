@@ -169,3 +169,4 @@ To ensure the generated `.robot` files are executable and verifiable, the conver
 - **.github/workflows/**: GitHub Actions configuration for CI/CD
 
 This project is designed to be maintainable, testable, and extensible following industry best practices for TDD and XP.
+- leave the temporary files as local secrets and use them in future signing

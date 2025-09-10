@@ -9,20 +9,32 @@ def test_zephyr_to_robot_conversion_content_logic_only(tmp_path):
     zephyr_json_content = {
         "name": "Retrieve File From Remote Host",
         "objective": "To retrieve a file from a remote host using SSH.",
-        "precondition": "SSH connection details (host, username, password) are available.",
+        "precondition": (
+            "SSH connection details (host, username, password) are available."
+        ),
         "labels": ["ssh", "file_transfer"],
         "priority": "Medium",
         "status": "Draft",
         "steps": [
             {
                 "description": "Open an SSH connection and log in to the remote host.",
-                "testData": "Remote Host: ${REMOTE_HOST}, Username: ${USERNAME}, Password: ${PASSWORD}",
-                "expectedResult": "Successfully connected and logged in to the remote host.",
+                "testData": (
+                    "Remote Host: ${REMOTE_HOST}, Username: ${USERNAME}, "
+                    "Password: ${PASSWORD}"
+                ),
+                "expectedResult": (
+                    "Successfully connected and logged in to the remote host."
+                ),
             },
             {
                 "description": "Retrieve the specified file from the remote host.",
-                "testData": "Remote File Path: ${REMOTE_FILE_PATH}, Local Destination Path: ${LOCAL_DEST_PATH}",
-                "expectedResult": "File successfully downloaded to the local destination.",
+                "testData": (
+                    "Remote File Path: ${REMOTE_FILE_PATH}, "
+                    "Local Destination Path: ${LOCAL_DEST_PATH}"
+                ),
+                "expectedResult": (
+                    "File successfully downloaded to the local destination."
+                ),
             },
             {
                 "description": "Close the SSH connection.",
@@ -42,12 +54,14 @@ Library    SeleniumLibrary
 Retrieve File From Remote Host
     [Documentation]    To retrieve a file from a remote host using SSH.
     # Description: Open an SSH connection and log in to the remote host.
-    # Action: Remote Host: ${REMOTE_HOST}, Username: ${USERNAME}, Password: ${PASSWORD}
+    # Action: Remote Host: ${REMOTE_HOST}, Username: ${USERNAME},
+    # Password: ${PASSWORD}
     # Expected: Successfully connected and logged in to the remote host.
     No Operation  # TODO: Implement step
 
     # Description: Retrieve the specified file from the remote host.
-    # Action: Remote File Path: ${REMOTE_FILE_PATH}, Local Destination Path: ${LOCAL_DEST_PATH}
+    # Action: Remote File Path: ${REMOTE_FILE_PATH},
+    # Local Destination Path: ${LOCAL_DEST_PATH}
     # Expected: File successfully downloaded to the local destination.
     No Operation  # TODO: Implement step
 

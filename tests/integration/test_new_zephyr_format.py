@@ -25,7 +25,10 @@ class MyHandler(SimpleHTTPRequestHandler):
                         <h1>Login</h1>
                         <input type=\"text\" id=\"username_field" />
                         <input type=\"password\" id=\"password_field" />
-                        <button id=\"login_button\" onclick=\"document.body.innerHTML += '<h2>Login successful!</h2>'\">Login</button>
+                        <button id=\"login_button\"\\
+                            onclick=\"document.body.innerHTML += \\
+                            '<h2>Login successful!</h2>'\"\\
+                            >Login</button>
                     </body>
                 </html>
             """
@@ -59,7 +62,10 @@ def test_zephyr_to_robot_conversion_new_format(tmp_path):
         "name": "Verify User Login Functionality",
         "priorityName": "High",
         "statusName": "Draft",
-        "objective": "To ensure users can successfully log in to the application with valid credentials.",
+        "objective": (
+            "To ensure users can successfully log in to the application "
+            "with valid credentials."
+        ),
         "precondition": "User has an active account and valid login credentials.",
         "testScript": {
             "type": "STEP_BY_STEP",
@@ -134,7 +140,10 @@ def test_robot_execution_against_mock_server(tmp_path, mock_web_server):
         "name": "Verify User Login Functionality",
         "priorityName": "High",
         "statusName": "Draft",
-        "objective": "To ensure users can successfully log in to the application with valid credentials.",
+        "objective": (
+            "To ensure users can successfully log in to the application "
+            "with valid credentials."
+        ),
         "precondition": "User has an active account and valid login credentials.",
         "testScript": {
             "type": "STEP_BY_STEP",
