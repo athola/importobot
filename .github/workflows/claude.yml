@@ -1,5 +1,9 @@
 name: Claude Code
 
+concurrency:
+  group: claude-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: false
+
 on:
   issue_comment:
     types: [created]
@@ -25,6 +29,13 @@ jobs:
       id-token: write
       actions: read # Required for Claude to read CI results on PRs
     steps:
+      - name: Check for CLAUDE_CODE_OAUTH_TOKEN
+        run: |
+          if [ -z "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" ]; then
+            echo "CLAUDE_CODE_OAUTH_TOKEN secret is not set. Claude action will not run."
+            exit 1
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:

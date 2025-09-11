@@ -1,0 +1,71 @@
+name: Lint
+
+permissions:
+  contents: read # For actions/checkout to fetch code
+  actions: write # For actions/cache to save/restore cache
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "src/**/*.py"
+      - "tests/**/*.py"
+      - "examples/json/**/*.json"
+      - "pyproject.toml"
+      - "Makefile"
+      - ".github/workflows/lint.yml"
+  pull_request:
+    types: [opened, synchronize]
+    branches: [ main ]
+    paths:
+      - "src/**/*.py"
+      - "tests/**/*.py"
+      - "examples/json/**/*.json"
+      - "pyproject.toml"
+      - "Makefile"
+      - ".github/workflows/lint.yml"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+        enable-cache: true
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: uv sync --dev
+    
+    - name: Run ruff check
+      run: uv run ruff check .
+    
+    - name: Run ruff format check
+      run: uv run ruff format --check .
+    
+    
+    
+    - name: Run pycodestyle
+      run: uv run pycodestyle src/ tests/
+    
+    - name: Run pydocstyle
+      run: uv run pydocstyle src/
+    
+    - name: Run pylint
+      run: uv run pylint src/ tests/
+    
+    - name: Minimize uv cache
+      run: uv cache prune --ci

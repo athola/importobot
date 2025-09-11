@@ -1,5 +1,6 @@
 README.md
 pyproject.toml
+setup.cfg
 src/importobot/__init__.py
 src/importobot/__main__.py
 src/importobot.egg-info/PKG-INFO
