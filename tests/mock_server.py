@@ -3,13 +3,14 @@
 import http.server
 import socketserver
 
-PORT = 8000
+from importobot.config import TEST_SERVER_PORT
 
 
 class MyHandler(http.server.SimpleHTTPRequestHandler):
     """A simple handler for the mock server."""
 
     def do_GET(self):
+        """Handle GET requests for the mock server."""
         if self.path == "/login.html":
             self.send_response(200)
             self.send_header("Content-type", "text/html")
@@ -32,7 +33,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 <p id="status_message"></p>
                 <script>
                     document.getElementById('login_button').onclick = function() {
-                        document.getElementById('status_message').innerText = 'Login successful!';
+                        document.getElementById('status_message').innerText = (
+                            'Login successful!'
+                        );
                     };
                 </script>
             </body>
@@ -44,18 +47,18 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
 
 def start_mock_server():
-    """Starts the mock server."""
+    """Start the mock server."""
     handler = MyHandler
-    server = socketserver.TCPServer(("", PORT), handler)
-    print(f"Serving mock server at port {PORT}")
+    server = socketserver.TCPServer(("", TEST_SERVER_PORT), handler)
+    print(f"Serving mock server at port {TEST_SERVER_PORT}")
     server.serve_forever()
 
 
 def stop_mock_server(server):
-    """Stops the mock server."""
+    """Stop the mock server."""
     server.shutdown()
     server.server_close()
-    print(f"Stopped mock server at port {PORT}")
+    print(f"Stopped mock server at port {TEST_SERVER_PORT}")
 
 
 if __name__ == "__main__":
