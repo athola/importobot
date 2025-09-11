@@ -68,4 +68,4 @@ clean:
 # Run the converter with example data
 .PHONY: example
 example:
-	uv run importobot examples/json/example_zephyr.json example_output.robot
+	uv run importobot examples/json/new_zephyr_test_data.json example_output.robot

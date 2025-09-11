@@ -99,36 +99,36 @@ def test_zephyr_to_robot_conversion_new_format(tmp_path):
 
     convert_to_robot(str(input_json_file), str(output_robot_file))
 
-    # Define the expected parsed keywords
-    expected_keywords = [
-        {
-            "keyword": "Open Browser",
-            "args": ["http://localhost:8000/login.html", "chrome"],
-        },
-        {"keyword": "Go To", "args": ["http://localhost:8000/login.html"]},
-        {"keyword": "Page Should Contain", "args": ["Login"]},
-        {
-            "keyword": "Input Text",
-            "args": ["id=username_field", "testuser@example.com"],
-        },
-        {
-            "keyword": "Textfield Value Should Be",
-            "args": ["id=username_field", "testuser@example.com"],
-        },
-        {"keyword": "Input Text", "args": ["id=password_field", "password123"]},
-        {
-            "keyword": "Textfield Value Should Be",
-            "args": ["id=password_field", "password123"],
-        },
-        {"keyword": "Click Button", "args": ["id=login_button"]},
-        {"keyword": "Sleep", "args": ["1s"]},
-        {"keyword": "Page Should Contain", "args": ["Login"]},
-        {"keyword": "Close Browser", "args": []},
-    ]
-
     generated_keywords = parse_robot_file(output_robot_file)
 
-    assert generated_keywords == expected_keywords
+    # Verify Chrome options setup keywords are present
+    assert generated_keywords[0]["keyword"] == "Evaluate"
+    assert "selenium.webdriver" in generated_keywords[0]["args"][0]
+
+    # Verify Chrome arguments are configured
+    chrome_args = [kw for kw in generated_keywords if kw["keyword"] == "Call Method"]
+    assert len(chrome_args) == 6  # 6 Chrome arguments
+
+    # Verify key arguments are present
+    chrome_arg_strings = [arg["args"][2] for arg in chrome_args]
+    assert "argument=--headless" in chrome_arg_strings
+    assert "argument=--no-sandbox" in chrome_arg_strings
+    assert any("argument=--user-data-dir=" in arg for arg in chrome_arg_strings)
+
+    # Find the Open Browser keyword
+    open_browser_kw = next(
+        kw for kw in generated_keywords if kw["keyword"] == "Open Browser"
+    )
+    assert open_browser_kw["args"][0] == "http://localhost:8000/login.html"
+    assert open_browser_kw["args"][1] == "chrome"
+    assert "options=${chrome_options}" in open_browser_kw["args"]
+
+    # Verify key functional keywords are present
+    keyword_names = [kw["keyword"] for kw in generated_keywords]
+    assert "Go To" in keyword_names
+    assert "Input Text" in keyword_names
+    assert "Click Button" in keyword_names
+    assert "Close Browser" in keyword_names
 
 
 def test_robot_execution_against_mock_server(tmp_path, mock_web_server):

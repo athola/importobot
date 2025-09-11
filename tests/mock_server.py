@@ -10,6 +10,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
     """A simple handler for the mock server."""
 
     def do_GET(self):
+        """Handle GET requests for the mock server."""
         if self.path == "/login.html":
             self.send_response(200)
             self.send_header("Content-type", "text/html")
@@ -46,7 +47,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
 
 def start_mock_server():
-    """Starts the mock server."""
+    """Start the mock server."""
     handler = MyHandler
     server = socketserver.TCPServer(("", PORT), handler)
     print(f"Serving mock server at port {PORT}")
@@ -54,7 +55,7 @@ def start_mock_server():
 
 
 def stop_mock_server(server):
-    """Stops the mock server."""
+    """Stop the mock server."""
     server.shutdown()
     server.server_close()
     print(f"Stopped mock server at port {PORT}")

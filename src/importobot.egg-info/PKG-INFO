@@ -255,12 +255,11 @@ All code must pass automated quality gates (enforced by GitHub Actions):
 
 ```bash
 # Run all linting tools (same as CI)
-uv run ruff check .                    # Code linting
-uv run ruff format --check .          # Format checking
-uv run black --check .                # Additional formatting
-uv run pycodestyle src/ tests/        # PEP 8 compliance
-uv run pydocstyle src/                 # Docstring standards
-uv run pylint src/ tests/              # Comprehensive analysis
+uv run ruff check .                    # Code linting and formatting checks
+uv run black --check .                # Uncompromising code formatting check
+uv run pycodestyle src/ tests/        # PEP 8 style guide compliance
+uv run pydocstyle src/                 # Docstring standards compliance
+uv run pylint src/ tests/              # Comprehensive static analysis
 
 # Auto-fix common issues
 uv run ruff check --fix .
@@ -272,7 +271,7 @@ uv run black .
 
 The project uses GitHub Actions for automated testing and quality assurance:
 
-- **Test Workflow** (`.github/workflows/test.yml`): Runs complete test suite across Python 3.10, 3.11, and 3.12 with coverage reporting and Codecov integration
+- **Test Workflow** (`.github/workflows/test.yml`): Runs complete test suite across Python 3.10, 3.11, and 3.12 with coverage reporting, Codecov integration, and uploads JUnit XML test reports as artifacts.
 - **Lint Workflow** (`.github/workflows/lint.yml`): Enforces code quality using ruff, black, pycodestyle, pydocstyle, and pylint
 
 All pull requests must pass both workflows before merging. Workflow status is visible via badges at the top of this README.

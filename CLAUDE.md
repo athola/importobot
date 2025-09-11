@@ -124,7 +124,7 @@ This project uses GPG signing for commit verification:
 
 ## Project-Specific Conventions
 
-1. **Error Handling**: Core library functions (e.g., in `converter.py`, `parser.py`) should raise specific exceptions on failure. The main executable (`__main__.py`) is responsible for catching these exceptions and exiting with an appropriate status code.
+1. **Error Handling**: Core library functions (e.g., in `converter.py`, `parser.py`) should raise specific exceptions on failure. The main executable (`__main__.py`) is responsible for catching these exceptions and exiting with an appropriate status code. The `parser.py` module now includes `load_and_parse_json` for robust handling of JSON string inputs, raising `ValueError` for malformed JSON and `TypeError` if the parsed content is not a dictionary.
 2. **CLI Argument Testing**: When testing command-line argument handling, do not mock `sys.exit`. Instead, use `pytest.raises(SystemExit)` and assert the `e.value.code` of the resulting exception. This correctly tests the behavior of `argparse` without causing unexpected side effects in the test's execution flow.
 3. **File Operations**: Use the dedicated functions in `converter.py` for file I/O operations.
 4. **Command-Line Interface**: All CLI functionality should be in `__main__.py` with core logic in separate modules.
@@ -150,17 +150,17 @@ To ensure the generated `.robot` files are executable and verifiable, the conver
 3. **coverage**: Code coverage reporting integrated with Codecov
 
 ### Code Quality Tools (CI/CD Enforced)
-4. **ruff**: Primary linting and formatting tool
-5. **black**: Additional code formatting
-6. **pycodestyle**: PEP 8 style guide enforcement  
-7. **pydocstyle**: Docstring style checking
-8. **pylint**: Comprehensive code analysis
+1. **ruff**: Primary linting and formatting tool
+2. **black**: Uncompromising code formatter
+3. **pycodestyle**: PEP 8 style guide enforcement
+4. **pydocstyle**: Docstring style checking
+5. **pylint**: Comprehensive code analysis
 
 ### Target Framework
 9. **Robot Framework**: Target output format for converted tests
 
 ### CI/CD Infrastructure
-- **GitHub Actions**: Automated testing across Python 3.10, 3.11, 3.12
+- **GitHub Actions**: Automated testing across Python 3.10, 3.11, 3.12, including upload of JUnit XML test reports as artifacts.
 - **Automated Quality Gates**: All linting tools run automatically on PRs
 - **Coverage Reporting**: Integrated with Codecov for coverage tracking (requires `CODECOV_TOKEN` repository secret)
 
@@ -169,4 +169,3 @@ To ensure the generated `.robot` files are executable and verifiable, the conver
 - **.github/workflows/**: GitHub Actions configuration for CI/CD
 
 This project is designed to be maintainable, testable, and extensible following industry best practices for TDD and XP.
-- leave the temporary files as local secrets and use them in future signing
