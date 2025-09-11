@@ -149,12 +149,12 @@ This project uses GPG signing for commit verification:
   ```bash
   # Create GPG wrapper script (if not exists)
   echo '#!/bin/bash
-  cat /home/user/.gnupg/passphrase.txt | gpg --batch --yes --passphrase-fd 0 --pinentry-mode loopback "$@"' > /tmp/gpg-wrapper.sh && chmod +x /tmp/gpg-wrapper.sh
+  cat ~/.gnupg/passphrase.txt | gpg --batch --yes --passphrase-fd 0 --pinentry-mode loopback "$@"' > /tmp/gpg-wrapper.sh && chmod +x /tmp/gpg-wrapper.sh
   
   # Commit with GPG signing using wrapper
   git -c gpg.program="/tmp/gpg-wrapper.sh" commit -S -m "commit message"
   ```
-- The passphrase is securely stored in `/home/user/.gnupg/passphrase.txt` and should be piped to GPG, never used directly
+- The passphrase is securely stored in `~/.gnupg/passphrase.txt` and should be piped to GPG, never used directly
 - See the "GPG Commit Signing" section in README.md for setup instructions
 
 ## Claude Code Review Workflow Requirements
