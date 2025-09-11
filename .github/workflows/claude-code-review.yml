@@ -21,18 +21,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write # For Claude to post review comments
+      pull-requests: read
       issues: read
       id-token: write
     
     steps:
-      - name: Check for CLAUDE_CODE_OAUTH_TOKEN
-        run: |
-          if [ -z "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" ]; then
-            echo "CLAUDE_CODE_OAUTH_TOKEN secret is not set. Claude Code Review action will not run."
-            exit 1
-          fi
-
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
