@@ -57,20 +57,22 @@ def _generate_ssh_steps(steps: List[Dict[str, Any]]) -> List[str]:
     if not isinstance(steps, list):
         return [
             "    # Invalid steps data: expected list, got " + type(steps).__name__,
-            "    No Operation  # TODO: Fix step data"
+            "    No Operation  # TODO: Fix step data",
         ]
 
     lines = []
     for i, step in enumerate(steps):
         if not isinstance(step, dict):
-            lines.extend([
-                (
-                    f"    # Step {i+1}: Invalid step format "
-                    f"(expected dict, got {type(step).__name__})"
-                ),
-                "    No Operation  # TODO: Fix step format",
-                "",
-            ])
+            lines.extend(
+                [
+                    (
+                        f"    # Step {i + 1}: Invalid step format "
+                        f"(expected dict, got {type(step).__name__})"
+                    ),
+                    "    No Operation  # TODO: Fix step format",
+                    "",
+                ]
+            )
             continue
 
         try:
@@ -83,19 +85,23 @@ def _generate_ssh_steps(steps: List[Dict[str, Any]]) -> List[str]:
             test_data = sanitize_robot_string(test_data)
             expected = sanitize_robot_string(expected)
 
-            lines.extend([
-                f"    # Description: {action}",
-                f"    # Action: {test_data}",
-                f"    # Expected: {expected}",
-                "    No Operation  # TODO: Implement step",
-                "",
-            ])
+            lines.extend(
+                [
+                    f"    # Description: {action}",
+                    f"    # Action: {test_data}",
+                    f"    # Expected: {expected}",
+                    "    No Operation  # TODO: Implement step",
+                    "",
+                ]
+            )
         except Exception as e:
-            lines.extend([
-                f"    # Step {i+1}: Error processing step data: {e}",
-                "    No Operation  # TODO: Fix step processing error",
-                "",
-            ])
+            lines.extend(
+                [
+                    f"    # Step {i + 1}: Error processing step data: {e}",
+                    "    No Operation  # TODO: Fix step processing error",
+                    "",
+                ]
+            )
     return lines
 
 
@@ -144,9 +150,11 @@ def _generate_web_steps(steps: Any) -> List[str]:
         expected = sanitize_robot_string(expected)
         test_data = sanitize_robot_string(test_data)
 
-        lines.extend([
-            f"    # Description: {action}",
-        ])
+        lines.extend(
+            [
+                f"    # Description: {action}",
+            ]
+        )
         if test_data and test_data != "N/A":
             lines.append(f"    # Action: {test_data}")
         lines.append(f"    # Expected: {expected}")

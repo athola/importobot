@@ -1,5 +1,8 @@
 """Unit tests for JSON parsing functionality."""
 
+import json
+from pathlib import Path
+
 import pytest
 
 from importobot.core.parser import _needs_ssh_library, load_and_parse_json, parse_json
@@ -51,9 +54,6 @@ class TestParser:
 
     def test_parser_handles_zephyr_data(self):
         """Verifies parsing of Zephyr-like test data."""
-        import json
-        from pathlib import Path
-
         # Use pathlib for robust cross-platform path resolution
         test_data_path = (
             Path(__file__).parent.parent.parent
@@ -61,7 +61,7 @@ class TestParser:
             / "json"
             / "new_zephyr_test_data.json"
         )
-        with open(test_data_path, "r") as f:
+        with open(test_data_path, "r", encoding="utf-8") as f:
             zephyr_data = json.load(f)
         result = parse_json(zephyr_data)
         assert "Verify User Login Functionality" in result
@@ -237,7 +237,9 @@ class TestSSHLibraryDetection:
         ]
 
         for test_data in test_cases:
-            assert _needs_ssh_library(test_data), f"Should detect SSH need in: {test_data}"
+            assert _needs_ssh_library(test_data), (
+                f"Should detect SSH need in: {test_data}"
+            )
 
     def test_needs_ssh_library_file_transfer_patterns(self):
         """Test detection of file transfer patterns."""
@@ -249,7 +251,9 @@ class TestSSHLibraryDetection:
         ]
 
         for test_data in test_cases:
-            assert _needs_ssh_library(test_data), f"Should detect SSH need in: {test_data}"
+            assert _needs_ssh_library(test_data), (
+                f"Should detect SSH need in: {test_data}"
+            )
 
     def test_needs_ssh_library_connection_management(self):
         """Test detection of connection management patterns."""
@@ -263,7 +267,9 @@ class TestSSHLibraryDetection:
         ]
 
         for test_data in test_cases:
-            assert _needs_ssh_library(test_data), f"Should detect SSH need in: {test_data}"
+            assert _needs_ssh_library(test_data), (
+                f"Should detect SSH need in: {test_data}"
+            )
 
     def test_needs_ssh_library_standalone_ssh_mention(self):
         """Test detection of standalone SSH mentions."""
@@ -274,12 +280,16 @@ class TestSSHLibraryDetection:
         ]
 
         for test_data in test_cases:
-            assert _needs_ssh_library(test_data), f"Should detect SSH need in: {test_data}"
+            assert _needs_ssh_library(test_data), (
+                f"Should detect SSH need in: {test_data}"
+            )
 
     def test_needs_ssh_library_exclude_retrieve_file(self):
         """Test exclusion of 'Retrieve File From Remote Host' pattern."""
         test_data = {"test": "Retrieve File From Remote Host operation"}
-        assert not _needs_ssh_library(test_data), "Should NOT detect SSH need for 'Retrieve File From Remote Host'"
+        assert not _needs_ssh_library(test_data), (
+            "Should NOT detect SSH need for 'Retrieve File From Remote Host'"
+        )
 
     def test_needs_ssh_library_false_positives(self):
         """Test avoidance of false positive SSH detections."""
@@ -292,7 +302,9 @@ class TestSSHLibraryDetection:
         ]
 
         for test_data in test_cases:
-            assert not _needs_ssh_library(test_data), f"Should NOT detect SSH need in: {test_data}"
+            assert not _needs_ssh_library(test_data), (
+                f"Should NOT detect SSH need in: {test_data}"
+            )
 
     def test_needs_ssh_library_case_insensitive(self):
         """Test case-insensitive detection."""
@@ -304,7 +316,9 @@ class TestSSHLibraryDetection:
         ]
 
         for test_data in test_cases:
-            assert _needs_ssh_library(test_data), f"Should detect SSH need (case insensitive) in: {test_data}"
+            assert _needs_ssh_library(test_data), (
+                f"Should detect SSH need (case insensitive) in: {test_data}"
+            )
 
     def test_needs_ssh_library_nested_data_structures(self):
         """Test detection in nested JSON structures."""
@@ -314,12 +328,14 @@ class TestSSHLibraryDetection:
                     "name": "SSH Test",
                     "steps": [
                         {"action": "ssh connect to server"},
-                        {"expectedResult": "connection established"}
-                    ]
+                        {"expectedResult": "connection established"},
+                    ],
                 }
             ]
         }
-        assert _needs_ssh_library(nested_data), "Should detect SSH need in nested structures"
+        assert _needs_ssh_library(nested_data), (
+            "Should detect SSH need in nested structures"
+        )
 
     def test_needs_ssh_library_complex_scenarios(self):
         """Test detection in complex realistic scenarios."""
@@ -331,8 +347,8 @@ class TestSSHLibraryDetection:
                         "steps": [
                             {"action": "Connect to remote server via SSH"},
                             {"action": "Execute deployment commands"},
-                            {"expectedResult": "Deployment successful"}
-                        ]
+                            {"expectedResult": "Deployment successful"},
+                        ],
                     }
                 ]
             },
@@ -340,14 +356,16 @@ class TestSSHLibraryDetection:
                 "testScript": {
                     "steps": [
                         {"description": "Open SSH connection to test server"},
-                        {"description": "Transfer configuration files using SCP"}
+                        {"description": "Transfer configuration files using SCP"},
                     ]
                 }
-            }
+            },
         ]
 
         for scenario in complex_scenarios:
-            assert _needs_ssh_library(scenario), f"Should detect SSH need in complex scenario: {scenario}"
+            assert _needs_ssh_library(scenario), (
+                f"Should detect SSH need in complex scenario: {scenario}"
+            )
 
     def test_needs_ssh_library_edge_cases(self):
         """Test edge cases for SSH detection."""
@@ -362,7 +380,9 @@ class TestSSHLibraryDetection:
 
         for test_data, expected in edge_cases:
             result = _needs_ssh_library(test_data)
-            assert result == expected, f"Expected {expected} for {test_data}, got {result}"
+            assert result == expected, (
+                f"Expected {expected} for {test_data}, got {result}"
+            )
 
     def test_needs_ssh_library_early_fail_conditions(self):
         """Test early fail conditions for _needs_ssh_library function."""
@@ -372,4 +392,6 @@ class TestSSHLibraryDetection:
         # Test non-dict inputs
         invalid_inputs = ["string", 123, [], True, 45.67]
         for invalid_input in invalid_inputs:
-            assert not _needs_ssh_library(invalid_input), f"Should return False for non-dict input: {invalid_input}"
+            assert not _needs_ssh_library(invalid_input), (
+                f"Should return False for non-dict input: {invalid_input}"
+            )
