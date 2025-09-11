@@ -1,8 +1,15 @@
 """JSON parsing functionality."""
 
+import io
 import json
-import uuid
 from typing import Any, Dict, List
+
+from ..utils.validation import sanitize_robot_string, validate_json_size
+from .step_generators import (
+    generate_browser_setup_lines,
+    generate_web_step_keyword,
+    needs_ssh_library_optimized,
+)
 
 
 def _build_settings_section(json_data: Dict[str, Any]) -> List[str]:
@@ -13,112 +20,92 @@ def _build_settings_section(json_data: Dict[str, Any]) -> List[str]:
         "Library    SeleniumLibrary",
     ]
 
-    # Add SSHLibrary only if it's needed
-    json_data_str = str(json_data).lower()
-    ssh_in_str = "ssh" in json_data_str
-    no_retrieve_file = "Retrieve File From Remote Host" not in json_data_str
-    if ssh_in_str and no_retrieve_file:
+    # Add SSHLibrary only if SSH-related keywords are detected
+    if _needs_ssh_library(json_data):
         lines.append("Library    SSHLibrary")
 
     return lines
 
 
+def _needs_ssh_library(json_data: Dict[str, Any]) -> bool:
+    """Detect if SSH library is needed based on content analysis."""
+    return needs_ssh_library_optimized(json_data)
+
+
 def _extract_tests(json_data: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Extract test cases from JSON data."""
-    tests = json_data.get("tests")
-    if not isinstance(tests, list):
-        if "name" in json_data and isinstance(json_data, dict):
-            # Handle Zephyr-style single test case if json_data is a dict
-            return [json_data]
-        # Return empty list if 'tests' is not a list and not a single Zephyr-style test
+    """Extract test cases from JSON data with robust error handling."""
+    if not json_data:
         return []
-    return tests
+
+    try:
+        tests = json_data.get("tests")
+        if not isinstance(tests, list):
+            if "name" in json_data and isinstance(json_data, dict):
+                # Handle Zephyr-style single test case if json_data is a dict
+                return [json_data]
+            # Return empty list if 'tests' is not a list and not a single
+            # Zephyr-style test
+            return []
+        return tests
+    except (AttributeError, TypeError) as e:
+        # Handle cases where json_data might not be a dict or have get method
+        raise ValueError(f"Invalid JSON data structure for test extraction: {e}") from e
 
 
 def _generate_ssh_steps(steps: List[Dict[str, Any]]) -> List[str]:
-    """Generate Robot Framework steps for SSH test cases."""
+    """Generate Robot Framework steps for SSH test cases with error handling."""
+    if not isinstance(steps, list):
+        return [
+            "    # Invalid steps data: expected list, got " + type(steps).__name__,
+            "    No Operation  # TODO: Fix step data"
+        ]
+
     lines = []
-    for step in steps:
-        action = step.get("description", "No action specified")
-        test_data = step.get("testData", "N/A")
-        expected = step.get("expectedResult", "")
-        lines.extend(
-            [
+    for i, step in enumerate(steps):
+        if not isinstance(step, dict):
+            lines.extend([
+                (
+                    f"    # Step {i+1}: Invalid step format "
+                    f"(expected dict, got {type(step).__name__})"
+                ),
+                "    No Operation  # TODO: Fix step format",
+                "",
+            ])
+            continue
+
+        try:
+            action = step.get("description", "No action specified")
+            test_data = step.get("testData", "N/A")
+            expected = step.get("expectedResult", "")
+
+            # Use centralized sanitization
+            action = sanitize_robot_string(action)
+            test_data = sanitize_robot_string(test_data)
+            expected = sanitize_robot_string(expected)
+
+            lines.extend([
                 f"    # Description: {action}",
                 f"    # Action: {test_data}",
                 f"    # Expected: {expected}",
                 "    No Operation  # TODO: Implement step",
                 "",
-            ]
-        )
+            ])
+        except Exception as e:
+            lines.extend([
+                f"    # Step {i+1}: Error processing step data: {e}",
+                "    No Operation  # TODO: Fix step processing error",
+                "",
+            ])
     return lines
 
 
+# This function is now handled by the step_generators module
+# Keeping a wrapper for backward compatibility
 def _generate_web_step_keyword(
     action: Any, expected: str, test_data: str
 ) -> tuple[List[str], bool]:
     """Generate Robot Framework keyword for a web test step."""
-    lines = []
-    keyword_generated = False
-
-    action_str = str(action).lower() if action is not None else ""
-
-    if "navigate to" in action_str:
-        lines.extend(
-            [
-                "    Go To    http://localhost:8000/login.html",
-                f"    Page Should Contain    {expected}",
-            ]
-        )
-        keyword_generated = True
-    elif "enter" in action_str and "username" in action_str:
-        username = "testuser@example.com"
-        if "username:" in test_data:
-            username = test_data.split("username:")[1].strip()
-        lines.extend(
-            [
-                f"    Input Text    id=username_field    {username}",
-                f"    Textfield Value Should Be    id=username_field    {username}",
-            ]
-        )
-        keyword_generated = True
-    elif "enter" in action_str and "password" in action_str:
-        password = "password123"
-        if "password:" in test_data:
-            password = test_data.split("password:")[1].strip()
-        lines.extend(
-            [
-                f"    Input Text    id=password_field    {password}",
-                f"    Textfield Value Should Be    id=password_field    {password}",
-            ]
-        )
-        keyword_generated = True
-    elif "click" in action_str and "button" in action_str:
-        lines.extend(
-            [
-                "    Click Button    id=login_button",
-                "    Sleep    1s    # Wait for JavaScript to execute",
-                f"    Page Should Contain    {expected}",
-            ]
-        )
-        keyword_generated = True
-    elif "open an ssh connection" in action_str:
-        lines.extend(
-            [
-                "    Open Connection    ${REMOTE_HOST}    "
-                "username=${USERNAME}    password=${PASSWORD}",
-                "    Login    ${USERNAME}    ${PASSWORD}",
-            ]
-        )
-        keyword_generated = True
-    elif "retrieve the specified file" in action_str:
-        lines.append("    Get File    ${REMOTE_FILE_PATH}    ${LOCAL_DEST_PATH}")
-        keyword_generated = True
-    elif "close the ssh connection" in action_str:
-        lines.append("    Close Connection")
-        keyword_generated = True
-
-    return lines, keyword_generated
+    return generate_web_step_keyword(action, expected, test_data)
 
 
 def _should_add_browser_setup(steps: Any) -> bool:
@@ -141,28 +128,7 @@ def _generate_web_steps(steps: Any) -> List[str]:
 
     # Open browser at the start of the test
     if _should_add_browser_setup(steps):
-        unique_id = str(uuid.uuid4())[:8]
-        lines.extend(
-            [
-                "    ${chrome_options}=    Evaluate    "
-                "sys.modules['selenium.webdriver'].ChromeOptions()    "
-                "sys,selenium.webdriver",
-                "    Call Method    ${chrome_options}    add_argument    "
-                "argument=--headless",
-                "    Call Method    ${chrome_options}    add_argument    "
-                "argument=--no-sandbox",
-                "    Call Method    ${chrome_options}    add_argument    "
-                "argument=--disable-dev-shm-usage",
-                "    Call Method    ${chrome_options}    add_argument    "
-                "argument=--disable-gpu",
-                "    Call Method    ${chrome_options}    add_argument    "
-                "argument=--disable-extensions",
-                f"    Call Method    ${{chrome_options}}    add_argument    "
-                f"argument=--user-data-dir=/tmp/chrome_user_data_{unique_id}",
-                "    Open Browser    http://localhost:8000/login.html    chrome    "
-                "options=${chrome_options}",
-            ]
-        )
+        lines.extend(generate_browser_setup_lines())
 
     for step in steps:
         if not isinstance(step, dict):
@@ -173,12 +139,15 @@ def _generate_web_steps(steps: Any) -> List[str]:
         expected = step.get("expectedResult", "")
         test_data = step.get("testData", "")
 
-        lines.extend(
-            [
-                f"    # Description: {action}",
-            ]
-        )
-        if test_data != "N/A":
+        # Sanitize all output strings
+        action = sanitize_robot_string(action)
+        expected = sanitize_robot_string(expected)
+        test_data = sanitize_robot_string(test_data)
+
+        lines.extend([
+            f"    # Description: {action}",
+        ])
+        if test_data and test_data != "N/A":
             lines.append(f"    # Action: {test_data}")
         lines.append(f"    # Expected: {expected}")
 
@@ -237,24 +206,52 @@ def parse_json(json_data: Dict[str, Any]) -> str:
     if not isinstance(json_data, dict):
         raise TypeError("Input to parse_json must be a dictionary.")
 
-    lines = _build_settings_section(json_data)
-    lines.extend(["", "*** Test Cases ***", ""])
+    # Use StringIO for efficient string building
+    output = io.StringIO()
+
+    # Build settings section
+    settings_lines = _build_settings_section(json_data)
+    for line in settings_lines:
+        output.write(line)
+        output.write("\n")
+
+    output.write("\n*** Test Cases ***\n\n")
 
     tests = _extract_tests(json_data)
 
     if not tests:
-        lines.extend(["Empty Test Case", "    No Operation", ""])
+        output.write("Empty Test Case\n    No Operation\n\n")
     else:
         for test_case_data in tests:
-            lines.extend(_generate_test_case(test_case_data))
+            test_lines = _generate_test_case(test_case_data)
+            for line in test_lines:
+                output.write(line)
+                output.write("\n")
 
-    return "\n".join(lines)
+    return output.getvalue()
 
 
 def load_and_parse_json(json_string: str) -> str:
-    """Load JSON from string and convert to Robot Framework format."""
+    """Load JSON string and convert to Robot Framework format."""
+    if not isinstance(json_string, str):
+        raise TypeError(f"Input must be a string, got {type(json_string).__name__}")
+
+    if not json_string.strip():
+        raise ValueError("Empty JSON string provided")
+
+    # Validate JSON size to prevent memory exhaustion attacks
+    validate_json_size(json_string)
+
     try:
         json_data = json.loads(json_string)
         return parse_json(json_data)
     except json.JSONDecodeError as e:
-        raise ValueError(f"Malformed JSON input: {e}") from e
+        raise ValueError(
+            f"Malformed JSON input at line {e.lineno}, column {e.colno}: {e.msg}"
+        ) from e
+    except (TypeError, ValueError):
+        # Re-raise our own validation errors
+        raise
+    except Exception as e:
+        # Catch any unexpected errors during processing
+        raise ValueError(f"Unexpected error processing JSON: {e}") from e

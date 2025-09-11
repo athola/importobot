@@ -3,7 +3,7 @@
 import http.server
 import socketserver
 
-PORT = 8000
+from importobot.config import TEST_SERVER_PORT
 
 
 class MyHandler(http.server.SimpleHTTPRequestHandler):
@@ -49,8 +49,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 def start_mock_server():
     """Start the mock server."""
     handler = MyHandler
-    server = socketserver.TCPServer(("", PORT), handler)
-    print(f"Serving mock server at port {PORT}")
+    server = socketserver.TCPServer(("", TEST_SERVER_PORT), handler)
+    print(f"Serving mock server at port {TEST_SERVER_PORT}")
     server.serve_forever()
 
 
@@ -58,7 +58,7 @@ def stop_mock_server(server):
     """Stop the mock server."""
     server.shutdown()
     server.server_close()
-    print(f"Stopped mock server at port {PORT}")
+    print(f"Stopped mock server at port {TEST_SERVER_PORT}")
 
 
 if __name__ == "__main__":

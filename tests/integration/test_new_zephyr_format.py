@@ -6,10 +6,9 @@ from http.server import SimpleHTTPRequestHandler
 
 import pytest
 
+from importobot.config import TEST_LOGIN_URL, TEST_SERVER_PORT
 from importobot.core.converter import convert_to_robot
 from tests.utils import parse_robot_file
-
-PORT = 8000
 
 
 class MyHandler(SimpleHTTPRequestHandler):
@@ -41,15 +40,15 @@ class MyHandler(SimpleHTTPRequestHandler):
 def mock_web_server():
     """Starts and stops a mock web server for Selenium tests."""
     socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer(("", PORT), MyHandler) as httpd:
+    with socketserver.TCPServer(("", TEST_SERVER_PORT), MyHandler) as httpd:
         server_thread = threading.Thread(target=httpd.serve_forever)
         server_thread.daemon = True
         server_thread.start()
-        print(f"Mock server started on port {PORT} in a separate thread.")
+        print(f"Mock server started on port {TEST_SERVER_PORT} in a separate thread.")
         yield
         httpd.shutdown()
         httpd.server_close()
-        print(f"Mock server stopped on port {PORT}.")
+        print(f"Mock server stopped on port {TEST_SERVER_PORT}.")
 
 
 def test_zephyr_to_robot_conversion_new_format(tmp_path):
@@ -119,7 +118,7 @@ def test_zephyr_to_robot_conversion_new_format(tmp_path):
     open_browser_kw = next(
         kw for kw in generated_keywords if kw["keyword"] == "Open Browser"
     )
-    assert open_browser_kw["args"][0] == "http://localhost:8000/login.html"
+    assert open_browser_kw["args"][0] == TEST_LOGIN_URL
     assert open_browser_kw["args"][1] == "chrome"
     assert "options=${chrome_options}" in open_browser_kw["args"]
 

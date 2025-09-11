@@ -125,8 +125,8 @@ class TestGitHubWorkflows:
             content = f.read()
 
         if "codecov" in content.lower():
-            # Check for conditional execution
-            assert "secrets.CODECOV_TOKEN != ''" in content, (
+            # Check for conditional execution - updated pattern
+            assert "steps.codecov-check.outputs.codecov_available == 'true'" in content, (
                 "Codecov upload should be conditional on token availability"
             )
 

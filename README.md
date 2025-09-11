@@ -194,6 +194,16 @@ robot automated_suite.robot          # Execute tests
 # Tests are ready for your existing Robot Framework infrastructure
 ```
 
+### Configuration Options
+
+Importobot supports environment variable configuration for security and flexibility:
+
+- `IMPORTOBOT_TEST_SERVER_URL`: Override the default test server URL (default: `http://localhost:8000`)
+  ```bash
+  export IMPORTOBOT_TEST_SERVER_URL="https://test.example.com"
+  uv run importobot input.json output.robot
+  ```
+
 ### Sample Files
 Example Zephyr JSON files are provided in `examples/json/` to help you understand the expected input format:
 - `examples/json/example_zephyr.json` - Basic Zephyr export format

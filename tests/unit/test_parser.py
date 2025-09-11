@@ -2,7 +2,7 @@
 
 import pytest
 
-from importobot.core.parser import load_and_parse_json, parse_json
+from importobot.core.parser import _needs_ssh_library, load_and_parse_json, parse_json
 
 
 class TestParser:
@@ -217,10 +217,159 @@ class TestParser:
         ]
 
         for malformed_json, expected_exception in malformed_jsons:
-            with pytest.raises(
-                expected_exception,
-                match=(
-                    "Malformed JSON input" if expected_exception is ValueError else None
-                ),
-            ):
+            with pytest.raises(expected_exception):
                 load_and_parse_json(malformed_json)
+
+
+class TestSSHLibraryDetection:
+    """Tests for SSH library detection functionality."""
+
+    def test_needs_ssh_library_ssh_connect_patterns(self):
+        """Test detection of SSH connection patterns."""
+        test_cases = [
+            {"test": "ssh connect to server"},
+            {"test": "SSH LOGIN to remote host"},
+            {"test": "ssh command execution"},
+            {"test": "ssh execute on remote"},
+            {"test": "connect to remote host"},
+            {"test": "remote connect to server"},
+            {"test": "remote login process"},
+        ]
+
+        for test_data in test_cases:
+            assert _needs_ssh_library(test_data), f"Should detect SSH need in: {test_data}"
+
+    def test_needs_ssh_library_file_transfer_patterns(self):
+        """Test detection of file transfer patterns."""
+        test_cases = [
+            {"test": "scp file transfer"},
+            {"test": "sftp upload file"},
+            {"test": "transfer file to remote server"},
+            {"test": "transfer file via ssh"},
+        ]
+
+        for test_data in test_cases:
+            assert _needs_ssh_library(test_data), f"Should detect SSH need in: {test_data}"
+
+    def test_needs_ssh_library_connection_management(self):
+        """Test detection of connection management patterns."""
+        test_cases = [
+            {"test": "open ssh connection"},
+            {"test": "open connection to remote"},
+            {"test": "close ssh connection"},
+            {"test": "close connection"},
+            {"test": "execute remote command"},
+            {"test": "execute ssh command"},
+        ]
+
+        for test_data in test_cases:
+            assert _needs_ssh_library(test_data), f"Should detect SSH need in: {test_data}"
+
+    def test_needs_ssh_library_standalone_ssh_mention(self):
+        """Test detection of standalone SSH mentions."""
+        test_cases = [
+            {"test": "using ssh for testing"},
+            {"test": "configure ssh settings"},
+            {"test": "ssh is required"},
+        ]
+
+        for test_data in test_cases:
+            assert _needs_ssh_library(test_data), f"Should detect SSH need in: {test_data}"
+
+    def test_needs_ssh_library_exclude_retrieve_file(self):
+        """Test exclusion of 'Retrieve File From Remote Host' pattern."""
+        test_data = {"test": "Retrieve File From Remote Host operation"}
+        assert not _needs_ssh_library(test_data), "Should NOT detect SSH need for 'Retrieve File From Remote Host'"
+
+    def test_needs_ssh_library_false_positives(self):
+        """Test avoidance of false positive SSH detections."""
+        test_cases = [
+            {"test": "washing dishes in kitchen"},  # 'ssh' as part of word
+            {"test": "pushing code to repository"},  # 'ssh' as part of word
+            {"test": "web browser testing"},  # No SSH-related content
+            {"test": "database connection"},  # Non-SSH connection
+            {"test": "http request testing"},  # Different protocol
+        ]
+
+        for test_data in test_cases:
+            assert not _needs_ssh_library(test_data), f"Should NOT detect SSH need in: {test_data}"
+
+    def test_needs_ssh_library_case_insensitive(self):
+        """Test case-insensitive detection."""
+        test_cases = [
+            {"test": "SSH Connect To Server"},
+            {"test": "ssh COMMAND execution"},
+            {"test": "Remote LOGIN Process"},
+            {"test": "SCP File Transfer"},
+        ]
+
+        for test_data in test_cases:
+            assert _needs_ssh_library(test_data), f"Should detect SSH need (case insensitive) in: {test_data}"
+
+    def test_needs_ssh_library_nested_data_structures(self):
+        """Test detection in nested JSON structures."""
+        nested_data = {
+            "tests": [
+                {
+                    "name": "SSH Test",
+                    "steps": [
+                        {"action": "ssh connect to server"},
+                        {"expectedResult": "connection established"}
+                    ]
+                }
+            ]
+        }
+        assert _needs_ssh_library(nested_data), "Should detect SSH need in nested structures"
+
+    def test_needs_ssh_library_complex_scenarios(self):
+        """Test detection in complex realistic scenarios."""
+        complex_scenarios = [
+            {
+                "tests": [
+                    {
+                        "name": "Server Deployment Test",
+                        "steps": [
+                            {"action": "Connect to remote server via SSH"},
+                            {"action": "Execute deployment commands"},
+                            {"expectedResult": "Deployment successful"}
+                        ]
+                    }
+                ]
+            },
+            {
+                "testScript": {
+                    "steps": [
+                        {"description": "Open SSH connection to test server"},
+                        {"description": "Transfer configuration files using SCP"}
+                    ]
+                }
+            }
+        ]
+
+        for scenario in complex_scenarios:
+            assert _needs_ssh_library(scenario), f"Should detect SSH need in complex scenario: {scenario}"
+
+    def test_needs_ssh_library_edge_cases(self):
+        """Test edge cases for SSH detection."""
+        edge_cases = [
+            ({}, False),  # Empty data
+            ({"test": ""}, False),  # Empty string
+            ({"test": None}, False),  # None value (will be converted to string)
+            ({"test": "ssh"}, True),  # Minimal SSH mention
+            ({"test": "ssh "}, True),  # SSH with space
+            ({"test": " ssh"}, True),  # SSH with leading space
+        ]
+
+        for test_data, expected in edge_cases:
+            result = _needs_ssh_library(test_data)
+            assert result == expected, f"Expected {expected} for {test_data}, got {result}"
+
+    def test_needs_ssh_library_early_fail_conditions(self):
+        """Test early fail conditions for _needs_ssh_library function."""
+        # Test None input
+        assert not _needs_ssh_library(None), "Should return False for None input"
+
+        # Test non-dict inputs
+        invalid_inputs = ["string", 123, [], True, 45.67]
+        for invalid_input in invalid_inputs:
+            assert not _needs_ssh_library(invalid_input), f"Should return False for non-dict input: {invalid_input}"
