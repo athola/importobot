@@ -37,6 +37,31 @@ This automation focus drives every architectural decision and feature implementa
 3. **Simple Design**: Implementation follows the simplest approach that works, avoiding over-engineering.
 4. **Collective Code Ownership**: Consistent coding standards and practices make the codebase accessible to all team members.
 
+### Fail-Fast Principles
+This project strictly adheres to fail-fast design principles as outlined by Martin Fowler and industry best practices:
+
+1. **Immediate Error Detection**: Problems are detected and reported as soon as possible, preferably at compile-time, or immediately at runtime. This prevents errors from propagating through the system and causing harder-to-debug issues.
+
+2. **Early Validation**: All inputs, configurations, and dependencies are validated immediately upon entry into the system. Functions check preconditions at the start and fail immediately if invalid inputs are detected.
+
+3. **Explicit Error Reporting**: When failures occur, they are reported immediately and visibly rather than attempting to continue in an unstable state. This includes:
+   - Raising specific exceptions with detailed error messages
+   - Failing loudly rather than silently continuing with partial data
+   - Providing clear stack traces and error context
+
+4. **Robust Input Validation**: All external inputs (JSON files, command-line arguments, configuration values) undergo comprehensive validation before processing begins. Invalid inputs cause immediate failure rather than attempting partial processing.
+
+5. **System Stability Through Early Failure**: By failing immediately when problems are detected, the system prevents cascading failures and maintains overall stability. Localized failures are contained rather than allowed to spread.
+
+6. **Development Efficiency**: Early error detection reduces debugging time and development costs by pointing directly to the source of problems rather than requiring investigation of downstream effects.
+
+The fail-fast approach is implemented throughout the codebase in:
+- JSON parsing with immediate validation (`load_and_parse_json` in `parser.py`)
+- Command-line argument validation with immediate exit on invalid inputs
+- Configuration validation at application startup
+- Type checking and data structure validation
+- Comprehensive error handling with specific exception types
+
 ## Project Structure Interpretation
 
 ### Source Code Organization
@@ -141,6 +166,25 @@ The Claude Code Review workflow (`.github/workflows/claude-code-review.yml`) has
 - **Workflow Validation**: GitHub validates that the workflow content matches the default branch version before allowing Claude Code Review to run
 - **Best Practice**: Keep the workflow file simple and avoid modifications that differ from the remote source to prevent validation failures
 
+## Security Considerations
+
+This project implements several security best practices:
+
+### Configuration Security
+- **No Hardcoded URLs**: Test server URLs are configurable via `IMPORTOBOT_TEST_SERVER_URL` environment variable
+- **Secret Validation**: All CI/CD workflows validate secret availability before usage
+- **Graceful Fallbacks**: Missing secrets (like `CODECOV_TOKEN`) don't cause build failures
+
+### Input Validation
+- **JSON Validation**: Comprehensive validation of all JSON inputs with proper error handling
+- **Type Checking**: Strict type validation for all parsed data structures
+- **Error Boundaries**: All parsing operations have proper exception handling
+
+### CI/CD Security
+- **Minimal Permissions**: GitHub Actions workflows use least-privilege permissions
+- **Conditional Secret Usage**: Secrets are only used when available and validated
+- **Secure Token Handling**: No secrets are logged or exposed in workflow outputs
+
 ## Project-Specific Conventions
 
 1. **Error Handling**: Core library functions (e.g., in `converter.py`, `parser.py`) should raise specific exceptions on failure. The main executable (`__main__.py`) is responsible for catching these exceptions and exiting with an appropriate status code. The `parser.py` module includes:
@@ -148,6 +192,10 @@ The Claude Code Review workflow (`.github/workflows/claude-code-review.yml`) has
    - Comprehensive input validation with proper handling of None values and invalid data structures
    - Enhanced Chrome browser setup with headless configuration for cross-platform compatibility
    - Intelligent SSHLibrary import logic based on test content analysis
+   - Configurable test server URL via `IMPORTOBOT_TEST_SERVER_URL` environment variable (defaults to `http://localhost:8000`) to prevent hardcoded URLs
+   - Enhanced error handling with detailed error messages for malformed JSON, invalid data structures, and processing failures
+   - Input sanitization to prevent Robot Framework syntax errors from malformed step data
+   - Centralized configuration constants in `config.py` module to eliminate magic numbers and code duplication
 2. **CLI Argument Testing**: When testing command-line argument handling, do not mock `sys.exit`. Instead, use `pytest.raises(SystemExit)` and assert the `e.value.code` of the resulting exception. This correctly tests the behavior of `argparse` without causing unexpected side effects in the test's execution flow.
 3. **File Operations**: Use the dedicated functions in `converter.py` for file I/O operations.
 4. **Command-Line Interface**: All CLI functionality should be in `__main__.py` with core logic in separate modules.
@@ -191,7 +239,7 @@ To ensure the generated `.robot` files are executable and verifiable, the conver
   - **Claude Integration**: Advanced development assistance with CI result analysis
 - **Dependabot**: Weekly automated dependency updates for GitHub Actions and Python packages
 - **Workflow Validation**: Comprehensive testing of all GitHub Actions workflows for YAML syntax, structure, and best practices
-- **Coverage Reporting**: Integrated with Codecov (conditional on CODECOV_TOKEN availability)
+- **Coverage Reporting**: Integrated with Codecov with proper secret validation - checks for token availability before upload attempts and gracefully handles missing tokens without failing the build
 
 ### Project Structure
 - **examples/json/**: Contains sample input files for testing and documentation

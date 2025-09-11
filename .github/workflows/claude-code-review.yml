@@ -1,14 +1,19 @@
 name: Claude Code Review
 
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 on:
   pull_request:
     types: [opened, synchronize]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+    paths:
+      - "src/**/*.py"
+      - "tests/**/*.py"
+      - "examples/json/**/*.json"
+      - "pyproject.toml"
+      - "Makefile"
+      - ".github/workflows/**/*.yml"
 
 jobs:
   claude-review:
@@ -20,12 +25,20 @@ jobs:
     
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      pull-requests: read
-      issues: read
-      id-token: write
+      contents: read # For actions/checkout to fetch code
+      pull-requests: write # For claude to comment on PRs via gh pr comment
+      issues: read # For reading issue context
+      id-token: write # For OIDC token authentication
+      actions: read # For reading CI results on PRs
     
     steps:
+      - name: Check for CLAUDE_CODE_OAUTH_TOKEN
+        run: |
+          if [ -z "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" ]; then
+            echo "CLAUDE_CODE_OAUTH_TOKEN secret is not set. Claude Code Review will not run."
+            exit 1
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:

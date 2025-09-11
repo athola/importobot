@@ -5,6 +5,10 @@ permissions:
   actions: write # For actions/cache to save/restore cache
   pull-requests: write # For codecov-action to post comments
 
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [ main ]
@@ -64,9 +68,11 @@ jobs:
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
+      if: always()
       with:
         name: test-results-${{ matrix.python-version }}
         path: test-results.xml
+        retention-days: 7
     
     - name: Generate coverage report
       run: uv run coverage report
@@ -74,16 +80,22 @@ jobs:
     - name: Generate coverage XML
       run: uv run coverage xml
     
+    - name: Check for CODECOV_TOKEN
+      id: codecov-check
+      run: |
+        if [ -z "${{ secrets.CODECOV_TOKEN }}" ]; then
+          echo "CODECOV_TOKEN secret is not set. Codecov upload will be skipped."
+          echo "codecov_available=false" >> $GITHUB_OUTPUT
+        else
+          echo "CODECOV_TOKEN is available."
+          echo "codecov_available=true" >> $GITHUB_OUTPUT
+        fi
+
     - name: Upload coverage to Codecov
-      if: ${{ secrets.CODECOV_TOKEN != '' }}
+      if: steps.codecov-check.outputs.codecov_available == 'true'
       uses: codecov/codecov-action@v4
       with:
         file: ./coverage.xml
         token: ${{ secrets.CODECOV_TOKEN }}
-        fail_ci_if_error: true
-
-    - name: Check for CODECOV_TOKEN
-      if: ${{ secrets.CODECOV_TOKEN == '' }}
-      run: |
-        echo "CODECOV_TOKEN secret is not set. Codecov upload will be skipped."
-        exit 1 # Fail the workflow if the token is missing
+        fail_ci_if_error: false
+        verbose: true

@@ -4,6 +4,10 @@ permissions:
   contents: read # For actions/checkout to fetch code
   actions: write # For actions/cache to save/restore cache
 
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [ main ]
@@ -48,7 +52,7 @@ jobs:
         path: ~/.cache/uv
         key: ${{ runner.os }}-python-3.11-uv-${{ hashFiles('pyproject.toml') }}
         restore-keys: |
-          ${{ runner.os }}-python-3.10-uv-
+          ${{ runner.os }}-python-3.11-uv-
           ${{ runner.os }}-uv-
 
     - name: Install dependencies

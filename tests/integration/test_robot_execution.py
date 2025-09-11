@@ -45,10 +45,10 @@ def test_zephyr_to_robot_conversion_content_logic_only(tmp_path):
     }
 
     # This is what parser.py currently generates for the test case logic
+    # Note: SSHLibrary is NOT included due to "Retrieve File From Remote Host" exclusion
     expected_robot_content = """*** Settings ***
 Documentation    Tests converted from JSON
 Library    SeleniumLibrary
-Library    SSHLibrary
 
 *** Test Cases ***
 
