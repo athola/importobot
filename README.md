@@ -239,6 +239,7 @@ The test suite includes:
 - **Unit Tests**: Test individual parsers and converters in isolation with mocked dependencies
 - **Integration Tests**: Validate complete conversion workflows with actual file I/O
 - **Mock Server Testing**: Verify generated Robot Framework tests against controlled environments
+- **Workflow Validation Tests**: Comprehensive GitHub Actions workflow testing ensuring YAML syntax, structure, and CI/CD best practices
 
 ### Code Quality & Standards
 
@@ -260,12 +261,19 @@ uv run black .
 
 ### Continuous Integration
 
-The project uses GitHub Actions for automated testing and quality assurance:
+The project uses GitHub Actions for comprehensive automated testing and quality assurance:
 
-- **Test Workflow** (`.github/workflows/test.yml`): Runs complete test suite across Python 3.10, 3.11, and 3.12 with coverage reporting, Codecov integration, and uploads JUnit XML test reports as artifacts.
-- **Lint Workflow** (`.github/workflows/lint.yml`): Enforces code quality using ruff, black, pycodestyle, pydocstyle, and pylint
+- **Test Workflow** (`.github/workflows/test.yml`): Runs complete test suite across Python 3.10, 3.11, and 3.12 with coverage reporting, Codecov integration, and uploads JUnit XML test reports as artifacts for detailed analysis
+- **Lint Workflow** (`.github/workflows/lint.yml`): Enforces code quality using ruff, pycodestyle, pydocstyle, and pylint with optimized caching and proper permissions
+- **Claude Code Review** (`.github/workflows/claude-code-review.yml`): Automated AI-powered code review with conditional secret validation
+- **Claude Integration** (`.github/workflows/claude.yml`): Advanced AI development assistance with comprehensive CI result analysis
 
-All pull requests must pass both workflows before merging. Workflow status is visible via badges at the top of this README.
+### Automated Dependency Management
+
+- **Dependabot** (`.github/dependabot.yml`): Weekly automated updates for GitHub Actions and Python dependencies with controlled PR limits
+- **Workflow Validation Tests**: Comprehensive test coverage for all GitHub Actions workflows ensuring YAML syntax, structure, and best practices compliance
+
+All pull requests must pass automated workflows before merging. Workflow status and security are ensured through proper permissions configuration and conditional secret validation.
 
 #### Required Repository Secrets
 
