@@ -48,6 +48,7 @@ def test_zephyr_to_robot_conversion_content_logic_only(tmp_path):
     expected_robot_content = """*** Settings ***
 Documentation    Tests converted from JSON
 Library    SeleniumLibrary
+Library    SSHLibrary
 
 *** Test Cases ***
 
@@ -59,7 +60,8 @@ Retrieve File From Remote Host
     No Operation  # TODO: Implement step
 
     # Description: Retrieve the specified file from the remote host.
-    # Action: Remote File Path: ${REMOTE_FILE_PATH}, Local Destination Path: ${LOCAL_DEST_PATH}
+    # Action: Remote File Path: ${REMOTE_FILE_PATH}, Local Destination Path: \
+${LOCAL_DEST_PATH}
     # Expected: File successfully downloaded to the local destination.
     No Operation  # TODO: Implement step
 
