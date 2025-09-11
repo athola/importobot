@@ -118,9 +118,28 @@ When working with this project, Claude should follow these guidelines:
 
 ### Commit Signing
 This project uses GPG signing for commit verification:
-- All commits should be signed with your GPG key for security and authenticity
+- All commits must be signed with GPG for security and authenticity
 - GPG signing is configured locally for this repository
+- Claude should always use the GPG wrapper script approach for commits:
+  ```bash
+  # Create GPG wrapper script (if not exists)
+  echo '#!/bin/bash
+  cat /home/user/.gnupg/passphrase.txt | gpg --batch --yes --passphrase-fd 0 --pinentry-mode loopback "$@"' > /tmp/gpg-wrapper.sh && chmod +x /tmp/gpg-wrapper.sh
+  
+  # Commit with GPG signing using wrapper
+  git -c gpg.program="/tmp/gpg-wrapper.sh" commit -S -m "commit message"
+  ```
+- The passphrase is securely stored in `/home/user/.gnupg/passphrase.txt` and should be piped to GPG, never used directly
 - See the "GPG Commit Signing" section in README.md for setup instructions
+
+## Claude Code Review Workflow Requirements
+
+The Claude Code Review workflow (`.github/workflows/claude-code-review.yml`) has strict validation requirements:
+
+- **Identical Content Requirement**: The workflow file must have identical content to the version on the repository's default branch
+- **Token Setup Errors**: When first adding the workflow file to a repository via PR, you may see errors like "Failed to setup GitHub token: Error: Workflow validation failed" - this is normal and should be ignored
+- **Workflow Validation**: GitHub validates that the workflow content matches the default branch version before allowing Claude Code Review to run
+- **Best Practice**: Keep the workflow file simple and avoid modifications that differ from the remote source to prevent validation failures
 
 ## Project-Specific Conventions
 
@@ -168,7 +187,7 @@ To ensure the generated `.robot` files are executable and verifiable, the conver
 - **GitHub Actions**: Comprehensive automated testing across Python 3.10, 3.11, 3.12 with enhanced workflows:
   - **Test Workflow**: JUnit XML test reports uploaded as artifacts, fail-fast: false strategy, enhanced caching with Python version isolation
   - **Lint Workflow**: Optimized permissions configuration, proper secret validation
-  - **Claude Code Review**: AI-powered code review with conditional CLAUDE_CODE_OAUTH_TOKEN validation
+  - **Claude Code Review**: AI-powered code review with strict workflow validation requirements - the workflow file must exist and have identical content to the version on the repository's default branch. When first adding the workflow file to a repository via PR, GitHub token setup errors are normal and should be ignored
   - **Claude Integration**: Advanced development assistance with CI result analysis
 - **Dependabot**: Weekly automated dependency updates for GitHub Actions and Python packages
 - **Workflow Validation**: Comprehensive testing of all GitHub Actions workflows for YAML syntax, structure, and best practices
