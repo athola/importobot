@@ -126,9 +126,9 @@ class TestGitHubWorkflows:
 
         if "codecov" in content.lower():
             # Check for conditional execution - updated pattern
-            assert "steps.codecov-check.outputs.codecov_available == 'true'" in content, (
-                "Codecov upload should be conditional on token availability"
-            )
+            assert (
+                "steps.codecov-check.outputs.codecov_available == 'true'" in content
+            ), "Codecov upload should be conditional on token availability"
 
     def test_workflow_triggers(self, workflow_files):
         """Test that workflows have appropriate triggers."""

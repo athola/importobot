@@ -42,18 +42,15 @@ coverage:
 # Run code linting with ruff and pylint
 .PHONY: lint
 lint:
-	uv run ruff check src/ tests/
-	uv run pylint src/ tests/
+	uv run ruff check .
+	uv run pylint .
+	uv run pycodestyle .
+	uv run pydocstyle .
 
 # Format code with ruff
 .PHONY: format
 format:
-	uv run ruff format src/ tests/
-
-# Check code with ruff (linting and format check)
-.PHONY: check
-check:
-	uv run ruff check src/ tests/ && uv run ruff format --check src/ tests/
+	uv run ruff format .
 
 # Clean up temporary files
 .PHONY: clean

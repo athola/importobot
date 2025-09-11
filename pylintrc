@@ -1,6 +1,7 @@
 [MASTER]
 # Ignore .venv directory
-ignore-patterns = .venv
+ignore-patterns = \.venv.*
+ignore = .venv
 
 # Load pylint extensions
 load-plugins =

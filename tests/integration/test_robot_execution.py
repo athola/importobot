@@ -1,4 +1,8 @@
+"""Integration tests for Robot Framework execution and conversion logic."""
+
 import json
+
+from importobot.core.converter import convert_to_robot
 
 
 def test_zephyr_to_robot_conversion_content_logic_only(tmp_path):
@@ -74,8 +78,6 @@ ${LOCAL_DEST_PATH}
     input_json_file.write_text(json.dumps(zephyr_json_content, indent=2))
 
     output_robot_file = tmp_path / "generated_robot_file.robot"
-
-    from importobot.core.converter import convert_to_robot
 
     convert_to_robot(str(input_json_file), str(output_robot_file))
 

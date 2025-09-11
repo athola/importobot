@@ -28,9 +28,11 @@ class NavigationStepGenerator(StepGenerator):
     """Generates navigation steps for web tests."""
 
     def can_handle(self, action: str) -> bool:
+        """Check if this generator can handle navigation actions."""
         return "navigate to" in action.lower()
 
     def generate(self, action: str, expected: str, test_data: str) -> List[str]:
+        """Generate Robot Framework steps for navigation actions."""
         return [
             f"    Go To    {TEST_LOGIN_URL}",
             f"    Page Should Contain    {sanitize_robot_string(expected)}",
@@ -41,10 +43,12 @@ class UsernameInputGenerator(StepGenerator):
     """Generates username input steps."""
 
     def can_handle(self, action: str) -> bool:
+        """Check if this generator can handle username input actions."""
         action_lower = action.lower()
         return "enter" in action_lower and "username" in action_lower
 
     def generate(self, action: str, expected: str, test_data: str) -> List[str]:
+        """Generate Robot Framework steps for username input actions."""
         username = "testuser@example.com"
         if "username:" in test_data:
             username = test_data.split("username:")[1].strip()
@@ -62,10 +66,12 @@ class PasswordInputGenerator(StepGenerator):
     """Generates password input steps."""
 
     def can_handle(self, action: str) -> bool:
+        """Check if this generator can handle password input actions."""
         action_lower = action.lower()
         return "enter" in action_lower and "password" in action_lower
 
     def generate(self, action: str, expected: str, test_data: str) -> List[str]:
+        """Generate Robot Framework steps for password input actions."""
         password = "password123"
         if "password:" in test_data:
             password = test_data.split("password:")[1].strip()
@@ -83,10 +89,12 @@ class ClickButtonGenerator(StepGenerator):
     """Generates button click steps."""
 
     def can_handle(self, action: str) -> bool:
+        """Check if this generator can handle button click actions."""
         action_lower = action.lower()
         return "click" in action_lower and "button" in action_lower
 
     def generate(self, action: str, expected: str, test_data: str) -> List[str]:
+        """Generate Robot Framework steps for button click actions."""
         return [
             "    Click Button    id=login_button",
             "    Sleep    1s    # Wait for JavaScript to execute",
@@ -98,9 +106,11 @@ class SSHConnectionGenerator(StepGenerator):
     """Generates SSH connection steps."""
 
     def can_handle(self, action: str) -> bool:
+        """Check if this generator can handle SSH connection actions."""
         return "open an ssh connection" in action.lower()
 
     def generate(self, action: str, expected: str, test_data: str) -> List[str]:
+        """Generate Robot Framework steps for SSH connection actions."""
         return [
             "    Open Connection    ${REMOTE_HOST}    "
             "username=${USERNAME}    password=${PASSWORD}",
@@ -112,9 +122,11 @@ class SSHFileRetrievalGenerator(StepGenerator):
     """Generates SSH file retrieval steps."""
 
     def can_handle(self, action: str) -> bool:
+        """Check if this generator can handle file retrieval actions."""
         return "retrieve the specified file" in action.lower()
 
     def generate(self, action: str, expected: str, test_data: str) -> List[str]:
+        """Generate Robot Framework steps for file retrieval actions."""
         return ["    Get File    ${REMOTE_FILE_PATH}    ${LOCAL_DEST_PATH}"]
 
 
@@ -122,9 +134,11 @@ class SSHDisconnectionGenerator(StepGenerator):
     """Generates SSH disconnection steps."""
 
     def can_handle(self, action: str) -> bool:
+        """Check if this generator can handle SSH disconnection actions."""
         return "close the ssh connection" in action.lower()
 
     def generate(self, action: str, expected: str, test_data: str) -> List[str]:
+        """Generate Robot Framework steps for SSH disconnection actions."""
         return ["    Close Connection"]
 
 
@@ -132,9 +146,11 @@ class DefaultStepGenerator(StepGenerator):
     """Fallback generator for unrecognized actions."""
 
     def can_handle(self, action: str) -> bool:
+        """Return True as this is the fallback generator."""
         return True  # Always handles as fallback
 
     def generate(self, action: str, expected: str, test_data: str) -> List[str]:
+        """Generate default Robot Framework steps for unrecognized actions."""
         return ["    No Operation  # TODO: Implement step"]
 
 
@@ -142,6 +158,7 @@ class StepGeneratorFactory:
     """Factory for managing step generators."""
 
     def __init__(self):
+        """Initialize the factory with ordered step generators."""
         # Order matters - more specific generators should come first
         self.generators = [
             NavigationStepGenerator(),
@@ -193,16 +210,16 @@ def generate_web_step_keyword(
 
 # Pre-compiled regex patterns for performance
 SSH_PATTERN_CACHE: List[re.Pattern] = [
-    re.compile(r'\bssh\s+(?:connect|login|command|execute)', re.IGNORECASE),
-    re.compile(r'\bremote\s+(?:connect|login|host|server)', re.IGNORECASE),
-    re.compile(r'\bscp\b', re.IGNORECASE),
-    re.compile(r'\bsftp\b', re.IGNORECASE),
-    re.compile(r'\bconnect\s+to\s+(?:remote|host|server)', re.IGNORECASE),
-    re.compile(r'\bexecute\s+(?:remote|ssh)\s+command', re.IGNORECASE),
-    re.compile(r'\btransfer\s+file.*(?:remote|ssh)', re.IGNORECASE),
-    re.compile(r'\bopen\s+(?:ssh\s+)?connection', re.IGNORECASE),
-    re.compile(r'\bclose\s+(?:ssh\s+)?connection', re.IGNORECASE),
-    re.compile(r'\bssh\b(?!\w)', re.IGNORECASE),
+    re.compile(r"\bssh\s+(?:connect|login|command|execute)", re.IGNORECASE),
+    re.compile(r"\bremote\s+(?:connect|login|host|server)", re.IGNORECASE),
+    re.compile(r"\bscp\b", re.IGNORECASE),
+    re.compile(r"\bsftp\b", re.IGNORECASE),
+    re.compile(r"\bconnect\s+to\s+(?:remote|host|server)", re.IGNORECASE),
+    re.compile(r"\bexecute\s+(?:remote|ssh)\s+command", re.IGNORECASE),
+    re.compile(r"\btransfer\s+file.*(?:remote|ssh)", re.IGNORECASE),
+    re.compile(r"\bopen\s+(?:ssh\s+)?connection", re.IGNORECASE),
+    re.compile(r"\bclose\s+(?:ssh\s+)?connection", re.IGNORECASE),
+    re.compile(r"\bssh\b(?!\w)", re.IGNORECASE),
 ]
 
 
@@ -233,14 +250,11 @@ CHROME_OPTIONS_TEMPLATE = [
     "    ${chrome_options}=    Evaluate    "
     "sys.modules['selenium.webdriver'].ChromeOptions()    "
     "sys,selenium.webdriver",
-    "    Call Method    ${chrome_options}    add_argument    "
-    "argument=--headless",
-    "    Call Method    ${chrome_options}    add_argument    "
-    "argument=--no-sandbox",
+    "    Call Method    ${chrome_options}    add_argument    argument=--headless",
+    "    Call Method    ${chrome_options}    add_argument    argument=--no-sandbox",
     "    Call Method    ${chrome_options}    add_argument    "
     "argument=--disable-dev-shm-usage",
-    "    Call Method    ${chrome_options}    add_argument    "
-    "argument=--disable-gpu",
+    "    Call Method    ${chrome_options}    add_argument    argument=--disable-gpu",
     "    Call Method    ${chrome_options}    add_argument    "
     "argument=--disable-extensions",
 ]
@@ -250,10 +264,12 @@ def generate_browser_setup_lines() -> List[str]:
     """Generate browser setup lines with unique user data directory."""
     unique_id = str(uuid.uuid4())[:8]
     lines = CHROME_OPTIONS_TEMPLATE.copy()
-    lines.extend([
-        f"    Call Method    ${{chrome_options}}    add_argument    "
-        f"argument=--user-data-dir=/tmp/chrome_user_data_{unique_id}",
-        f"    Open Browser    {TEST_LOGIN_URL}    chrome    "
-        "options=${chrome_options}",
-    ])
+    lines.extend(
+        [
+            f"    Call Method    ${{chrome_options}}    add_argument    "
+            f"argument=--user-data-dir=/tmp/chrome_user_data_{unique_id}",
+            f"    Open Browser    {TEST_LOGIN_URL}    chrome    "
+            "options=${chrome_options}",
+        ]
+    )
     return lines

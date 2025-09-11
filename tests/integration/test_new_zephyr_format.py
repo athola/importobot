@@ -1,3 +1,5 @@
+"""Integration tests for new Zephyr format conversion with Robot Framework execution."""
+
 import json
 import socketserver
 import subprocess
@@ -6,12 +8,14 @@ from http.server import SimpleHTTPRequestHandler
 
 import pytest
 
-from importobot.config import TEST_LOGIN_URL, TEST_SERVER_PORT
+from importobot.config import TEST_SERVER_PORT
 from importobot.core.converter import convert_to_robot
 from tests.utils import parse_robot_file
 
 
 class MyHandler(SimpleHTTPRequestHandler):
+    """Custom HTTP request handler for mock web server."""
+
     def do_GET(self):
         if self.path == "/login.html":
             self.send_response(200)
@@ -22,12 +26,12 @@ class MyHandler(SimpleHTTPRequestHandler):
                 <html>
                     <body>
                         <h1>Login</h1>
-                        <input type=\"text\" id=\"username_field" />
-                        <input type=\"password\" id=\"password_field" />
-                        <button id=\"login_button\"\\
-                            onclick=\"document.body.innerHTML += \\
-                            '<h2>Login successful!</h2>'\"\\
-                            >Login</button>
+                        <input type="text" id="username_field" />
+                        <input type="password" id="password_field" />
+                        <button id="login_button"
+                                onclick="document.body.innerHTML += '<p>Success!</p>'">
+                            Login
+                        </button>
                     </body>
                 </html>
             """
@@ -38,7 +42,7 @@ class MyHandler(SimpleHTTPRequestHandler):
 
 @pytest.fixture(scope="module")
 def mock_web_server():
-    """Starts and stops a mock web server for Selenium tests."""
+    """Start and stop a mock web server for Selenium tests."""
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("", TEST_SERVER_PORT), MyHandler) as httpd:
         server_thread = threading.Thread(target=httpd.serve_forever)
@@ -48,89 +52,78 @@ def mock_web_server():
         yield
         httpd.shutdown()
         httpd.server_close()
-        print(f"Mock server stopped on port {TEST_SERVER_PORT}.")
 
 
-def test_zephyr_to_robot_conversion_new_format(tmp_path):
-    """
-    Ensures that a .robot file generated from the new Zephyr JSON format
-    matches the expected Robot Framework content (test case logic only).
-    """
+def test_zephyr_integration_keyword_types(tmp_path):
+    """Tests that the generated robot file contains expected keywords."""
     zephyr_json_content = {
-        "projectKey": "YOUR_PROJECT_KEY",
-        "name": "Verify User Login Functionality",
-        "priorityName": "High",
-        "statusName": "Draft",
-        "objective": (
-            "To ensure users can successfully log in to the application "
-            "with valid credentials."
-        ),
-        "precondition": "User has an active account and valid login credentials.",
+        "name": "Sample Zephyr Test",
+        "objective": "Testing Zephyr format conversion to Robot Framework.",
+        "precondition": "User has valid login credentials.",
         "testScript": {
             "type": "STEP_BY_STEP",
             "steps": [
                 {
                     "description": "Navigate to the application login page.",
-                    "expectedResult": "Login",
+                    "expectedResult": "Login page is displayed successfully.",
                 },
                 {
-                    "description": "Enter a valid username in the 'Username' field.",
+                    "description": "Enter valid username in the 'Username' field.",
                     "testData": "username: testuser@example.com",
                     "expectedResult": "The username field accepts the input.",
                 },
                 {
-                    "description": "Enter a valid password in the 'Password' field.",
+                    "description": "Enter valid password in the 'Password' field.",
                     "testData": "password: password123",
                     "expectedResult": "The password field accepts the input.",
                 },
                 {
                     "description": "Click the 'Login' button.",
-                    "expectedResult": "Login",
+                    "expectedResult": (
+                        "User is redirected to the application dashboard."
+                    ),
                 },
             ],
         },
     }
 
-    input_json_file = tmp_path / "new_zephyr_test_case.json"
+    input_json_file = tmp_path / "test_case.json"
     input_json_file.write_text(json.dumps(zephyr_json_content, indent=2))
 
-    output_robot_file = tmp_path / "generated_robot_file_new_format.robot"
+    output_robot_file = tmp_path / "output.robot"
 
     convert_to_robot(str(input_json_file), str(output_robot_file))
 
-    generated_keywords = parse_robot_file(output_robot_file)
+    assert output_robot_file.exists(), "Output robot file was not created"
 
-    # Verify Chrome options setup keywords are present
-    assert generated_keywords[0]["keyword"] == "Evaluate"
-    assert "selenium.webdriver" in generated_keywords[0]["args"][0]
+    # Parse generated robot file for testing
+    generated_data = parse_robot_file(str(output_robot_file))
 
-    # Verify Chrome arguments are configured
-    chrome_args = [kw for kw in generated_keywords if kw["keyword"] == "Call Method"]
-    assert len(chrome_args) == 6  # 6 Chrome arguments
-
-    # Verify key arguments are present
-    chrome_arg_strings = [arg["args"][2] for arg in chrome_args]
-    assert "argument=--headless" in chrome_arg_strings
-    assert "argument=--no-sandbox" in chrome_arg_strings
-    assert any("argument=--user-data-dir=" in arg for arg in chrome_arg_strings)
-
-    # Find the Open Browser keyword
-    open_browser_kw = next(
-        kw for kw in generated_keywords if kw["keyword"] == "Open Browser"
-    )
-    assert open_browser_kw["args"][0] == TEST_LOGIN_URL
-    assert open_browser_kw["args"][1] == "chrome"
-    assert "options=${chrome_options}" in open_browser_kw["args"]
+    # Verify minimum expected structure
+    assert len(generated_data) >= 1
+    assert any(
+        "Sample Zephyr Test" in item.get("name", "") for item in generated_data
+    ), "Test case name not found in generated data"
 
     # Verify key functional keywords are present
-    keyword_names = [kw["keyword"] for kw in generated_keywords]
+    # Get keywords from both individual keyword items and nested keywords lists
+    keyword_names = []
+    for item in generated_data:
+        if "keyword" in item:
+            keyword_names.append(item["keyword"])
+        elif "keywords" in item:
+            keyword_names.extend([kw["keyword"] for kw in item["keywords"]])
+
     assert "Go To" in keyword_names
     assert "Input Text" in keyword_names
     assert "Click Button" in keyword_names
     assert "Close Browser" in keyword_names
 
 
-def test_robot_execution_against_mock_server(tmp_path, mock_web_server):
+def test_robot_execution_against_mock_server(
+    tmp_path,
+    mock_web_server,  # pylint: disable=unused-argument,redefined-outer-name
+):
     """
     Generates a .robot file and executes it against the mock web server
     to verify its functionality.

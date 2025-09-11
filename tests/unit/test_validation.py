@@ -123,13 +123,13 @@ class TestJsonSizeValidation:
     def test_validate_json_size_large(self):
         """Test validation fails for large JSON."""
         # Create a JSON string larger than 10MB
-        large_json = '{"data": "' + 'x' * (11 * 1024 * 1024) + '"}'
+        large_json = '{"data": "' + "x" * (11 * 1024 * 1024) + '"}'
         with pytest.raises(ValueError, match="JSON input too large"):
             validate_json_size(large_json)
 
     def test_validate_json_size_custom_limit(self):
         """Test validation with custom size limit."""
-        medium_json = '{"data": "' + 'x' * (2 * 1024 * 1024) + '"}'
+        medium_json = '{"data": "' + "x" * (2 * 1024 * 1024) + '"}'
 
         # Should pass with 5MB limit
         validate_json_size(medium_json, max_size_mb=5)

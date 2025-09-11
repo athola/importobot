@@ -25,12 +25,13 @@ def run_robot_command(command: List[str]) -> subprocess.CompletedProcess:
 
 
 def parse_robot_file(file_path: str) -> List[Dict[str, Any]]:
-    """Parse a .robot file and extract keywords and their arguments."""
+    """Parse a .robot file and extract test cases, keywords and their arguments."""
     suite = TestSuite.from_file_system(file_path)
-    keywords = []
+    result = []
 
     def _extract_keywords(test_or_suite):
         """Recursively extract keywords from a test or suite."""
+        keywords = []
         if hasattr(test_or_suite, "body"):
             for item in test_or_suite.body:
                 if hasattr(item, "name") and item.name:
@@ -40,8 +41,12 @@ def parse_robot_file(file_path: str) -> List[Dict[str, Any]]:
                             "args": [str(arg) for arg in item.args],
                         }
                     )
+        return keywords
 
     for test in suite.tests:
-        _extract_keywords(test)
+        test_info = {"name": test.name, "keywords": _extract_keywords(test)}
+        result.append(test_info)
+        # Also add individual keywords to maintain backward compatibility
+        result.extend(_extract_keywords(test))
 
-    return keywords
+    return result

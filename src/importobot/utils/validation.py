@@ -40,11 +40,11 @@ def validate_safe_path(file_path: str, base_dir: str = None) -> str:
 
         # Check for suspicious path components
         dangerous_patterns = [
-            r'\.\.[\\/]',  # Directory traversal
-            r'^[\\/]etc[\\/]',  # System directories
-            r'^[\\/]proc[\\/]',
-            r'^[\\/]sys[\\/]',
-            r'^[\\/]dev[\\/]',
+            r"\.\.[\\/]",  # Directory traversal
+            r"^[\\/]etc[\\/]",  # System directories
+            r"^[\\/]proc[\\/]",
+            r"^[\\/]sys[\\/]",
+            r"^[\\/]dev[\\/]",
         ]
 
         for pattern in dangerous_patterns:
@@ -72,7 +72,7 @@ def sanitize_robot_string(text: Any) -> str:
     if text is None:
         return ""
 
-    return str(text).replace('\n', ' ').replace('\r', '').strip()
+    return str(text).replace("\n", " ").replace("\r", "").strip()
 
 
 def validate_json_size(json_string: str, max_size_mb: int = 10) -> None:
@@ -88,7 +88,7 @@ def validate_json_size(json_string: str, max_size_mb: int = 10) -> None:
     if not isinstance(json_string, str):
         return
 
-    size_mb = len(json_string.encode('utf-8')) / (1024 * 1024)
+    size_mb = len(json_string.encode("utf-8")) / (1024 * 1024)
     if size_mb > max_size_mb:
         raise ValueError(
             f"JSON input too large: {size_mb:.1f}MB > {max_size_mb}MB limit"
@@ -117,13 +117,13 @@ def sanitize_error_message(message: str, file_path: str = None) -> str:
 
     # Remove system information patterns
     patterns_to_remove = [
-        r'[\\/]home[\\/][^\\s\\n]*',  # Home directories
-        r'[\\/]usr[\\/][^\\s\\n]*',   # System directories
-        r'[\\/]tmp[\\/][^\\s\\n]*',   # Temp directories
-        r'C:\\[^\\s\\n]*',            # Windows paths
+        r"[\\/]home[\\/][^\\s\\n]*",  # Home directories
+        r"[\\/]usr[\\/][^\\s\\n]*",  # System directories
+        r"[\\/]tmp[\\/][^\\s\\n]*",  # Temp directories
+        r"C:\\[^\\s\\n]*",  # Windows paths
     ]
 
     for pattern in patterns_to_remove:
-        sanitized = re.sub(pattern, '[REDACTED]', sanitized, flags=re.IGNORECASE)
+        sanitized = re.sub(pattern, "[REDACTED]", sanitized, flags=re.IGNORECASE)
 
     return sanitized

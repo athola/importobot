@@ -145,8 +145,7 @@ class TestFileConverter:
             mock_file().write.assert_called_once_with(special_content)
 
     @patch("importobot.core.converter.parse_json")
-    @patch("importobot.core.converter.save_robot_file")
-    def test_convert_propagates_parse_errors(self, mock_save, mock_parse):
+    def test_convert_propagates_parse_errors(self, mock_parse):
         """Ensures parser errors propagate through conversion process."""
         with patch("importobot.core.converter.load_json", return_value={}):
             mock_parse.side_effect = AttributeError("Invalid data structure")
@@ -212,7 +211,7 @@ class TestEarlyFailConditions:
 
     def test_load_json_early_fail_invalid_type(self):
         """Test that load_json fails early for invalid input types."""
-        invalid_inputs = [None, 123, [], {}, True, b'binary']
+        invalid_inputs = [None, 123, [], {}, True, b"binary"]
 
         for invalid_input in invalid_inputs:
             with pytest.raises(TypeError, match="File path must be a string"):
@@ -223,12 +222,14 @@ class TestEarlyFailConditions:
         empty_paths = ["", "   ", "\t", "\n"]
 
         for empty_path in empty_paths:
-            with pytest.raises(ValueError, match="File path cannot be empty or whitespace"):
+            with pytest.raises(
+                ValueError, match="File path cannot be empty or whitespace"
+            ):
                 load_json(empty_path)
 
     def test_save_robot_file_early_fail_invalid_content_type(self):
         """Test that save_robot_file fails early for invalid content types."""
-        invalid_contents = [None, 123, [], {}, True, b'binary']
+        invalid_contents = [None, 123, [], {}, True, b"binary"]
 
         for invalid_content in invalid_contents:
             with pytest.raises(TypeError, match="Content must be a string"):
@@ -236,7 +237,7 @@ class TestEarlyFailConditions:
 
     def test_save_robot_file_early_fail_invalid_path_type(self):
         """Test that save_robot_file fails early for invalid path types."""
-        invalid_paths = [None, 123, [], {}, True, b'binary']
+        invalid_paths = [None, 123, [], {}, True, b"binary"]
 
         for invalid_path in invalid_paths:
             with pytest.raises(TypeError, match="File path must be a string"):
@@ -247,12 +248,14 @@ class TestEarlyFailConditions:
         empty_paths = ["", "   ", "\t", "\n"]
 
         for empty_path in empty_paths:
-            with pytest.raises(ValueError, match="File path cannot be empty or whitespace"):
+            with pytest.raises(
+                ValueError, match="File path cannot be empty or whitespace"
+            ):
                 save_robot_file("valid content", empty_path)
 
     def test_convert_to_robot_early_fail_invalid_input_type(self):
         """Test that convert_to_robot fails early for invalid input types."""
-        invalid_inputs = [None, 123, [], {}, True, b'binary']
+        invalid_inputs = [None, 123, [], {}, True, b"binary"]
 
         for invalid_input in invalid_inputs:
             with pytest.raises(TypeError, match="Input file path must be a string"):
@@ -260,7 +263,7 @@ class TestEarlyFailConditions:
 
     def test_convert_to_robot_early_fail_invalid_output_type(self):
         """Test that convert_to_robot fails early for invalid output types."""
-        invalid_outputs = [None, 123, [], {}, True, b'binary']
+        invalid_outputs = [None, 123, [], {}, True, b"binary"]
 
         for invalid_output in invalid_outputs:
             with pytest.raises(TypeError, match="Output file path must be a string"):
@@ -272,10 +275,14 @@ class TestEarlyFailConditions:
 
         # Test empty input path
         for empty_path in empty_paths:
-            with pytest.raises(ValueError, match="Input file path cannot be empty or whitespace"):
+            with pytest.raises(
+                ValueError, match="Input file path cannot be empty or whitespace"
+            ):
                 convert_to_robot(empty_path, "output.robot")
 
         # Test empty output path
         for empty_path in empty_paths:
-            with pytest.raises(ValueError, match="Output file path cannot be empty or whitespace"):
+            with pytest.raises(
+                ValueError, match="Output file path cannot be empty or whitespace"
+            ):
                 convert_to_robot("input.json", empty_path)
