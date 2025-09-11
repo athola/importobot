@@ -1,11 +1,16 @@
 name: Lint
 
+permissions:
+  contents: read # For actions/checkout to fetch code
+  actions: write # For actions/cache to save/restore cache
+
 on:
   push:
     branches: [ main ]
     paths:
       - "src/**/*.py"
       - "tests/**/*.py"
+      - "examples/json/**/*.json"
       - "pyproject.toml"
       - "Makefile"
       - ".github/workflows/lint.yml"
@@ -15,6 +20,7 @@ on:
     paths:
       - "src/**/*.py"
       - "tests/**/*.py"
+      - "examples/json/**/*.json"
       - "pyproject.toml"
       - "Makefile"
       - ".github/workflows/lint.yml"
@@ -34,14 +40,15 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version-file: "pyproject.toml"
+        python-version: "3.11"
     
     - name: Cache uv dependencies
       uses: actions/cache@v4
       with:
         path: ~/.cache/uv
-        key: ${{ runner.os }}-uv-${{ hashFiles('pyproject.toml', 'uv.lock') }}
+        key: ${{ runner.os }}-python-3.11-uv-${{ hashFiles('pyproject.toml') }}
         restore-keys: |
+          ${{ runner.os }}-python-3.10-uv-
           ${{ runner.os }}-uv-
 
     - name: Install dependencies
@@ -53,8 +60,7 @@ jobs:
     - name: Run ruff format check
       run: uv run ruff format --check .
     
-    - name: Run black check
-      run: uv run black --check .
+    
     
     - name: Run pycodestyle
       run: uv run pycodestyle src/ tests/

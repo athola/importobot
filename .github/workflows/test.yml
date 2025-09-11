@@ -1,5 +1,10 @@
 name: Test
 
+permissions:
+  contents: read # For actions/checkout to fetch code
+  actions: write # For actions/cache to save/restore cache
+  pull-requests: write # For codecov-action to post comments
+
 on:
   push:
     branches: [ main ]
@@ -25,6 +30,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
     
@@ -45,15 +51,22 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cache/uv
-        key: ${{ runner.os }}-uv-${{ hashFiles('pyproject.toml', 'uv.lock') }}
+        key: ${{ runner.os }}-python-${{ matrix.python-version }}-uv-${{ hashFiles('pyproject.toml') }}
         restore-keys: |
+          ${{ runner.os }}-python-${{ matrix.python-version }}-uv-
           ${{ runner.os }}-uv-
 
     - name: Install dependencies
       run: uv sync --dev
     
     - name: Run tests with coverage
-      run: uv run coverage run -m pytest
+      run: uv run coverage run -m pytest --junitxml=test-results.xml
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-${{ matrix.python-version }}
+        path: test-results.xml
     
     - name: Generate coverage report
       run: uv run coverage report
@@ -62,8 +75,15 @@ jobs:
       run: uv run coverage xml
     
     - name: Upload coverage to Codecov
+      if: ${{ secrets.CODECOV_TOKEN != '' }}
       uses: codecov/codecov-action@v4
       with:
         file: ./coverage.xml
         token: ${{ secrets.CODECOV_TOKEN }}
-        fail_ci_if_error: false
+        fail_ci_if_error: true
+
+    - name: Check for CODECOV_TOKEN
+      if: ${{ secrets.CODECOV_TOKEN == '' }}
+      run: |
+        echo "CODECOV_TOKEN secret is not set. Codecov upload will be skipped."
+        exit 1 # Fail the workflow if the token is missing

@@ -32,6 +32,7 @@ Built using **Test-Driven Development (TDD)** and **Extreme Programming (XP)** p
 #### Automated Quality Infrastructure
 - **GitHub Actions CI/CD**: Automated testing across Python 3.10, 3.11, 3.12
 - **Multi-Tool Linting**: ruff, black, pycodestyle, pydocstyle, pylint enforcement
+- **Test Report Artifacts**: JUnit XML test reports are generated and uploaded as build artifacts for detailed analysis.
 - **Coverage Reporting**: Codecov integration for comprehensive test coverage tracking
 - **Fast Package Management**: uv for 10-100x faster dependency resolution
 - **Organized Test Assets**: `examples/json/` directory for sample input files and documentation

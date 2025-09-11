@@ -10,7 +10,10 @@ def load_json(file_path: str) -> Dict[str, Any]:
     """Load test data from a JSON file."""
     try:
         with open(file_path, "r", encoding="utf-8") as f:
-            return json.load(f)
+            json_data = json.load(f)
+            if not isinstance(json_data, dict):
+                raise ValueError("JSON content must be a dictionary.")
+            return json_data
     except FileNotFoundError as e:
         raise FileNotFoundError(f"Could not find input file {file_path}") from e
     except json.JSONDecodeError as e:
