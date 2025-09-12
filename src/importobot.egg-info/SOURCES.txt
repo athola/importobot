@@ -3,6 +3,7 @@ pyproject.toml
 setup.cfg
 src/importobot/__init__.py
 src/importobot/__main__.py
+src/importobot/config.py
 src/importobot.egg-info/PKG-INFO
 src/importobot.egg-info/SOURCES.txt
 src/importobot.egg-info/dependency_links.txt
@@ -12,4 +13,6 @@ src/importobot.egg-info/top_level.txt
 src/importobot/core/__init__.py
 src/importobot/core/converter.py
 src/importobot/core/parser.py
+src/importobot/core/step_generators.py
 src/importobot/utils/__init__.py
+src/importobot/utils/validation.py

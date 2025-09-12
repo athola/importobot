@@ -87,8 +87,8 @@ User Login Functionality
     Page Should Contain    Login
     
     # Enter username 'testuser'
-    Input Text    id=username_field    testuser
-    Textfield Value Should Be    id=username_field    testuser
+    Input Text    id=username    testuser
+    Textfield Value Should Be    id=username    testuser
 ```
 
 ## Business Impact
@@ -169,7 +169,7 @@ uv run pytest
 # Convert a single Zephyr JSON file
 uv run importobot zephyr_export.json converted_tests.robot
 
-# Batch convert multiple files (coming soon)
+# Batch convert multiple files
 uv run importobot --batch input_folder/ output_folder/
 ```
 
@@ -213,8 +213,9 @@ Importobot supports environment variable configuration for security and flexibil
 
 ### Sample Files
 Example Zephyr JSON files are provided in `examples/json/` to help you understand the expected input format:
-- `examples/json/example_zephyr.json` - Basic Zephyr export format
-- `examples/json/new_zephyr_test_data.json` - Enhanced format with metadata
+- `examples/json/basic_login.json` - Basic login test format
+- `examples/json/browser_login.json` - Enhanced format with metadata
+- `examples/json/get_file.json` - File download test case
 
 ## Development
 
@@ -283,8 +284,8 @@ uv run ruff format .
 **Quality Achievements:**
 - ✅ **Perfect pylint score**: 10.00/10 with zero violations
 - ✅ **Comprehensive docstrings**: 100% pydocstyle compliance with imperative mood
-- ✅ **Complete test coverage**: 94 tests passing including integration tests with mock server
-- ✅ **Enhanced test infrastructure**: Dual-mode Robot Framework file parsing with improved validation
+- ✅ **Complete test coverage**: 129 tests passing including integration tests with mock server
+- ✅ **Enhanced test infrastructure**: Unified Robot Framework file parsing with improved validation
 - ✅ **Proper environment isolation**: Correct .venv exclusion in linting configuration
 
 ### Continuous Integration

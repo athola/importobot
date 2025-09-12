@@ -24,8 +24,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             <body>
                 <h1>Login</h1>
                 <form>
-                    <label for="username_field">Username:</label><br>
-                    <input type="text" id="username_field" name="username"><br>
+                    <label for="username">Username:</label><br>
+                    <input type="text" id="username" name="username"><br>
                     <label for="password_field">Password:</label><br>
                     <input type="password" id="password_field" name="password"><br><br>
                     <button type="button" id="login_button">Login</button>
