@@ -288,7 +288,8 @@ class JsonToRobotConverter:
         for split_char in split_points:
             # Look for split point that keeps first line under 88 chars
             for i in range(len(test_data)):
-                if test_data[i : i + len(split_char)] == split_char:
+                end_idx = i + len(split_char)
+                if test_data[i:end_idx] == split_char:
                     first_part = (
                         f"    # Test Data: {test_data[: i + len(split_char) - 1]}"
                     )
