@@ -2,7 +2,7 @@
 
 import json
 
-from importobot.core.converter import convert_to_robot
+from importobot.core.converter import convert_file
 
 
 def test_zephyr_to_robot_conversion_content_logic_only(tmp_path):
@@ -51,35 +51,37 @@ def test_zephyr_to_robot_conversion_content_logic_only(tmp_path):
     # This is what parser.py currently generates for the test case logic
     # Note: SSHLibrary is NOT included due to "Retrieve File From Remote Host" exclusion
     expected_robot_content = """*** Settings ***
-Documentation    Tests converted from JSON
-Library    SeleniumLibrary
-
+Documentation    To retrieve a file from a remote host using SSH.
+Force Tags    ssh
+Force Tags    file_transfer
+Force Tags    Medium
+Library    OperatingSystem
+Library    SSHLibrary
 *** Test Cases ***
-
 Retrieve File From Remote Host
-    [Documentation]    To retrieve a file from a remote host using SSH.
-    # Description: Open an SSH connection and log in to the remote host.
-    # Action: Remote Host: ${REMOTE_HOST}, Username: ${USERNAME}, Password: ${PASSWORD}
-    # Expected: Successfully connected and logged in to the remote host.
-    No Operation  # TODO: Implement step
-
-    # Description: Retrieve the specified file from the remote host.
-    # Action: Remote File Path: ${REMOTE_FILE_PATH}, Local Destination Path: \
-${LOCAL_DEST_PATH}
-    # Expected: File successfully downloaded to the local destination.
-    No Operation  # TODO: Implement step
-
-    # Description: Close the SSH connection.
-    # Action: N/A
-    # Expected: SSH connection closed.
-    No Operation  # TODO: Implement step"""
+[Documentation]    To retrieve a file from a remote host using SSH.
+# Step: Open an SSH connection and log in to the remote host.
+# Test Data: Remote Host: ${REMOTE_HOST}, Username: ${USERNAME},
+# Test Data (cont.): Password: ${PASSWORD}
+# Expected Result: Successfully connected and logged in to the remote host.
+Open Connection    ${REMOTE_HOST}    ${USERNAME}    ${PASSWORD}
+# Step: Retrieve the specified file from the remote host.
+# Test Data: Remote File Path: ${REMOTE_FILE_PATH},
+# Test Data (cont.): Local Destination Path: ${LOCAL_DEST_PATH}
+# Expected Result: File successfully downloaded to the local destination.
+Get File    ${REMOTE_FILE_PATH}    ${LOCAL_DEST_PATH}
+# Step: Close the SSH connection.
+# Test Data: N/A
+# Expected Result: SSH connection closed.
+Close Connection
+"""
 
     input_json_file = tmp_path / "zephyr_test_case.json"
     input_json_file.write_text(json.dumps(zephyr_json_content, indent=2))
 
     output_robot_file = tmp_path / "generated_robot_file.robot"
 
-    convert_to_robot(str(input_json_file), str(output_robot_file))
+    convert_file(str(input_json_file), str(output_robot_file))
 
     generated_content = output_robot_file.read_text()
 

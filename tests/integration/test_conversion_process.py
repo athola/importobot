@@ -4,7 +4,7 @@ import json
 import tempfile
 from pathlib import Path
 
-from importobot.core.converter import convert_to_robot
+from importobot.core.converter import convert_file
 
 
 class TestIntegration:
@@ -42,7 +42,7 @@ class TestIntegration:
 
         try:
             # Perform conversion
-            convert_to_robot(input_filename, output_filename)
+            convert_file(input_filename, output_filename)
 
             # Verify output
             with open(output_filename, "r", encoding="utf-8") as f:
@@ -50,8 +50,8 @@ class TestIntegration:
                 assert "*** Test Cases ***" in content
                 assert "Login Test" in content
                 assert "Test user login functionality" in content
-                assert "Open browser to login page" in content
-                assert "Login page is displayed" in content
+                assert "# Step: Open browser to login page" in content
+                assert "# Expected Result: Login page is displayed" in content
         finally:
             # Cleanup
             Path(input_filename).unlink(missing_ok=True)
@@ -72,7 +72,7 @@ class TestIntegration:
 
         try:
             # Perform conversion
-            convert_to_robot(input_filename, output_filename)
+            convert_file(input_filename, output_filename)
 
             # Verify output contains at least the basic structure
             with open(output_filename, "r", encoding="utf-8") as f:

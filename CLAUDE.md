@@ -67,7 +67,7 @@ The fail-fast approach is implemented throughout the codebase in:
 ### Source Code Organization
 - `src/importobot/`: Main source code following the Python package structure
   - `core/`: Contains core business logic separated by concern
-    - `parser.py`: Handles parsing of input format data (currently Zephyr JSON)
+    - `parser.py`: Handles parsing of input format data, now serving as the consolidated, intent-driven parser for all conversions.
     - `converter.py`: Manages file conversion operations, including loading and saving data
   - `__main__.py`: Entry point for the command-line interface
 
@@ -191,35 +191,170 @@ This project implements several security best practices:
 
 ## Project-Specific Conventions
 
-1. **Error Handling**: Core library functions (e.g., in `converter.py`, `parser.py`) should raise specific exceptions on failure. The main executable (`__main__.py`) is responsible for catching these exceptions and exiting with an appropriate status code. The `parser.py` module includes:
-   - `load_and_parse_json` for robust handling of JSON string inputs, raising `ValueError` for malformed JSON and `TypeError` if the parsed content is not a dictionary
-   - Comprehensive input validation with proper handling of None values and invalid data structures
-   - Enhanced Chrome browser setup with headless configuration for cross-platform compatibility
-   - Intelligent SSHLibrary import logic based on test content analysis
-   - Configurable test server URL via `IMPORTOBOT_TEST_SERVER_URL` environment variable (defaults to `http://localhost:8000`) to prevent hardcoded URLs
-   - Enhanced error handling with detailed error messages for malformed JSON, invalid data structures, and processing failures
-   - Input sanitization to prevent Robot Framework syntax errors from malformed step data
-   - Centralized configuration constants in `config.py` module to eliminate magic numbers and code duplication
-   - Modular step generation architecture with strategy pattern implementation in `step_generators.py`
-   - Comprehensive docstring coverage with pydocstyle compliance for all public methods and classes
-   - Enhanced test parsing utilities with dual-mode Robot Framework file analysis (test cases and keywords)
-   - Improved error handling with proper pylint configuration for virtual environment exclusion
-   - Complete code quality compliance with 10.00/10 pylint score and zero linting violations
+1. **Error Handling**: Core library functions (e.g., in `converter.py`, `parser.py`) should raise specific exceptions on failure. The main executable (`__main__.py`) is responsible for catching these exceptions and exiting with an appropriate status code. The `parser.py` module now serves as the consolidated, intent-driven parser, handling robust JSON parsing, input validation, and intelligent library detection.
 2. **CLI Argument Testing**: When testing command-line argument handling, do not mock `sys.exit`. Instead, use `pytest.raises(SystemExit)` and assert the `e.value.code` of the resulting exception. This correctly tests the behavior of `argparse` without causing unexpected side effects in the test's execution flow.
 3. **File Operations**: Use the dedicated functions in `converter.py` for file I/O operations.
 4. **Command-Line Interface**: All CLI functionality should be in `__main__.py` with core logic in separate modules.
 5. **Test Cleanup**: Tests should not leave behind artifacts; use pytest fixtures or try/finally blocks for cleanup.
 
-### Generating Functional Robot Framework Tests
+### Generic Test Case to Robot Framework Conversion Architecture
 
-To ensure the generated `.robot` files are executable and verifiable, the conversion process now includes:
+**Core Philosophy: Intent-Based Universal Conversion**
 
-1.  **Concrete Keyword Mapping**: `No Operation` placeholders are replaced with specific `SeleniumLibrary` keywords (e.g., `Go To`, `Input Text`, `Click Button`) using a modular strategy pattern implementation.
-2.  **Generic Locators**: Since Zephyr JSON does not provide UI element locators, generic `id` locators (e.g., `id=username_field`, `id=login_button`) are hardcoded into the generated Robot Framework steps. These are intended to be used with a controlled test environment (like a mock web server) where elements with these IDs are present.
-3.  **Basic Verification**: `expectedResult` fields from the Zephyr JSON are translated into `Page Should Contain` or `Textfield Value Should Be` keywords for basic assertion.
-4.  **Mock Server Integration**: Functional tests of the generated `.robot` files are performed against a mock web server (`tests/mock_server.py`) that serves a simple HTML page with the expected UI elements. This allows for end-to-end verification of the generated Robot Framework logic without relying on a live application.
-5.  **Handling Unmapped Steps**: Steps that cannot be mapped to a concrete Robot Framework keyword will generate a `Log` warning in the `.robot` file, indicating that manual implementation is required.
-6.  **Modular Step Generation**: The conversion process now uses a strategy pattern implementation with dedicated step generators for different action types (Navigation, Username Input, Password Input, Button Click, SSH operations) in `step_generators.py`.
+Instead of creating custom parsing logic for each specific test case format (get_file, login, API tests, etc.), the system employs a **generic, intent-driven approach** that can convert ANY test case JSON to valid Robot Framework keywords by focusing on the **desired end result** rather than the specific implementation details.
+
+#### Universal Conversion Strategy
+
+1. **Intent Recognition Engine**: The parser analyzes test step descriptions using Natural Language Processing patterns to identify **what the test intends to accomplish** rather than **how it's specifically written**:
+
+   ```python
+   # Instead of hardcoding: if "get_file.json" then generate file operations
+   # Use intent patterns: if step_description contains "download|retrieve|fetch" + "file" then generate file operations
+   
+   INTENT_PATTERNS = {
+       # Web automation intents
+       "navigate": r"(navigate to|go to|open|visit).*?(url|page|site|application)",
+       "input_data": r"(enter|input|type|fill).*?(username|password|text|data|field)",
+       "click_action": r"(click|press|tap|select).*?(button|link|element)",
+       "verify_content": r"(verify|check|assert|ensure|confirm).*?(contains|displays|shows)",
+       
+       # File operation intents  
+       "file_download": r"(download|retrieve|fetch|get).*?file",
+       "file_exists": r"(verify|check|ensure).*?file.*(exists|present)",
+       "file_cleanup": r"(remove|delete|clean|cleanup).*?file",
+       
+       # SSH/Remote operation intents
+       "ssh_connect": r"(connect|establish|open).*?(ssh|connection|remote)",
+       "ssh_transfer": r"(transfer|copy|retrieve|get).*?(file|data).*?(remote|ssh)",
+       "ssh_disconnect": r"(close|disconnect|terminate).*?(connection|ssh)",
+       
+       # API operation intents
+       "api_request": r"(send|make|execute).*?(request|call|api)",
+       "api_verify": r"(verify|check|assert).*?(response|status|data)",
+       
+       # Database operation intents
+       "db_query": r"(execute|run|query).*?(database|sql|query)",
+       "db_verify": r"(verify|check|validate).*?(database|table|data)"
+   }
+   ```
+
+2. **Universal Robot Framework Keyword Library Analysis**: The system maintains a comprehensive mapping of ALL available Robot Framework keywords across major libraries:
+
+   ```python
+   # Comprehensive Robot Framework library coverage
+   RF_KEYWORD_LIBRARIES = {
+       # SeleniumLibrary - Web automation
+       "web": {
+           "navigate": ["Open Browser", "Go To", "Location Should Be"],
+           "input": ["Input Text", "Input Password", "Set Window Size"],
+           "click": ["Click Element", "Click Button", "Click Link"],
+           "verify": ["Page Should Contain", "Element Should Be Visible", "Title Should Be"]
+       },
+       
+       # OperatingSystem - File operations
+       "file": {
+           "download": ["Run", "Run And Return Rc", "Run Process"],
+           "exists": ["File Should Exist", "File Should Not Exist", "Should Exist"],
+           "cleanup": ["Remove File", "Remove Directory", "Empty Directory"]
+       },
+       
+       # SSHLibrary - Remote operations  
+       "ssh": {
+           "connect": ["Open Connection", "Login", "Login With Public Key"],
+           "transfer": ["Get File", "Put File", "Get Directory"],
+           "execute": ["Execute Command", "Read", "Write"],
+           "disconnect": ["Close Connection", "Close All Connections"]
+       },
+       
+       # RequestsLibrary - API operations
+       "api": {
+           "request": ["GET On Session", "POST On Session", "PUT On Session", "DELETE On Session"],
+           "verify": ["Status Should Be", "Should Be Equal", "Response Should Contain"]
+       },
+       
+       # DatabaseLibrary - Database operations
+       "database": {
+           "query": ["Execute Sql String", "Query", "Connect To Database"],
+           "verify": ["Row Count Should Be", "Table Must Exist", "Check If Exists In Database"]
+       }
+   }
+   ```
+
+3. **Context-Aware Argument Extraction**: Instead of hardcoding argument extraction for specific formats, use **generic pattern matching** to extract arguments from any test data structure:
+
+   ```python
+   def extract_arguments_generically(test_data: str, keyword_intent: str) -> List[str]:
+       """
+       Extract arguments for any Robot Framework keyword based on intent and common patterns
+       """
+       patterns = {
+           "urls": r"(?:https?://|www\.)[^\s,]+",
+           "file_paths": r"[/\\]?[a-zA-Z0-9._/-]+\.[a-zA-Z0-9]+",
+           "element_selectors": r"(?:id|class|xpath|css)=[\w\-_#.]+",
+           "credentials": r"(?:username|password|user|pwd):\s*([^\s,]+)",
+           "commands": r"(?:command|cmd):\s*(.+)",
+           "expected_values": r"(?:expected|should|verify):\s*(.+)"
+       }
+       
+       # Generic argument extraction based on keyword intent
+       if keyword_intent == "navigate":
+           return extract_pattern(test_data, patterns["urls"])
+       elif keyword_intent == "file_operations":
+           return extract_pattern(test_data, patterns["file_paths"]) 
+       elif keyword_intent == "ssh_operations":
+           return extract_credentials_and_paths(test_data)
+       # ... more generic extraction logic
+   ```
+
+4. **Dynamic Library Import Detection**: Automatically determine which Robot Framework libraries to import based on detected intents:
+
+   ```python
+   def determine_required_libraries(detected_intents: List[str]) -> List[str]:
+       """
+       Automatically determine which Robot Framework libraries are needed
+       """
+       library_mapping = {
+           "web_intents": ["SeleniumLibrary"],
+           "file_intents": ["OperatingSystem", "Process"],
+           "ssh_intents": ["SSHLibrary"],
+           "api_intents": ["RequestsLibrary", "Collections"],
+           "database_intents": ["DatabaseLibrary"]
+       }
+       
+       required_libraries = set()
+       for intent in detected_intents:
+           for category, libraries in library_mapping.items():
+               if intent in INTENT_CATEGORIES[category]:
+                   required_libraries.update(libraries)
+       
+       return sorted(required_libraries)
+   ```
+
+5. **Fallback and Extension Mechanisms**: When specific intents cannot be mapped, provide intelligent fallbacks:
+
+   ```python
+   def generate_fallback_keywords(unmapped_step: dict) -> List[str]:
+       """
+       Generate intelligent fallbacks for unmapped test steps
+       """
+       fallbacks = [
+           f"Log    Executing step: {unmapped_step['description']}",
+           f"Log    Test data: {unmapped_step.get('testData', 'N/A')}",
+           f"Log    Expected result: {unmapped_step.get('expectedResult', 'N/A')}"
+       ]
+       
+       return fallbacks
+   ```
+
+#### Implementation Benefits
+
+- **Future-Proof**: New test case formats automatically work without code changes
+- **Maintainable**: Single conversion engine instead of format-specific parsers  
+- **Comprehensive**: Covers all major Robot Framework libraries and use cases
+- **Intelligent**: Provides meaningful fallbacks and suggestions for edge cases
+- **Extensible**: Easy to add new intent patterns and keyword mappings
+
+This approach transforms Importobot from a **format-specific converter** into a **universal test automation translation engine** that can handle any test case structure and produce executable Robot Framework code.
 
 ## Dependencies and Tooling
 

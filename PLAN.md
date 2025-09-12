@@ -18,12 +18,12 @@ To become the **universal automation solution** for test framework migration to 
 - **Zephyr JSON Format**: Fully automated conversion from Zephyr JSON exports to functional Robot Framework tests
 - **Zero Manual Steps**: Complete test suites convert with single command execution
 - **Production Quality**: Generated tests include concrete SeleniumLibrary keywords and executable verification points with enhanced Chrome browser setup
-- **Intelligent Library Management**: Automatic SSHLibrary import based on test content analysis
+- **Intelligent Library Management**: Automatic Robot Framework library import based on intent-driven content analysis via the consolidated parser
 - **Robust Input Validation**: Comprehensive JSON validation with proper error handling for malformed data
 - **Cross-Platform Compatibility**: Headless Chrome configuration for reliable execution across environments
 - **Batch Capable**: Handles large test suites efficiently with consistent quality
 - **Perfect Code Quality**: 10.00/10 pylint score with comprehensive docstring coverage and zero linting violations
-- **Enhanced Test Infrastructure**: Dual-mode Robot Framework file parsing with improved integration test execution
+- **Enhanced Test Infrastructure**: Unified Robot Framework file parsing with improved integration test execution
 - **Comprehensive Documentation**: Complete pydocstyle compliance with imperative mood docstrings for all public APIs
 
 ### Development Methodology & Infrastructure
