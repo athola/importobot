@@ -8,7 +8,9 @@ from unittest.mock import mock_open, patch
 import pytest
 
 from importobot.core.converter import (
-    convert_to_robot,
+    convert_directory,
+    convert_file,
+    convert_multiple_files,
     load_json,
     save_robot_file,
 )
@@ -56,16 +58,17 @@ class TestFileConverter:
 
     @patch("importobot.core.converter.load_json")
     @patch("importobot.core.converter.save_robot_file")
-    @patch("importobot.core.converter.parse_json")
-    def test_full_conversion_success(self, mock_parse, mock_save, mock_load):
+    @patch("importobot.core.converter.JsonToRobotConverter")
+    def test_full_conversion_success(self, mock_converter_class, mock_save, mock_load):
         """Tests the end-to-end conversion process with mocks."""
         mock_load.return_value = {"tests": []}
-        mock_parse.return_value = "*** Test Cases ***"
+        mock_converter = mock_converter_class.return_value
+        mock_converter.convert_json_data.return_value = "*** Test Cases ***"
 
-        convert_to_robot("input.json", "output.robot")
+        convert_file("input.json", "output.robot")
 
         mock_load.assert_called_once_with("input.json")
-        mock_parse.assert_called_once_with({"tests": []})
+        mock_converter.convert_json_data.assert_called_once_with({"tests": []})
         mock_save.assert_called_once_with("*** Test Cases ***", "output.robot")
 
     @patch("importobot.core.converter.load_json")
@@ -74,7 +77,7 @@ class TestFileConverter:
         mock_load.side_effect = FileNotFoundError("File not found")
 
         with pytest.raises(FileNotFoundError):
-            convert_to_robot("nonexistent.json", "output.robot")
+            convert_file("nonexistent.json", "output.robot")
 
     def test_load_json_handles_various_malformed_json(self):
         """Verifies ValueError is raised for various malformed JSON scenarios."""
@@ -144,27 +147,31 @@ class TestFileConverter:
             assert call_args[0][0].endswith("output.robot")
             mock_file().write.assert_called_once_with(special_content)
 
-    @patch("importobot.core.converter.parse_json")
-    def test_convert_propagates_parse_errors(self, mock_parse):
+    @patch("importobot.core.converter.JsonToRobotConverter")
+    def test_convert_propagates_parse_errors(self, mock_converter_class):
         """Ensures parser errors propagate through conversion process."""
         with patch("importobot.core.converter.load_json", return_value={}):
-            mock_parse.side_effect = AttributeError("Invalid data structure")
+            mock_converter = mock_converter_class.return_value
+            mock_converter.convert_json_data.side_effect = AttributeError(
+                "Invalid data structure"
+            )
 
             with pytest.raises(AttributeError):
-                convert_to_robot("input.json", "output.robot")
+                convert_file("input.json", "output.robot")
 
     @patch("importobot.core.converter.load_json")
-    @patch("importobot.core.converter.parse_json")
-    def test_convert_propagates_save_errors(self, mock_parse, mock_load):
+    @patch("importobot.core.converter.JsonToRobotConverter")
+    def test_convert_propagates_save_errors(self, mock_converter_class, mock_load):
         """Ensures save errors propagate through conversion process."""
         mock_load.return_value = {"tests": []}
-        mock_parse.return_value = "*** Test Cases ***"
+        mock_converter = mock_converter_class.return_value
+        mock_converter.convert_json_data.return_value = "*** Test Cases ***"
 
         with patch("importobot.core.converter.save_robot_file") as mock_save:
             mock_save.side_effect = IOError("Write failed")
 
             with pytest.raises(IOError):
-                convert_to_robot("input.json", "output.robot")
+                convert_file("input.json", "output.robot")
 
     def test_load_json_with_extremely_large_file(self):
         """Verifies handling of memory issues with large files."""
@@ -253,24 +260,24 @@ class TestEarlyFailConditions:
             ):
                 save_robot_file("valid content", empty_path)
 
-    def test_convert_to_robot_early_fail_invalid_input_type(self):
-        """Test that convert_to_robot fails early for invalid input types."""
+    def test_convert_file_early_fail_invalid_input_type(self):
+        """Test that convert_file fails early for invalid input types."""
         invalid_inputs = [None, 123, [], {}, True, b"binary"]
 
         for invalid_input in invalid_inputs:
             with pytest.raises(TypeError, match="Input file path must be a string"):
-                convert_to_robot(invalid_input, "output.robot")
+                convert_file(invalid_input, "output.robot")
 
-    def test_convert_to_robot_early_fail_invalid_output_type(self):
-        """Test that convert_to_robot fails early for invalid output types."""
+    def test_convert_file_early_fail_invalid_output_type(self):
+        """Test that convert_file fails early for invalid output types."""
         invalid_outputs = [None, 123, [], {}, True, b"binary"]
 
         for invalid_output in invalid_outputs:
             with pytest.raises(TypeError, match="Output file path must be a string"):
-                convert_to_robot("input.json", invalid_output)
+                convert_file("input.json", invalid_output)
 
-    def test_convert_to_robot_early_fail_empty_paths(self):
-        """Test that convert_to_robot fails early for empty paths."""
+    def test_convert_file_early_fail_empty_paths(self):
+        """Test that convert_file fails early for empty paths."""
         empty_paths = ["", "   ", "\t", "\n"]
 
         # Test empty input path
@@ -278,11 +285,165 @@ class TestEarlyFailConditions:
             with pytest.raises(
                 ValueError, match="Input file path cannot be empty or whitespace"
             ):
-                convert_to_robot(empty_path, "output.robot")
+                convert_file(empty_path, "output.robot")
 
         # Test empty output path
         for empty_path in empty_paths:
             with pytest.raises(
                 ValueError, match="Output file path cannot be empty or whitespace"
             ):
-                convert_to_robot("input.json", empty_path)
+                convert_file("input.json", empty_path)
+
+
+class TestBulkFileConverter:
+    """Tests for bulk file conversion functionality."""
+
+    @patch("os.makedirs")
+    @patch("importobot.core.converter.convert_file")
+    def test_convert_multiple_files_success(self, mock_convert, _mock_makedirs):
+        """Tests converting multiple files to individual robot files."""
+        input_files = ["test1.json", "test2.json", "test3.json"]
+        output_dir = "/output"
+
+        convert_multiple_files(input_files, output_dir)
+
+        expected_calls = [
+            ("test1.json", "/output/test1.robot"),
+            ("test2.json", "/output/test2.robot"),
+            ("test3.json", "/output/test3.robot"),
+        ]
+        assert mock_convert.call_count == 3
+        for call in expected_calls:
+            assert call in [tuple(args) for args, _ in mock_convert.call_args_list]
+
+    @patch("os.makedirs")
+    @patch("importobot.core.converter.convert_file")
+    def test_convert_multiple_files_handles_conversion_error(
+        self, mock_convert, _mock_makedirs
+    ):
+        """Tests that conversion errors are properly handled for multiple files."""
+        mock_convert.side_effect = [None, ValueError("Invalid JSON"), None]
+        input_files = ["test1.json", "test2.json", "test3.json"]
+
+        with pytest.raises(ValueError, match="Invalid JSON"):
+            convert_multiple_files(input_files, "/output")
+
+    @patch("os.makedirs")
+    @patch("importobot.core.converter.convert_file")
+    def test_convert_multiple_files_creates_output_directory(
+        self, _mock_convert, mock_makedirs
+    ):
+        """Tests that output directory is created if it doesn't exist."""
+        input_files = ["test1.json"]
+        output_dir = "/new_output"
+
+        convert_multiple_files(input_files, output_dir)
+
+        mock_makedirs.assert_called_once_with(output_dir, exist_ok=True)
+
+    def test_convert_directory_success(self):
+        """Tests converting all JSON files in a directory."""
+        sample_json_data = {"tests": []}
+
+        with TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            input_dir = temp_path / "input"
+            input_dir.mkdir()
+
+            # Create test files
+            (input_dir / "test1.json").write_text(json.dumps(sample_json_data))
+            (input_dir / "test2.json").write_text(json.dumps(sample_json_data))
+            (input_dir / "not_json.txt").write_text("not json")
+            (input_dir / "test3.json").write_text(json.dumps(sample_json_data))
+
+            output_dir = temp_path / "output"
+            output_dir.mkdir()
+
+            convert_directory(str(input_dir), str(output_dir))
+
+            # Assert that the correct robot files are created
+            output_files = list(output_dir.glob("*.robot"))
+            assert len(output_files) == 3
+            assert (output_dir / "test1.robot").exists()
+            assert (output_dir / "test2.robot").exists()
+            assert (output_dir / "test3.robot").exists()
+
+    @patch("os.listdir")
+    def test_convert_directory_handles_empty_directory(self, mock_listdir):
+        """Tests handling of directory with no JSON files."""
+        mock_listdir.return_value = ["not_json.txt", "also_not.py"]
+
+        with pytest.raises(ValueError, match="No JSON files found"):
+            convert_directory("/empty", "/output")
+
+    def test_convert_directory_handles_directory_not_found(self):
+        """Tests handling of non-existent directory."""
+        with pytest.raises(
+            ValueError, match="No JSON files found in directory: /nonexistent"
+        ):
+            convert_directory("/nonexistent", "/output")
+
+    def test_convert_directory_filters_json_files_only(self):
+        """Tests that only JSON files are selected for conversion."""
+        sample_json_data = {"tests": []}
+
+        with TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            input_dir = temp_path / "input"
+            input_dir.mkdir()
+
+            # Create files with different extensions
+            (input_dir / "test.json").write_text(json.dumps(sample_json_data))
+            (input_dir / "data.JSON").write_text(json.dumps(sample_json_data))
+            (input_dir / "config.xml").write_text("<config/>")
+            (input_dir / "readme.md").write_text("# Readme")
+            (input_dir / "other.json").write_text(json.dumps(sample_json_data))
+
+            output_dir = temp_path / "output"
+            output_dir.mkdir()
+
+            convert_directory(str(input_dir), str(output_dir))
+
+            # Assert that only JSON files were converted
+            output_files = list(output_dir.glob("*.robot"))
+            assert len(output_files) == 3
+            assert (output_dir / "test.robot").exists()
+            assert (output_dir / "data.robot").exists()
+            assert (output_dir / "other.robot").exists()
+
+    def test_convert_multiple_files_early_fail_invalid_input_type(self):
+        """Tests early fail for invalid input files parameter."""
+        invalid_inputs = [None, "string", 123, {}, True]
+
+        for invalid_input in invalid_inputs:
+            with pytest.raises(TypeError, match="Input files must be a list"):
+                convert_multiple_files(invalid_input, "/output")
+
+    def test_convert_multiple_files_early_fail_empty_list(self):
+        """Tests early fail for empty input files list."""
+        with pytest.raises(ValueError, match="Input files list cannot be empty"):
+            convert_multiple_files([], "/output")
+
+    def test_convert_multiple_files_early_fail_invalid_output_type(self):
+        """Tests early fail for invalid output directory parameter."""
+        invalid_outputs = [None, 123, [], {}, True]
+
+        for invalid_output in invalid_outputs:
+            with pytest.raises(TypeError, match="Output directory must be a string"):
+                convert_multiple_files(["test.json"], invalid_output)
+
+    def test_convert_directory_early_fail_invalid_input_type(self):
+        """Tests early fail for invalid input directory parameter."""
+        invalid_inputs = [None, 123, [], {}, True]
+
+        for invalid_input in invalid_inputs:
+            with pytest.raises(TypeError, match="Input directory must be a string"):
+                convert_directory(invalid_input, "/output")
+
+    def test_convert_directory_early_fail_invalid_output_type(self):
+        """Tests early fail for invalid output directory parameter."""
+        invalid_outputs = [None, 123, [], {}, True]
+
+        for invalid_output in invalid_outputs:
+            with pytest.raises(TypeError, match="Output directory must be a string"):
+                convert_directory("/input", invalid_output)

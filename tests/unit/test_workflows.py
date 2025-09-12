@@ -178,7 +178,7 @@ class TestGitHubWorkflows:
 
             # Check for common actions that should be pinned
             if "actions/checkout@" in content:
-                assert "@v4" in content or "@v3" in content, (
+                assert "@v4" in content or "@v3" in content or "@v5" in content, (
                     f"checkout action in {workflow_file.name} should use pinned version"
                 )
 
