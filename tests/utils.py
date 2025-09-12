@@ -46,7 +46,5 @@ def parse_robot_file(file_path: str) -> List[Dict[str, Any]]:
     for test in suite.tests:
         test_info = {"name": test.name, "keywords": _extract_keywords(test)}
         result.append(test_info)
-        # Also add individual keywords to maintain backward compatibility
-        result.extend(_extract_keywords(test))
 
     return result

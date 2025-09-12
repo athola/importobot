@@ -13,6 +13,8 @@ help:
 	@echo "  format    - Format code with ruff"
 	@echo "  check     - Run ruff check and format check"
 	@echo "  clean     - Clean up temporary files"
+	@echo "  example   - Run converter with example data"
+	@echo "  example-login - Convert login test and verify with Robot Framework"
 
 # Install development dependencies
 .PHONY: init
@@ -61,8 +63,25 @@ clean:
 	rm -rf .coverage
 	rm -rf htmlcov/
 	rm -rf *.egg-info/
+	rm -f examples/robot/*.robot
+	rm -f output.xml log.html report.html selenium-screenshot-*.png
 
 # Run the converter with example data
 .PHONY: example
 example:
-	uv run importobot examples/json/new_zephyr_test_data.json example_output.robot
+	uv run importobot examples/json/basic_login.json examples/robot/basic_example.robot
+
+# Run the converter with login test example and demonstrate Robot Framework execution
+.PHONY: example-login
+example-login:
+	@echo "Converting login test case to Robot Framework format..."
+	uv run importobot examples/json/browser_login.json examples/robot/login_example.robot
+	@echo "Conversion complete! Generated file: login_example.robot"
+	@echo ""
+	@echo "Generated Robot Framework test case:"
+	@echo "======================================"
+	@cat login_example.robot
+	@echo ""
+	@echo "Running Robot Framework test to verify it works:"
+	@echo "================================================"
+	uv run robot --dryrun examples/robot/login_example.robot

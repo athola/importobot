@@ -1,0 +1,37 @@
+{
+  "projectKey": "PROJ",
+  "name": "Verify Remote File Download",
+  "description": "This test case verifies the successful download of a file from a specified remote location.",
+  "priority": "High",
+  "labels": ["remote_access", "file_transfer", "download"],
+  "testScript": {
+    "type": "STEP_BY_STEP",
+    "steps": [
+      {
+        "step": "Identify the remote file URL and destination path.",
+        "testData": "Remote URL: https://example.com/path/to/remote_file.txt, Destination Path: /tmp/downloaded_file.txt",
+        "expectedResult": "Remote URL and destination path are correctly identified."
+      },
+      {
+        "step": "Initiate file download from the remote URL to the destination path using a suitable method (e.g., cURL, wget, API call).",
+        "testData": "Command: curl -o /tmp/downloaded_file.txt https://example.com/path/to/remote_file.txt",
+        "expectedResult": "File download initiated successfully without errors."
+      },
+      {
+        "step": "Verify the downloaded file exists at the destination path.",
+        "testData": "Check for file existence at /tmp/downloaded_file.txt",
+        "expectedResult": "The file 'downloaded_file.txt' is present at /tmp/."
+      },
+      {
+        "step": "Verify the integrity of the downloaded file (e.g., checksum, file size comparison).",
+        "testData": "Compare MD5 checksum of downloaded file with expected checksum.",
+        "expectedResult": "Downloaded file's integrity matches the expected integrity."
+      },
+      {
+        "step": "Clean up the downloaded file from the local system.",
+        "testData": "Command: rm /tmp/downloaded_file.txt",
+        "expectedResult": "Downloaded file is successfully removed from the local system."
+      }
+    ]
+  }
+}
