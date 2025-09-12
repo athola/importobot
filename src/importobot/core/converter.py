@@ -288,8 +288,10 @@ class JsonToRobotConverter:
         for split_char in split_points:
             # Look for split point that keeps first line under 88 chars
             for i in range(len(test_data)):
-                if test_data[i:i+len(split_char)] == split_char:
-                    first_part = f"    # Test Data: {test_data[:i+len(split_char)-1]}"
+                if test_data[i:i + len(split_char)] == split_char:
+                    first_part = (
+                        f"    # Test Data: {test_data[: i + len(split_char) - 1]}"
+                    )
                     if len(first_part) <= 88:
                         best_split = i + len(split_char) - 1
                     else:
@@ -302,7 +304,7 @@ class JsonToRobotConverter:
             second_part = test_data[best_split:].lstrip()
             return [
                 f"    # Test Data: {first_part}",
-                f"    # Test Data (cont.): {second_part}"
+                f"    # Test Data (cont.): {second_part}",
             ]
 
         # Fallback: split at 75 chars to leave room for prefix
@@ -311,7 +313,7 @@ class JsonToRobotConverter:
         second_part = test_data[split_point:].lstrip()
         return [
             f"    # Test Data: {first_part}",
-            f"    # Test Data (cont.): {second_part}"
+            f"    # Test Data (cont.): {second_part}",
         ]
 
     def _determine_robot_keyword(
@@ -375,10 +377,20 @@ class JsonToRobotConverter:
         }
 
     def _browser_keyword(self, test_data: str) -> str:
-        """Generate browser opening keyword."""
+        """Generate browser opening keyword with Chrome options for CI/headless."""
         url_match = re.search(r"https?://[^\s,]+", test_data)
         url = url_match.group(0) if url_match else config.TEST_LOGIN_URL
-        return f"Open Browser    {url}    chrome"
+        # Add Chrome options to prevent session conflicts in CI/testing environments
+        # Using the correct format for SeleniumLibrary Chrome options
+        chrome_options = (
+            "add_argument('--no-sandbox'); "
+            "add_argument('--disable-dev-shm-usage'); "
+            "add_argument('--disable-gpu'); "
+            "add_argument('--headless'); "
+            "add_argument('--disable-web-security'); "
+            "add_argument('--allow-running-insecure-content')"
+        )
+        return f"Open Browser    {url}    chrome    options={chrome_options}"
 
     def _url_keyword(self, test_data: str) -> str:
         """Generate URL navigation keyword."""
