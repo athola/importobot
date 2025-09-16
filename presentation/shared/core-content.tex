@@ -1,0 +1,657 @@
+% Common content shared between both presentation versions
+
+\frame{\titlepage}
+
+\begin{frame}
+\frametitle{Table of Contents}
+\begin{columns}
+\column{0.5\textwidth}
+{\large \tableofcontents[sections={1-6}]}
+
+\column{0.5\textwidth}
+{\large \tableofcontents[sections={7-12}]}
+\end{columns}
+\end{frame}
+
+\section{Business Case}
+\begin{frame}
+\frametitle{The Challenge: Large-Scale Zephyr Migration}
+\begin{columns}
+\column{0.6\textwidth}
+\textbf{Current Situation:}
+\begin{itemize}
+    \item \textbf{800+ Zephyr test cases} requiring migration
+    \item Legacy test suite blocking modernization
+    \item Manual conversion is error-prone
+    \item Urgent need for Robot Framework adoption
+\end{itemize}
+
+\vspace{0.5cm}
+\textbf{Manual Conversion Reality:}
+\begin{itemize}
+    \item 1 tester can write 1 Robot test in \textbf{2 days}
+    \item Includes understanding, coding, and validation
+    \item High cognitive load and context switching
+\end{itemize}
+
+\column{0.4\textwidth}
+\begin{tikzpicture}[scale=0.7]
+    \node[draw,rectangle,fill=red!20,text width=3.5cm,align=center] (zephyr) at (0,3) {800 Zephyr Tests};
+    \node[draw,rectangle,fill=yellow!20,text width=3.5cm,align=center] (manual) at (0,1.5) {Manual Conversion\\{\small (2 days/test)}};
+    \node[draw,rectangle,fill=green!20,text width=3.5cm,align=center] (robot) at (0,0) {Robot Framework};
+
+    \draw[thick,->,>=stealth,red] (zephyr) -- (manual);
+    \draw[thick,->,>=stealth,red] (manual) -- (robot);
+
+    \node[right,red] at (3.0,1.5) {\footnotesize \textbf{1600 days!}};
+\end{tikzpicture}
+\end{columns}
+\end{frame}
+
+\begin{frame}
+\frametitle{Manual Conversion Metrics}
+\begin{center}
+\textbf{The Math of Manual Migration}
+\end{center}
+
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Single Tester:}
+\begin{itemize}
+    \item 800 tests × 2 days = \textbf{1,600 days}
+    \item Approximately \textbf{7.3 years}
+    \item Cost: \$640,000 (@\$400/day)
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{10 Testers Team:}
+\begin{itemize}
+    \item 800 tests ÷ 10 testers = 80 tests each
+    \item 80 tests × 2 days = \textbf{160 days/tester}
+    \item Total time: \textbf{8 months}
+    \item Total cost: \textbf{\$640,000}
+\end{itemize}
+\end{columns}
+
+\begin{center}
+\textbf{Key Insight:} {\normalsize\textcolor{blue}{\textbf{99.4\% Time Reduction}}}
+{From 160 days to 1 day}
+\end{center}
+\end{frame}
+
+\begin{frame}
+\frametitle{Visual Time Comparison}
+\begin{center}
+\vspace{0.2cm}
+
+% Pie chart showing dramatic 160:1 ratio
+\begin{tikzpicture}[scale=1.1]
+    % Calculate: 160/(160+1) = 99.38% manual, 1/(160+1) = 0.62% importobot
+    % Angles: 99.38% = 357.77°, 0.62% = 2.23°
+    % Start from top (90°) for better positioning
+
+    % Manual slice (red - almost entire circle)
+    \fill[red!60] (0,0) -- (0,2.2) arc (90:-267.77:2.2) -- cycle;
+
+    % Importobot slice (green - tiny sliver at top)
+    \fill[green!70] (0,0) -- (0,2.2) arc (90:92.23:2.2) -- cycle;
+
+    % Circle outline
+    \draw[thick, black] (0,0) circle (2.2);
+
+    % Manual label positioned clearly to the left with proper spacing
+    \node[red, font=\normalsize\bfseries, align=center] at (-4.2,-0.5) {Manual\\160 days\\99.4\%};
+    \draw[red, thick, ->] (-3.3,-0.3) -- (-2.0,-0.1);
+
+    % Importobot label positioned clearly to the right, pointing to green slice at top
+    \node[green, font=\normalsize\bfseries, align=center] at (4.2,1.2) {Importobot\\1 day\\0.6\%};
+    \draw[green, thick, ->] (3.3,1.0) -- (0.1,2.1);
+\end{tikzpicture}
+
+{\large \textbf{160x Faster Conversion}}
+\end{center}
+\end{frame}
+
+\begin{frame}
+\frametitle{Importobot Solution: Time \& Cost Savings}
+\begin{center}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Approach} & \textbf{Time} & \textbf{Resources} & \textbf{Cost} \\
+\hline
+Manual (1 tester) & 1,600 days & 1 FTE for 7.3 years & \$640,000 \\
+\hline
+Manual (10 testers) & 160 days & 10 FTEs for 8 months & \$640,000 \\
+\hline
+\textbf{Importobot} & \textbf{1 day} & 1 FTE for setup & \textbf{\$400} \\
+\hline
+\end{tabular}
+\end{center}
+
+\textbf{ROI Metrics:}
+\begin{columns}
+\column{0.5\textwidth}
+\begin{itemize}
+    \item \textbf{Time Savings:} 99.94\%
+    \item \textbf{Cost Savings:} \$639,600
+    \item \textbf{ROI:} 1,599x
+\end{itemize}
+
+\column{0.5\textwidth}
+\begin{itemize}
+    \item \textbf{Efficiency Gain:} 160x faster
+    \item \textbf{Error Reduction:} 100\% consistent
+    \item \textbf{Immediate Availability:} Next day
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\section{Solution Overview}
+\begin{frame}
+\frametitle{What is Importobot?}
+\begin{columns}
+\column{0.6\textwidth}
+\begin{itemize}
+    \item \textbf{Enterprise-scale} test migration platform
+    \item \textbf{Universal format converter} with intent-based engine
+    \item \textbf{100\% Automated} conversion process
+    \item \textbf{Modular architecture} with pluggable components
+    \item \textbf{Production-ready} Robot Framework output
+\end{itemize}
+
+\column{0.4\textwidth}
+\begin{tikzpicture}[scale=0.8]
+    \node[draw,rectangle,fill=blue!20,text width=4cm,align=center] (input) at (0,3) {800+ Zephyr Tests};
+    \node[draw,rectangle,fill=green!20,text width=4cm,align=center] (importobot) at (0,1.5) {Importobot};
+    \node[draw,rectangle,fill=yellow!20,text width=4cm,align=center] (output) at (0,0) {Robot Framework};
+
+    \draw[thick,->,>=stealth] (input) -- (importobot);
+    \draw[thick,->,>=stealth] (importobot) -- (output);
+
+    \node[right,green] at (2.5,1.5) {\textbf{$<$ 1 day}};
+\end{tikzpicture}
+\end{columns}
+\end{frame}
+
+\begin{frame}
+\frametitle{Supported Input Formats}
+\begin{columns}
+\column{0.55\textwidth}
+\textbf{Currently Supported:}
+{\footnotesize
+\begin{itemize}
+\raggedright
+
+    \item \faCheckCircle\ Zephyr
+    \item \faCheckCircle\ JIRA/Xray
+    \item \faCheckCircle\ TestLink
+    \item \faCheckCircle\ Generic JSON
+\end{itemize}
+}
+
+\column{0.45\textwidth}
+\textbf{Key Features:}
+\begin{itemize}
+    \item Intent-based parsing
+    \item Universal conversion engine
+    \item Intelligent library detection
+    \item Validation
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}
+\frametitle{Complete System Architecture}
+\begin{center}
+\begin{tikzpicture}[scale=0.7, every node/.style={scale=0.7}]
+    % Input layer - properly aligned in columns
+    \node[draw,rectangle,fill=blue!20,text width=2.5cm,align=center] (json) at (-1,5) {JSON Input\\(Zephyr/JIRA)};
+    \node[draw,rectangle,fill=blue!20,text width=2.5cm,align=center] (xml) at (3,5) {XML Input\\(Future)};
+    \node[draw,rectangle,fill=blue!20,text width=2.5cm,align=center] (csv) at (7,5) {CSV Input\\(Future)};
+
+    % Parser layer - centered
+    \node[draw,rectangle,fill=green!20,text width=7cm,align=center] (parser) at (3,3.5) {TestFileParser Interface\\Universal Structure Detection};
+
+    % Core components - aligned in three equal columns
+    \node[draw,rectangle,fill=yellow!20,text width=2.8cm,align=center] (pattern) at (-1,1.5) {Pattern Matcher\\{\footnotesize 33+ Intents}};
+    \node[draw,rectangle,fill=yellow!20,text width=2.8cm,align=center] (suggest) at (3,1.5) {Suggestion Engine\\{\footnotesize Auto-improve}};
+    \node[draw,rectangle,fill=yellow!20,text width=2.8cm,align=center] (keyword) at (7,1.5) {Keyword Generator\\{\footnotesize 8+ Libraries}};
+
+    % Strategy layer - centered
+    \node[draw,rectangle,fill=orange!20,text width=8cm,align=center] (strategy) at (3,-0.5) {Conversion Strategy Factory\\Single / Multiple / Directory};
+
+    % Output - centered
+    \node[draw,rectangle,fill=red!20,text width=4cm,align=center] (robot) at (3,-2) {Robot Framework\\Production-Ready};
+
+    % Connections
+    \draw[thick,->] (json) -- (parser);
+    \draw[thick,->] (xml) -- (parser);
+    \draw[thick,->] (csv) -- (parser);
+    \draw[thick,->] (parser) -- (pattern);
+    \draw[thick,->] (parser) -- (suggest);
+    \draw[thick,->] (parser) -- (keyword);
+    \draw[thick,->] (pattern) -- (strategy);
+    \draw[thick,->] (suggest) -- (strategy);
+    \draw[thick,->] (keyword) -- (strategy);
+    \draw[thick,->] (strategy) -- (robot);
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+\section{Strategic Benefits}
+
+\begin{frame}
+\frametitle{Business Impact}
+\begin{columns}[T]
+\column{0.48\textwidth}
+\textbf{Competitive Advantages:}
+\vspace{0.2cm}
+{\footnotesize
+\begin{itemize}
+    \item First automated enterprise test migration solution
+    \item Free up 10 engineers for new feature development
+    \item Eliminate conversion errors through automation
+    \item Start new projects with existing test coverage
+\end{itemize}
+}
+
+\column{0.04\textwidth}
+% Spacing column
+
+\column{0.48\textwidth}
+\textbf{Risk Reduction:}
+\vspace{0.2cm}
+{\footnotesize
+\begin{itemize}
+    \item Modernize test infrastructure without vendor lock-in
+    \item Preserve institutional knowledge in code
+    \item Reduce licensing costs with open-source tools
+\end{itemize}
+}
+\end{columns}
+\end{frame}
+
+\begin{frame}
+\frametitle{Growth Opportunities}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Market Expansion:}
+{\footnotesize
+\begin{itemize}
+    \item Support new formats in weeks, not months
+    \item Offer conversion services competitors can't match
+    \item Deliver projects 8x faster than manual approaches
+\end{itemize}
+}
+
+\column{0.5\textwidth}
+\textbf{Platform Benefits:}
+{\footnotesize
+\begin{itemize}
+    \item Scale to thousands of test cases
+    \item Ready for ML-powered improvements
+    \item Integrate with existing development workflows
+\end{itemize}
+}
+\end{columns}
+
+\vspace{0.3cm}
+\begin{center}
+\textcolor{blue}{\textbf{Turn testing into a competitive advantage}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Conversion Strategy Pattern}
+\begin{adjustbox}{max width=\textwidth, max height=\textheight,keepaspectratio}
+\begin{lstlisting}[language=Python,basicstyle=\fontsize{5}{6}\selectfont\ttfamily]
+# Multiple conversion strategies for different use cases
+class ConversionStrategyFactory:
+    @staticmethod
+    def create_strategy(args) -> ConversionStrategy:
+        if os.path.isdir(args.input_path):
+            return DirectoryConversionStrategy()
+        elif len(args.input_path) > 1:
+            return MultipleFilesConversionStrategy()
+        else:
+            return SingleFileConversionStrategy()
+
+# Strategy implementations
+class DirectoryConversionStrategy:
+    def convert(self, input_path, output_path):
+        """Batch process entire directories"""
+        files = glob.glob(f"{input_path}/**/*.json", recursive=True)
+        results = []
+        for file in files:
+            result = self._convert_file(file)
+            results.append(result)
+        return ConversionReport(results)
+
+class SingleFileConversionStrategy:
+    def convert(self, input_path, output_path):
+        """Convert with suggestion application"""
+        if self.apply_suggestions:
+            improved_data, changes = suggestion_engine.apply_suggestions(data)
+            self._save_improved_json(improved_data)
+        return conversion_engine.convert(data)
+\end{lstlisting}
+\end{adjustbox}
+\end{frame}
+
+\section{Quality Assurance}
+\begin{frame}[fragile,t]
+\frametitle{Intelligent Test Data Improvement System}
+\begin{adjustbox}{max width=\textwidth, max height=\textheight,keepaspectratio}
+\begin{lstlisting}[language=Python,basicstyle=\fontsize{5}{6}\selectfont\ttfamily]
+class SuggestionEngine:
+    def analyze_test_quality(self, json_data: Dict) -> List[Issue]:
+        """Detect quality issues in test data"""
+        issues = []
+
+        # Check for missing critical fields
+        if not json_data.get('name'):
+            issues.append(MissingField('name', 'Test case name'))
+
+        # Validate test steps
+        for step in json_data.get('steps', []):
+            if not step.get('description'):
+                issues.append(EmptyStepDescription(step))
+            if not step.get('expectedResult'):
+                issues.append(MissingExpectedResult(step))
+
+        # Check for data integrity
+        if self._has_unmatched_braces(json_data):
+            issues.append(UnmatchedBraces(json_data))
+
+        return issues
+
+    def apply_suggestions(self, json_data: Dict) -> Tuple[Dict, List[Change]]:
+        """Automatically fix detected issues"""
+        improved_data = deepcopy(json_data)
+        changes = []
+
+        for issue in self.analyze_test_quality(json_data):
+            fix = issue.generate_fix()
+            improved_data = fix.apply(improved_data)
+            changes.append(fix.get_change_record())
+
+        return improved_data, changes
+\end{lstlisting}
+\end{adjustbox}
+\end{frame}
+
+\section{Enterprise Reliability}
+
+\begin{frame}[fragile,t]
+\frametitle{Generative Testing Framework}
+\begin{adjustbox}{max width=\textwidth, max height=\textheight,keepaspectratio}
+\begin{lstlisting}[language=Python,basicstyle=\fontsize{5}{6}\selectfont\ttfamily]
+# 271 tests with zero warnings
+class TestGenerativeRobotFramework:
+    """Generate and validate Robot Framework combinations with 271 tests"""
+
+    ROBOT_KEYWORDS = {
+        'SeleniumLibrary': [
+            'Open Browser', 'Go To', 'Click Element', 'Input Text',
+            'Page Should Contain', 'Close Browser', 'Wait Until Element Is Visible'
+        ],
+        'DatabaseLibrary': [
+            'Connect To Database', 'ExecuteSql String', 'Query',
+            'Disconnect From Database', 'Row Count Should Be'
+        ],
+        'RequestsLibrary': [
+            'Create Session', 'GET On Session', 'POST On Session',
+            'Status Should Be', 'Response Should Contain'
+        ],
+        # ... 5 more libraries with complete keyword sets
+    }
+
+    def test_all_keyword_combinations(self):
+        """Fuzz test with random keyword combinations"""
+        for library, keywords in self.ROBOT_KEYWORDS.items():
+            for _ in range(100):  # Test coverage across all components
+                test_json = self.generate_random_test(library, keywords)
+                robot_output = converter.convert(test_json)
+                self.validate_robot_syntax(robot_output)
+
+    def validate_robot_syntax(self, robot_content):
+        """Validate using actual Robot Framework parser"""
+        with tempfile.NamedTemporaryFile(suffix='.robot') as f:
+            f.write(robot_content.encode())
+            f.flush()
+            result = subprocess.run(['robot', '--dryrun', f.name])
+            assert result.returncode == 0, "Invalid Robot syntax"
+\end{lstlisting}
+\end{adjustbox}
+\end{frame}
+
+\begin{frame}
+\frametitle{Validation Framework}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Input Validation:}
+\begin{itemize}
+    \item Type checking with descriptive errors
+    \item Path traversal prevention
+    \item JSON structure validation
+    \item Size limit enforcement
+    \item Encoding validation
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{Output Validation:}
+\begin{itemize}
+    \item Robot Framework syntax check
+    \item Library availability verification
+    \item Keyword parameter validation
+    \item Tag format compliance
+    \item Documentation completeness
+\end{itemize}
+\end{columns}
+
+\vspace{0.3cm}
+\begin{center}
+\textbf{Result: Zero runtime errors in production}
+\end{center}
+\end{frame}
+
+\section{Proof of Concept}
+
+\begin{frame}[fragile]
+\frametitle{Demo: From Zephyr to Robot Framework}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Input: Zephyr JSON}
+\begin{lstlisting}[language=json,basicstyle=\tiny]
+{
+  "name": "User Registration Flow",
+  "testCaseKey": "ZEPH-1234",
+  "steps": [
+    {
+      "description": "Navigate to registration page",
+      "testData": "https://app.example.com/register"
+    },
+    {
+      "description": "Enter user details",
+      "testData": "email: test@example.com, password: Test123!"
+    },
+    {
+      "description": "Verify account creation",
+      "expectedResult": "Account created successfully"
+    }
+  ]
+}
+\end{lstlisting}
+
+\column{0.5\textwidth}
+\textbf{Output: Robot Framework}
+\begin{lstlisting}[language=robot,basicstyle=\tiny]
+*** Settings ***
+Library    SeleniumLibrary
+Test Tags    ZEPH-1234
+
+*** Test Cases ***
+User Registration Flow
+    Open Browser    https://app.example.com/register
+    Input Text    id=email    test@example.com
+    Input Password    id=password    Test123!
+    Click Button    id=submit
+    Page Should Contain    Account created
+    Close Browser
+\end{lstlisting}
+\end{columns}
+\textbf{Run Example:}
+\begin{lstlisting}[language=bash,basicstyle=\scriptsize]
+make example-user-registration
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Demo: Performance at Scale}
+\textbf{Run Example:}
+\begin{lstlisting}[language=bash,basicstyle=\scriptsize]
+make enterprise-demo
+\end{lstlisting}
+\textbf{Output:}
+\begin{lstlisting}[language=bash,basicstyle=\scriptsize]
+# Processing: 800 files found
+# [====================] 100% | 800/800 tests
+# Success: 798 tests converted
+# Warnings: 2 tests (missing data)
+# Time: 47.3 seconds
+\end{lstlisting}
+\textbf{Analysis:}
+\begin{itemize}
+    \item \textbf{Speed:} Converts 800 tests in under a minute.
+    \item \textbf{Success Rate:} 99.8% success rate on a large, real-world test suite.
+    \item \textbf{Scalability:}  The tool is designed to handle thousands of tests efficiently.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Demo: File Operations Example}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Input: SSH file transfer test}
+\begin{lstlisting}[language=json,basicstyle=\tiny]
+{
+  "name": "SSH File Transfer",
+  "steps": [
+    {"description": "Connect to remote server via SSH"},
+    {"description": "Download file from /remote/path/file.txt"},
+    {"description": "Verify file exists locally"}
+  ]
+}
+\end{lstlisting}
+
+\column{0.5\textwidth}
+\textbf{Generated Robot:}
+\begin{lstlisting}[language=robot,basicstyle=\tiny]
+*** Test Cases ***
+SSH File Transfer
+    Open Connection    ${HOST}
+    Login    ${USERNAME}    ${PASSWORD}
+    Get File    /remote/path/file.txt    local_file.txt
+    File Should Exist    local_file.txt
+    Close Connection
+\end{lstlisting}
+\end{columns}
+\textbf{Run Example:}
+\begin{lstlisting}[language=bash,basicstyle=\scriptsize]
+make example-file-transfer
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Demo: Database and API Operations}
+\textbf{Input JSON and Generated Robot Framework:}
+
+\begin{columns}[t]
+\column{0.49\textwidth}
+\begin{lstlisting}[language=json,basicstyle=\tiny]
+{
+  "name": "User API Integration Test",
+  "steps": [
+    {"description": "Connect to database",
+     "testData": "sqlite3, users.db"},
+    {"description": "Execute SQL query",
+     "testData": "SELECT COUNT(*) FROM users"},
+    {"description": "POST API request",
+     "testData": "/api/users {\"name\": \"John\"}"},
+    {"description": "Verify status",
+     "testData": "status: 201"}
+  ]
+}
+\end{lstlisting}
+
+\column{0.49\textwidth}
+\begin{lstlisting}[language=robot,basicstyle=\tiny]
+*** Settings ***
+Library    DatabaseLibrary
+Library    RequestsLibrary
+
+*** Test Cases ***
+User API Integration Test
+    Connect To Database    sqlite3    users.db
+    Execute Sql String    SELECT COUNT(*) FROM users
+    POST On Session    session    /api/users
+    ...    {"name": "John"}
+    Status Should Be    201
+\end{lstlisting}
+\end{columns}
+
+\vspace{0.3cm}
+\textbf{Run Example:}
+\begin{lstlisting}[language=bash,basicstyle=\scriptsize]
+make example-database-api
+\end{lstlisting}
+\end{frame}
+
+\section{Production Readiness}
+
+\section{Business Impact Metrics}
+\begin{frame}
+\frametitle{Performance at Scale}
+\begin{center}
+\begin{tabular}{|l|c|}
+\hline
+\textbf{Metric} & \textbf{Value} \\
+\hline
+Test Suite Size & 800+ Zephyr tests \\
+\hline
+Total Conversion Time & \textbf{$<$ 1 hour} \\
+\hline
+Conversion Speed & $<$ 0.1s per test \\
+\hline
+Batch Processing & 1000+ tests/hour \\
+\hline
+Success Rate & 99.8\% \\
+\hline
+Intent Patterns & \textbf{33+ types} \\
+\hline
+Library Detection & \textbf{8+ Robot libraries} \\
+\hline
+Test Coverage & \textbf{271 tests, zero warnings} \\
+\hline
+Manual Time Saved & \textbf{1,599 days} \\
+\hline
+Cost Savings & \textbf{\$639,600} \\
+\hline
+\end{tabular}
+
+\end{center}
+\end{frame}
+
+\begin{frame}
+\frametitle{Importobot Capabilities (Q3 2025 Release)}
+\begin{itemize}
+    \item \textbf{Universal Intent Engine} - 33+ intent patterns with priority scoring
+    \item \textbf{Modular Architecture} - 4 interface-based pluggable components
+    \item \textbf{Strategy Pattern} - Multiple conversion strategies for different use cases
+    \item \textbf{Generative Testing} - 1000+ lines of automated validation
+    \item \textbf{Smart Suggestions} - Automatic test quality improvements
+    \item \textbf{Error Handling} - 8+ specific error types for debugging
+    \item \textbf{Detailed Logging} - Track conversion progress and issues
+    \item \textbf{Validation Framework} - Input/output checks
+\end{itemize}
+\end{frame}

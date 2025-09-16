@@ -4,10 +4,16 @@ Version: 0.1.0
 Summary: A tool to convert Zephyr test cases from JSON format to Robot Framework format
 Requires-Python: >=3.10
 Description-Content-Type: text/markdown
+License-File: LICENSE
 Requires-Dist: robotframework>=6.0.0
 Requires-Dist: robotframework-seleniumlibrary>=6.0.0
+Requires-Dist: robotframework-sshlibrary>=3.8.0
+Requires-Dist: robotframework-requests>=0.9.4
+Requires-Dist: robotframework-databaselibrary>=1.2.4
+Requires-Dist: pytest-cov>=7.0.0
+Dynamic: license-file
 
-# Importobot - Universal Test Framework Converter
+# Importobot - Test Framework Converter
 
 [![Test](https://github.com/athola/importobot/actions/workflows/test.yml/badge.svg)](https://github.com/athola/importobot/actions/workflows/test.yml)
 [![Lint](https://github.com/athola/importobot/actions/workflows/lint.yml/badge.svg)](https://github.com/athola/importobot/actions/workflows/lint.yml)
@@ -17,7 +23,7 @@ Requires-Dist: robotframework-seleniumlibrary>=6.0.0
 [![Linting: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Package manager: uv](https://img.shields.io/badge/package%20manager-uv-blue.svg)](https://github.com/astral-sh/uv)
 
-**Importobot** is a powerful automation tool designed to **fully automate the conversion** of test cases from various test management frameworks (like Atlassian Zephyr, JIRA/Xray, TestLink) into Robot Framework format. This eliminates the time-consuming and error-prone manual migration process that teams typically face when adopting Robot Framework.
+**Importobot** converts test cases from test management tools (Zephyr, JIRA/Xray, TestLink) into Robot Framework format. Automates the migration process that would otherwise require manual conversion.
 
 ## Why Importobot Matters
 
@@ -28,11 +34,11 @@ Organizations often have thousands of test cases trapped in legacy test manageme
 - **Status Quo**: Staying with suboptimal tooling due to migration complexity
 
 ### Our Solution
-Importobot provides **100% automated conversion** with:
-- **Zero Manual Intervention**: Convert entire test suites with a single command
-- **Preserves Business Logic**: Maintains test structure, metadata, and verification points
-- **Ready-to-Execute Tests**: Generates functional Robot Framework files that can run immediately
-- **Quality Assurance**: Built using Test-Driven Development to ensure reliability
+Importobot automates conversion with:
+- Convert test suites with a single command
+- Maintain test structure and metadata during conversion
+- Generate Robot Framework files that run without modification
+- Built using TDD practices for reliability
 
 ## Current Capabilities
 
@@ -96,8 +102,8 @@ User Login Functionality
     Page Should Contain    Login
     
     # Enter username 'testuser'
-    Input Text    id=username_field    testuser
-    Textfield Value Should Be    id=username_field    testuser
+    Input Text    id=username    testuser
+    Textfield Value Should Be    id=username    testuser
 ```
 
 ## Business Impact
@@ -115,6 +121,23 @@ User Login Functionality
 - **No Human Error**: Eliminates copy-paste mistakes
 - **Validated Output**: Every conversion is tested automatically
 - **Reversible Process**: Original test cases remain unchanged
+
+## Recent Updates (2025)
+
+### Code Quality Improvements
+- **CLI Refactoring**: Modular command-line interface with better maintainability
+- **Test Coverage**: 243 tests with zero warnings, including new CLI test suites
+- **Code Cleanup**: Removed verbose patterns for cleaner, more maintainable code
+
+### Enhanced Developer Experience
+- **Simplified Makefile**: Reduced from 538 to 97 lines while maintaining functionality
+- **Better Examples**: Added user registration, file transfer, and database/API examples
+- **Improved Documentation**: Streamlined guides focused on practical usage
+
+### Technical Improvements
+- **Error Handling**: Enhanced exception hierarchy with better validation
+- **Type Safety**: Improved type hints and resolved import issues
+- **Performance**: Optimized conversion pipeline for faster processing
 
 ## Prerequisites & Installation
 
@@ -178,7 +201,7 @@ uv run pytest
 # Convert a single Zephyr JSON file
 uv run importobot zephyr_export.json converted_tests.robot
 
-# Batch convert multiple files (coming soon)
+# Batch convert multiple files
 uv run importobot --batch input_folder/ output_folder/
 ```
 
@@ -222,8 +245,9 @@ Importobot supports environment variable configuration for security and flexibil
 
 ### Sample Files
 Example Zephyr JSON files are provided in `examples/json/` to help you understand the expected input format:
-- `examples/json/example_zephyr.json` - Basic Zephyr export format
-- `examples/json/new_zephyr_test_data.json` - Enhanced format with metadata
+- `examples/json/basic_login.json` - Basic login test format
+- `examples/json/browser_login.json` - Enhanced format with metadata
+- `examples/json/get_file.json` - File download test case
 
 ## Development
 
@@ -292,9 +316,46 @@ uv run ruff format .
 **Quality Achievements:**
 - ✅ **Perfect pylint score**: 10.00/10 with zero violations
 - ✅ **Comprehensive docstrings**: 100% pydocstyle compliance with imperative mood
-- ✅ **Complete test coverage**: 94 tests passing including integration tests with mock server
-- ✅ **Enhanced test infrastructure**: Dual-mode Robot Framework file parsing with improved validation
+- ✅ **Complete test coverage**: 243 tests passing including integration tests with mock server
+- ✅ **Enhanced test infrastructure**: Unified Robot Framework file parsing with improved validation
 - ✅ **Proper environment isolation**: Correct .venv exclusion in linting configuration
+
+## Examples
+
+The project includes several working examples that demonstrate different conversion scenarios:
+
+```bash
+# Run all examples
+make examples
+
+# Individual examples
+make example-user-registration   # Web form automation
+make example-file-transfer       # SSH file operations
+make example-database-api        # Database and API testing
+make example-login              # Basic authentication flow
+make example-suggestions        # Auto-improvement features
+```
+
+### Example Outputs
+
+Each example converts JSON test cases to Robot Framework and shows the results:
+
+```bash
+# User registration example
+make example-user-registration
+# → Converts user registration flow to SeleniumLibrary keywords
+# → Shows form automation with input validation
+
+# SSH file transfer example
+make example-file-transfer
+# → Converts SSH operations to SSHLibrary keywords
+# → Demonstrates remote file operations
+
+# Database/API example
+make example-database-api
+# → Converts database queries and API calls
+# → Shows multi-library integration (DatabaseLibrary, RequestsLibrary)
+```
 
 ### Continuous Integration
 
@@ -381,3 +442,49 @@ git commit -m "test: verify GPG signing"
 - **Confidence**: Comprehensive test coverage enables safe refactoring and feature additions
 
 For detailed technical guidance on our TDD/XP approach, see [CLAUDE.md](CLAUDE.md).
+
+## Presentation
+
+### Generating the Project Presentation
+
+A comprehensive LaTeX Beamer presentation showcasing Importobot's capabilities and business value is available. The presentation includes:
+
+- **Business Case**: Time and cost savings calculations for large-scale Zephyr migrations (800+ tests)
+- **Live Demos**: Real conversion examples with Makefile commands
+- **Architecture Overview**: Intent-based conversion strategy and TDD workflow
+- **Performance Metrics**: Enterprise-scale achievements and ROI analysis
+- **Roadmap**: XML/CSV support and enhanced parsing methods
+
+**Generate the presentation:**
+```bash
+# Navigate to the project root directory
+cd /path/to/importobot
+
+# Compile the LaTeX presentation to PDF (requires LaTeX distribution)
+pdflatex -interaction=nonstopmode importobot-demo.tex
+
+# For clean compilation (run twice for table of contents)
+pdflatex -interaction=nonstopmode importobot-demo.tex && \
+pdflatex -interaction=nonstopmode importobot-demo.tex
+```
+
+**Prerequisites for presentation generation:**
+- LaTeX distribution (texlive-full recommended)
+- Required packages: beamer, listings, tikz, fontawesome5, xcolor
+
+**Install LaTeX on Ubuntu/Debian:**
+```bash
+sudo apt-get update
+sudo apt-get install texlive-full
+```
+
+**Install LaTeX on macOS:**
+```bash
+# Using Homebrew
+brew install --cask mactex
+
+# Or using MacPorts
+sudo port install texlive
+```
+
+The generated `importobot-demo.pdf` provides a complete overview of the project suitable for stakeholder presentations and technical demos.

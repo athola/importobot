@@ -1,0 +1,34 @@
+{
+  "name": "User API Integration Test",
+  "description": "Test database and API integration functionality",
+  "testScript": {
+    "type": "STEP_BY_STEP", 
+    "steps": [
+      {
+        "description": "Connect to user database",
+        "testData": "module: sqlite3, database: users.db, username: admin",
+        "expectedResult": "Database connection established",
+        "index": 0
+      },
+      {
+        "description": "Execute SQL query to get user count",
+        "testData": "sql: SELECT COUNT(*) FROM users",
+        "expectedResult": "Query executed successfully, returns user count",
+        "index": 1
+      },
+      {
+        "description": "Make API request to create user",
+        "testData": "method: POST, url: /api/users, data: {\"name\": \"John\"}",
+        "expectedResult": "API request sent successfully",
+        "index": 2
+      },
+      {
+        "description": "Verify API response status",
+        "testData": "status: 201",
+        "expectedResult": "HTTP 201 status received",
+        "index": 3
+      }
+    ]
+  },
+  "priority": "High"
+}
