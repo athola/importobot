@@ -52,9 +52,7 @@ def test_zephyr_to_robot_conversion_content_logic_only(tmp_path):
     # Note: SSHLibrary is NOT included due to "Retrieve File From Remote Host" exclusion
     expected_robot_content = """*** Settings ***
 Documentation    To retrieve a file from a remote host using SSH.
-Force Tags    ssh
-Force Tags    file_transfer
-Force Tags    Medium
+Force Tags    ssh    file_transfer    Medium
 Library    OperatingSystem
 Library    SSHLibrary
 *** Test Cases ***

@@ -1,0 +1,28 @@
+{
+  "name": "SSH File Transfer",
+  "description": "Test SSH file transfer functionality",
+  "testScript": {
+    "type": "STEP_BY_STEP",
+    "steps": [
+      {
+        "description": "Connect to remote server via SSH",
+        "testData": "ssh user@remote-server.com",
+        "expectedResult": "SSH connection established",
+        "index": 0
+      },
+      {
+        "description": "Download file from /remote/path/file.txt",
+        "testData": "scp user@remote-server.com:/remote/path/file.txt ./local_file.txt",
+        "expectedResult": "File downloaded successfully",
+        "index": 1
+      },
+      {
+        "description": "Verify file exists locally",
+        "testData": "ls -la local_file.txt",
+        "expectedResult": "File exists and has expected size",
+        "index": 2
+      }
+    ]
+  },
+  "priority": "High"
+}

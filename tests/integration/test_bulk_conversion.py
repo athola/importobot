@@ -3,9 +3,11 @@
 import json
 import tempfile
 from pathlib import Path
+from typing import Any
 
 import pytest
 
+from importobot import exceptions
 from importobot.core.converter import (
     convert_directory,
     convert_multiple_files,
@@ -108,9 +110,9 @@ class TestBulkConversionIntegration:
                 assert "*** Test Cases ***" in content
                 assert "Test Registration" in content
 
-    def test_convert_directory_with_subdirectories(self):
+    def test_convert_directory_with_subdirectories(self) -> None:
         """Tests directory conversion ignores subdirectories."""
-        sample_json_data = {"tests": []}
+        sample_json_data: dict[str, Any] = {"tests": []}
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -139,9 +141,9 @@ class TestBulkConversionIntegration:
             assert any(f.name == "main_test.robot" for f in output_files)
             assert any(f.name == "sub_test.robot" for f in output_files)
 
-    def test_convert_multiple_files_with_errors(self):
+    def test_convert_multiple_files_with_errors(self) -> None:
         """Tests bulk conversion handling of individual file errors."""
-        valid_json_data = {"testCases": []}
+        valid_json_data: dict[str, Any] = {"testCases": []}
         invalid_json_data = '{"invalid": json'
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -157,7 +159,7 @@ class TestBulkConversionIntegration:
             output_dir = temp_path / "output"
 
             # Conversion should fail on invalid file
-            with pytest.raises(ValueError):
+            with pytest.raises(exceptions.ConversionError):
                 convert_multiple_files(
                     [str(valid_file), str(invalid_file)], str(output_dir)
                 )
@@ -171,12 +173,12 @@ class TestBulkConversionIntegration:
             input_dir.mkdir()
             output_dir = temp_path / "output"
 
-            with pytest.raises(ValueError, match="No JSON files found"):
+            with pytest.raises(exceptions.ValidationError, match="No JSON files found"):
                 convert_directory(str(input_dir), str(output_dir))
 
-    def test_convert_multiple_files_creates_nested_output_structure(self):
+    def test_convert_multiple_files_creates_nested_output_structure(self) -> None:
         """Tests that output directory structure is created as needed."""
-        sample_json_data = {"tests": []}
+        sample_json_data: dict[str, Any] = {"tests": []}
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -193,9 +195,9 @@ class TestBulkConversionIntegration:
             assert output_dir.exists()
             assert (output_dir / "test.robot").exists()
 
-    def test_convert_directory_case_insensitive_json_extension(self):
+    def test_convert_directory_case_insensitive_json_extension(self) -> None:
         """Tests that JSON files with different case extensions are handled."""
-        sample_json_data = {"tests": []}
+        sample_json_data: dict[str, Any] = {"tests": []}
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)

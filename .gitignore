@@ -20,12 +20,17 @@ venv/
 .coverage
 coverage.xml
 htmlcov/
+*.bak
+robot-tests/
+zephyr-tests/
+tests/unit/test_data/
 
 # Robot Framework output files
 log.html
 report.html
 output.xml
 selenium-screenshot-*.png
+*.log
 
 # IDE
 .idea/
@@ -34,3 +39,13 @@ selenium-screenshot-*.png
 # OS files
 .DS_Store
 Thumbs.db
+
+# Presentation artifacts
+presentation/*.aux
+presentation/*.log
+presentation/*.nav
+presentation/*.out
+presentation/*.pdf
+presentation/*.snm
+presentation/*.toc
+presentation/*.vrb

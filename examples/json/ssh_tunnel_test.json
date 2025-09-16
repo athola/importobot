@@ -1,0 +1,53 @@
+{
+  "name": "SSH Tunnel Test",
+  "description": "Test SSH tunnel establishment and verification",
+  "testScript": {
+    "type": "STEP_BY_STEP",
+    "steps": [
+      {
+        "description": "Establish SSH tunnel to remote server",
+        "testData": "ssh -L 8080:localhost:80 -N -f user@remote-server.com {missing_brace",
+        "expectedResult": "SSH tunnel established successfully",
+        "index": 0
+      },
+      {
+        "description": "Verify tunnel is working by testing local port",
+        "testData": "curl -s http://localhost:8080/health",
+        "expectedResult": "HTTP 200 response received",
+        "index": 1
+      },
+      {
+        "description": "Check tunnel process is running",
+        "testData": "ps aux | grep 'ssh -L 8080' | grep -v grep",
+        "expectedResult": "SSH tunnel process found",
+        "index": 2
+      },
+      {
+        "description": "Test data transfer through tunnel",
+        "testData": "wget -q -O /tmp/tunnel_test.html http://localhost:8080/index.html {incomplete_arg",
+        "expectedResult": "File downloaded successfully through tunnel",
+        "index": 3
+      },
+      {
+        "description": "Verify file integrity",
+        "testData": "test -s /tmp/tunnel_test.html && echo 'File exists and not empty'",
+        "expectedResult": "File verification successful",
+        "index": 4
+      },
+      {
+        "description": "Close SSH tunnel",
+        "testData": "pkill -f 'ssh -L 8080'",
+        "expectedResult": "SSH tunnel closed successfully",
+        "index": 5
+      },
+      {
+        "description": "Verify tunnel is closed",
+        "testData": "netstat -an | grep :8080 | wc -l",
+        "expectedResult": "0",
+        "index": 6
+      }
+    ]
+  },
+  "precondition": "SSH access to remote server configured",
+  "priority": "High"
+}
