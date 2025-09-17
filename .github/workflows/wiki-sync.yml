@@ -26,4 +26,4 @@ jobs:
         with:
           token: ${{ secrets.WIKI_TOKEN }}
           path: wiki
-          repository: ${{ github.repository }}.wiki
+          repository: ${{ github.repository }}
