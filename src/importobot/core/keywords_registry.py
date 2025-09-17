@@ -8,6 +8,8 @@ and intent recognition patterns used throughout the conversion system.
 import re
 from typing import Any, Dict, List, Set, Tuple
 
+from importobot.utils.security import SSH_SECURITY_GUIDELINES, extract_security_warnings
+
 
 class RobotFrameworkKeywordRegistry:
     """Centralized registry of Robot Framework keywords across major libraries."""
@@ -86,19 +88,23 @@ class RobotFrameworkKeywordRegistry:
             "Open Connection": {
                 "args": ["host", "username", "password"],
                 "description": "Open SSH connection",
+                "security_warning": "⚠️  Use key-based auth instead of passwords",
             },
             "Close Connection": {"args": [], "description": "Close SSH connection"},
             "Get File": {
                 "args": ["source", "destination"],
                 "description": "Download file via SSH",
+                "security_warning": "⚠️  Validate file paths to prevent dir traversal",
             },
             "Put File": {
                 "args": ["source", "destination"],
                 "description": "Upload file via SSH",
+                "security_warning": "⚠️  Validate destination paths and permissions",
             },
             "Execute Command": {
                 "args": ["command"],
                 "description": "Execute command via SSH",
+                "security_warning": "⚠️  Sanitize commands to prevent injection",
             },
             "Login": {"args": ["username", "password"], "description": "Login to SSH"},
             "Login With Public Key": {
@@ -525,3 +531,50 @@ class IntentRecognitionEngine:
     def get_intent_patterns(cls) -> Dict[str, str]:
         """Get all intent patterns."""
         return cls.INTENT_PATTERNS.copy()
+
+    @classmethod
+    def get_security_warnings_for_keyword(cls, library: str, keyword: str) -> List[str]:
+        """Get security warnings for a specific keyword."""
+        warnings = []
+
+        if library in RobotFrameworkKeywordRegistry.KEYWORD_LIBRARIES:
+            keyword_info = RobotFrameworkKeywordRegistry.KEYWORD_LIBRARIES[library].get(
+                keyword, {}
+            )
+            warnings.extend(extract_security_warnings(keyword_info))
+
+        return warnings
+
+    @classmethod
+    def get_ssh_security_guidelines(cls) -> List[str]:
+        """Get comprehensive SSH security guidelines."""
+        return SSH_SECURITY_GUIDELINES
+
+    @classmethod
+    def validate_command_security(cls, command: str) -> Dict[str, Any]:
+        """Validate command for security issues."""
+        dangerous_patterns = [
+            (r"rm\s+-rf", "Dangerous recursive delete command"),
+            (r"sudo\s+", "Elevated privileges command"),
+            (r"chmod\s+777", "Overly permissive file permissions"),
+            (r"\|\s*sh", "Command piping to shell"),
+            (r"eval\s*\(", "Dynamic code evaluation"),
+            (r"`[^`]*`", "Command substitution"),
+            (r"&&\s*rm", "Chained delete command"),
+            (r"curl.*\|\s*sh", "Download and execute pattern"),
+        ]
+
+        issues = []
+        for pattern, description in dangerous_patterns:
+            if re.search(pattern, command, re.IGNORECASE):
+                issues.append(
+                    {"pattern": pattern, "description": description, "severity": "high"}
+                )
+
+        return {
+            "is_safe": len(issues) == 0,
+            "issues": issues,
+            "recommendation": "Review and sanitize command before execution"
+            if issues
+            else "Command appears safe",
+        }

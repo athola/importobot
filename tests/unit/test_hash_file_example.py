@@ -242,7 +242,12 @@ class TestHashFileExample:
         """Tests that conversion suggestions are displayed in the correct
         numerical order, even when there are 10 or more steps."""
         # Load the many steps test file
-        many_steps_file = Path(__file__).parent / "test_data" / "many_steps_test.json"
+        many_steps_file = (
+            Path(__file__).parent.parent.parent
+            / "examples"
+            / "json"
+            / "many_steps_test.json"
+        )
         with open(many_steps_file, "r", encoding="utf-8") as f:
             test_case = json.load(f)
 

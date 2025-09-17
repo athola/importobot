@@ -3,20 +3,20 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, cast
 
-from .. import exceptions
-from ..utils.file_operations import (
-    convert_with_temp_file,
-    display_suggestion_changes,
-    load_json_file,
-    process_single_file_with_suggestions,
-)
-from ..utils.logging import setup_logger
-from .converter import (
+from importobot import exceptions
+from importobot.core.converter import (
     convert_directory,
     convert_file,
     convert_multiple_files,
     get_conversion_suggestions,
 )
+from importobot.utils.file_operations import (
+    convert_with_temp_file,
+    display_suggestion_changes,
+    load_json_file,
+    process_single_file_with_suggestions,
+)
+from importobot.utils.logging import setup_logger
 
 logger = setup_logger(__name__)
 

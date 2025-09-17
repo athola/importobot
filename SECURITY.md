@@ -71,6 +71,128 @@ For users of Importobot, we recommend:
 - Regularly reviewing imported data for anomalies
 - Monitoring logs for suspicious activity
 
+### SSH and Command Execution Security
+
+Importobot can generate Robot Framework tests that include SSH operations and command execution. These features carry significant security implications:
+
+#### SSH Security Considerations
+
+**🔒 Authentication & Access Control:**
+- **Never hardcode SSH credentials** in test files or source code
+- Use key-based authentication instead of passwords whenever possible
+- Implement connection timeouts (recommended: 30 seconds)
+- Validate host key fingerprints to prevent man-in-the-middle attacks
+- Use dedicated test environments, never production systems for automated testing
+
+**🔒 Connection Management:**
+- Always close SSH connections explicitly in test teardown
+- Implement connection pooling limits to prevent resource exhaustion
+- Use SSH connection multiplexing when appropriate
+- Monitor active SSH connections and implement cleanup procedures
+
+**🔒 Command Execution Safeguards:**
+- Validate all command parameters to prevent command injection
+- Escape shell metacharacters in dynamic command construction
+- Avoid using shell operators (`|`, `&`, `;`, `&&`, `||`) in untrusted input
+- Implement command timeouts to prevent hanging processes
+
+#### Dangerous Command Patterns
+
+The following command patterns are automatically flagged by Importobot's security validator:
+
+```bash
+# Destructive operations
+rm -rf /path/*
+sudo rm -rf
+chmod 777
+
+# Command injection vectors
+command | sh
+command | bash
+eval $(command)
+`command`
+$(command)
+
+# Privilege escalation
+sudo command
+su - user
+
+# Network operations with shell execution
+curl url | sh
+wget url | bash
+```
+
+#### File Access Security
+
+**🔒 Path Validation:**
+- Always validate file paths to prevent directory traversal attacks
+- Reject paths containing `..` or `//` sequences
+- Implement allow-lists for accessible directories
+- Use absolute paths when possible
+
+**🔒 Sensitive File Protection:**
+Importobot automatically detects and warns about access to sensitive files:
+- `/etc/passwd`, `/etc/shadow` (Unix password files)
+- `~/.ssh/`, `~/.aws/credentials` (Authentication keys)
+- `/root/` directory access
+- Windows system directories (`C:\Windows\System32`)
+
+#### Database Security
+
+**🔒 SQL Injection Prevention:**
+- Use parameterized queries exclusively
+- Never construct SQL from untrusted input
+- Implement input validation for all database parameters
+- Use minimal database privileges for test connections
+
+**🔒 Connection Security:**
+- Use encrypted connections (SSL/TLS) for database access
+- Implement connection timeouts
+- Store database credentials securely (environment variables, vaults)
+- Use dedicated test databases with isolated data
+
+#### Web Application Testing Security
+
+**🔒 Authentication Testing:**
+- Test authentication flows without exposing credentials
+- Validate session management and timeout behaviors
+- Test authorization boundaries and privilege escalation
+- Implement CSRF protection testing
+
+**🔒 Input Validation:**
+- Test for XSS vulnerabilities in form inputs
+- Validate file upload restrictions
+- Test API endpoint security
+- Verify proper error handling that doesn't leak information
+
+#### Environment Isolation
+
+**🔒 Test Environment Guidelines:**
+- Use isolated test environments that mirror production architecture
+- Implement network segmentation between test and production
+- Use synthetic test data, never production data
+- Implement proper cleanup procedures for test artifacts
+
+**🔒 Secret Management:**
+- Use environment variables or secret management systems
+- Rotate test credentials regularly
+- Implement audit logging for secret access
+- Never commit secrets to version control
+
+#### Security Monitoring and Auditing
+
+**🔒 Logging and Monitoring:**
+- Log all SSH connections and command executions
+- Monitor for unusual test patterns or failures
+- Implement alerting for security policy violations
+- Regular security audits of generated test suites
+
+**🔒 Compliance Considerations:**
+- Ensure test activities comply with organizational security policies
+- Document test procedures for security audits
+- Implement approval workflows for high-risk test scenarios
+- Regular review of test permissions and access levels
+
 ## Additional Security Resources
 
 - [GitHub Security Advisories](https://github.com/athola/importobot/security/advisories)

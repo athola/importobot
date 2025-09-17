@@ -3,15 +3,15 @@
 import copy
 from typing import Any, Dict, List, Tuple
 
-from .. import exceptions
-from ..utils.logging import setup_logger
-from .constants import (
+from importobot import exceptions
+from importobot.core.constants import (
     EXPECTED_RESULT_FIELD_NAMES,
     STEP_DESCRIPTION_FIELD_NAMES,
     TEST_DATA_FIELD_NAMES,
 )
-from .interfaces import SuggestionEngine
-from .parsers import GenericTestFileParser
+from importobot.core.interfaces import SuggestionEngine
+from importobot.core.parsers import GenericTestFileParser
+from importobot.utils.logging import setup_logger
 
 logger = setup_logger(__name__)
 
@@ -126,8 +126,13 @@ class GenericSuggestionEngine(SuggestionEngine):
         for field in data_fields:
             if field in step and step[field]:
                 test_data_value = str(step[field])
-                open_braces = test_data_value.count("{")
-                close_braces = test_data_value.count("}")
+                # Optimized: count both braces in single pass
+                open_braces = close_braces = 0
+                for char in test_data_value:
+                    if char == "{":
+                        open_braces += 1
+                    elif char == "}":
+                        close_braces += 1
                 if open_braces != close_braces:
                     suggestions.append(
                         f"Test case {case_num}, step {step_num}: "

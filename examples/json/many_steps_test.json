@@ -1,0 +1,81 @@
+{
+  "name": "Many Steps Test Case",
+  "description": "A test case with many steps to verify ordering in suggestions",
+  "steps": [
+    {
+      "step": "Step 1: Initialize the system",
+      "testData": "Configuration: Basic setup with missing {braces",
+      "expectedResult": "System is initialized"
+    },
+    {
+      "step": "Step 2: Connect to database",
+      "testData": "Connection string: db://localhost:5432/test with missing {braces",
+      "expectedResult": "Database connection established"
+    },
+    {
+      "step": "Step 3: Load user data",
+      "testData": "User ID: 12345 with missing {braces",
+      "expectedResult": "User data loaded successfully"
+    },
+    {
+      "step": "Step 4: Validate user permissions",
+      "testData": "Role: administrator with missing {braces",
+      "expectedResult": "Permissions validated"
+    },
+    {
+      "step": "Step 5: Create test record",
+      "testData": "Record type: transaction with missing {braces",
+      "expectedResult": "Record created successfully"
+    },
+    {
+      "step": "Step 6: Update record fields",
+      "testData": "Field: status, Value: active with missing {braces",
+      "expectedResult": "Record updated successfully"
+    },
+    {
+      "step": "Step 7: Perform calculation",
+      "testData": "Operation: add, Values: 10, 20 with missing {braces",
+      "expectedResult": "Calculation result: 30"
+    },
+    {
+      "step": "Step 8: Send notification",
+      "testData": "Recipient: user@example.com, Message: Update complete with missing {braces",
+      "expectedResult": "Notification sent successfully"
+    },
+    {
+      "step": "Step 9: Log activity",
+      "testData": "Activity: record_update, User: admin with missing {braces",
+      "expectedResult": "Activity logged"
+    },
+    {
+      "step": "Step 10: Verify audit trail",
+      "testData": "Trail ID: abc123 with missing {braces",
+      "expectedResult": "Audit trail verified"
+    },
+    {
+      "step": "Step 11: Generate report",
+      "testData": "Report type: summary, Format: PDF with missing {braces",
+      "expectedResult": "Report generated successfully"
+    },
+    {
+      "step": "Step 12: Archive old records",
+      "testData": "Age threshold: 30 days with missing {braces",
+      "expectedResult": "Records archived"
+    },
+    {
+      "step": "Step 13: Backup database",
+      "testData": "Backup location: /backups/db_backup.sql with missing {braces",
+      "expectedResult": "Database backed up successfully"
+    },
+    {
+      "step": "Step 14: Clean up temporary files",
+      "testData": "Directory: /tmp/test_files/ with missing {braces",
+      "expectedResult": "Temporary files removed"
+    },
+    {
+      "step": "Step 15: Finalize process",
+      "testData": "Status: completed with missing {braces",
+      "expectedResult": "Process finalized successfully"
+    }
+  ]
+}

@@ -9,13 +9,13 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-from .. import exceptions
-from ..utils.logging import setup_logger
-from ..utils.validation import (
+from importobot import exceptions
+from importobot.core.engine import GenericConversionEngine
+from importobot.core.suggestions import GenericSuggestionEngine
+from importobot.utils.logging import setup_logger
+from importobot.utils.validation import (
     validate_safe_path,
 )
-from .engine import GenericConversionEngine
-from .suggestions import GenericSuggestionEngine
 
 logger = setup_logger(__name__)
 

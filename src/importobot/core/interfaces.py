@@ -10,12 +10,12 @@ class TestFileParser(ABC):
     @abstractmethod
     def find_tests(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Find test structures anywhere in JSON, regardless of format."""
-        pass  # pylint: disable=unnecessary-pass
+        raise NotImplementedError
 
     @abstractmethod
     def find_steps(self, test_data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Find step structures anywhere in test data."""
-        pass  # pylint: disable=unnecessary-pass
+        raise NotImplementedError
 
 
 class KeywordGenerator(ABC):
@@ -24,17 +24,17 @@ class KeywordGenerator(ABC):
     @abstractmethod
     def generate_test_case(self, test_data: Dict[str, Any]) -> List[str]:
         """Generate Robot Framework test case."""
-        pass  # pylint: disable=unnecessary-pass
+        raise NotImplementedError
 
     @abstractmethod
     def generate_step_keywords(self, step: Dict[str, Any]) -> List[str]:
         """Generate Robot Framework keywords for a step."""
-        pass  # pylint: disable=unnecessary-pass
+        raise NotImplementedError
 
     @abstractmethod
     def detect_libraries(self, steps: List[Dict[str, Any]]) -> Set[str]:
         """Detect required Robot Framework libraries from step content."""
-        pass  # pylint: disable=unnecessary-pass
+        raise NotImplementedError
 
 
 class SuggestionEngine(ABC):
@@ -43,14 +43,14 @@ class SuggestionEngine(ABC):
     @abstractmethod
     def get_suggestions(self, json_data: Dict[str, Any]) -> List[str]:
         """Generate suggestions for improving JSON test data."""
-        pass  # pylint: disable=unnecessary-pass
+        raise NotImplementedError
 
     @abstractmethod
     def apply_suggestions(
         self, json_data: Dict[str, Any]
     ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
         """Apply automatic improvements to JSON test data."""
-        pass  # pylint: disable=unnecessary-pass
+        raise NotImplementedError
 
 
 class ConversionEngine(ABC):
@@ -59,4 +59,4 @@ class ConversionEngine(ABC):
     @abstractmethod
     def convert(self, json_data: Dict[str, Any]) -> str:
         """Convert JSON data to Robot Framework format."""
-        pass  # pylint: disable=unnecessary-pass
+        raise NotImplementedError

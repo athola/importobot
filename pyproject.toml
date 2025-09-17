@@ -33,6 +33,7 @@ dev-dependencies = [
     "mypy>=1.0.0",
     "ty",
     "types-PyYAML",
+    "types-psutil>=7.0.0.20250822",
 ]
 
 [tool.setuptools.packages.find]

@@ -1,4 +1,4 @@
-"""Shared file operation utilities to avoid code duplication."""
+"""Shared file operation utilities for consistent file handling."""
 
 import json
 import os
@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, List, Optional, cast
 
-from ..core.converter import apply_conversion_suggestions, convert_file
+from importobot.core.converter import apply_conversion_suggestions, convert_file
 
 
 @contextmanager

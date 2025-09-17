@@ -1,0 +1,30 @@
+{
+  "library_name": "BuiltIn",
+  "description": "Robot Framework built-in library (always available)",
+  "keywords": {
+    "Log": {
+      "args": ["message", "level=INFO"],
+      "description": "Log a message"
+    },
+    "Set Variable": {
+      "args": ["value"],
+      "description": "Set a variable"
+    },
+    "Should Be Equal": {
+      "args": ["first", "second"],
+      "description": "Assert equality"
+    },
+    "Should Contain": {
+      "args": ["container", "item"],
+      "description": "Assert contains"
+    },
+    "Sleep": {
+      "args": ["time"],
+      "description": "Sleep for specified time"
+    },
+    "No Operation": {
+      "args": [],
+      "description": "Do nothing"
+    }
+  }
+}

@@ -11,8 +11,8 @@ import pytest
 
 from importobot.core.converter import convert_file
 from importobot.core.keywords_registry import RobotFrameworkKeywordRegistry
-from importobot.utils.test_generation import (
-    EnterpriseTestGenerator,
+from importobot.utils.test_generation.generators import EnterpriseTestGenerator
+from importobot.utils.test_generation.helpers import (
     generate_keyword_list,
     generate_random_test_json,
     get_available_structures,

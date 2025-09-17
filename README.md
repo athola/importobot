@@ -3,6 +3,7 @@
 [![Test](https://github.com/athola/importobot/actions/workflows/test.yml/badge.svg)](https://github.com/athola/importobot/actions/workflows/test.yml)
 [![Lint](https://github.com/athola/importobot/actions/workflows/lint.yml/badge.svg)](https://github.com/athola/importobot/actions/workflows/lint.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 
 **Importobot** converts test cases from test management tools (Zephyr, JIRA/Xray, TestLink) into Robot Framework format. It automates the migration process that would otherwise require manual conversion.
 
@@ -154,6 +155,24 @@ Importobot can be configured with environment variables:
 - `IMPORTOBOT_TEST_SERVER_URL`: Overrides the default test server URL.
 - `IMPORTOBOT_TEST_SERVER_PORT`: Overrides the default test server port.
 
+## Recent Improvements
+
+### Artifact Management
+- Enhanced `.gitignore` to properly exclude generated artifacts and test output files
+- Added comprehensive `clean` and `deep-clean` Makefile targets to remove temporary files
+- Removed accidentally committed artifacts and ensured repository cleanliness
+
+### Code Quality
+- Fixed linting issues throughout the codebase using `ruff` and other tools
+- Removed unused imports and variables to reduce code clutter
+- Standardized code formatting with automated tools
+- Improved error handling and validation patterns
+
+### Test Reliability
+- Fixed failing tests related to missing test data files
+- Improved test data management and file organization
+- Enhanced test suite reliability and consistency
+
 ## CI/CD
 
 Importobot is designed to be run in a CI/CD pipeline. It includes support for running in a headless environment by using a headless Chrome browser.
@@ -192,4 +211,8 @@ make lint
 # Auto-fix common issues
 uv run ruff check --fix .
 uv run ruff format .
+
+# Clean generated artifacts
+make clean
+make deep-clean  # For more thorough cleanup
 ```

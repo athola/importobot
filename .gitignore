@@ -49,3 +49,9 @@ presentation/*.pdf
 presentation/*.snm
 presentation/*.toc
 presentation/*.vrb
+
+# Additional artifacts
+*.xml
+test-results.xml
+texput.log
+compile.log

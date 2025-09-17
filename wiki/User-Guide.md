@@ -98,6 +98,28 @@ Importobot automatically detects which Robot Framework libraries are needed base
 
 Importobot uses an intent-driven approach to convert test cases. It analyzes test step descriptions to identify the intended action, rather than relying on a specific format.
 
+## Artifact Management
+
+Importobot generates various artifacts during the conversion process. To keep your workspace clean:
+
+### Cleaning Artifacts
+```bash
+# Clean common temporary files and directories
+make clean
+
+# Perform thorough cleanup including all generated artifacts
+make deep-clean
+```
+
+### What Gets Cleaned
+- Python cache files (`.pyc`, `__pycache__/`)
+- Test cache directories (`.pytest_cache/`, `.coverage`, `htmlcov/`)
+- Package info directories (`*.egg-info/`)
+- Generated Robot Framework files (`examples/robot/*.robot`)
+- Robot Framework output files (`output.xml`, `log.html`, `report.html`, `selenium-screenshot-*.png`)
+- Common artifact files (`compile.log`, `coverage.xml`, `test-results.xml`, `texput.log`)
+- Generated test directories (`robot-tests/`, `zephyr-tests/`)
+
 ## Configuration
 
 ### Environment Variables
@@ -121,3 +143,5 @@ uv run importobot input.json output.robot
 3. **Test Generated Code**: Run the converted tests in a test environment before production use.
 4. **Use Examples**: Refer to the provided examples to understand the expected input formats.
 5. **Use Batch Processing**: For large test suites, use batch processing for efficiency.
+6. **Clean Artifacts**: Regularly clean generated artifacts using `make clean` or `make deep-clean`.
+7. **Maintain Repository Cleanliness**: Ensure no artifacts are accidentally committed to the repository.

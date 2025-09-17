@@ -4,7 +4,7 @@ import functools
 from pathlib import Path
 from typing import Any, Callable, List, TypeVar
 
-from .. import exceptions
+from importobot import exceptions
 
 T = TypeVar("T")
 

@@ -2,11 +2,11 @@
 
 from typing import Any, Dict, List
 
-from ..utils.logging import setup_logger
-from ..utils.validation import sanitize_robot_string
-from .interfaces import ConversionEngine
-from .keywords import GenericKeywordGenerator
-from .parsers import GenericTestFileParser
+from importobot.core.interfaces import ConversionEngine
+from importobot.core.keywords import GenericKeywordGenerator
+from importobot.core.parsers import GenericTestFileParser
+from importobot.utils.logging import setup_logger
+from importobot.utils.validation import sanitize_robot_string
 
 logger = setup_logger(__name__)
 
