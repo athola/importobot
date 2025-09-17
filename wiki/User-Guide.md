@@ -30,6 +30,21 @@ uv run importobot --batch input_folder/ output_folder/
 - `--help`: Display help message.
 - `--batch`: Enable batch processing mode.
 - `--verbose`: Enable verbose output.
+- Argument validation with comprehensive error handling.
+- Enterprise test generation capabilities.
+
+### Enterprise Test Generation
+Importobot supports enterprise-scale test generation with up to 1,050 test cases for comprehensive coverage. Use the provided scripts for generating large test suites:
+
+```bash
+# Generate enterprise-scale tests
+python scripts/generate_enterprise_tests.py
+
+# Generate Zephyr-specific tests
+python scripts/generate_zephyr_tests.py
+```
+
+This feature includes business domain templates for realistic test scenarios and conversion strategies for flexible file handling.
 
 ## How It Works
 
@@ -87,16 +102,36 @@ User Login Functionality
 
 Importobot automatically detects which Robot Framework libraries are needed based on the test steps, including:
 
-- SeleniumLibrary
-- SSHLibrary
-- RequestsLibrary
-- DatabaseLibrary
-- OperatingSystem
-- Process
+- SeleniumLibrary (web automation)
+- SSHLibrary (SSH connections and file transfers)
+- RequestsLibrary (API testing)
+- DatabaseLibrary (database operations)
+- OperatingSystem (file system operations)
+- Process (external process execution)
+- Additional enterprise libraries for comprehensive automation coverage
 
 ## Intent-Based Conversion
 
 Importobot uses an intent-driven approach to convert test cases. It analyzes test step descriptions to identify the intended action, rather than relying on a specific format.
+
+## Suggestion Engine
+
+Importobot includes an intelligent suggestion engine that provides automatic test improvement suggestions. This feature analyzes generated tests and offers recommendations for:
+
+- Enhanced test coverage
+- Better assertion strategies
+- Improved error handling
+- Security control implementations
+
+## Validation Framework
+
+The comprehensive validation framework ensures security and reliability:
+
+- Input validation with fail-fast principles
+- Security controls for safe test execution
+- Data structure validation
+- Configuration validation at startup
+- Descriptive error reporting for immediate issue detection
 
 ## Artifact Management
 
