@@ -1,30 +1,30 @@
 name: Wiki Sync
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'wiki/**'
   workflow_run:
     workflows: ["Test"]
     types:
       - completed
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   sync-wiki:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - name: Get changed files
-        id: changed-files
-        run: |
-          echo "::set-output name=files::$(git diff --name-only ${{ github.event.workflow_run.head_sha }}~1 ${{ github.event.workflow_run.head_sha }} | grep '^wiki/' | xargs)"
-
       - name: Sync Wiki
-        if: steps.changed-files.outputs.files != ''
         uses: Andrew-Chen-Wang/github-wiki-action@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
