@@ -1,9 +1,6 @@
 name: Wiki Sync
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     types: [closed]
     branches:
@@ -13,8 +10,8 @@ on:
 jobs:
   sync-wiki:
     runs-on: ubuntu-latest
-    # Run if it's a push to main, manual dispatch, or a merged PR
-    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true) }}
+    # Run on manual dispatch or merged PR to main
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
