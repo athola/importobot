@@ -1,0 +1,34 @@
+{
+  "name": "User Registration Flow",
+  "description": "Test user registration workflow",
+  "testScript": {
+    "type": "STEP_BY_STEP",
+    "steps": [
+      {
+        "description": "Navigate to registration page",
+        "testData": "https://app.example.com/register",
+        "expectedResult": "Registration page loads successfully",
+        "index": 0
+      },
+      {
+        "description": "Fill in user details",
+        "testData": "email: test@example.com, password: Test123!",
+        "expectedResult": "Form fields populated correctly",
+        "index": 1
+      },
+      {
+        "description": "Submit registration form",
+        "testData": "click: submit_button",
+        "expectedResult": "Form submitted successfully",
+        "index": 2
+      },
+      {
+        "description": "Verify successful registration",
+        "testData": "verify: Welcome message displayed",
+        "expectedResult": "User registered and welcome message shown",
+        "index": 3
+      }
+    ]
+  },
+  "priority": "High"
+}

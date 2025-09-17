@@ -48,3 +48,15 @@ def parse_robot_file(file_path: str) -> List[Dict[str, Any]]:
         result.append(test_info)
 
     return result
+
+
+def validate_test_script_structure(test_script: Dict[str, Any]) -> None:
+    """Validate the basic structure of a test script.
+
+    Common validation logic extracted from multiple test files.
+    """
+    assert "type" in test_script
+    assert test_script["type"] == "STEP_BY_STEP"
+    assert "steps" in test_script
+    assert isinstance(test_script["steps"], list)
+    assert len(test_script["steps"]) > 0

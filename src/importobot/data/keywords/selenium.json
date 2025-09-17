@@ -1,0 +1,38 @@
+{
+  "library_name": "SeleniumLibrary",
+  "description": "Web automation using Selenium WebDriver",
+  "keywords": {
+    "Open Browser": {
+      "args": ["url", "browser=chrome", "options=None"],
+      "description": "Open browser to specified URL"
+    },
+    "Close Browser": {
+      "args": [],
+      "description": "Close current browser"
+    },
+    "Click Element": {
+      "args": ["locator"],
+      "description": "Click element found by locator"
+    },
+    "Input Text": {
+      "args": ["locator", "text"],
+      "description": "Input text into element"
+    },
+    "Get Text": {
+      "args": ["locator"],
+      "description": "Get text from element"
+    },
+    "Page Should Contain": {
+      "args": ["text"],
+      "description": "Verify page contains text"
+    },
+    "Element Should Be Visible": {
+      "args": ["locator"],
+      "description": "Verify element is visible"
+    },
+    "Wait Until Element Is Visible": {
+      "args": ["locator", "timeout=None"],
+      "description": "Wait until element becomes visible"
+    }
+  }
+}

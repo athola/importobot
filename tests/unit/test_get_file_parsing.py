@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from importobot.core.converter import JsonToRobotConverter
+from tests.utils import validate_test_script_structure
 
 
 class TestGetFileJsonParsing:
@@ -28,17 +29,13 @@ class TestGetFileJsonParsing:
 
         # Validate test script structure
         test_script = data["testScript"]
-        assert "type" in test_script
-        assert test_script["type"] == "STEP_BY_STEP"
-        assert "steps" in test_script
-        assert isinstance(test_script["steps"], list)
-        assert len(test_script["steps"]) > 0
+        validate_test_script_structure(test_script)
 
-        # Validate steps structure
-        for step in test_script["steps"]:
-            assert "step" in step
-            assert "testData" in step
-            assert "expectedResult" in step
+        # Validate get_file steps structure
+        for test_step in test_script["steps"]:
+            assert "step" in test_step
+            assert "testData" in test_step
+            assert "expectedResult" in test_step
 
     def test_get_file_json_parsing_generates_robot_content(self):
         """Tests that get_file.json generates valid Robot Framework content."""

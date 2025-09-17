@@ -1,0 +1,30 @@
+{
+  "library_name": "RequestsLibrary",
+  "description": "HTTP client library for API testing",
+  "keywords": {
+    "Create Session": {
+      "args": ["alias", "url", "headers=None"],
+      "description": "Create HTTP session"
+    },
+    "GET On Session": {
+      "args": ["alias", "url", "params=None"],
+      "description": "Send GET request"
+    },
+    "POST On Session": {
+      "args": ["alias", "url", "json=None", "data=None"],
+      "description": "Send POST request"
+    },
+    "PUT On Session": {
+      "args": ["alias", "url", "json=None", "data=None"],
+      "description": "Send PUT request"
+    },
+    "DELETE On Session": {
+      "args": ["alias", "url"],
+      "description": "Send DELETE request"
+    },
+    "Status Should Be": {
+      "args": ["expected_status"],
+      "description": "Verify response status"
+    }
+  }
+}

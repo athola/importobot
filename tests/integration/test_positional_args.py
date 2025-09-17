@@ -3,16 +3,17 @@
 import json
 import tempfile
 from pathlib import Path
+from typing import Any
 
-from importobot.__main__ import _detect_input_type
+from importobot.cli.handlers import detect_input_type
 
 
 class TestPositionalArgsIntegration:
     """Integration tests for positional arguments with real files."""
 
-    def test_detect_input_type_file(self):
+    def testdetect_input_type_file(self) -> None:
         """Tests file type detection with real file."""
-        sample_json_data = {"tests": []}
+        sample_json_data: dict[str, Any] = {"tests": []}
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -21,22 +22,22 @@ class TestPositionalArgsIntegration:
             test_file = temp_path / "test.json"
             test_file.write_text(json.dumps(sample_json_data))
 
-            input_type, files = _detect_input_type(str(test_file))
+            input_type, files = detect_input_type(str(test_file))
 
             assert input_type == "file"
             assert files == [str(test_file)]
 
-    def test_detect_input_type_directory(self):
+    def testdetect_input_type_directory(self):
         """Tests directory type detection with real directory."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            input_type, files = _detect_input_type(temp_dir)
+            input_type, files = detect_input_type(temp_dir)
 
             assert input_type == "directory"
             assert files == [temp_dir]
 
-    def test_detect_input_type_wildcard_single_match(self):
+    def testdetect_input_type_wildcard_single_match(self) -> None:
         """Tests wildcard detection with single matching file."""
-        sample_json_data = {"tests": []}
+        sample_json_data: dict[str, Any] = {"tests": []}
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -47,15 +48,15 @@ class TestPositionalArgsIntegration:
 
             # Test wildcard pattern
             wildcard_pattern = str(temp_path / "test*.json")
-            input_type, files = _detect_input_type(wildcard_pattern)
+            input_type, files = detect_input_type(wildcard_pattern)
 
             assert input_type == "wildcard"
             assert len(files) == 1
             assert str(test_file) in files
 
-    def test_detect_input_type_wildcard_multiple_matches(self):
+    def testdetect_input_type_wildcard_multiple_matches(self) -> None:
         """Tests wildcard detection with multiple matching files."""
-        sample_json_data = {"tests": []}
+        sample_json_data: dict[str, Any] = {"tests": []}
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -71,16 +72,16 @@ class TestPositionalArgsIntegration:
 
             # Test wildcard pattern
             wildcard_pattern = str(temp_path / "test*")
-            input_type, files = _detect_input_type(wildcard_pattern)
+            input_type, files = detect_input_type(wildcard_pattern)
 
             assert input_type == "wildcard"
             assert len(files) == 3  # Only JSON files
             for i in range(3):
                 assert str(temp_path / f"test{i}.json") in files
 
-    def test_detect_input_type_recursive_wildcard(self):
+    def testdetect_input_type_recursive_wildcard(self) -> None:
         """Tests recursive wildcard detection."""
-        sample_json_data = {"tests": []}
+        sample_json_data: dict[str, Any] = {"tests": []}
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -95,14 +96,14 @@ class TestPositionalArgsIntegration:
 
             # Test recursive wildcard pattern
             wildcard_pattern = str(temp_path / "**/*.json")
-            input_type, files = _detect_input_type(wildcard_pattern)
+            input_type, files = detect_input_type(wildcard_pattern)
 
             assert input_type == "wildcard"
             assert len(files) == 2
             assert str(temp_path / "test1.json") in files
             assert str(sub_dir / "test2.json") in files
 
-    def test_detect_input_type_wildcard_no_matches(self):
+    def testdetect_input_type_wildcard_no_matches(self):
         """Tests wildcard with no matching files."""
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -112,21 +113,21 @@ class TestPositionalArgsIntegration:
 
             # Test wildcard pattern with no matches
             wildcard_pattern = str(temp_path / "*.json")
-            input_type, files = _detect_input_type(wildcard_pattern)
+            input_type, files = detect_input_type(wildcard_pattern)
 
             assert input_type == "error"
             assert files == []
 
-    def test_detect_input_type_nonexistent_file(self):
+    def testdetect_input_type_nonexistent_file(self):
         """Tests detection of nonexistent file."""
-        input_type, files = _detect_input_type("/nonexistent/file.json")
+        input_type, files = detect_input_type("/nonexistent/file.json")
 
         assert input_type == "error"
         assert files == []
 
-    def test_detect_input_type_case_insensitive_json(self):
+    def testdetect_input_type_case_insensitive_json(self) -> None:
         """Tests wildcard detection with case-insensitive JSON extensions."""
-        sample_json_data = {"tests": []}
+        sample_json_data: dict[str, Any] = {"tests": []}
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -138,16 +139,16 @@ class TestPositionalArgsIntegration:
 
             # Test wildcard pattern
             wildcard_pattern = str(temp_path / "test*")
-            input_type, files = _detect_input_type(wildcard_pattern)
+            input_type, files = detect_input_type(wildcard_pattern)
 
             assert input_type == "wildcard"
             assert len(files) == 3
             for i in range(1, 4):
                 assert any(f"test{i}." in f for f in files)
 
-    def test_detect_input_type_mixed_extensions(self):
+    def testdetect_input_type_mixed_extensions(self) -> None:
         """Tests wildcard with mixed file extensions, only JSON should match."""
-        sample_json_data = {"tests": []}
+        sample_json_data: dict[str, Any] = {"tests": []}
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -160,7 +161,7 @@ class TestPositionalArgsIntegration:
 
             # Test wildcard pattern
             wildcard_pattern = str(temp_path / "test*")
-            input_type, files = _detect_input_type(wildcard_pattern)
+            input_type, files = detect_input_type(wildcard_pattern)
 
             assert input_type == "wildcard"
             assert len(files) == 2  # Only JSON files
