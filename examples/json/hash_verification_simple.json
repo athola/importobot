@@ -1,0 +1,39 @@
+{
+  "name": "File Hash Verification Test",
+  "description": "Test to verify file hash operations work correctly",
+  "testScript": {
+    "type": "STEP_BY_STEP",
+    "steps": [
+      {
+        "description": "Create a test file with known content",
+        "testData": "echo 'Hello, Hash Verification!' > /tmp/test_file.txt",
+        "expectedResult": "File created successfully",
+        "index": 0
+      },
+      {
+        "description": "Calculate SHA256 hash of the original file",
+        "testData": "sha256sum /tmp/test_file.txt > /tmp/original_hash.txt",
+        "expectedResult": "SHA256 hash calculated and saved",
+        "index": 1
+      },
+      {
+        "description": "Simulate file transfer by copying the file",
+        "testData": "cp /tmp/test_file.txt /tmp/retrieved_file.txt",
+        "expectedResult": "File copied successfully",
+        "index": 2
+      },
+      {
+        "description": "Calculate SHA256 hash of the retrieved file",
+        "testData": "sha256sum /tmp/retrieved_file.txt > /tmp/retrieved_hash.txt",
+        "expectedResult": "SHA256 hash calculated and saved",
+        "index": 3
+      },
+      {
+        "description": "Compare the two hashes to verify file integrity",
+        "testData": "diff /tmp/original_hash.txt /tmp/retrieved_hash.txt",
+        "expectedResult": "Hashes match - files are identical",
+        "index": 4
+      }
+    ]
+  }
+}

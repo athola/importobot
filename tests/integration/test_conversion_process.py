@@ -63,7 +63,7 @@ class TestIntegration:
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".json", delete=False, encoding="utf-8"
         ) as input_file:
-            sample_data = {}
+            sample_data: dict = {}
             json.dump(sample_data, input_file)
             input_filename = input_file.name
 

@@ -2,10 +2,12 @@
 
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
+
+from importobot import exceptions
 
 
-def validate_safe_path(file_path: str, base_dir: str = None) -> str:
+def validate_safe_path(file_path: str, base_dir: Optional[str] = None) -> str:
     """Validate path is safe and within allowed directory.
 
     Args:
@@ -16,45 +18,43 @@ def validate_safe_path(file_path: str, base_dir: str = None) -> str:
         Validated absolute path
 
     Raises:
-        ValueError: If path is invalid or unsafe
-        TypeError: If file_path is not a string
+        exceptions.ValidationError: If path is invalid or unsafe
+        exceptions.ConfigurationError: If file_path is not a string
     """
     if not isinstance(file_path, str):
-        raise TypeError(f"File path must be a string, got {type(file_path).__name__}")
+        raise exceptions.ConfigurationError(
+            f"File path must be a string, got {type(file_path).__name__}"
+        )
 
     if not file_path.strip():
-        raise ValueError("File path cannot be empty or whitespace")
+        raise exceptions.ValidationError("File path cannot be empty or whitespace")
 
-    try:
-        # Resolve the path to catch any directory traversal attempts
-        path = Path(file_path).resolve()
+    # Resolve the path to catch any directory traversal attempts
+    path = Path(file_path).resolve()
 
-        # Check if path is within allowed base directory
-        if base_dir:
-            base = Path(base_dir).resolve()
-            if not str(path).startswith(str(base)):
-                raise ValueError("Path outside allowed directory")
+    # Check if path is within allowed base directory
+    if base_dir:
+        base = Path(base_dir).resolve()
+        if not str(path).startswith(str(base)):
+            raise exceptions.ValidationError("Path outside allowed directory")
 
-        # Additional security checks
-        path_str = str(path)
+    # Additional security checks
+    path_str = str(path)
 
-        # Check for suspicious path components
-        dangerous_patterns = [
-            r"\.\.[\\/]",  # Directory traversal
-            r"^[\\/]etc[\\/]",  # System directories
-            r"^[\\/]proc[\\/]",
-            r"^[\\/]sys[\\/]",
-            r"^[\\/]dev[\\/]",
-        ]
+    # Check for suspicious path components
+    dangerous_patterns = [
+        r"\.\.[\\/]",  # Directory traversal
+        r"^[\\/]etc[\\/]",  # System directories
+        r"^[\\/]proc[\\/]",
+        r"^[\\/]sys[\\/]",
+        r"^[\\/]dev[\\/]",
+    ]
 
-        for pattern in dangerous_patterns:
-            if re.search(pattern, path_str, re.IGNORECASE):
-                raise ValueError("Path contains unsafe components")
+    for pattern in dangerous_patterns:
+        if re.search(pattern, path_str, re.IGNORECASE):
+            raise exceptions.ValidationError("Path contains unsafe components")
 
-        return path_str
-
-    except (OSError, ValueError) as e:
-        raise ValueError(f"Invalid file path: {e}") from e
+    return path_str
 
 
 def sanitize_robot_string(text: Any) -> str:
@@ -72,30 +72,39 @@ def sanitize_robot_string(text: Any) -> str:
     if text is None:
         return ""
 
-    return str(text).replace("\n", " ").replace("\r", "").strip()
+    # Handle line endings preserving consecutive ones as multiple spaces
+    text_str = str(text)
+    # Replace Windows line endings first to avoid double spaces
+    text_str = text_str.replace("\r\n", " ")
+    # Then replace remaining newlines and carriage returns
+    text_str = text_str.translate({ord("\n"): " ", ord("\r"): " "})
+    # Trim leading/trailing whitespace but preserve internal spacing
+    return text_str.strip()
 
 
-def validate_json_size(json_string: str, max_size_mb: int = 10) -> None:
+def validate_json_size(json_string: Any, max_size_mb: int = 10) -> None:
     """Validate JSON string size to prevent memory exhaustion.
 
     Args:
-        json_string: The JSON string to validate
+        json_string: The JSON string to validate (any type accepted)
         max_size_mb: Maximum size in megabytes
 
     Raises:
-        ValueError: If JSON string is too large
+        exceptions.ValidationError: If JSON string is too large
     """
     if not isinstance(json_string, str):
         return
 
     size_mb = len(json_string.encode("utf-8")) / (1024 * 1024)
     if size_mb > max_size_mb:
-        raise ValueError(
-            f"JSON input too large: {size_mb:.1f}MB > {max_size_mb}MB limit"
+        raise exceptions.ValidationError(
+            f"JSON input too large: {size_mb:.1f}MB exceeds {max_size_mb}MB limit. "
+            f"Consider reducing the input size or increasing the limit. "
+            f"Large JSON files can cause memory exhaustion and system instability."
         )
 
 
-def sanitize_error_message(message: str, file_path: str = None) -> str:
+def sanitize_error_message(message: str, file_path: Optional[str] = None) -> str:
     """Sanitize error messages to prevent information disclosure.
 
     Args:

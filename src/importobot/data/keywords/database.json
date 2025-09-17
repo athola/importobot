@@ -1,0 +1,33 @@
+{
+  "library_name": "DatabaseLibrary",
+  "description": "Database operations and SQL execution",
+  "keywords": {
+    "Connect To Database": {
+      "args": ["dbapiModuleName", "databaseName", "username", "password", "host", "port"],
+      "description": "Connect to database",
+      "security_warning": "⚠️  Use secure connection strings and avoid hardcoded credentials"
+    },
+    "Disconnect From Database": {
+      "args": [],
+      "description": "Disconnect from database"
+    },
+    "Execute Sql String": {
+      "args": ["sqlString"],
+      "description": "Execute SQL statement",
+      "security_warning": "⚠️  Use parameterized queries to prevent SQL injection"
+    },
+    "Query": {
+      "args": ["selectStatement"],
+      "description": "Execute SELECT query",
+      "security_warning": "⚠️  Validate and sanitize query parameters"
+    },
+    "Row Count Should Be": {
+      "args": ["expected_count"],
+      "description": "Verify number of rows"
+    },
+    "Table Must Exist": {
+      "args": ["tableName"],
+      "description": "Verify table exists"
+    }
+  }
+}

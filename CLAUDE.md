@@ -1,26 +1,27 @@
-# Project Interpretation Guide for Claude
+# Style Guide
 
-This document provides guidance for Claude when analyzing or working with this Python project that follows Test-Driven Development (TDD) and Extreme Programming (XP) principles.
+This document provides guidance for analyzing or working with this Python project that follows Test-Driven Development (TDD) and Extreme Programming (XP) principles.
 
-## Project Overview
+## Project Philosophy
 
-**Importobot** is a Python automation tool designed to **fully automate the conversion process** from various test management frameworks (Atlassian Zephyr, JIRA/Xray, TestLink, etc.) into Robot Framework format. The project eliminates manual migration work by providing 100% automated conversion with zero human intervention required.
+**Importobot** is a Python automation tool designed to automate the conversion process from various test management frameworks (Atlassian Zephyr, JIRA/Xray, TestLink, etc.) into Robot Framework format. The project eliminates manual migration work by providing automated conversion.
 
 ### Core Mission
-- **Complete Automation**: No manual conversion steps - entire test suites convert with single commands
-- **Preserve Business Logic**: Maintain all test structure, metadata, and verification points during conversion
-- **Production-Ready Output**: Generate immediately executable Robot Framework files
-- **Universal Compatibility**: Support multiple input formats with consistent conversion quality
+- **Automation**: No manual conversion steps - entire test suites convert with single commands.
+- **Bulk Processing**: Handle hundreds or thousands of test cases in a single operation.
+- **Preserve Business Logic**: Maintain all test structure, metadata, and verification points during conversion.
+- **Production-Ready Output**: Generate immediately executable Robot Framework files.
+- **Compatibility**: Support multiple input formats with consistent conversion quality.
 
-The project strictly follows TDD and XP practices to ensure conversion reliability and maintainability.
+The project follows TDD and XP practices to ensure conversion reliability and maintainability.
 
-### Why Full Automation Matters
-In the context of test framework conversion, "full automation" means:
-1. **Zero Manual Steps**: No copy-paste, no field-by-field mapping, no manual verification
-2. **Batch Processing**: Handle hundreds or thousands of test cases in a single operation
-3. **Consistent Quality**: Every conversion follows identical patterns and standards
-4. **Immediate Executability**: Generated Robot Framework files run without modification
-5. **Preserve Traceability**: Original test metadata and structure maintained for audit purposes
+### Why Automation Matters
+In the context of test framework conversion, automation means:
+1. **No Manual Steps**: No copy-paste, no field-by-field mapping, no manual verification.
+2. **Batch Processing**: Handle hundreds or thousands of test cases in a single operation.
+3. **Consistent Quality**: Every conversion follows identical patterns and standards.
+4. **Immediate Executability**: Generated Robot Framework files run without modification.
+5. **Preserve Traceability**: Original test metadata and structure maintained for audit purposes.
 
 This automation focus drives every architectural decision and feature implementation.
 
@@ -28,98 +29,57 @@ This automation focus drives every architectural decision and feature implementa
 
 ### Test-Driven Development (TDD)
 1. **Red-Green-Refactor Cycle**: All functionality is developed by first writing failing tests, then implementing code to pass those tests, and finally refactoring while keeping tests green.
-2. **Comprehensive Test Coverage**: Every piece of functionality has corresponding unit and integration tests.
+2. **Test Coverage**: Every piece of functionality has corresponding unit and integration tests.
 3. **Test Organization**: Tests are organized into unit tests (for individual components) and integration tests (for complete workflows).
 
 ### Extreme Programming (XP)
 1. **Continuous Integration**: Automated testing ensures code quality with every change.
-2. **Refactoring**: Code can be confidently refactored due to comprehensive test coverage.
+2. **Refactoring**: Code can be confidently refactored due to full test coverage.
 3. **Simple Design**: Implementation follows the simplest approach that works, avoiding over-engineering.
 4. **Collective Code Ownership**: Consistent coding standards and practices make the codebase accessible to all team members.
 
 ### Fail-Fast Principles
-This project strictly adheres to fail-fast design principles as outlined by Martin Fowler and industry best practices:
+This project adheres to fail-fast design principles:
 
-1. **Immediate Error Detection**: Problems are detected and reported as soon as possible, preferably at compile-time, or immediately at runtime. This prevents errors from propagating through the system and causing harder-to-debug issues.
-
-2. **Early Validation**: All inputs, configurations, and dependencies are validated immediately upon entry into the system. Functions check preconditions at the start and fail immediately if invalid inputs are detected.
-
-3. **Explicit Error Reporting**: When failures occur, they are reported immediately and visibly rather than attempting to continue in an unstable state. This includes:
-   - Raising specific exceptions with detailed error messages
-   - Failing loudly rather than silently continuing with partial data
-   - Providing clear stack traces and error context
-
-4. **Robust Input Validation**: All external inputs (JSON files, command-line arguments, configuration values) undergo comprehensive validation before processing begins. Invalid inputs cause immediate failure rather than attempting partial processing.
-
-5. **System Stability Through Early Failure**: By failing immediately when problems are detected, the system prevents cascading failures and maintains overall stability. Localized failures are contained rather than allowed to spread.
-
-6. **Development Efficiency**: Early error detection reduces debugging time and development costs by pointing directly to the source of problems rather than requiring investigation of downstream effects.
+1. **Immediate Error Detection**: Problems are detected and reported as soon as possible.
+2. **Early Validation**: All inputs, configurations, and dependencies are validated immediately.
+3. **Explicit Error Reporting**: When failures occur, they are reported immediately and visibly.
+4. **Input Validation**: All external inputs undergo validation before processing begins.
+5. **System Stability Through Early Failure**: By failing immediately when problems are detected, the system prevents cascading failures and maintains overall stability.
+6. **Development Efficiency**: Early error detection reduces debugging time and development costs.
 
 The fail-fast approach is implemented throughout the codebase in:
-- JSON parsing with immediate validation (`load_and_parse_json` in `parser.py`)
+- JSON parsing with validation (`load_and_parse_json` in `parser.py`)
 - Command-line argument validation with immediate exit on invalid inputs
 - Configuration validation at application startup
 - Type checking and data structure validation
-- Comprehensive error handling with specific exception types
+- Error handling with specific exception types
 
-## Project Structure Interpretation
+## Recent Improvements
 
-### Source Code Organization
-- `src/importobot/`: Main source code following the Python package structure
-  - `core/`: Contains core business logic separated by concern
-    - `parser.py`: Handles parsing of input format data, now serving as the consolidated, intent-driven parser for all conversions.
-    - `converter.py`: Manages file conversion operations, including loading and saving data
-  - `__main__.py`: Entry point for the command-line interface
+### Artifact Management
+- Enhanced `.gitignore` to properly exclude generated artifacts and test output files
+- Added comprehensive `clean` and `deep-clean` Makefile targets to remove temporary files
+- Removed accidentally committed artifacts and ensured repository cleanliness
 
-The modular structure is designed to easily accommodate new input formats while maintaining consistent conversion patterns.
+### Code Quality Standards
+- Fixed linting issues throughout the codebase using `ruff` and other tools
+- Removed unused imports and variables to reduce code clutter
+- Standardized code formatting with automated tools
+- Improved error handling and validation patterns
 
-### Test Organization
-- `tests/`: Comprehensive test suite following TDD principles
-  - `unit/`: Unit tests for individual functions and classes
-    - Focused on testing isolated components
-    - Fast execution with minimal dependencies
-    - Heavy use of mocking for external dependencies
-  - `integration/`: Integration tests for complete workflows
-    - Test the interaction between multiple components
-    - Perform actual file I/O operations
-    - Verify end-to-end functionality
+### Test Reliability
+- Fixed failing tests related to missing test data files
+- Improved test data management and file organization
+- Enhanced test suite reliability and consistency
 
-### Development Tooling
-- `Makefile`: Centralized commands for common development tasks
-- `pyproject.toml`: Project configuration including dependencies and tool settings
-- `ruff`: Code formatting and linting tool
-- `pylint`: Additional code quality checks
-- `pytest`: Testing framework with comprehensive test discovery
+### Makefile Improvements
+- Added missing targets to help menu for better discoverability
+- All Makefile targets now documented in the help section
 
-## Development Workflow for Claude
+## CI/CD
 
-When working with this project, Claude should follow these guidelines:
-
-### 1. Understand the TDD Process
-- Before implementing any new feature or fixing any bug, first look for existing tests
-- If tests don't exist for the functionality being modified, they should be created first
-- Follow the pattern: Write test → See it fail → Implement minimal code → See it pass → Refactor
-
-### 2. Code Organization Principles
-- Maintain separation of concerns in the `core/` module
-- Keep functions small and focused on a single responsibility
-- Follow existing patterns for error handling and return values
-- Preserve the modular structure that enables testing
-
-### 3. Testing Standards
-- All new functionality must have corresponding tests
-- Unit tests should be fast and not depend on file I/O or external services
-- Integration tests can perform actual file operations but should clean up after themselves
-- Test names should clearly describe what is being tested
-- Use pytest fixtures for setup and teardown when appropriate
-
-### 4. Code Quality
-- Follow the existing code style as enforced by ruff, black, pycodestyle, pydocstyle, and pylint
-- Ensure all new code passes automated quality gates (enforced by GitHub Actions)
-- All linting tools are configured in pyproject.toml and run automatically in CI
-- Maintain consistent docstring style (enforced by pydocstyle)
-- Use type hints where appropriate
-- Keep dependencies minimal and well-justified
+Importobot is designed to be run in a CI/CD pipeline. It includes support for running in a headless environment by using a headless Chrome browser.
 
 ## When Modifying Code
 
@@ -138,259 +98,6 @@ When working with this project, Claude should follow these guidelines:
 1. Run all tests: `make test`
 2. Check code quality: `make lint` (runs all linting tools matching CI configuration)
 3. Format code: `make format`
-4. Verify no regressions were introduced
-5. Push changes will trigger GitHub Actions workflows for automated testing and linting
-
-### Commit Signing
-This project uses GPG signing for commit verification:
-- All commits must be signed with GPG for security and authenticity
-- GPG signing is configured locally for this repository
-- Claude should always use the GPG wrapper script approach for commits:
-  ```bash
-  # Create GPG wrapper script (if not exists)
-  echo '#!/bin/bash
-  cat ~/.gnupg/passphrase.txt | gpg --batch --yes --passphrase-fd 0 --pinentry-mode loopback "$@"' > /tmp/gpg-wrapper.sh && chmod +x /tmp/gpg-wrapper.sh
-  
-  # Commit with GPG signing using wrapper
-  git -c gpg.program="/tmp/gpg-wrapper.sh" commit -S -m "commit message"
-  ```
-- The passphrase is securely stored in `~/.gnupg/passphrase.txt` and should be piped to GPG, never used directly
-- See the "GPG Commit Signing" section in README.md for setup instructions
-
-## Claude Code Review Workflow Requirements
-
-The Claude Code Review workflow (`.github/workflows/claude-code-review.yml`) has strict validation requirements:
-
-- **Identical Content Requirement**: The workflow file must have identical content to the version on the repository's default branch
-- **Token Setup Errors**: When first adding the workflow file to a repository via PR, you may see errors like "Failed to setup GitHub token: Error: Workflow validation failed" - this is normal and should be ignored
-- **Workflow Validation**: GitHub validates that the workflow content matches the default branch version before allowing Claude Code Review to run
-- **Best Practice**: Keep the workflow file simple and avoid modifications that differ from the remote source to prevent validation failures
-
-## Security Considerations
-
-This project implements several security best practices:
-
-### Configuration Security
-- **No Hardcoded URLs**: Test server URLs are configurable via `IMPORTOBOT_TEST_SERVER_URL` environment variable
-- **Secret Validation**: All CI/CD workflows validate secret availability before usage
-- **Graceful Fallbacks**: Missing secrets (like `CODECOV_TOKEN`) don't cause build failures
-
-### Input Validation
-- **JSON Validation**: Comprehensive validation of all JSON inputs with proper error handling
-- **Type Checking**: Strict type validation for all parsed data structures
-- **Error Boundaries**: All parsing operations have proper exception handling
-- **Path Safety**: All file operations use `validate_safe_path` to prevent directory traversal attacks
-- **Size Limits**: JSON input validation includes size limits to prevent memory exhaustion attacks
-- **String Sanitization**: Robot Framework output uses `sanitize_robot_string` to prevent syntax errors and injection
-- **Error Message Sanitization**: Error messages use `sanitize_error_message` to prevent information disclosure
-
-### CI/CD Security
-- **Minimal Permissions**: GitHub Actions workflows use least-privilege permissions
-- **Conditional Secret Usage**: Secrets are only used when available and validated
-- **Secure Token Handling**: No secrets are logged or exposed in workflow outputs
-
-## Project-Specific Conventions
-
-1. **Error Handling**: Core library functions (e.g., in `converter.py`, `parser.py`) should raise specific exceptions on failure. The main executable (`__main__.py`) is responsible for catching these exceptions and exiting with an appropriate status code. The `parser.py` module now serves as the consolidated, intent-driven parser, handling robust JSON parsing, input validation, and intelligent library detection.
-2. **CLI Argument Testing**: When testing command-line argument handling, do not mock `sys.exit`. Instead, use `pytest.raises(SystemExit)` and assert the `e.value.code` of the resulting exception. This correctly tests the behavior of `argparse` without causing unexpected side effects in the test's execution flow.
-3. **File Operations**: Use the dedicated functions in `converter.py` for file I/O operations.
-4. **Command-Line Interface**: All CLI functionality should be in `__main__.py` with core logic in separate modules.
-5. **Test Cleanup**: Tests should not leave behind artifacts; use pytest fixtures or try/finally blocks for cleanup.
-
-### Generic Test Case to Robot Framework Conversion Architecture
-
-**Core Philosophy: Intent-Based Universal Conversion**
-
-Instead of creating custom parsing logic for each specific test case format (get_file, login, API tests, etc.), the system employs a **generic, intent-driven approach** that can convert ANY test case JSON to valid Robot Framework keywords by focusing on the **desired end result** rather than the specific implementation details.
-
-#### Universal Conversion Strategy
-
-1. **Intent Recognition Engine**: The parser analyzes test step descriptions using Natural Language Processing patterns to identify **what the test intends to accomplish** rather than **how it's specifically written**:
-
-   ```python
-   # Instead of hardcoding: if "get_file.json" then generate file operations
-   # Use intent patterns: if step_description contains "download|retrieve|fetch" + "file" then generate file operations
-   
-   INTENT_PATTERNS = {
-       # Web automation intents
-       "navigate": r"(navigate to|go to|open|visit).*?(url|page|site|application)",
-       "input_data": r"(enter|input|type|fill).*?(username|password|text|data|field)",
-       "click_action": r"(click|press|tap|select).*?(button|link|element)",
-       "verify_content": r"(verify|check|assert|ensure|confirm).*?(contains|displays|shows)",
-       
-       # File operation intents  
-       "file_download": r"(download|retrieve|fetch|get).*?file",
-       "file_exists": r"(verify|check|ensure).*?file.*(exists|present)",
-       "file_cleanup": r"(remove|delete|clean|cleanup).*?file",
-       
-       # SSH/Remote operation intents
-       "ssh_connect": r"(connect|establish|open).*?(ssh|connection|remote)",
-       "ssh_transfer": r"(transfer|copy|retrieve|get).*?(file|data).*?(remote|ssh)",
-       "ssh_disconnect": r"(close|disconnect|terminate).*?(connection|ssh)",
-       
-       # API operation intents
-       "api_request": r"(send|make|execute).*?(request|call|api)",
-       "api_verify": r"(verify|check|assert).*?(response|status|data)",
-       
-       # Database operation intents
-       "db_query": r"(execute|run|query).*?(database|sql|query)",
-       "db_verify": r"(verify|check|validate).*?(database|table|data)"
-   }
-   ```
-
-2. **Universal Robot Framework Keyword Library Analysis**: The system maintains a comprehensive mapping of ALL available Robot Framework keywords across major libraries:
-
-   ```python
-   # Comprehensive Robot Framework library coverage
-   RF_KEYWORD_LIBRARIES = {
-       # SeleniumLibrary - Web automation
-       "web": {
-           "navigate": ["Open Browser", "Go To", "Location Should Be"],
-           "input": ["Input Text", "Input Password", "Set Window Size"],
-           "click": ["Click Element", "Click Button", "Click Link"],
-           "verify": ["Page Should Contain", "Element Should Be Visible", "Title Should Be"]
-       },
-       
-       # OperatingSystem - File operations
-       "file": {
-           "download": ["Run", "Run And Return Rc", "Run Process"],
-           "exists": ["File Should Exist", "File Should Not Exist", "Should Exist"],
-           "cleanup": ["Remove File", "Remove Directory", "Empty Directory"]
-       },
-       
-       # SSHLibrary - Remote operations  
-       "ssh": {
-           "connect": ["Open Connection", "Login", "Login With Public Key"],
-           "transfer": ["Get File", "Put File", "Get Directory"],
-           "execute": ["Execute Command", "Read", "Write"],
-           "disconnect": ["Close Connection", "Close All Connections"]
-       },
-       
-       # RequestsLibrary - API operations
-       "api": {
-           "request": ["GET On Session", "POST On Session", "PUT On Session", "DELETE On Session"],
-           "verify": ["Status Should Be", "Should Be Equal", "Response Should Contain"]
-       },
-       
-       # DatabaseLibrary - Database operations
-       "database": {
-           "query": ["Execute Sql String", "Query", "Connect To Database"],
-           "verify": ["Row Count Should Be", "Table Must Exist", "Check If Exists In Database"]
-       }
-   }
-   ```
-
-3. **Context-Aware Argument Extraction**: Instead of hardcoding argument extraction for specific formats, use **generic pattern matching** to extract arguments from any test data structure:
-
-   ```python
-   def extract_arguments_generically(test_data: str, keyword_intent: str) -> List[str]:
-       """
-       Extract arguments for any Robot Framework keyword based on intent and common patterns
-       """
-       patterns = {
-           "urls": r"(?:https?://|www\.)[^\s,]+",
-           "file_paths": r"[/\\]?[a-zA-Z0-9._/-]+\.[a-zA-Z0-9]+",
-           "element_selectors": r"(?:id|class|xpath|css)=[\w\-_#.]+",
-           "credentials": r"(?:username|password|user|pwd):\s*([^\s,]+)",
-           "commands": r"(?:command|cmd):\s*(.+)",
-           "expected_values": r"(?:expected|should|verify):\s*(.+)"
-       }
-       
-       # Generic argument extraction based on keyword intent
-       if keyword_intent == "navigate":
-           return extract_pattern(test_data, patterns["urls"])
-       elif keyword_intent == "file_operations":
-           return extract_pattern(test_data, patterns["file_paths"]) 
-       elif keyword_intent == "ssh_operations":
-           return extract_credentials_and_paths(test_data)
-       # ... more generic extraction logic
-   ```
-
-4. **Dynamic Library Import Detection**: Automatically determine which Robot Framework libraries to import based on detected intents:
-
-   ```python
-   def determine_required_libraries(detected_intents: List[str]) -> List[str]:
-       """
-       Automatically determine which Robot Framework libraries are needed
-       """
-       library_mapping = {
-           "web_intents": ["SeleniumLibrary"],
-           "file_intents": ["OperatingSystem", "Process"],
-           "ssh_intents": ["SSHLibrary"],
-           "api_intents": ["RequestsLibrary", "Collections"],
-           "database_intents": ["DatabaseLibrary"]
-       }
-       
-       required_libraries = set()
-       for intent in detected_intents:
-           for category, libraries in library_mapping.items():
-               if intent in INTENT_CATEGORIES[category]:
-                   required_libraries.update(libraries)
-       
-       return sorted(required_libraries)
-   ```
-
-5. **Fallback and Extension Mechanisms**: When specific intents cannot be mapped, provide intelligent fallbacks:
-
-   ```python
-   def generate_fallback_keywords(unmapped_step: dict) -> List[str]:
-       """
-       Generate intelligent fallbacks for unmapped test steps
-       """
-       fallbacks = [
-           f"Log    Executing step: {unmapped_step['description']}",
-           f"Log    Test data: {unmapped_step.get('testData', 'N/A')}",
-           f"Log    Expected result: {unmapped_step.get('expectedResult', 'N/A')}"
-       ]
-       
-       return fallbacks
-   ```
-
-#### Implementation Benefits
-
-- **Future-Proof**: New test case formats automatically work without code changes
-- **Maintainable**: Single conversion engine instead of format-specific parsers  
-- **Comprehensive**: Covers all major Robot Framework libraries and use cases
-- **Intelligent**: Provides meaningful fallbacks and suggestions for edge cases
-- **Extensible**: Easy to add new intent patterns and keyword mappings
-
-This approach transforms Importobot from a **format-specific converter** into a **universal test automation translation engine** that can handle any test case structure and produce executable Robot Framework code.
-
-## Dependencies and Tooling
-
-### Package Management
-1. **uv**: Fast, reliable package management and virtual environment management
-
-### Testing Framework
-2. **pytest**: Testing framework with fixture support and comprehensive test discovery
-3. **coverage**: Code coverage reporting integrated with Codecov
-4. **PyYAML**: YAML parsing for workflow validation testing
-
-### Code Quality Tools (CI/CD Enforced)
-1. **ruff**: Primary linting and formatting tool with comprehensive rule coverage
-2. **black**: Uncompromising code formatter for consistent style
-3. **pycodestyle**: PEP 8 style guide enforcement (max-line-length: 88 characters)
-4. **pydocstyle**: Docstring style checking with imperative mood compliance
-5. **pylint**: Comprehensive code analysis achieving perfect 10.00/10 score with proper .venv exclusion
-
-### Target Framework
-6. **Robot Framework**: Target output format for converted tests
-
-### CI/CD Infrastructure
-- **GitHub Actions**: Comprehensive automated testing across Python 3.10, 3.11, 3.12 with enhanced workflows:
-  - **Test Workflow**: JUnit XML test reports uploaded as artifacts, fail-fast: false strategy, enhanced caching with Python version isolation
-  - **Lint Workflow**: Optimized permissions configuration, proper secret validation
-  - **Claude Code Review**: AI-powered code review with strict workflow validation requirements - the workflow file must exist and have identical content to the version on the repository's default branch. When first adding the workflow file to a repository via PR, GitHub token setup errors are normal and should be ignored
-  - **Claude Integration**: Advanced development assistance with CI result analysis
-- **Dependabot**: Weekly automated dependency updates for GitHub Actions and Python packages
-- **Workflow Validation**: Comprehensive testing of all GitHub Actions workflows for YAML syntax, structure, and best practices
-- **Coverage Reporting**: Integrated with Codecov with proper secret validation - checks for token availability before upload attempts and gracefully handles missing tokens without failing the build
-
-### Project Structure
-- **examples/json/**: Contains sample input files for testing and documentation
-- **.github/workflows/**: Enhanced GitHub Actions configuration with comprehensive CI/CD pipelines
-- **.github/dependabot.yml**: Automated dependency management configuration
-- **tests/unit/test_workflows.py**: Comprehensive workflow validation testing
-- **setup.cfg**: Additional project configuration
-
-This project is designed to be maintainable, testable, and extensible following industry best practices for TDD and XP.
+4. Clean artifacts: `make clean` or `make deep-clean`
+5. Verify no regressions were introduced
+6. Push changes will trigger GitHub Actions workflows for automated testing and linting

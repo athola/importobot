@@ -150,6 +150,7 @@ class TestGitHubWorkflows:
                 "pull_request_review_comment",
                 "issues",
                 "pull_request_review",
+                "workflow_run",
             ]
             assert any(t in trigger_types for t in valid_triggers), (
                 f"Workflow {workflow_file.name} should have appropriate triggers"
