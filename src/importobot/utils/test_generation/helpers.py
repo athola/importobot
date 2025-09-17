@@ -55,24 +55,7 @@ def generate_random_test_json(
 ) -> Dict[str, Any]:
     """Generate a random JSON test artifact."""
     generator = EnterpriseTestGenerator()
-
-    # Use structure to determine category and scenario
-    if structure == "zephyr_basic":
-        category = "functional"
-        scenario = "basic_workflow"
-    else:
-        category = "regression"
-        scenario = "user_authentication"
-
-    # Use complexity if provided
-    test_complexity = complexity or "medium"
-
-    return generator.generate_enterprise_test_case(
-        category=category,
-        scenario=scenario,
-        test_id=random.randint(1000, 9999),
-        complexity_override=test_complexity,
-    )
+    return generator.generate_random_json(structure, complexity)
 
 
 def get_available_structures() -> List[str]:
