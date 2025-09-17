@@ -11,6 +11,7 @@ Requires-Dist: robotframework-sshlibrary>=3.8.0
 Requires-Dist: robotframework-requests>=0.9.4
 Requires-Dist: robotframework-databaselibrary>=1.2.4
 Requires-Dist: pytest-cov>=7.0.0
+Requires-Dist: psutil>=7.0.0
 Dynamic: license-file
 
 # Importobot - Test Framework Converter
@@ -231,10 +232,3 @@ uv run ruff format .
 make clean
 make deep-clean  # For more thorough cleanup
 ```
-
-### Artifact Management
-
-The project includes comprehensive artifact management:
-- `make clean`: Removes common temporary files and directories
-- `make deep-clean`: Performs thorough cleanup including all generated artifacts
-- Proper `.gitignore` configuration to prevent accidental commits of artifacts

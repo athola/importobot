@@ -691,15 +691,29 @@ class EnterpriseTestGenerator:
             total_tests, distribution, weights
         )
 
-    def generate_random_json(self, structure: Optional[str] = None) -> Dict[str, Any]:
+    def generate_random_json(
+        self,
+        structure: Optional[str] = None,
+        complexity: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """Generate random JSON test data."""
-        # Import here to avoid circular imports
-        # pylint: disable=import-outside-toplevel
-        from importobot.utils.test_generation.helpers import (
-            generate_random_test_json,
-        )
+        # Use structure to determine category and scenario
+        if structure == "zephyr_basic":
+            category = "functional"
+            scenario = "basic_workflow"
+        else:
+            category = "regression"
+            scenario = "user_authentication"
 
-        return generate_random_test_json(structure)
+        # Use complexity if provided
+        test_complexity = complexity or "medium"
+
+        return self.generate_enterprise_test_case(
+            category=category,
+            scenario=scenario,
+            test_id=random.randint(1000, 9999),
+            complexity_override=test_complexity,
+        )
 
     def _get_category_scenarios(self) -> Dict[str, Dict[str, List[str]]]:
         """Get available scenarios by category."""

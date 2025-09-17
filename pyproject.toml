@@ -15,6 +15,7 @@ dependencies = [
     "robotframework-requests>=0.9.4",
     "robotframework-databaselibrary>=1.2.4",
     "pytest-cov>=7.0.0",
+    "psutil>=7.0.0",
 ]
 
 [project.scripts]
