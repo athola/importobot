@@ -1,6 +1,21 @@
 # Release Notes
 
-## v0.2.0 (Current Release)
+## v0.3.0 (Latest Release)
+
+- **Enterprise Test Generation**: Added support for generating up to 1,050 test cases for comprehensive coverage.
+- **Conversion Strategies Pattern**: Implemented flexible file handling strategies.
+- **Enhanced CLI Interface**: Comprehensive command-line interface with argument validation.
+- **Business Domain Templates**: Added realistic test scenarios for enterprise use cases.
+- **Advanced Keyword Libraries**: Support for SSH, API, database, and web automation.
+- **Suggestion Engine**: Automatic test improvement suggestions.
+- **Validation Framework**: Comprehensive validation with security controls.
+- **Enterprise Presentation**: Migration strategy slides and documentation.
+- **GitHub Workflows**: Automated testing and code quality enforcement.
+- **Extensive Test Coverage**: Added 243+ passing tests for reliability.
+- **Technical Improvements**: Fixed typecheck issues, resolved test failures, added VM provisioning support with Ansible/Terraform integration.
+- **Dependency Management**: Comprehensive dependency management with uv and automated updates.
+
+## v0.2.0
 
 - **Bulk Conversion**: Convert entire directories of test cases.
 - **Headless Chrome**: Run in a headless environment for CI/CD.
