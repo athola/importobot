@@ -3,16 +3,22 @@
 .PHONY: help
 help:
 	@echo "Available targets:"
-	@echo "  init      - Install dependencies"
-	@echo "  test      - Run tests"
-	@echo "  coverage  - Run tests with coverage"
-	@echo "  lint      - Run linting"
-	@echo "  format    - Format code"
-	@echo "  clean     - Clean temp files"
-	@echo "  examples  - Run all example conversions"
+	@echo "  help         - Show this help menu"
+	@echo "  init         - Install dependencies"
+	@echo "  test         - Run tests"
+	@echo "  coverage     - Run tests with coverage"
+	@echo "  lint         - Run linting"
+	@echo "  format       - Format code"
+	@echo "  typecheck    - Run type checking"
+	@echo "  clean        - Clean temp files"
+	@echo "  examples     - Run all example conversions"
+	@echo "  example-basic           - Basic login example"
+	@echo "  example-login           - Browser login example"
+	@echo "  example-suggestions     - Hash file example with suggestions"
 	@echo "  example-user-registration   - Web form automation example"
 	@echo "  example-file-transfer       - SSH file transfer example"
 	@echo "  example-database-api        - Database and API testing example"
+	@echo "  enterprise-demo         - Bulk conversion test"
 
 # Install dependencies
 .PHONY: init
@@ -59,6 +65,10 @@ clean:
 	rm -rf *.egg-info/
 	rm -f examples/robot/*.robot
 	rm -f output.xml log.html report.html selenium-screenshot-*.png
+	rm -f compile.log coverage.xml test-results.xml texput.log
+	rm -f *.xml *.html *.log
+	rm -rf robot-tests/ zephyr-tests/
+	rm -rf .ruff_cache/
 
 # Examples
 .PHONY: examples

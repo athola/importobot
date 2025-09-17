@@ -3,12 +3,13 @@
 import re
 from typing import Any, Callable, Dict, List, Set
 
-from .. import config
-from ..utils.logging import setup_logger
-from ..utils.validation import sanitize_robot_string
-from .constants import EXPECTED_RESULT_FIELD_NAMES, TEST_DATA_FIELD_NAMES
-from .interfaces import KeywordGenerator
-from .keywords_registry import IntentRecognitionEngine, LibraryDetector
+from importobot import config
+from importobot.core.constants import EXPECTED_RESULT_FIELD_NAMES, TEST_DATA_FIELD_NAMES
+from importobot.core.interfaces import KeywordGenerator
+from importobot.core.keywords_registry import IntentRecognitionEngine, LibraryDetector
+from importobot.core.parsers import GenericTestFileParser
+from importobot.utils.logging import setup_logger
+from importobot.utils.validation import sanitize_robot_string
 
 logger = setup_logger(__name__)
 
@@ -76,11 +77,8 @@ class GenericKeywordGenerator(KeywordGenerator):
         """Detect required Robot Framework libraries from step content."""
         return LibraryDetector.detect_libraries_from_steps(steps)
 
-    def _get_parser(self) -> Any:
-        """Get parser instance (imported locally to avoid circular imports)."""
-        # pylint: disable=import-outside-toplevel
-        from .parsers import GenericTestFileParser
-
+    def _get_parser(self) -> GenericTestFileParser:
+        """Get parser instance."""
         return GenericTestFileParser()
 
     def _extract_field(self, data: Dict[str, Any], field_names: List[str]) -> str:

@@ -1,0 +1,40 @@
+{
+  "library_name": "SSHLibrary",
+  "description": "SSH operations and remote command execution",
+  "keywords": {
+    "Open Connection": {
+      "args": ["host", "username", "password"],
+      "description": "Open SSH connection",
+      "security_warning": "⚠️  Use key-based authentication instead of passwords for production"
+    },
+    "Close Connection": {
+      "args": [],
+      "description": "Close SSH connection"
+    },
+    "Get File": {
+      "args": ["source", "destination"],
+      "description": "Download file via SSH",
+      "security_warning": "⚠️  Validate file paths to prevent directory traversal"
+    },
+    "Put File": {
+      "args": ["source", "destination"],
+      "description": "Upload file via SSH",
+      "security_warning": "⚠️  Validate destination paths and file permissions"
+    },
+    "Execute Command": {
+      "args": ["command"],
+      "description": "Execute command via SSH",
+      "security_warning": "⚠️  Sanitize commands to prevent injection attacks"
+    },
+    "Login": {
+      "args": ["username", "password"],
+      "description": "Login to SSH",
+      "security_warning": "⚠️  Avoid hardcoding credentials in test scripts"
+    },
+    "Login With Public Key": {
+      "args": ["username", "keyfile"],
+      "description": "Login to SSH using public key",
+      "security_note": "✅ Recommended secure authentication method"
+    }
+  }
+}

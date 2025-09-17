@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 from typing import Any, Optional
 
-from .. import exceptions
+from importobot import exceptions
 
 
 def validate_safe_path(file_path: str, base_dir: Optional[str] = None) -> str:
@@ -72,14 +72,21 @@ def sanitize_robot_string(text: Any) -> str:
     if text is None:
         return ""
 
-    return str(text).replace("\n", " ").replace("\r", "").strip()
+    # Handle line endings preserving consecutive ones as multiple spaces
+    text_str = str(text)
+    # Replace Windows line endings first to avoid double spaces
+    text_str = text_str.replace("\r\n", " ")
+    # Then replace remaining newlines and carriage returns
+    text_str = text_str.translate({ord("\n"): " ", ord("\r"): " "})
+    # Trim leading/trailing whitespace but preserve internal spacing
+    return text_str.strip()
 
 
-def validate_json_size(json_string: str, max_size_mb: int = 10) -> None:
+def validate_json_size(json_string: Any, max_size_mb: int = 10) -> None:
     """Validate JSON string size to prevent memory exhaustion.
 
     Args:
-        json_string: The JSON string to validate
+        json_string: The JSON string to validate (any type accepted)
         max_size_mb: Maximum size in megabytes
 
     Raises:
@@ -91,7 +98,9 @@ def validate_json_size(json_string: str, max_size_mb: int = 10) -> None:
     size_mb = len(json_string.encode("utf-8")) / (1024 * 1024)
     if size_mb > max_size_mb:
         raise exceptions.ValidationError(
-            f"JSON input too large: {size_mb:.1f}MB > {max_size_mb}MB limit"
+            f"JSON input too large: {size_mb:.1f}MB exceeds {max_size_mb}MB limit. "
+            f"Consider reducing the input size or increasing the limit. "
+            f"Large JSON files can cause memory exhaustion and system instability."
         )
 
 

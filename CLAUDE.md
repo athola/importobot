@@ -55,6 +55,28 @@ The fail-fast approach is implemented throughout the codebase in:
 - Type checking and data structure validation
 - Error handling with specific exception types
 
+## Recent Improvements
+
+### Artifact Management
+- Enhanced `.gitignore` to properly exclude generated artifacts and test output files
+- Added comprehensive `clean` and `deep-clean` Makefile targets to remove temporary files
+- Removed accidentally committed artifacts and ensured repository cleanliness
+
+### Code Quality Standards
+- Fixed linting issues throughout the codebase using `ruff` and other tools
+- Removed unused imports and variables to reduce code clutter
+- Standardized code formatting with automated tools
+- Improved error handling and validation patterns
+
+### Test Reliability
+- Fixed failing tests related to missing test data files
+- Improved test data management and file organization
+- Enhanced test suite reliability and consistency
+
+### Makefile Improvements
+- Added missing targets to help menu for better discoverability
+- All Makefile targets now documented in the help section
+
 ## CI/CD
 
 Importobot is designed to be run in a CI/CD pipeline. It includes support for running in a headless environment by using a headless Chrome browser.
@@ -76,5 +98,6 @@ Importobot is designed to be run in a CI/CD pipeline. It includes support for ru
 1. Run all tests: `make test`
 2. Check code quality: `make lint` (runs all linting tools matching CI configuration)
 3. Format code: `make format`
-4. Verify no regressions were introduced
-5. Push changes will trigger GitHub Actions workflows for automated testing and linting
+4. Clean artifacts: `make clean` or `make deep-clean`
+5. Verify no regressions were introduced
+6. Push changes will trigger GitHub Actions workflows for automated testing and linting

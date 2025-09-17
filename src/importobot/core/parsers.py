@@ -2,9 +2,9 @@
 
 from typing import Any, Dict, List
 
-from ..utils.logging import setup_logger
-from .field_definitions import TEST_STEP_FIELDS, is_test_case
-from .interfaces import TestFileParser
+from importobot.core.field_definitions import TEST_STEP_FIELDS, is_test_case
+from importobot.core.interfaces import TestFileParser
+from importobot.utils.logging import setup_logger
 
 logger = setup_logger(__name__)
 

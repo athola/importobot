@@ -71,7 +71,30 @@ uv run pylint .                        # Static analysis
 # Auto-fix common issues
 uv run ruff check --fix .
 uv run ruff format .
+
+# Clean generated artifacts
+make clean
+make deep-clean  # For more thorough cleanup
 ```
+
+## Recent Improvements
+
+### Artifact Management
+Contributors should be aware of the enhanced artifact management:
+- Enhanced `.gitignore` to properly exclude generated artifacts and test output files
+- Added comprehensive `clean` and `deep-clean` Makefile targets to remove temporary files
+- Removed accidentally committed artifacts and ensured repository cleanliness
+
+### Code Quality Standards
+- Fixed linting issues throughout the codebase using `ruff` and other tools
+- Removed unused imports and variables to reduce code clutter
+- Standardized code formatting with automated tools
+- Improved error handling and validation patterns
+
+### Test Reliability
+- Fixed failing tests related to missing test data files
+- Improved test data management and file organization
+- Enhanced test suite reliability and consistency
 
 ## Project Structure
 
@@ -154,6 +177,14 @@ def convert_test_case(test_data: dict) -> str:
 6. Update documentation as needed.
 7. Create a pull request.
 8. Address any feedback from reviewers.
+
+## Artifact Management for Contributors
+
+When working on Importobot, please be aware of the artifact management practices:
+- Use `make clean` regularly during development to remove temporary files
+- Use `make deep-clean` for more thorough cleanup when needed
+- Check that no artifacts are accidentally committed by reviewing your changes
+- Run tests after cleaning to ensure nothing was broken
 
 ## Reporting Issues
 

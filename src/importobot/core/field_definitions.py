@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Any, Optional, Set
 
-from .constants import EXPECTED_RESULT_FIELD_NAMES, TEST_DATA_FIELD_NAMES
+from importobot.core.constants import EXPECTED_RESULT_FIELD_NAMES, TEST_DATA_FIELD_NAMES
 
 
 @dataclass(frozen=True)

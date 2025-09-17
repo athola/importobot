@@ -34,6 +34,29 @@ Importobot automates the conversion process:
 - Generate Robot Framework files that run without modification.
 - Built using TDD practices for reliability.
 
+## Recent Improvements
+
+### Artifact Management
+- Enhanced `.gitignore` to properly exclude generated artifacts and test output files
+- Added comprehensive `clean` and `deep-clean` Makefile targets to remove temporary files
+- Removed accidentally committed artifacts and ensured repository cleanliness
+
+### Code Quality
+- Fixed linting issues throughout the codebase using `ruff` and other tools
+- Removed unused imports and variables to reduce code clutter
+- Standardized code formatting with automated tools
+- Improved error handling and validation patterns
+
+### Test Reliability
+- Fixed failing tests related to missing test data files
+- Improved test data management and file organization
+- Enhanced test suite reliability and consistency
+
+### Makefile Improvements
+- Added missing targets to help menu for better discoverability
+- All Makefile targets now documented in the help section
+- Enhanced clean targets to remove additional artifact files
+
 ## Project Status
 
 [![Test](https://github.com/athola/importobot/actions/workflows/test.yml/badge.svg)](https://github.com/athola/importobot/actions/workflows/test.yml)

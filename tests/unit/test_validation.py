@@ -110,6 +110,48 @@ class TestStringSanitization:
         result = sanitize_robot_string(["test", "list"])
         assert result == "['test', 'list']"
 
+    def test_sanitize_robot_string_complex_whitespace(self):
+        """Test sanitization handles complex whitespace scenarios."""
+        # Test multiple newlines and carriage returns
+        result = sanitize_robot_string("Line1\n\nLine2\r\nLine3\r\rLine4")
+        assert result == "Line1  Line2 Line3  Line4"
+
+    def test_sanitize_robot_string_mixed_line_endings(self):
+        """Test sanitization handles mixed line endings efficiently."""
+        test_input = "Start\nMiddle\r\nEnd\rFinal"
+        result = sanitize_robot_string(test_input)
+        assert result == "Start Middle End Final"
+        # Verify no carriage returns or newlines remain
+        assert "\n" not in result
+        assert "\r" not in result
+
+    def test_sanitize_robot_string_performance_optimization(self):
+        """Test that optimized translate method works correctly."""
+        # Test the specific optimization: translate vs multiple replace calls
+        test_string = "Hello\nWorld\rTest\n\rLine"
+        result = sanitize_robot_string(test_string)
+
+        # Expected result with newlines converted to spaces and carriage returns removed
+        expected = "Hello World Test  Line"
+        assert result == expected
+
+    def test_sanitize_robot_string_unicode_handling(self):
+        """Test sanitization handles unicode characters properly."""
+        unicode_string = "Hello\nWorld\r测试\n文本\r"
+        result = sanitize_robot_string(unicode_string)
+        assert result == "Hello World 测试 文本"
+
+    def test_sanitize_robot_string_edge_cases(self):
+        """Test edge cases for string sanitization."""
+        # Empty string
+        assert sanitize_robot_string("") == ""
+
+        # Only whitespace
+        assert sanitize_robot_string("\n\r  \n\r") == ""
+
+        # Only newlines and carriage returns
+        assert sanitize_robot_string("\n\r\n\r") == ""
+
 
 class TestJsonSizeValidation:
     """Test JSON size validation functionality."""
@@ -126,6 +168,55 @@ class TestJsonSizeValidation:
         large_json = '{"data": "' + "x" * (11 * 1024 * 1024) + '"}'
         with pytest.raises(Exception, match="JSON input too large"):
             validate_json_size(large_json)
+
+    def test_validate_json_size_enhanced_error_message(self):
+        """Test that large JSON validation includes enhanced error message."""
+        # Create a JSON string larger than 5MB (using smaller limit for testing)
+        large_json = '{"data": "' + "x" * (6 * 1024 * 1024) + '"}'
+
+        with pytest.raises(Exception) as exc_info:
+            validate_json_size(large_json, max_size_mb=5)
+
+        error_message = str(exc_info.value)
+        # Verify enhanced error message components
+        assert "exceeds" in error_message
+        assert "limit" in error_message
+        assert "Consider reducing the input size" in error_message
+        assert "memory exhaustion" in error_message
+        assert "system instability" in error_message
+
+    def test_validate_json_size_exact_limit(self):
+        """Test validation at exact size limit."""
+        # Create JSON exactly at limit (should pass)
+        limit_mb = 1
+        # Account for JSON structure overhead
+        data_size = (limit_mb * 1024 * 1024) - 100  # Leave room for JSON structure
+        json_string = '{"data": "' + "x" * data_size + '"}'
+
+        # Should not raise exception
+        validate_json_size(json_string, max_size_mb=limit_mb)
+
+    def test_validate_json_size_non_string_input(self):
+        """Test validation handles non-string input gracefully."""
+        # Should not raise exception for non-string input
+        validate_json_size(None)
+        validate_json_size(123)
+        validate_json_size([1, 2, 3])
+
+    def test_validate_json_size_empty_string(self):
+        """Test validation handles empty string."""
+        validate_json_size("")
+        validate_json_size("   ")
+
+    def test_validate_json_size_unicode_content(self):
+        """Test validation handles unicode content correctly."""
+        unicode_json = '{"message": "Hello 世界 🌍"}'
+        validate_json_size(unicode_json)
+
+        # Test with large unicode content
+        large_unicode = '{"data": "' + "测试" * (2 * 1024 * 1024) + '"}'
+        with pytest.raises(Exception, match="JSON input too large"):
+            validate_json_size(large_unicode, max_size_mb=5)
 
     def test_validate_json_size_custom_limit(self):
         """Test validation with custom size limit."""

@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List
 
-from importobot.utils.test_generation import print_test_distribution
+from importobot.utils.test_generation.distributions import print_test_distribution
 
 CategoryTypes = Dict[str, Dict[str, List[str]]]
 

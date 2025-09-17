@@ -6,19 +6,19 @@ import os
 import sys
 from typing import List, Tuple
 
-from .. import exceptions
-from ..core.converter import (
+from importobot import exceptions
+from importobot.core.converter import (
     convert_directory,
     convert_file,
     convert_multiple_files,
     get_conversion_suggestions,
 )
-from ..utils.file_operations import (
+from importobot.utils.file_operations import (
     display_suggestion_changes,
     load_json_file,
     process_single_file_with_suggestions,
 )
-from ..utils.logging import setup_logger
+from importobot.utils.logging import setup_logger
 
 logger = setup_logger("importobot-cli")
 

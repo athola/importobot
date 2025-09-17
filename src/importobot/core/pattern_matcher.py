@@ -6,6 +6,8 @@ from enum import Enum
 from functools import lru_cache
 from typing import Dict, List, Optional, Pattern, Tuple
 
+from importobot.utils.defaults import PROGRESS_CONFIG
+
 
 class IntentType(Enum):
     """Types of intents that can be detected in test steps."""
@@ -103,7 +105,7 @@ class PatternMatcher:
             ),
             IntentPattern(
                 IntentType.SSH_DISCONNECT,
-                r"\b(?:close|disconnect|terminate).*(?:connection|ssh)\b",
+                r"\b(?:close|disconnect|terminate).*(?:connection|ssh|remote)\b",
                 priority=6,
             ),
             # Browser operations
@@ -198,9 +200,16 @@ class PatternMatcher:
                 result = pattern.intent_type
                 break
 
-        # Limit cache size
-        if len(self._intent_cache) < 256:
+        # Use configurable cache limits
+        if len(self._intent_cache) < PROGRESS_CONFIG.intent_cache_limit:
             self._intent_cache[text] = result
+        elif len(self._intent_cache) >= PROGRESS_CONFIG.intent_cache_cleanup_threshold:
+            # Clear half the cache when it gets too large
+            keys_to_remove = list(self._intent_cache.keys())[
+                : PROGRESS_CONFIG.intent_cache_limit
+            ]
+            for key in keys_to_remove:
+                del self._intent_cache[key]
 
         return result
 
@@ -238,19 +247,30 @@ class DataExtractor:
     def extract_file_path(text: str) -> str:
         """Extract file path from text."""
         # Look for explicit file paths
-        path = DataExtractor.extract_pattern(text, r"/[^\s,]+|[a-zA-Z]:\\[^\s,]+")
-        if not path:
-            # Try alternative patterns for file paths in test data
-            path = DataExtractor.extract_pattern(text, r"at\s+([^\s,]+)")
-        if not path:
-            # Look for file names with extensions
-            path_match = re.search(
-                r"([a-zA-Z0-9_.-]+\.[a-zA-Z]+)",
-                text,
-            )
-            if path_match:
-                path = path_match.group(1)
-        return path
+        # Handle Windows paths with spaces by looking for complete path patterns
+        windows_path_match = re.search(r"[a-zA-Z]:\\[^,\n]+", text)
+        if windows_path_match:
+            return windows_path_match.group(0).strip()
+
+        # Look for Unix paths
+        unix_path_match = re.search(r"/[^\s,]+", text)
+        if unix_path_match:
+            return unix_path_match.group(0).strip()
+
+        # Try alternative patterns for file paths in test data
+        path = DataExtractor.extract_pattern(text, r"at\s+([^\s,]+)")
+        if path:
+            return path
+
+        # Look for file names with extensions
+        path_match = re.search(
+            r"([a-zA-Z0-9_.-]+\.[a-zA-Z]+)",
+            text,
+        )
+        if path_match:
+            return path_match.group(1)
+
+        return ""
 
     @staticmethod
     def extract_credentials(text: str) -> Tuple[str, str]:
@@ -287,7 +307,7 @@ class DataExtractor:
     @staticmethod
     def extract_sql_query(text: str) -> str:
         """Extract SQL query from text."""
-        # Try to extract SQL with label
+        # Try to extract SQL with label first
         sql_match = re.search(
             r"(?:sql|query|statement):\s*(.+?)(?:\s*(?:\n|$))",
             text,
@@ -296,20 +316,10 @@ class DataExtractor:
         if sql_match:
             return sql_match.group(1).strip()
 
-        # Try to extract raw SQL statements
-        sql_patterns = [
-            r"(SELECT\s+.+?)(?:;|$)",
-            r"(INSERT\s+.+?)(?:;|$)",
-            r"(UPDATE\s+.+?)(?:;|$)",
-            r"(DELETE\s+.+?)(?:;|$)",
-        ]
-
-        for pattern in sql_patterns:
-            sql_match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
-            if sql_match:
-                return sql_match.group(1).strip()
-
-        return ""
+        # Single combined pattern for all SQL statements (more efficient)
+        combined_sql_pattern = r"((?:SELECT|INSERT|UPDATE|DELETE)\s+.+?)(?:;|$)"
+        sql_match = re.search(combined_sql_pattern, text, re.IGNORECASE | re.DOTALL)
+        return sql_match.group(1).strip() if sql_match else ""
 
     @staticmethod
     def extract_api_params(text: str) -> Dict[str, str]:

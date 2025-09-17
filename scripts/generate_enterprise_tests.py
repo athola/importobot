@@ -10,11 +10,9 @@ import argparse
 import json
 import sys
 
-from importobot.utils.test_generation import (
-    CategoryEnum,
-    generate_test_suite,
-    print_test_distribution,
-)
+from importobot.utils.test_generation.categories import CategoryEnum
+from importobot.utils.test_generation.distributions import print_test_distribution
+from importobot.utils.test_generation.helpers import generate_test_suite
 
 
 def main() -> int:
