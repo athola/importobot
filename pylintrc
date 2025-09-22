@@ -42,3 +42,6 @@ min-public-methods = 0
 
 # Maximum number of public methods for a class (see R0904).
 max-public-methods = 20
+
+# Maximum number of lines in a module (see C0302).
+max-module-lines = 2000

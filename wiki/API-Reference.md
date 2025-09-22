@@ -1,163 +1,296 @@
 # API Reference
 
-This document outlines Importobot's modules, classes, and functions.
+This document outlines Importobot's public API following pandas-inspired design patterns for enterprise integration.
 
-## Project Structure
+## API Architecture Overview
 
+Importobot provides a **two-tier API structure** designed for both simple usage and enterprise integration:
+
+1. **Primary Interface**: `import importobot` - Core bulk conversion functionality
+2. **Enterprise Toolkit**: `importobot.api.*` - Advanced features for CI/CD and QA teams
+
+### Pandas-Inspired Design Principles
+
+- **Clean Public Interface**: Simple imports for core functionality
+- **Enterprise Toolkit**: Dedicated `api` module for advanced features
+- **Version Stability**: Public API contracts remain stable across versions
+- **Type Safety**: Full type hints and `TYPE_CHECKING` support
+- **Professional Standards**: Follows industry best practices
+
+## Public API Structure
+
+```
+importobot/
+├── JsonToRobotConverter    # Core bulk conversion class
+├── config                  # Enterprise configuration
+├── exceptions              # Comprehensive error handling
+└── api/                    # Enterprise toolkit
+    ├── converters          # Advanced conversion engines
+    ├── suggestions         # QA suggestion engine
+    └── validation          # CI/CD validation utilities
+```
+
+### Internal Implementation (Private)
 ```
 src/importobot/
-├── cli/                 # Command-line interface
-│   ├── parser.py       # Argument parsing
-│   └── handlers.py     # Command handlers
-├── core/               # Core conversion logic
-│   ├── engine.py       # Conversion engine
-│   ├── converter.py    # File operations
-│   └── parser.py       # Test case parsing
-├── utils/              # Utility modules
-└── __main__.py         # Entry point (55 lines)
-
-tests/
-├── unit/               # Unit tests (188)
-├── integration/        # Integration tests (24)
-└── cli/               # CLI tests (31)
+├── cli/                    # Command-line interface (private)
+├── core/                   # Core conversion logic (private)
+├── utils/                  # Utility modules (private)
+└── __main__.py            # Entry point
 ```
 
-## CLI Modules
+## Primary Interface
 
-### parser.py
+### JsonToRobotConverter
 
-Handles command-line argument parsing.
+The main class for bulk test case conversion.
 
-#### Functions
+```python
+import importobot
 
-`parse_arguments()`
-- Parses command-line arguments.
-- Validates input files and directories.
-- Returns a parsed arguments object.
+converter = importobot.JsonToRobotConverter()
+```
 
-### handlers.py
+#### Methods
 
-Contains logic for CLI operations.
+**`convert_json_string(json_string: str) -> str`**
+- Converts JSON string directly to Robot Framework format
+- Validates input JSON and handles parsing errors
+- Returns generated Robot Framework code
 
-#### Functions
+**`convert_file(input_path: str, output_path: str) -> None`**
+- Converts single JSON file to Robot Framework
+- Handles file I/O and error reporting
+- Creates output directory if needed
 
-`handle_conversion(input_path, output_path, batch_mode)`
-- Handles file conversions.
-- Processes single files or directories.
-- Returns conversion status.
+**`convert_directory(input_dir: str, output_dir: str) -> Dict[str, Any]`**
+- Bulk converts entire directories of test cases
+- Processes hundreds or thousands of files efficiently
+- Returns conversion statistics and error reports
 
-## Core Modules
+### Configuration
 
-### engine.py
+Access enterprise configuration settings:
 
-The conversion engine that orchestrates the conversion process.
+```python
+import importobot
+
+# Enterprise configuration
+max_size = importobot.config.MAX_JSON_SIZE_MB
+test_url = importobot.config.TEST_SERVER_URL
+chrome_options = importobot.config.CHROME_OPTIONS
+```
+
+#### Available Settings
+
+- `MAX_JSON_SIZE_MB`: Maximum JSON file size (default: 10MB)
+- `TEST_SERVER_URL`: Test server URL for validation
+- `TEST_SERVER_PORT`: Test server port
+- `CHROME_OPTIONS`: Headless browser configuration
+
+### Exceptions
+
+Comprehensive error handling for enterprise pipelines:
+
+```python
+import importobot
+
+try:
+    converter = importobot.JsonToRobotConverter()
+    result = converter.convert_file("test.json")
+except importobot.exceptions.ValidationError:
+    # Input validation failed
+except importobot.exceptions.ConversionError:
+    # Conversion process failed
+except importobot.exceptions.ParseError:
+    # JSON parsing failed
+```
+
+#### Exception Hierarchy
+
+- `ImportobotError`: Base exception for all errors
+- `ValidationError`: Input validation failures
+- `ConversionError`: Conversion process failures
+- `ParseError`: JSON parsing failures
+- `FileNotFound`: Missing file errors
+- `FileAccessError`: File permission errors
+- `SuggestionError`: Suggestion engine failures
+
+## Enterprise Toolkit (importobot.api)
+
+### importobot.api.converters
+
+Advanced conversion engines for enterprise integration.
+
+```python
+from importobot.api import converters
+
+# Access to advanced conversion engine
+engine = converters.GenericConversionEngine()
+result = engine.convert(test_data, config=custom_config)
+
+# Direct access to main converter
+converter = converters.JsonToRobotConverter()
+```
 
 #### Classes
 
-`ConversionEngine`
-- Orchestrates file conversions.
-- Methods:
-  - `convert_test_case(test_data)`: Converts a single test case.
-  - `process_batch(input_dir, output_dir)`: Processes multiple test cases in a directory.
+**`GenericConversionEngine`**
+- Low-level conversion engine with configuration options
+- Supports custom keyword mapping and format options
+- Used internally by `JsonToRobotConverter`
+
+### importobot.api.validation
+
+CI/CD pipeline validation utilities.
+
+```python
+from importobot.api import validation
+
+# Validate JSON structure before conversion
+validation.validate_json_dict(test_data)
+
+# Security validation for file paths
+validation.validate_safe_path(output_path)
+```
 
 #### Functions
 
-`detect_required_libraries(test_steps)`
-- Analyzes test steps to determine required Robot Framework libraries.
-- Returns a list of library names.
+**`validate_json_dict(data: dict) -> None`**
+- Validates JSON structure and content
+- Raises `ValidationError` on failure
+- Checks required fields and data types
 
-### converter.py
+**`validate_safe_path(path: str) -> str`**
+- Prevents directory traversal attacks
+- Validates file path security
+- Returns sanitized path
 
-Handles file loading and saving.
+**`ValidationError`**
+- Exception class for validation failures
+- Provides detailed error messages
+- Used throughout validation pipeline
 
-#### Functions
+### importobot.api.suggestions
 
-`load_json_file(file_path)`
-- Loads and validates a JSON file.
-- Returns parsed JSON data.
+QA suggestion engine for handling ambiguous test cases.
 
-`save_robot_file(file_path, robot_content)`
-- Saves Robot Framework content to a file.
+```python
+from importobot.api import suggestions
 
-`validate_safe_path(base_path, target_path)`
-- Validates file paths to prevent directory traversal.
-- Returns a validated path.
+# Handle problematic test cases
+engine = suggestions.GenericSuggestionEngine()
+fixes = engine.suggest_improvements(ambiguous_test_data)
+```
 
-### parser.py
+#### Classes
 
-Parses input data with intent recognition.
+**`GenericSuggestionEngine`**
+- Analyzes problematic test cases
+- Provides intelligent suggestions for improvements
+- Handles ambiguous or incomplete test data
 
-#### Functions
+## Business Use Cases
 
-`parse_test_case(json_data)`
-- Parses test case data from JSON.
-- Extracts test steps, descriptions, and expected results.
-- Returns a structured test case object.
+### 1. Bulk Conversion Pipeline
 
-`extract_intent(step_description)`
-- Analyzes a step description to identify intent.
-- Returns the intent category and parameters.
+```python
+import importobot
 
-`generate_robot_keywords(test_steps)`
-- Generates Robot Framework keywords from intents.
-- Returns a list of keyword strings.
+# Enterprise bulk conversion
+converter = importobot.JsonToRobotConverter()
+results = converter.convert_directory("/zephyr/exports", "/robot/tests")
 
-## Utility Modules
+print(f"Converted {results['success_count']} test cases")
+print(f"Failed: {results['error_count']} files")
+```
 
-### utils/file_operations.py
+### 2. CI/CD Integration
 
-Provides utility functions for file operations.
+```python
+from importobot.api import validation, converters
 
-#### Functions
+# Validate before conversion in automated pipeline
+validation.validate_json_dict(test_data)
+validation.validate_safe_path(output_directory)
 
-`ensure_directory_exists(directory_path)`
-- Creates a directory if it does not exist.
-- Returns the directory path.
+# Convert with error handling
+converter = converters.JsonToRobotConverter()
+try:
+    result = converter.convert_json_string(json_data)
+except Exception as e:
+    # Log and handle conversion failures
+    pass
+```
 
-`get_file_extension(file_path)`
-- Extracts the file extension from a path.
-- Returns the extension as a string.
+### 3. QA Suggestion Engine
 
-### utils/validation.py
+```python
+from importobot.api import suggestions
 
-Provides utility functions for data validation.
+# Handle ambiguous test cases
+suggestion_engine = suggestions.GenericSuggestionEngine()
 
-#### Functions
+for test_case in problematic_tests:
+    fixes = suggestion_engine.suggest_improvements(test_case)
+    # Apply or review suggested improvements
+```
 
-`validate_json_structure(json_data)`
-- Validates a JSON structure against a schema.
-- Raises `ValidationException` on failure.
+## Version Stability Promise
 
-`sanitize_robot_string(input_string)`
-- Sanitizes strings for Robot Framework output.
-- Prevents syntax errors.
+Following pandas-style API evolution:
 
-## Exception Hierarchy
+- **Public API Contracts**: `importobot.*` and `importobot.api.*` remain stable across versions
+- **Internal Implementation**: Core modules can be refactored freely without breaking public API
+- **Deprecation Warnings**: Any breaking changes include migration guidance
+- **Semantic Versioning**: Major.Minor.Patch versioning with clear upgrade paths
 
-### ImportobotError
-Base exception class for all Importobot errors.
+## Environment Variables
 
-### ValidationError
-Raised when input validation fails.
+Enterprise configuration can be customized via environment variables:
 
-### ConversionError
-Raised when the conversion process fails.
+- `IMPORTOBOT_TEST_SERVER_URL`: Test server URL (default: "http://localhost:8000")
+- `IMPORTOBOT_MAX_JSON_SIZE_MB`: Maximum JSON file size in MB (default: "10")
 
-### FileNotFoundError
-Raised when a required file is not found.
+Example:
+```bash
+export IMPORTOBOT_MAX_JSON_SIZE_MB=50
+export IMPORTOBOT_TEST_SERVER_URL=https://testing.example.com
+```
 
-## Configuration
+## Migration from Internal APIs
 
-### Environment Variables
+If you were previously using internal modules directly:
 
-`IMPORTOBOT_TEST_SERVER_URL`
-- Default: "http://localhost:8000"
-- Overrides the test server URL.
+```python
+# ❌ Old internal access (will break)
+from importobot.core.engine import GenericConversionEngine
+from importobot.utils.validation import validate_json_dict
 
-`IMPORTOBOT_TEST_SERVER_PORT`
-- Default: "8000"
-- Overrides the test server port.
+# ✅ New public API (stable)
+from importobot.api import converters, validation
 
-`IMPORTOBOT_HEADLESS_BROWSER`
-- Default: "False"
-- Set to "True" to run Chrome in headless mode.
+engine = converters.GenericConversionEngine()
+validation.validate_json_dict(data)
+```
+
+## Type Hints & IDE Support
+
+Full type safety for development:
+
+```python
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from importobot.api import suggestions
+
+# IDE autocomplete and type checking work correctly
+engine: suggestions.GenericSuggestionEngine = ...
+```
+
+## Performance Considerations
+
+- **Bulk Operations**: Use `convert_directory()` for hundreds/thousands of files
+- **Memory Management**: Large files automatically handled within size limits
+- **Parallel Processing**: Directory conversion uses efficient batching
+- **Error Recovery**: Individual file failures don't stop batch processing

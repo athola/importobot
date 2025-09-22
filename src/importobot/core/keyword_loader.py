@@ -3,7 +3,7 @@
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from importobot.utils.defaults import LIBRARY_MAPPING
 from importobot.utils.security import extract_security_warnings
@@ -17,10 +17,10 @@ class KeywordLibraryLoader:
     def __init__(self) -> None:
         """Initialize the loader with the keywords data directory."""
         self.data_dir = Path(__file__).parent.parent / "data" / "keywords"
-        self._cache: Dict[str, Dict[str, Any]] = {}
+        self._cache: dict[str, dict[str, Any]] = {}
         self.logger = logger
 
-    def load_library(self, library_name: str) -> Dict[str, Any]:
+    def load_library(self, library_name: str) -> dict[str, Any]:
         """Load a specific keyword library configuration."""
         if library_name in self._cache:
             cached_result = self._cache[library_name]
@@ -83,9 +83,9 @@ class KeywordLibraryLoader:
             )
             return {}
 
-    def load_all_libraries(self) -> Dict[str, Dict[str, Any]]:
+    def load_all_libraries(self) -> dict[str, dict[str, Any]]:
         """Load all available keyword library configurations."""
-        libraries: Dict[str, Dict[str, Any]] = {}
+        libraries: dict[str, dict[str, Any]] = {}
 
         if not self.data_dir.exists():
             self.logger.warning(
@@ -121,20 +121,20 @@ class KeywordLibraryLoader:
 
         return libraries
 
-    def get_keywords_for_library(self, library_name: str) -> Dict[str, Dict[str, Any]]:
+    def get_keywords_for_library(self, library_name: str) -> dict[str, dict[str, Any]]:
         """Get all keywords for a specific library."""
         config = self.load_library(library_name)
         keywords_raw = config.get("keywords", {})
         return keywords_raw if isinstance(keywords_raw, dict) else {}
 
-    def get_available_libraries(self) -> List[str]:
+    def get_available_libraries(self) -> list[str]:
         """Get list of available library names."""
         libraries = self.load_all_libraries()
         return list(libraries.keys())
 
     def get_security_warnings_for_keyword(
         self, library: str, keyword: str
-    ) -> List[str]:
+    ) -> list[str]:
         """Get security warnings for a specific keyword."""
         warnings = []
         keywords = self.get_keywords_for_library(library)
@@ -150,7 +150,7 @@ class KeywordLibraryLoader:
         self._cache.clear()
         self.logger.info("Keyword library cache cleared")
 
-    def validate_configurations(self) -> Dict[str, List[str]]:
+    def validate_configurations(self) -> dict[str, list[str]]:
         """Validate all keyword library configurations."""
         validation_results = {}
 
@@ -160,7 +160,7 @@ class KeywordLibraryLoader:
 
         return validation_results
 
-    def _validate_single_configuration(self, json_file: Path) -> List[str]:
+    def _validate_single_configuration(self, json_file: Path) -> list[str]:
         """Validate a single configuration file."""
         try:
             with open(json_file, "r", encoding="utf-8") as f:
@@ -169,7 +169,7 @@ class KeywordLibraryLoader:
         except (json.JSONDecodeError, IOError) as e:
             return [f"Failed to parse JSON: {e}"]
 
-    def _validate_config_structure(self, config: Dict[str, Any]) -> List[str]:
+    def _validate_config_structure(self, config: dict[str, Any]) -> list[str]:
         """Validate the structure of a configuration object."""
         errors = []
 
@@ -181,7 +181,7 @@ class KeywordLibraryLoader:
 
         return errors
 
-    def _validate_required_fields(self, config: Dict[str, Any]) -> List[str]:
+    def _validate_required_fields(self, config: dict[str, Any]) -> list[str]:
         """Validate required top-level fields."""
         errors = []
         if "library_name" not in config:
@@ -192,7 +192,7 @@ class KeywordLibraryLoader:
             errors.append("keywords field must be a dictionary")
         return errors
 
-    def _validate_keywords_structure(self, config: Dict[str, Any]) -> List[str]:
+    def _validate_keywords_structure(self, config: dict[str, Any]) -> list[str]:
         """Validate the structure of keywords in the configuration."""
         errors = []
         for keyword_name, keyword_info in config.get("keywords", {}).items():

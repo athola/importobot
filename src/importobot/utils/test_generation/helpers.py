@@ -1,12 +1,10 @@
 """Helper functions for test generation."""
 
 import random
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from importobot.core.keywords_registry import (
-    LibraryDetector,
-    RobotFrameworkKeywordRegistry,
-)
+from importobot.core.keywords_registry import RobotFrameworkKeywordRegistry
+from importobot.core.pattern_matcher import LibraryDetector
 from importobot.utils.test_generation.distributions import DistributionDict, WeightsDict
 from importobot.utils.test_generation.generators import EnterpriseTestGenerator
 
@@ -14,8 +12,8 @@ from importobot.utils.test_generation.generators import EnterpriseTestGenerator
 def generate_test_suite(
     output_dir: str,
     total_tests: int = 800,
-    distribution: Optional[DistributionDict] = None,
-    weights: Optional[WeightsDict] = None,
+    distribution: DistributionDict | None = None,
+    weights: WeightsDict | None = None,
 ) -> DistributionDict:
     """Generate a test suite using the enterprise generator.
 
@@ -51,19 +49,19 @@ def generate_test_suite(
 
 
 def generate_random_test_json(
-    structure: Optional[str] = None, complexity: Optional[str] = None
-) -> Dict[str, Any]:
+    structure: str | None = None, complexity: str | None = None
+) -> dict[str, Any]:
     """Generate a random JSON test artifact."""
     generator = EnterpriseTestGenerator()
     return generator.generate_random_json(structure, complexity)
 
 
-def get_available_structures() -> List[str]:
+def get_available_structures() -> list[str]:
     """Get list of available test structures for generation."""
     return ["zephyr", "jira", "testlink", "generic"]
 
 
-def get_required_libraries_for_keywords(keywords: List[Dict[str, Any]]) -> List[str]:
+def get_required_libraries_for_keywords(keywords: list[dict[str, Any]]) -> list[str]:
     """Get required Robot Framework libraries for given keywords."""
     # Create steps using the same process as the actual test conversion
     generator = EnterpriseTestGenerator()
@@ -85,7 +83,7 @@ def get_required_libraries_for_keywords(keywords: List[Dict[str, Any]]) -> List[
     return list(detected_libs)
 
 
-def generate_keyword_list(num_keywords: int) -> List[Dict[str, Any]]:
+def generate_keyword_list(num_keywords: int) -> list[dict[str, Any]]:
     """Generate a list of random Robot Framework keywords for testing."""
     all_keywords = []
 

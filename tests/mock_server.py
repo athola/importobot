@@ -46,22 +46,39 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             super().do_GET()
 
 
-def start_mock_server():
-    """Start the mock server."""
+def start_mock_server(server_port=None):
+    """Start the mock server.
+
+    Args:
+        port: Port to bind to. If None, uses TEST_SERVER_PORT from config.
+               If 0, dynamically allocates an available port.
+
+    Returns:
+        tuple: (server_instance, actual_port_used)
+    """
     handler = MyHandler
-    server = socketserver.TCPServer(("", TEST_SERVER_PORT), handler)
-    print(f"Serving mock server at port {TEST_SERVER_PORT}")
-    server.serve_forever()
+    if server_port is None:
+        server_port = TEST_SERVER_PORT
+
+    server = socketserver.TCPServer(("", server_port), handler)
+    actual_port = server.server_address[1]
+    print(f"Serving mock server at port {actual_port}")
+    return server, actual_port
 
 
-def stop_mock_server(server):
+def stop_mock_server(mock_server):
     """Stop the mock server."""
-    server.shutdown()
-    server.server_close()
-    print(f"Stopped mock server at port {TEST_SERVER_PORT}")
+    port = mock_server.server_address[1]
+    mock_server.shutdown()
+    mock_server.server_close()
+    print(f"Stopped mock server at port {port}")
 
 
 if __name__ == "__main__":
     # This part is for manual testing of the server
     # In actual tests, it will be run in a separate thread
-    start_mock_server()
+    test_server, test_port = start_mock_server()
+    try:
+        test_server.serve_forever()
+    except KeyboardInterrupt:
+        stop_mock_server(test_server)

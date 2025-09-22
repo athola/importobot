@@ -2,9 +2,13 @@
 
 import json
 import os
+import re
 import tempfile
+from pathlib import Path
 from typing import Any
 from unittest.mock import Mock, patch
+
+import pytest
 
 from importobot.utils.file_operations import (
     convert_with_temp_file,
@@ -81,21 +85,27 @@ class TestLoadJsonFile:
         finally:
             os.unlink(temp_filename)
 
-    def test_handles_empty_path(self) -> None:
-        """Test handling of empty file path."""
-        result = load_json_file("")
-        assert result == {}
+    def test_load_json_file_empty_path_raises_error(self) -> None:
+        """User gets clear error message when no file path provided."""
+        with pytest.raises(ValueError, match="File path cannot be empty or None"):
+            load_json_file("")
 
-        result = load_json_file(None)
-        assert result == {}
+        with pytest.raises(ValueError, match="File path cannot be empty or None"):
+            load_json_file(None)
 
-    def test_handles_file_not_found(self) -> None:
-        """Test handling of non-existent file."""
-        result = load_json_file("/non/existent/file.json")
-        assert result == {}
+    def test_load_json_file_missing_file_gives_clear_error(
+        self, tmp_path: Path
+    ) -> None:
+        """User gets clear error message when file doesn't exist."""
+        non_existent_file = tmp_path / "non_existent_file.json"
+        with pytest.raises(
+            FileNotFoundError,
+            match=rf"Could not find JSON file: {re.escape(str(non_existent_file))}",
+        ):
+            load_json_file(str(non_existent_file))
 
-    def test_handles_invalid_json(self) -> None:
-        """Test handling of invalid JSON content."""
+    def test_load_json_file_corrupted_json_gives_helpful_error(self) -> None:
+        """User gets helpful error message when JSON file is corrupted."""
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".json", delete=False, encoding="utf-8"
         ) as f:
@@ -103,8 +113,11 @@ class TestLoadJsonFile:
             temp_filename = f.name
 
         try:
-            result = load_json_file(temp_filename)
-            assert result == {}
+            with pytest.raises(
+                json.JSONDecodeError,
+                match=r"JSON file appears to be corrupted at line \d+, column \d+",
+            ):
+                load_json_file(temp_filename)
         finally:
             os.unlink(temp_filename)
 
@@ -202,14 +215,16 @@ class TestSaveImprovedJsonAndConvert:
             # Verify convert_with_temp_file was called correctly
             mock_convert_with_temp_file.assert_called_once()
             call_args = mock_convert_with_temp_file.call_args
-            assert call_args[1]["conversion_data"] == {"testScript": improved_data}
+            assert call_args[1]["conversion_data"] == improved_data
             assert call_args[1]["robot_filename"] == f"{base_path}_improved.robot"
 
     @patch("importobot.utils.file_operations.convert_with_temp_file")
-    def test_uses_custom_output_file(self, mock_convert_with_temp_file: Mock) -> None:
+    def test_uses_custom_output_file(
+        self, mock_convert_with_temp_file: Mock, tmp_path: Path
+    ) -> None:
         """Test using custom output file name."""
         improved_data = {"name": "Test", "steps": []}
-        custom_output = "/tmp/custom.robot"
+        custom_output = str(tmp_path / "custom.robot")
 
         mock_args = Mock()
         mock_args.output_file = custom_output

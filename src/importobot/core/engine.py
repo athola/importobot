@@ -1,27 +1,31 @@
-"""Implementation of conversion engine components."""
+"""Core conversion engine implementation."""
 
-from typing import Any, Dict, List
+from typing import Any
 
 from importobot.core.interfaces import ConversionEngine
-from importobot.core.keywords import GenericKeywordGenerator
+from importobot.core.keyword_generator import GenericKeywordGenerator
 from importobot.core.parsers import GenericTestFileParser
+from importobot.core.pattern_matcher import LibraryDetector
 from importobot.utils.logging import setup_logger
-from importobot.utils.validation import sanitize_robot_string
+from importobot.utils.validation import (
+    convert_parameters_to_robot_variables,
+    sanitize_robot_string,
+)
 
 logger = setup_logger(__name__)
 
 
 class GenericConversionEngine(ConversionEngine):
-    """Generic conversion engine for converting test files to Robot Framework format."""
+    """Conversion engine that transforms test data into Robot Framework format."""
 
     def __init__(self) -> None:
-        """Initialize the conversion engine with its components."""
+        """Initialize the parser and keyword generator components."""
         self.parser = GenericTestFileParser()
         self.keyword_generator = GenericKeywordGenerator()
 
-    def convert(self, json_data: Dict[str, Any]) -> str:
-        """Convert JSON data to Robot Framework format."""
-        # Extract tests from any JSON structure
+    def convert(self, json_data: dict[str, Any]) -> str:
+        """Convert JSON test data to Robot Framework format."""
+        # Extract test cases from the JSON structure
         tests = self.parser.find_tests(json_data)
 
         # Extract all steps for library detection
@@ -32,36 +36,54 @@ class GenericConversionEngine(ConversionEngine):
         # Build Robot Framework output
         output_lines = []
 
-        # Settings
+        # Settings section
         output_lines.append("*** Settings ***")
         output_lines.append(self._extract_documentation(json_data))
 
-        # Tags - combine all tags into a single Force Tags line
+        # Tags section
         tags = self._extract_all_tags(json_data)
         if tags:
             sanitized_tags = [sanitize_robot_string(tag) for tag in tags]
             output_lines.append(f"Force Tags    {'    '.join(sanitized_tags)}")
 
-        # Libraries
-        for lib in sorted(self.keyword_generator.detect_libraries(all_steps)):
-            output_lines.append(f"Library    {lib}")
-
-        output_lines.extend(["", "*** Test Cases ***", ""])
-
-        # Test cases - handle edge case where no tests found
+        # Generate test cases
+        test_cases_content = []
         if not tests:
-            # Better than failing silently
-            output_lines.extend(
+            # Create placeholder test case when no tests found
+            test_cases_content.extend(
                 ["Empty Test Case", "    Log    No test cases found in input", ""]
             )
         else:
             for test in tests:
                 test_case_lines = self.keyword_generator.generate_test_case(test)
-                output_lines.extend(test_case_lines)
+                test_cases_content.extend(test_case_lines)
 
-        return "\n".join(output_lines)
+        # Detect libraries from both original steps and generated content
+        detected_libraries = self.keyword_generator.detect_libraries(all_steps)
 
-    def _extract_documentation(self, data: Dict[str, Any]) -> str:
+        # Also detect from generated Robot Framework content
+        generated_content = "\n".join(test_cases_content)
+        additional_libraries = LibraryDetector.detect_libraries_from_text(
+            generated_content
+        )
+
+        # Combine all detected libraries
+        all_libraries = detected_libraries.union(additional_libraries)
+
+        # Libraries
+        for lib in sorted(all_libraries):
+            output_lines.append(f"Library    {lib}")
+
+        output_lines.extend(["", "*** Test Cases ***", ""])
+        output_lines.extend(test_cases_content)
+
+        # Convert parameter placeholders to Robot Framework variables
+        robot_content = "\n".join(output_lines)
+        robot_content = convert_parameters_to_robot_variables(robot_content)
+
+        return robot_content
+
+    def _extract_documentation(self, data: dict[str, Any]) -> str:
         """Extract documentation from common fields."""
         doc_fields = ["description", "objective", "summary", "documentation"]
 
@@ -69,10 +91,10 @@ class GenericConversionEngine(ConversionEngine):
             if field in data and data[field]:
                 return f"Documentation    {sanitize_robot_string(data[field])}"
 
-        # Fallback - not ideal but works
-        return "Documentation    Converted from legacy test format"
+        # Default documentation when none found
+        return "Documentation    Converted test case"
 
-    def _extract_all_tags(self, data: Dict[str, Any]) -> List[str]:
+    def _extract_all_tags(self, data: dict[str, Any]) -> list[str]:
         """Extract tags from anywhere in the JSON structure."""
         tags = []
 

@@ -116,11 +116,12 @@ class TestPositionalArgsIntegration:
             input_type, files = detect_input_type(wildcard_pattern)
 
             assert input_type == "error"
-            assert files == []
+            assert not files
 
-    def testdetect_input_type_nonexistent_file(self):
+    def testdetect_input_type_nonexistent_file(self, tmp_path):
         """Tests detection of nonexistent file."""
-        input_type, files = detect_input_type("/nonexistent/file.json")
+        nonexistent_file = tmp_path / "nonexistent" / "file.json"
+        input_type, files = detect_input_type(str(nonexistent_file))
 
         assert input_type == "error"
         assert files == []

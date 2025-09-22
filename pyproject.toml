@@ -2,6 +2,9 @@
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.uv.workspace]
+members = [".", "scripts"]
+
 [project]
 name = "importobot"
 version = "0.1.0"
@@ -16,6 +19,8 @@ dependencies = [
     "robotframework-databaselibrary>=1.2.4",
     "pytest-cov>=7.0.0",
     "psutil>=7.0.0",
+    "matplotlib>=3.10.6",
+    "numpy>=2.2.6",
 ]
 
 [project.scripts]
@@ -35,6 +40,9 @@ dev-dependencies = [
     "ty",
     "types-PyYAML",
     "types-psutil>=7.0.0.20250822",
+    "numpy",
+    "pandas",
+    "matplotlib",
 ]
 
 [tool.setuptools.packages.find]
@@ -45,6 +53,7 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = [".", "tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -108,7 +117,28 @@ disallow_incomplete_defs = true
 check_untyped_defs = true
 disallow_untyped_decorators = true
 no_implicit_optional = true
+explicit_package_bases = true
+namespace_packages = true
+mypy_path = "./src:./scripts/src"
+files = ["./src", "./tests"]
 
 [[tool.mypy.overrides]]
 module = "tests.*"
 disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = "scripts.tests.*"
+disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = "robot"
+ignore_missing_imports = true
+ignore_errors = true
+
+
+[tool.ty.environment]
+root = ["./src", "./tests", "./scripts/src", "./scripts/tests"]
+extra-paths = ["./src", "./tests", "./scripts/src", "./scripts/tests"]
+
+[tool.ty.rules]
+unresolved-import = "ignore"

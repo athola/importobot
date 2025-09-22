@@ -13,7 +13,7 @@ import pytest
 
 import importobot.config
 from importobot.core.converter import convert_file
-from tests.utils import parse_robot_file
+from tests.utils import parse_robot_file  # type: ignore[import-untyped]
 
 
 class MyHandler(SimpleHTTPRequestHandler):
