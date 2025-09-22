@@ -19,8 +19,27 @@ dependencies = [
     "robotframework-databaselibrary>=1.2.4",
     "pytest-cov>=7.0.0",
     "psutil>=7.0.0",
+]
+
+[project.optional-dependencies]
+viz = [
+    "matplotlib>=3.10.6",
+]
+analytics = [
+    "numpy>=2.2.6",
+]
+data = [
+    "pandas>=2.0.0",
+]
+demo = [
     "matplotlib>=3.10.6",
     "numpy>=2.2.6",
+    "pandas>=2.0.0",
+]
+all = [
+    "matplotlib>=3.10.6",
+    "numpy>=2.2.6",
+    "pandas>=2.0.0",
 ]
 
 [project.scripts]

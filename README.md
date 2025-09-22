@@ -92,6 +92,56 @@ User Login Functionality
     Textfield Value Should Be    id=username    testuser
 ```
 
+## API Usage
+
+Importobot follows **pandas-inspired design patterns** for professional integration:
+
+### Simple Usage
+```python
+import importobot
+
+# Core bulk conversion
+converter = importobot.JsonToRobotConverter()
+result = converter.convert_file("input.json", "output.robot")
+```
+
+### Enterprise Integration
+```python
+from importobot.api import validation, converters, suggestions
+
+# CI/CD pipeline validation
+try:
+    validation.validate_json_dict(test_data)
+    converter = converters.JsonToRobotConverter()
+    result = converter.convert_directory("/input", "/output")
+except importobot.exceptions.ValidationError as e:
+    print(f"Validation failed: {e}")
+
+# QA suggestion engine
+engine = suggestions.GenericSuggestionEngine()
+improvements = engine.suggest_improvements(problematic_tests)
+```
+
+### Advanced Configuration
+```python
+import importobot
+
+# Configure for enterprise security
+importobot.config.security_level = "strict"
+importobot.config.max_batch_size = 1000
+
+# Bulk processing with error handling
+converter = importobot.JsonToRobotConverter()
+results = converter.convert_directory(
+    input_dir="/test/exports",
+    output_dir="/robot/tests",
+    recursive=True
+)
+
+print(f"Converted: {results['success_count']} files")
+print(f"Failed: {results['error_count']} files")
+```
+
 ## Documentation
 
 The official documentation, including a full API reference, is available in the [project wiki](https://github.com/athola/importobot/wiki).

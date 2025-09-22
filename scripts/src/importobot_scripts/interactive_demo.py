@@ -14,9 +14,18 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
-# Third-party imports
-import matplotlib.pyplot as plt
-import numpy as np
+# Third-party conditional imports
+try:
+    import matplotlib.pyplot as plt
+    MATPLOTLIB_AVAILABLE = True
+except ImportError:
+    MATPLOTLIB_AVAILABLE = False
+
+try:
+    import numpy as np
+    NUMPY_AVAILABLE = True
+except ImportError:
+    NUMPY_AVAILABLE = False
 
 # Local imports
 # Import configuration first to set up environment
@@ -46,6 +55,30 @@ class RiskReturnData:
     return_value: float
     risk: int | float
     size: int
+
+
+def _check_visualization_dependencies() -> None:
+    """Check if visualization dependencies are available."""
+    if not MATPLOTLIB_AVAILABLE or not NUMPY_AVAILABLE:
+        missing = []
+        if not MATPLOTLIB_AVAILABLE:
+            missing.append("matplotlib")
+        if not NUMPY_AVAILABLE:
+            missing.append("numpy")
+
+        print(f"Note: Visualization features require {', '.join(missing)}.")
+        print("Install with: pip install 'importobot[demo]'")
+        print("Note: Using validated performance benchmarks")
+
+
+def _safe_visualization(func):
+    """Decorator to safely handle visualization functions."""
+    def wrapper(*args, **kwargs):
+        if not MATPLOTLIB_AVAILABLE or not NUMPY_AVAILABLE:
+            print("Note: Visualization skipped - missing dependencies")
+            return None
+        return func(*args, **kwargs)
+    return wrapper
 
 
 # Initialize configuration early to set matplotlib backend
@@ -1876,6 +1909,9 @@ def _initialize_demo_session() -> None:
 
 def main() -> None:
     """Run the main interactive demo function."""
+    # Check visualization dependencies
+    _check_visualization_dependencies()
+
     # Initialize demo session
     _initialize_demo_session()
 
