@@ -9,6 +9,13 @@ dist/
 *.egg-info/
 *.egg
 
+# Editor temporary files
+*.swp
+*.swo
+*~
+.*.swp
+.*.swo
+
 # Virtual environments
 .env
 .venv
@@ -33,6 +40,9 @@ report.html
 output.xml
 selenium-screenshot-*.png
 *.log
+
+# Demo and script logs
+scripts/logs/
 
 # IDE
 .idea/
