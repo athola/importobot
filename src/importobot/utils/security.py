@@ -8,10 +8,13 @@ logger = logging.getLogger(__name__)
 
 
 class SecurityValidator:
-    """Validates and sanitizes test parameters for security concerns."""
+    """Validates and sanitizes test parameters for security concerns.
 
-    # Dangerous command patterns that should be flagged
-    DANGEROUS_PATTERNS = [
+    Supports configurable security policies for different environments.
+    """
+
+    # Default dangerous command patterns
+    DEFAULT_DANGEROUS_PATTERNS = [
         r"rm\s+-rf",
         r"sudo\s+",
         r"chmod\s+777",
@@ -37,8 +40,8 @@ class SecurityValidator:
         r"/dev/hda",  # Direct disk access
     ]
 
-    # Sensitive path patterns
-    SENSITIVE_PATHS = [
+    # Default sensitive path patterns
+    DEFAULT_SENSITIVE_PATHS = [
         r"/etc/passwd",
         r"/etc/shadow",
         r"/home/[^/]+/\.ssh",
@@ -48,6 +51,76 @@ class SecurityValidator:
         r"C:\\Windows\\System32",
         r"%USERPROFILE%",
     ]
+
+    def __init__(
+        self,
+        dangerous_patterns: list[str] | None = None,
+        sensitive_paths: list[str] | None = None,
+        security_level: str = "standard"
+    ):
+        """Initialize security validator with configurable patterns.
+
+        Args:
+            dangerous_patterns: Custom dangerous command patterns
+            sensitive_paths: Custom sensitive path patterns
+            security_level: Security level ('strict', 'standard', 'permissive')
+        """
+        self.security_level = security_level
+        self.dangerous_patterns = self._get_patterns(dangerous_patterns, security_level)
+        self.sensitive_paths = self._get_sensitive_paths(sensitive_paths, security_level)
+
+    def _get_patterns(self, custom_patterns: list[str] | None, level: str) -> list[str]:
+        """Get dangerous patterns based on security level."""
+        base_patterns = custom_patterns or self.DEFAULT_DANGEROUS_PATTERNS
+
+        if level == "strict":
+            # Add stricter patterns for enterprise environments
+            strict_additions = [
+                r"cat\s+/proc/",  # Reading proc filesystem
+                r"netstat\s",  # Network enumeration
+                r"ps\s+aux",  # Process enumeration
+                r"whoami",  # User enumeration
+                r"id\s",  # User ID enumeration
+                r"curl\s+",  # External network requests
+                r"wget\s+",  # External network requests
+            ]
+            return base_patterns + strict_additions
+        elif level == "permissive":
+            # Remove some patterns for development environments
+            permissive_removals = {
+                r"curl\s+", r"wget\s+", r">\s*/dev/null"
+            }
+            return [p for p in base_patterns if p not in permissive_removals]
+
+        return base_patterns
+
+    def _get_sensitive_paths(self, custom_paths: list[str] | None, level: str) -> list[str]:
+        """Get sensitive paths based on security level."""
+        base_paths = custom_paths or self.DEFAULT_SENSITIVE_PATHS
+
+        if level == "strict":
+            # Add more paths for enterprise environments
+            strict_additions = [
+                r"/proc/",
+                r"/sys/",
+                r"\.kube/config",
+                r"\.docker/config\.json",
+                r"/var/log/",
+                r"C:\\ProgramData",
+            ]
+            return base_paths + strict_additions
+
+        return base_paths
+
+    @property
+    def DANGEROUS_PATTERNS(self) -> list[str]:
+        """Backward compatibility property."""
+        return self.dangerous_patterns
+
+    @property
+    def SENSITIVE_PATHS(self) -> list[str]:
+        """Backward compatibility property."""
+        return self.sensitive_paths
 
     def validate_ssh_parameters(self, parameters: dict[str, Any]) -> list[str]:
         """Validate SSH operation parameters for security issues."""
