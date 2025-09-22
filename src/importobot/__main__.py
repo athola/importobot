@@ -4,6 +4,7 @@ Entry point for importobot CLI. Handles argument parsing and dispatches
 to appropriate conversion functions.
 """
 
+import json
 import sys
 
 from importobot import exceptions
@@ -42,8 +43,14 @@ def main() -> None:
     except exceptions.ImportobotError as e:
         logger.error(str(e))
         sys.exit(1)
+    except json.JSONDecodeError as e:
+        # User-friendly error for corrupted JSON files
+        logger.error(str(e))  # This now contains our enhanced message
+        sys.exit(1)
     except (FileNotFoundError, ValueError, IOError) as e:
-        logger.error("Error: %s", str(e))
+        logger.error(
+            str(e)
+        )  # Remove "Error:" prefix since our messages are now descriptive
         sys.exit(1)
     except Exception as e:
         log_exception(logger, e, "Unexpected error in main CLI")

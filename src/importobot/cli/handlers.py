@@ -4,7 +4,6 @@ import argparse
 import glob
 import os
 import sys
-from typing import List, Tuple
 
 from importobot import exceptions
 from importobot.core.converter import (
@@ -82,7 +81,7 @@ def validate_input_and_output(
         parser.error("Output file required for single file input")
 
 
-def collect_suggestions(json_data: object) -> List[Tuple[int, int, str]]:
+def collect_suggestions(json_data: object) -> list[tuple[int, int, str]]:
     """Collect suggestions from all test cases in the JSON data."""
     all_suggestions = []
     test_cases = json_data if isinstance(json_data, list) else [json_data]
@@ -95,7 +94,7 @@ def collect_suggestions(json_data: object) -> List[Tuple[int, int, str]]:
     return all_suggestions
 
 
-def filter_suggestions(suggestions: List[Tuple[int, int, str]]) -> List[str]:
+def filter_suggestions(suggestions: list[tuple[int, int, str]]) -> list[str]:
     """Filter and deduplicate suggestions."""
     if not suggestions:
         return []
@@ -116,8 +115,8 @@ def filter_suggestions(suggestions: List[Tuple[int, int, str]]) -> List[str]:
     return filtered if filtered else unique_suggestions
 
 
-def print_suggestions(filtered_suggestions: List[str]) -> None:
-    """Print suggestions if they are meaningful."""
+def print_suggestions(filtered_suggestions: list[str]) -> None:
+    """Print suggestions or positive feedback to the user."""
     if not filtered_suggestions:
         return
 
@@ -125,6 +124,8 @@ def print_suggestions(filtered_suggestions: List[str]) -> None:
         len(filtered_suggestions) == 1
         and "No improvements needed" in filtered_suggestions[0]
     ):
+        print("\nYour conversion is already optimal!")
+        print("No changes needed - your JSON structure follows best practices.")
         return
 
     print("\n💡 Conversion Suggestions:")
@@ -168,7 +169,7 @@ def convert_directory_handler(args: argparse.Namespace) -> None:
     print(f"Successfully converted directory {args.input} to {args.output_file}")
 
 
-def convert_wildcard_files(args: argparse.Namespace, detected_files: List[str]) -> None:
+def convert_wildcard_files(args: argparse.Namespace, detected_files: list[str]) -> None:
     """Convert files matching wildcard pattern."""
     if len(detected_files) == 1:
         convert_file(detected_files[0], args.output_file)

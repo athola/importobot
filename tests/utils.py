@@ -1,12 +1,12 @@
 """Test utility functions."""
 
 import subprocess
-from typing import Any, Dict, List
+from typing import Any
 
 from robot.api import TestSuite
 
 
-def run_robot_command(command: List[str]) -> subprocess.CompletedProcess:
+def run_robot_command(command: list[str]) -> subprocess.CompletedProcess:
     """Execute a Robot Framework command and return the result."""
     try:
         result = subprocess.run(
@@ -24,7 +24,7 @@ def run_robot_command(command: List[str]) -> subprocess.CompletedProcess:
     return result
 
 
-def parse_robot_file(file_path: str) -> List[Dict[str, Any]]:
+def parse_robot_file(file_path: str) -> list[dict[str, Any]]:
     """Parse a .robot file and extract test cases, keywords and their arguments."""
     suite = TestSuite.from_file_system(file_path)
     result = []
@@ -50,7 +50,7 @@ def parse_robot_file(file_path: str) -> List[Dict[str, Any]]:
     return result
 
 
-def validate_test_script_structure(test_script: Dict[str, Any]) -> None:
+def validate_test_script_structure(test_script: dict[str, Any]) -> None:
     """Validate the basic structure of a test script.
 
     Common validation logic extracted from multiple test files.

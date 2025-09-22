@@ -6,6 +6,7 @@ from importobot.core.pattern_matcher import (
     DataExtractor,
     IntentPattern,
     IntentType,
+    LibraryDetector,
     PatternMatcher,
 )
 
@@ -105,7 +106,7 @@ class TestPatternMatcher:
         assert (
             matcher.detect_intent("connect to database") == IntentType.DATABASE_CONNECT
         )
-        assert matcher.detect_intent("execute sql query") == IntentType.DATABASE_QUERY
+        assert matcher.detect_intent("execute sql query") == IntentType.DATABASE_EXECUTE
         assert matcher.detect_intent("insert new record") == IntentType.DATABASE_MODIFY
 
     def test_detect_intent_api_operations(self):
@@ -156,7 +157,7 @@ class TestPatternMatcher:
         intents = matcher.detect_all_intents(text)
 
         assert IntentType.FILE_EXISTS in intents
-        assert IntentType.VERIFY_CONTENT in intents
+        assert IntentType.CONTENT_VERIFICATION in intents
         assert len(intents) >= 2
 
     def test_detect_intent_priority_ordering(self):
@@ -364,3 +365,56 @@ class TestPatternMatchingIntegration:
         for variation in variations:
             intent = matcher.detect_intent(variation)
             assert intent == IntentType.SSH_CONNECT
+
+
+class TestLibraryDetectorIntegration:
+    """Test LibraryDetector functionality integrated in pattern_matcher."""
+
+    def test_library_detector_consolidation(self):
+        """Test that LibraryDetector is properly consolidated in pattern_matcher."""
+        # Test basic library detection
+        text = "open browser and navigate to page"
+        libraries = LibraryDetector.detect_libraries_from_text(text)
+        assert "SeleniumLibrary" in libraries
+
+        # Test SSH library detection
+        ssh_text = "connect via ssh and execute commands"
+        ssh_libraries = LibraryDetector.detect_libraries_from_text(ssh_text)
+        assert "SSHLibrary" in ssh_libraries
+
+        # Test database library detection
+        db_text = "connect to database and execute sql query"
+        db_libraries = LibraryDetector.detect_libraries_from_text(db_text)
+        assert "DatabaseLibrary" in db_libraries
+
+    def test_library_detector_steps_functionality(self):
+        """Test LibraryDetector step processing functionality."""
+        steps = [
+            {"step": "open browser", "description": "launch web app"},
+            {"action": "ssh connect", "details": "remote server"},
+            {"operation": "file exists", "path": "/tmp/test.txt"},
+        ]
+
+        libraries = LibraryDetector.detect_libraries_from_steps(steps)
+
+        # Should detect multiple libraries
+        assert "SeleniumLibrary" in libraries
+        assert "SSHLibrary" in libraries
+        assert "OperatingSystem" in libraries
+
+    def test_library_detector_integration_with_pattern_matcher(self):
+        """Test that LibraryDetector works alongside PatternMatcher."""
+        pattern_matcher = PatternMatcher()
+
+        test_text = "upload file via ssh and verify it exists"
+
+        # Get intent from PatternMatcher
+        intent = pattern_matcher.detect_intent(test_text)
+        assert intent is not None
+
+        # Get libraries from LibraryDetector
+        libraries = LibraryDetector.detect_libraries_from_text(test_text)
+
+        # Should detect appropriate libraries for the intent
+        assert "SSHLibrary" in libraries  # For SSH upload
+        assert "OperatingSystem" in libraries  # For file verification

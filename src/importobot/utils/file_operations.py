@@ -4,15 +4,18 @@ import json
 import os
 import shutil
 import tempfile
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Optional, cast
+from typing import Any, Union, cast
 
 from importobot.core.converter import apply_conversion_suggestions, convert_file
 
 
 @contextmanager
-def temporary_json_file(data: Dict[str, Any]) -> Generator[str, None, None]:
+def temporary_json_file(
+    data: Union[dict[str, Any], list[Any]],
+) -> Generator[str, None, None]:
     """Create a temporary JSON file with the given data."""
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".json", delete=False, encoding="utf-8"
@@ -33,11 +36,11 @@ def temporary_json_file(data: Dict[str, Any]) -> Generator[str, None, None]:
 
 
 def convert_with_temp_file(
-    conversion_data: Dict[str, Any],
+    conversion_data: Union[dict[str, Any], list[Any]],
     robot_filename: str,
-    changes_made: Optional[List[Dict[str, Any]]] = None,
-    display_changes_func: Optional[Callable] = None,
-    args: Optional[Any] = None,
+    changes_made: list[dict[str, Any]] | None = None,
+    display_changes_func: Callable | None = None,
+    args: Any | None = None,
 ) -> None:
     """Convert data using a temporary file and optionally display changes."""
     with temporary_json_file(conversion_data) as temp_filename:
@@ -48,11 +51,11 @@ def convert_with_temp_file(
 
 
 def save_improved_json_and_convert(
-    improved_data: Dict[str, Any],
+    improved_data: Union[dict[str, Any], list[Any]],
     base_name: str,
     args: Any,
-    changes_made: Optional[List[Dict[str, Any]]] = None,
-    display_changes_func: Optional[Callable] = None,
+    changes_made: list[dict[str, Any]] | None = None,
+    display_changes_func: Callable | None = None,
 ) -> None:
     """Save improved JSON and convert to Robot Framework format."""
     improved_filename = f"{base_name}_improved.json"
@@ -78,11 +81,8 @@ def save_improved_json_and_convert(
 
     print(f"Generated improved JSON file: {improved_filename}")
 
-    # Prepare conversion data
-    conversion_data = {"testScript": improved_data}
-
     convert_with_temp_file(
-        conversion_data=conversion_data,
+        conversion_data=improved_data,
         robot_filename=robot_filename,
         changes_made=changes_made,
         display_changes_func=display_changes_func,
@@ -90,7 +90,7 @@ def save_improved_json_and_convert(
     )
 
 
-def display_suggestion_changes(changes_made: List[Dict[str, Any]], args: Any) -> None:
+def display_suggestion_changes(changes_made: list[dict[str, Any]], args: Any) -> None:
     """Display detailed changes if any were made."""
     if changes_made:
         # Sort changes by test case and step index
@@ -118,22 +118,46 @@ def display_suggestion_changes(changes_made: List[Dict[str, Any]], args: Any) ->
         print("   The JSON data is already in good shape!")
 
 
-def load_json_file(json_file_path: Optional[str]) -> Dict[str, Any]:
-    """Load JSON data from file with error handling."""
+def load_json_file(json_file_path: str | None) -> dict[str, Any]:
+    """Load JSON data from file with proper error handling.
+
+    Args:
+        json_file_path: Path to the JSON file to load
+
+    Returns:
+        Dict containing the loaded JSON data
+
+    Raises:
+        ValueError: If json_file_path is None or empty
+        FileNotFoundError: If the file doesn't exist
+        json.JSONDecodeError: If the file contains invalid JSON
+        IOError: If there are file permission or access issues
+    """
     if not json_file_path:
-        return {}
+        raise ValueError("File path cannot be empty or None")
+
+    if not os.path.exists(json_file_path):
+        raise FileNotFoundError(f"Could not find JSON file: {json_file_path}")
 
     try:
         with open(json_file_path, "r", encoding="utf-8") as f:
-            return cast(Dict[str, Any], json.load(f))
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-        print(f"Error loading JSON file: {e}")
-        return {}
+            return cast(dict[str, Any], json.load(f))
+    except json.JSONDecodeError as e:
+        raise json.JSONDecodeError(
+            f"JSON file appears to be corrupted at line {e.lineno}, "
+            f"column {e.colno}: {e.msg}",
+            e.doc,
+            e.pos,
+        ) from e
+    except PermissionError as e:
+        raise IOError(f"Permission denied accessing file: {json_file_path}") from e
+    except OSError as e:
+        raise IOError(f"Error reading file {json_file_path}: {e}") from e
 
 
 def process_single_file_with_suggestions(
     args: Any,
-    display_changes_func: Optional[Callable] = None,
+    display_changes_func: Callable | None = None,
     use_stem_for_basename: bool = False,
 ) -> None:
     """Process a single file with suggestions and conversion.

@@ -1,5 +1,6 @@
 """pytest configuration and fixtures."""
 
+import shutil
 import tempfile
 from pathlib import Path
 
@@ -33,25 +34,32 @@ def sample_zephyr_json():
 
 
 @pytest.fixture(autouse=True)
-def cleanup_test_files():
+def cleanup_test_files(tmp_path):
     """Automatically clean up any test-generated files after each test.
 
-    This fixture ensures that tests don't leave behind artifacts by
-    tracking files before and
-    after each test execution.
+    This fixture ensures that tests don't leave behind artifacts by using
+    isolated temporary directories and proper cleanup tracking.
     """
-    # Store initial state of common test file types
-    initial_files = set(Path(".").glob("*.robot")) | set(Path(".").glob("*.json"))
+    _ = tmp_path  # Mark as used to avoid linting warning
+    # Track files that should be cleaned up
+    cleanup_files = []
 
-    yield
+    # Store the cleanup list in the fixture for tests to access
+    def register_file_for_cleanup(file_path):
+        """Register a file to be cleaned up after the test."""
+        cleanup_files.append(Path(file_path))
 
-    # Clean up after test
-    final_files = set(Path(".").glob("*.robot")) | set(Path(".").glob("*.json"))
-    generated_files = final_files - initial_files
+    # Make cleanup function available to tests through the request context
+    yield register_file_for_cleanup
 
-    for file in generated_files:
-        if file.exists():
+    # Clean up tracked files
+    for file_path in cleanup_files:
+        if file_path.exists():
             try:
-                file.unlink()
-            except (OSError, IOError):
-                pass  # Ignore errors during cleanup
+                if file_path.is_file():
+                    file_path.unlink()
+                elif file_path.is_dir():
+                    shutil.rmtree(file_path)
+            except (OSError, IOError, PermissionError) as e:
+                # Log cleanup errors but don't fail the test
+                print(f"Warning: Could not clean up {file_path}: {e}")

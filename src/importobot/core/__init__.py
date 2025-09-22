@@ -1,12 +1,9 @@
-"""Core module for importobot."""
+"""Core module internals - not part of public API.
 
-from importobot.core import (
-    converter,
-    engine,
-    interfaces,
-    keywords,
-    parsers,
-    suggestions,
-)
+This module contains implementation details and should not be accessed
+directly. Use the public API through importobot.api instead.
+"""
 
-__all__ = ["converter", "engine", "interfaces", "keywords", "parsers", "suggestions"]
+# No public exports - these are implementation details
+# Access public functionality through importobot.api
+__all__: list[str] = []

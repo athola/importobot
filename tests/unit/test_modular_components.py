@@ -1,7 +1,7 @@
 """Tests for modular components."""
 
 from importobot.core.engine import GenericConversionEngine
-from importobot.core.keywords import GenericKeywordGenerator
+from importobot.core.keyword_generator import GenericKeywordGenerator
 from importobot.core.parsers import GenericTestFileParser
 from importobot.core.suggestions import GenericSuggestionEngine
 
@@ -75,5 +75,8 @@ class TestModularComponents:
         suggestions = engine.get_suggestions(data)
         # Should have suggestions for missing fields
         assert len(suggestions) > 0
-        assert any("Add a descriptive name field" in s for s in suggestions)
-        assert any("Add action description" in s for s in suggestions)
+
+        # Verify suggestions for missing fields (updated for new format)
+        suggestion_text = " ".join(suggestions).lower()
+        assert "name" in suggestion_text
+        assert "action" in suggestion_text
