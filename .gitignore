@@ -74,3 +74,6 @@ visualizations/
 
 # MCP configuration
 .mcp/config.json
+
+# Text artifacts
+*.txt

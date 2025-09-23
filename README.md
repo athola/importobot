@@ -25,6 +25,20 @@ Organizations often have thousands of test cases in legacy systems. Migrating th
 
 ## Installation
 
+### From PyPI (Recommended)
+
+```sh
+pip install importobot
+```
+
+### From GitHub Packages
+
+```sh
+pip install --index-url https://pypi.org/simple/ --extra-index-url https://pip.fury.io/athola/ importobot
+```
+
+### From Source
+
 The source code is hosted on GitHub: https://github.com/athola/importobot
 
 This project uses [uv](https://github.com/astral-sh/uv) for package management. First, install `uv`:
