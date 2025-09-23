@@ -8,19 +8,50 @@ members = [".", "scripts"]
 [project]
 name = "importobot"
 version = "0.1.0"
-description = "A tool to convert Zephyr test cases from JSON format to Robot Framework format"
+description = "Automated test framework converter for migrating test cases from Zephyr, JIRA/Xray, and TestLink to Robot Framework format with bulk processing capabilities"
 readme = "README.md"
 requires-python = ">=3.10"
+license = "BSD-2-Clause"
+authors = [
+    {name = "athola", email = "noreply@github.com"}
+]
+maintainers = [
+    {name = "athola", email = "noreply@github.com"}
+]
+keywords = ["testing", "automation", "robot-framework", "test-conversion", "zephyr", "jira", "xray", "testlink"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Utilities",
+    "Environment :: Console",
+    "Natural Language :: English",
+    "Typing :: Typed",
+]
+
 dependencies = [
     "robotframework>=6.0.0",
     "robotframework-seleniumlibrary>=6.0.0",
     "robotframework-sshlibrary>=3.8.0",
     "robotframework-requests>=0.9.4",
     "robotframework-databaselibrary>=1.2.4",
-    "pytest-cov>=7.0.0",
     "psutil>=7.0.0",
-    "memory-profiler>=0.61.0",
 ]
+
+[project.urls]
+"Homepage" = "https://github.com/athola/importobot"
+"Repository" = "https://github.com/athola/importobot"
+"Bug Tracker" = "https://github.com/athola/importobot/issues"
+"Documentation" = "https://github.com/athola/importobot/wiki"
+"Changelog" = "https://github.com/athola/importobot/blob/main/CHANGELOG.md"
+"Packages" = "https://github.com/athola/importobot/packages"
 
 [project.optional-dependencies]
 viz = [
@@ -69,6 +100,7 @@ dev-dependencies = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+exclude = ["scripts*", "importobot_scripts*"]
 
 [tool.setuptools.package-dir]
 "" = "src"
