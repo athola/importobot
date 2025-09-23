@@ -1,0 +1,38 @@
+{
+  "web_automation": {
+    "user_authentication": {
+      "description": "User authentication workflow with multi-factor verification",
+      "complexity": "high",
+      "steps_count": [6, 12],
+      "templates": [
+        "Navigate to application login portal at /auth/login",
+        "Enter primary credentials: username={username}, password={password}",
+        "Initiate two-factor authentication process",
+        "Verify SMS code: {verification_code}",
+        "Complete biometric verification if enabled",
+        "Validate successful authentication and redirect to dashboard",
+        "Verify user session establishment and token generation",
+        "Test session persistence across browser refresh",
+        "Validate access control permissions for user role: {user_role}",
+        "Logout and verify session termination"
+      ]
+    }
+  },
+  "api_testing": {
+    "microservices_integration": {
+      "description": "Comprehensive microservices integration testing",
+      "complexity": "very_high",
+      "steps_count": [8, 16],
+      "templates": [
+        "Initialize API test environment with service mesh",
+        "Configure authentication tokens for service-to-service communication",
+        "Test service discovery and registration",
+        "Execute CRUD operations across microservice boundaries",
+        "Validate data consistency in distributed transactions",
+        "Test circuit breaker patterns and fault tolerance",
+        "Verify message queue integration: {queue_system}",
+        "Test API versioning and backward compatibility"
+      ]
+    }
+  }
+}
