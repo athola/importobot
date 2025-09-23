@@ -1,10 +1,9 @@
-"""Enhanced lazy loading utilities for efficient data management and optional components."""
+"""Enhanced lazy loading utilities for efficient data management."""
 
 from __future__ import annotations
 
 import importlib
 import json
-import sys
 from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Optional
@@ -67,7 +66,7 @@ class OptionalDependency:
         self,
         module_name: str,
         package_name: Optional[str] = None,
-        fallback_message: Optional[str] = None
+        fallback_message: Optional[str] = None,
     ) -> None:
         """Initialize optional dependency manager.
 
@@ -124,7 +123,7 @@ MATPLOTLIB = OptionalDependency(
     fallback_message=(
         "Visualization features require matplotlib. "
         "Install with: pip install 'importobot[viz]'"
-    )
+    ),
 )
 
 NUMPY = OptionalDependency(
@@ -132,7 +131,7 @@ NUMPY = OptionalDependency(
     fallback_message=(
         "Advanced analytics require numpy. "
         "Install with: pip install 'importobot[analytics]'"
-    )
+    ),
 )
 
 PANDAS = OptionalDependency(
@@ -140,7 +139,7 @@ PANDAS = OptionalDependency(
     fallback_message=(
         "Data processing features require pandas. "
         "Install with: pip install 'importobot[data]'"
-    )
+    ),
 )
 
 

@@ -170,9 +170,13 @@ class TestSuggestionHandling:
 
         # User should feel good about their file quality
         assert (
-            "✅" in captured.out or "Your conversion is already optimal" in captured.out
+            "well-structured" in captured.out
+            or "Your conversion is already optimal" in captured.out
         )
-        assert "No changes needed" in captured.out or "optimal" in captured.out
+        assert (
+            "No suggestions for improvement" in captured.out
+            or "optimal" in captured.out
+        )
 
     def test_print_suggestions_real_suggestions(self, capsys):
         """Test printing real suggestions."""

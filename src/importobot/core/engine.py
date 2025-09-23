@@ -2,6 +2,7 @@
 
 from typing import Any
 
+from importobot import exceptions
 from importobot.core.interfaces import ConversionEngine
 from importobot.core.keyword_generator import GenericKeywordGenerator
 from importobot.core.parsers import GenericTestFileParser
@@ -23,8 +24,14 @@ class GenericConversionEngine(ConversionEngine):
         self.parser = GenericTestFileParser()
         self.keyword_generator = GenericKeywordGenerator()
 
-    def convert(self, json_data: dict[str, Any]) -> str:
-        """Convert JSON test data to Robot Framework format."""
+    def convert(self, json_data: dict[str, Any], *, strict: bool = True) -> str:
+        """Convert JSON test data to Robot Framework format.
+
+        Args:
+            json_data: The JSON data to convert
+            strict: If True, raise errors for no tests found. If False,
+                generate placeholder.
+        """
         # Extract test cases from the JSON structure
         tests = self.parser.find_tests(json_data)
 
@@ -49,11 +56,24 @@ class GenericConversionEngine(ConversionEngine):
         # Generate test cases
         test_cases_content = []
         if not tests:
-            # Create placeholder test case when no tests found
+            if strict:
+                # Raise clear error when no tests found (new API behavior)
+                available_keys = (
+                    list(json_data.keys()) if isinstance(json_data, dict) else []
+                )
+                raise exceptions.ValidationError(
+                    f"No test cases found in input data. "
+                    f"Expected structures like {{'testCase': {{...}}}}, "
+                    f"{{'tests': [...]}}, "
+                    f"or test cases with 'name' and 'steps' fields. "
+                    f"Found top-level keys: {available_keys}"
+                )
+            # Create placeholder test case (backward compatibility)
             test_cases_content.extend(
                 ["Empty Test Case", "    Log    No test cases found in input", ""]
             )
-        else:
+
+        if tests:
             for test in tests:
                 test_case_lines = self.keyword_generator.generate_test_case(test)
                 test_cases_content.extend(test_case_lines)

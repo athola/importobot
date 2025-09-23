@@ -1,0 +1,911 @@
+#!/usr/bin/env python3
+"""Performance benchmarks for Importobot conversion operations.
+
+This script measures conversion performance across different scales
+and complexity levels to check that modularization improvements don't impact speed.
+"""
+
+import argparse
+import concurrent.futures
+import json
+import tempfile
+import time
+from collections.abc import Callable
+from enum import Enum
+from pathlib import Path
+from statistics import mean, median, stdev
+from typing import Any
+
+try:
+    import psutil  # type: ignore[misc]
+
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+
+try:
+    import numpy as np  # type: ignore[misc]
+
+    NUMPY_AVAILABLE = True
+except ImportError:
+    NUMPY_AVAILABLE = False
+
+from importobot.core.business_domains import (
+    BusinessDomainTemplates,  # type: ignore[misc]
+)
+from importobot.core.converter import (
+    JsonToRobotConverter,  # type: ignore[misc]
+    convert_directory,  # type: ignore[misc]
+    convert_file,  # type: ignore[misc]
+)
+
+
+class ComplexityLevel(Enum):
+    """Enumeration of test case complexity levels."""
+
+    SIMPLE = "simple"
+    MEDIUM = "medium"
+    COMPLEX = "complex"
+    ENTERPRISE = "enterprise"
+
+
+class PerformanceBenchmark:
+    """Benchmarks for measuring conversion performance."""
+
+    def __init__(self) -> None:
+        """Initialize benchmark with test data generators."""
+
+    def _get_memory_usage(self) -> int | None:
+        """Get current memory usage in bytes."""
+        if not PSUTIL_AVAILABLE:
+            return None
+
+        process = psutil.Process()  # type: ignore[unbound]
+        return process.memory_info().rss  # type: ignore[no-any-return]
+
+    def _format_memory_size(self, size_bytes: float) -> str:
+        """Format memory size in the most appropriate units (B, KB, or MB)."""
+        if size_bytes < 1024:
+            return f"{size_bytes:.1f} B"
+        if size_bytes < 1024 * 1024:
+            return f"{size_bytes / 1024:.1f} KB"
+        return f"{size_bytes / 1024 / 1024:.2f} MB"
+
+    def _calculate_statistics(self, values: list[float]) -> dict[str, float]:
+        """Calculate statistics for a list of values."""
+        if not values:
+            return {}
+
+        stats = {
+            "mean": mean(values),
+            "median": median(values),
+            "min": min(values),
+            "max": max(values),
+            "std_dev": stdev(values) if len(values) > 1 else 0.0,
+        }
+
+        # Add percentiles if numpy is available
+        if NUMPY_AVAILABLE:
+            np_values = np.array(values)
+            stats.update(
+                {
+                    "percentile_25": np.percentile(np_values, 25),
+                    "percentile_75": np.percentile(np_values, 75),
+                    "percentile_90": np.percentile(np_values, 90),
+                    "percentile_95": np.percentile(np_values, 95),
+                    "percentile_99": np.percentile(np_values, 99),
+                }
+            )
+
+        return stats
+
+    def _measure_with_memory(
+        self, func: Callable[..., Any], *args: Any, **kwargs: Any
+    ) -> tuple[Any, int | None]:
+        """Execute a function and measure memory usage difference."""
+        memory_before = self._get_memory_usage()
+        result = func(*args, **kwargs)
+        memory_after = self._get_memory_usage()
+
+        memory_diff = None
+        if memory_before is not None and memory_after is not None:
+            memory_diff = memory_after - memory_before
+
+        return result, memory_diff
+
+    def generate_test_case(self, complexity: str = "medium") -> dict[str, Any]:
+        """Generate test case with varying complexity levels."""
+        # More realistic test case structure
+        base_case = {
+            "testCase": {
+                "name": "Performance Test Case",
+                "description": "Benchmark test case for performance measurement",
+                "preConditions": "System is running and accessible",
+                "postConditions": "System state is restored",
+                "priority": "Medium",
+                "labels": ["performance", "benchmark"],
+                "steps": [],
+            }
+        }
+
+        # Convert string to enum if needed
+        if isinstance(complexity, str):
+            try:
+                complexity_enum = ComplexityLevel(complexity)
+            except ValueError:
+                complexity_enum = ComplexityLevel.MEDIUM
+        else:
+            complexity_enum = complexity
+
+        step_counts = {
+            ComplexityLevel.SIMPLE: 3,
+            ComplexityLevel.MEDIUM: 10,
+            ComplexityLevel.COMPLEX: 25,
+            ComplexityLevel.ENTERPRISE: 50,
+        }
+
+        step_count = step_counts.get(complexity_enum, 10)
+
+        for i in range(step_count):
+            # More realistic step structure with varied data
+            step = {
+                "stepDescription": f"Execute operation {i + 1} with test data",
+                "expectedResult": f"Operation {i + 1} completes successfully",
+                "testData": {
+                    "correlation_id": f"perf_test_{i + 1}",
+                    "user_id": f"user_{(i % 1000) + 1}",
+                    "timestamp": (
+                        f"2025-01-01T{str(i % 24).zfill(2)}:"
+                        f"{str(i % 60).zfill(2)}:{str(i % 60).zfill(2)}Z"
+                    ),
+                    "parameters": {
+                        "param1": f"value1_{i}",
+                        "param2": f"value2_{i}",
+                        "param3": f"value3_{i}",
+                    },
+                },
+                "action": "execute_operation",
+                "object": f"test_object_{i + 1}",
+            }
+            base_case["testCase"]["steps"].append(step)  # type: ignore[attr-defined]
+
+        # Add some metadata for enterprise complexity
+        if complexity_enum == ComplexityLevel.ENTERPRISE:
+            base_case["testCase"]["metadata"] = {  # type: ignore[attr-defined,assignment]
+                "business_domain": "enterprise",
+                "compliance_level": "high",
+                "security_classification": "confidential",
+                "data_sensitivity": "medium",
+                "integration_points": ["api1", "api2", "database"],
+                "dependencies": ["service_a", "service_b", "service_c"],
+            }
+
+        return base_case
+
+    def benchmark_single_conversion(
+        self,
+        complexity: str = "medium",
+        iterations: int = 10,
+        warmup_iterations: int = 3,
+    ) -> dict[str, Any]:
+        """Benchmark single file conversion performance."""
+        # Warmup iterations (not measured)
+        for _ in range(warmup_iterations):
+            input_file = None
+            output_file = None
+            try:
+                with tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".json", delete=False
+                ) as tmp_input_file:
+                    input_file = tmp_input_file.name
+                    with tempfile.NamedTemporaryFile(
+                        mode="w", suffix=".robot", delete=False
+                    ) as tmp_output_file:
+                        output_file = tmp_output_file.name
+                        # Generate test data
+                        test_data = self.generate_test_case(complexity)
+                        json.dump(test_data, tmp_input_file)
+                        tmp_input_file.flush()
+
+                        # Execute conversion without measuring
+                        convert_file(input_file, output_file)
+            finally:
+                # Cleanup
+                if input_file and Path(input_file).exists():
+                    Path(input_file).unlink(missing_ok=True)
+                if output_file and Path(output_file).exists():
+                    Path(output_file).unlink(missing_ok=True)
+
+        # Actual measured iterations
+        times = []
+        memory_usages = []
+
+        for _ in range(iterations):
+            input_file = None
+            output_file = None
+            try:
+                with tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".json", delete=False
+                ) as tmp_input_file:
+                    input_file = tmp_input_file.name
+                    with tempfile.NamedTemporaryFile(
+                        mode="w", suffix=".robot", delete=False
+                    ) as tmp_output_file:
+                        output_file = tmp_output_file.name
+                        # Generate test data
+                        test_data = self.generate_test_case(complexity)
+                        json.dump(test_data, tmp_input_file)
+                        tmp_input_file.flush()
+
+                        # Measure conversion time and memory
+                        start_time = time.perf_counter()
+                        _, memory_diff = self._measure_with_memory(
+                            convert_file, input_file, output_file
+                        )
+                        end_time = time.perf_counter()
+
+                        times.append(end_time - start_time)
+                        if memory_diff is not None:
+                            memory_usages.append(memory_diff)
+            finally:
+                # Cleanup
+                if input_file and Path(input_file).exists():
+                    Path(input_file).unlink(missing_ok=True)
+                if output_file and Path(output_file).exists():
+                    Path(output_file).unlink(missing_ok=True)
+
+        result = self._calculate_statistics(times)
+        result.update(
+            {  # type: ignore[arg-type]
+                "iterations": iterations,  # type: ignore[dict-item]
+                "warmup_iterations": warmup_iterations,  # type: ignore[dict-item]
+                "complexity": complexity,  # type: ignore[dict-item]
+            }
+        )
+
+        if memory_usages:
+            result["memory_usage"] = self._calculate_statistics(
+                [float(m) for m in memory_usages]
+            )  # type: ignore[assignment]
+
+        return result
+
+    def benchmark_bulk_conversion(
+        self,
+        file_count: int = 10,
+        complexity: str = "medium",
+    ) -> dict[str, Any]:
+        """Benchmark bulk directory conversion performance."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            input_dir = Path(temp_dir) / "input"
+            output_dir = Path(temp_dir) / "output"
+            input_dir.mkdir()
+            output_dir.mkdir()
+
+            # Generate multiple test files
+            for i in range(file_count):
+                test_data = self.generate_test_case(complexity)
+                test_data["testCase"]["name"] = f"Bulk Test Case {i + 1}"
+
+                input_file = input_dir / f"test_{i + 1}.json"
+                with open(input_file, "w", encoding="utf-8") as f:
+                    json.dump(test_data, f)
+
+            # Measure bulk conversion time and memory
+            start_time = time.perf_counter()
+            _, memory_diff = self._measure_with_memory(
+                convert_directory, str(input_dir), str(output_dir)
+            )
+            end_time = time.perf_counter()
+
+            conversion_time = end_time - start_time
+            files_per_second = (
+                file_count / conversion_time if conversion_time > 0 else 0
+            )
+
+            result = {
+                "total_time": conversion_time,
+                "files_per_second": files_per_second,
+                "file_count": file_count,
+                "complexity": complexity,
+                "avg_time_per_file": conversion_time / file_count,
+            }
+
+            if memory_diff is not None:
+                result["memory_usage"] = {  # type: ignore[assignment]
+                    "total": memory_diff,
+                }
+
+            return result
+
+    def benchmark_api_methods(
+        self,
+        complexity: str = "medium",
+        iterations: int = 5,
+        warmup_iterations: int = 2,
+    ) -> dict[str, dict[str, Any]]:
+        """Benchmark different API methods for performance comparison."""
+        converter = JsonToRobotConverter()
+        test_data = self.generate_test_case(complexity)
+
+        # Warmup iterations for strict mode
+        for _ in range(warmup_iterations):
+            try:
+                converter.convert_json_data(test_data)
+            except Exception:
+                pass  # Expected for empty test data in strict mode
+
+        # Warmup iterations for lenient mode
+        for _ in range(warmup_iterations):
+            try:
+                converter.convert_json_data_lenient(test_data)
+            except Exception:
+                pass  # Should not happen in lenient mode
+
+        # Benchmark convert_json_data (strict mode)
+        strict_times = []
+        strict_memory = []
+        for _ in range(iterations):
+            start_time = time.perf_counter()
+            try:
+                _, memory_diff = self._measure_with_memory(
+                    converter.convert_json_data, test_data
+                )
+            except Exception:
+                # Expected for empty test data in strict mode,
+                # but we still measure the time
+                memory_diff = None
+            end_time = time.perf_counter()
+            strict_times.append(end_time - start_time)
+            if memory_diff is not None:
+                strict_memory.append(memory_diff)
+
+        # Benchmark convert_json_data_lenient (non-strict mode)
+        lenient_times = []
+        lenient_memory = []
+        for _ in range(iterations):
+            start_time = time.perf_counter()
+            try:
+                _, memory_diff = self._measure_with_memory(
+                    converter.convert_json_data_lenient, test_data
+                )
+            except Exception as e:
+                # Unexpected error in lenient mode
+                print(f"Warning: Unexpected error in lenient mode: {e}")
+                memory_diff = None
+            end_time = time.perf_counter()
+            lenient_times.append(end_time - start_time)
+            if memory_diff is not None:
+                lenient_memory.append(memory_diff)
+
+        result: dict[str, dict[str, Any]] = {
+            "strict_mode": self._calculate_statistics(strict_times),
+            "lenient_mode": self._calculate_statistics(lenient_times),
+        }
+
+        if strict_memory:
+            result["strict_mode"]["memory_usage"] = self._calculate_statistics(
+                [float(m) for m in strict_memory]
+            )  # type: ignore[assignment]
+
+        if lenient_memory:
+            result["lenient_mode"]["memory_usage"] = self._calculate_statistics(
+                [float(m) for m in lenient_memory]
+            )  # type: ignore[assignment]
+
+        return result
+
+    def run_comprehensive_benchmark(
+        self,
+        single_file_iterations: int = 10,
+        api_iterations: int = 5,
+        bulk_file_counts: list[int] | None = None,
+        run_parallel: bool = False,
+    ) -> dict[str, Any]:
+        """Run comprehensive performance benchmark suite."""
+        if bulk_file_counts is None:
+            bulk_file_counts = [5, 10, 25, 50]
+        print("🔧 Running Importobot Performance Benchmarks...")
+
+        results: dict[str, Any] = {
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "single_file_conversion": {},
+            "bulk_conversion": {},
+            "api_methods": {},
+        }
+
+        # Single file conversion across complexity levels
+        complexities = [level.value for level in ComplexityLevel]
+        for complexity in complexities:
+            print(f"  📊 Benchmarking single file conversion: {complexity}")
+            results["single_file_conversion"][complexity] = (
+                self.benchmark_single_conversion(complexity, single_file_iterations)
+            )
+
+        # Bulk conversion across different scales
+        for scale in bulk_file_counts:
+            print(f"  📊 Benchmarking bulk conversion: {scale} files")
+            results["bulk_conversion"][f"{scale}_files"] = (
+                self.benchmark_bulk_conversion(scale)
+            )
+
+        # Parallel conversion benchmark
+        if run_parallel:
+            print("  📊 Benchmarking parallel conversion: 10 files")
+            results["parallel_conversion"] = self.benchmark_parallel_conversion(10)
+
+        # API method comparison
+        print("  📊 Benchmarking API methods")
+        results["api_methods"] = self.benchmark_api_methods(iterations=api_iterations)
+
+        # Lazy loading performance
+        print("  📊 Benchmarking lazy loading system")
+        results["lazy_loading"] = self.benchmark_lazy_loading()
+
+        return results
+
+    def _format_header(self, results: dict[str, Any]) -> list[str]:
+        """Format the header section of benchmark results."""
+        output: list[str] = []
+        output.append("=" * 70)
+        output.append("🚀 IMPORTOBOT PERFORMANCE BENCHMARK RESULTS")
+        output.append("=" * 70)
+        output.append(f"Timestamp: {results['timestamp']}")
+        output.append("")
+        return output
+
+    def _format_single_file_results(self, results: dict[str, Any]) -> list[str]:
+        """Format single file conversion results."""
+        output: list[str] = []
+        output.append("📈 SINGLE FILE CONVERSION PERFORMANCE")
+        output.append("-" * 50)
+        for complexity, stats in results["single_file_conversion"].items():
+            output.append(
+                f"{complexity.upper():>12}: {stats['mean'] * 1000:.2f}ms "
+                f"± {stats['std_dev'] * 1000:.2f}ms (avg)"
+            )
+            # Add percentiles if available
+            if "percentile_95" in stats:
+                output.append(
+                    f"{'':>12}  95th percentile: {stats['percentile_95'] * 1000:.2f}ms"
+                )
+            # Add memory usage if available
+            if "memory_usage" in stats:
+                mem_mean = stats["memory_usage"]["mean"]
+                output.append(
+                    f"{'':>12}  Memory: {self._format_memory_size(mem_mean)} avg"
+                )
+        output.append("")
+        return output
+
+    def _format_bulk_conversion_results(self, results: dict[str, Any]) -> list[str]:
+        """Format bulk conversion results."""
+        output: list[str] = []
+        output.append("📊 BULK CONVERSION PERFORMANCE")
+        output.append("-" * 50)
+        for _, stats in results["bulk_conversion"].items():
+            files_count = stats["file_count"]
+            fps = stats["files_per_second"]
+            avg_time = stats["avg_time_per_file"] * 1000
+            output.append(
+                f"{files_count:>3} files: {fps:.1f} files/sec "
+                f"({avg_time:.2f}ms per file)"
+            )
+            # Add memory usage if available
+            if "memory_usage" in stats:
+                mem_total = stats["memory_usage"]["total"]
+                output.append(
+                    f"{'':>12}  Memory: {self._format_memory_size(mem_total)} total"
+                )
+        output.append("")
+        return output
+
+    def _format_api_method_comparison(self, results: dict[str, Any]) -> list[str]:
+        """Format API method comparison results."""
+        output: list[str] = []
+        output.append("⚡ API METHOD COMPARISON")
+        output.append("-" * 50)
+        api_stats = results["api_methods"]
+        strict_avg = api_stats["strict_mode"]["mean"] * 1000
+        lenient_avg = api_stats["lenient_mode"]["mean"] * 1000
+        output.append(f"Strict Mode:   {strict_avg:.2f}ms (avg)")
+        output.append(f"Lenient Mode:  {lenient_avg:.2f}ms (avg)")
+
+        # Add memory usage if available
+        if "memory_usage" in api_stats["strict_mode"]:
+            strict_mem = api_stats["strict_mode"]["memory_usage"]["mean"]
+            output.append(
+                f"{'':>12}  Strict Mode Memory: "
+                f"{self._format_memory_size(strict_mem)} avg"
+            )
+
+        if "memory_usage" in api_stats["lenient_mode"]:
+            lenient_mem = api_stats["lenient_mode"]["memory_usage"]["mean"]
+            output.append(
+                f"{'':>12}  Lenient Mode Memory: "
+                f"{self._format_memory_size(lenient_mem)} avg"
+            )
+
+        return output
+
+    def _format_lazy_loading_performance(
+        self, results: dict[str, Any]
+    ) -> tuple[list[str], float, dict[str, Any]]:
+        """Format lazy loading performance results."""
+        output: list[str] = []
+        output.append("")
+        output.append("🔄 LAZY LOADING PERFORMANCE")
+        output.append("-" * 50)
+        lazy_stats = results["lazy_loading"]
+        improvement = lazy_stats["performance_improvement_percent"]
+        return output, improvement, lazy_stats
+
+    def format_results(self, results: dict[str, Any]) -> str:
+        """Format benchmark results for display."""
+        output = self._format_header(results)
+        output.extend(self._format_single_file_results(results))
+        output.extend(self._format_bulk_conversion_results(results))
+
+        # Add parallel conversion results if available
+        if "parallel_conversion" in results:
+            output.extend(self._format_parallel_conversion_results(results))
+
+        output.extend(self._format_api_method_comparison(results))
+
+        lazy_output, improvement, lazy_stats = self._format_lazy_loading_performance(
+            results
+        )
+        output.extend(lazy_output)
+
+        cold_avg = lazy_stats["first_access_cold"]["mean"] * 1000
+        cached_avg = lazy_stats["cached_access"]["mean"] * 1000
+        output.append(f"Cold Start:     {cold_avg:.3f}ms (first access)")
+        output.append(f"Cached Access:  {cached_avg:.3f}ms (subsequent access)")
+        output.append(
+            f"Improvement:     {improvement:.1f}% "
+            f"({lazy_stats['cache_effectiveness']} effectiveness)"
+        )
+
+        # Add performance targets
+        output.extend(self._format_performance_targets(results))
+
+        return "\n".join(output)
+
+    def _format_parallel_conversion_results(self, results: dict[str, Any]) -> list[str]:
+        """Format parallel conversion results."""
+        output: list[str] = []
+        output.append("⚡ PARALLEL CONVERSION PERFORMANCE")
+        output.append("-" * 50)
+        parallel_stats = results["parallel_conversion"]
+        files_count = parallel_stats["file_count"]
+        fps = parallel_stats["files_per_second"]
+        avg_time = parallel_stats["avg_time_per_file"] * 1000
+        workers = parallel_stats["max_workers"]
+        output.append(
+            f"{files_count:>3} files: {fps:.1f} files/sec "
+            f"({avg_time:.2f}ms per file) with {workers} workers"
+        )
+        output.append("")
+        return output
+
+    def _format_performance_targets(self, results: dict[str, Any]) -> list[str]:
+        """Format performance targets and assessment."""
+        output: list[str] = []
+        output.append("")
+        output.append("🎯 PERFORMANCE TARGETS")
+        output.append("-" * 50)
+
+        medium_time = results["single_file_conversion"]["medium"]["mean"] * 1000
+        # Get the first available bulk conversion result for performance targets
+        bulk_keys = list(results["bulk_conversion"].keys())
+        bulk_fps = (
+            results["bulk_conversion"][bulk_keys[0]]["files_per_second"]
+            if bulk_keys
+            else 0
+        )
+
+        targets_met = []
+        if medium_time < 100:  # Target: <100ms for medium complexity
+            targets_met.append("✅ Medium complexity conversion < 100ms")
+        else:
+            targets_met.append(
+                f"❌ Medium complexity conversion: {medium_time:.2f}ms (target: <100ms)"
+            )
+
+        if bulk_fps > 10:  # Target: >10 files/second for bulk operations
+            targets_met.append("✅ Bulk conversion > 10 files/sec")
+        else:
+            targets_met.append(
+                f"❌ Bulk conversion: {bulk_fps:.1f} files/sec (target: >10)"
+            )
+
+        output.extend(targets_met)
+
+        # Memory and efficiency notes
+        output.append("💡 OPTIMIZATION NOTES")
+        output.append("-" * 50)
+        output.append("• Performance benchmarks to verify modularization impact")
+        output.append("• Shared utilities to reduce memory overhead")
+        output.append("• Lazy loading to optimize startup time")
+        output.append("• Enterprise scale validation for linear performance scaling")
+
+        return output
+
+    def _benchmark_cold_start_access(
+        self, warmup_iterations: int, iterations: int
+    ) -> tuple[list[float], list[int]]:
+        """Benchmark first access (cold start) performance."""
+        # Warmup iterations for cold start measurements
+        for _ in range(warmup_iterations):
+            templates = BusinessDomainTemplates()
+            _ = templates.enterprise_scenarios  # First access triggers lazy load
+
+        # Benchmark first access (cold start)
+        cold_times = []
+        cold_memory = []
+        for _ in range(iterations):
+            # Create fresh instance each time to simulate cold start
+            templates = BusinessDomainTemplates()
+            start_time = time.perf_counter()
+            _, memory_diff = self._measure_with_memory(
+                lambda t=templates: t.enterprise_scenarios
+            )
+            end_time = time.perf_counter()
+            cold_times.append(end_time - start_time)
+            if memory_diff is not None:
+                cold_memory.append(memory_diff)
+
+        return cold_times, cold_memory
+
+    def _benchmark_cached_access(
+        self, warmup_iterations: int, iterations: int
+    ) -> tuple[list[float], list[int]]:
+        """Benchmark subsequent access (cached) performance."""
+        # Warmup iterations for cached access measurements
+        templates = BusinessDomainTemplates()
+        _ = templates.enterprise_scenarios  # Load once to cache
+        for _ in range(warmup_iterations):
+            _ = templates.enterprise_scenarios  # Subsequent access from cache
+
+        # Benchmark subsequent access (cached)
+        cached_times = []
+        cached_memory = []
+        for _ in range(iterations):
+            start_time = time.perf_counter()
+            _, memory_diff = self._measure_with_memory(
+                lambda t=templates: t.enterprise_scenarios
+            )
+            end_time = time.perf_counter()
+            cached_times.append(end_time - start_time)
+            if memory_diff is not None:
+                cached_memory.append(memory_diff)
+
+        return cached_times, cached_memory
+
+    def _benchmark_multi_property_access(
+        self, warmup_iterations: int, iterations: int
+    ) -> tuple[list[float], list[int]]:
+        """Benchmark multiple lazy properties access performance."""
+        # Warmup iterations for multi-property access measurements
+        for _ in range(warmup_iterations):
+            templates = BusinessDomainTemplates()
+            _ = templates.enterprise_scenarios
+            _ = templates.enterprise_data_pools
+            _ = templates.ENVIRONMENT_REQUIREMENTS  # Regular property
+            _ = templates.COMPLIANCE_REQUIREMENTS  # Regular property
+
+        # Benchmark multiple lazy properties
+        multi_property_times = []
+        multi_property_memory = []
+        for _ in range(iterations):
+            templates = BusinessDomainTemplates()
+            start_time = time.perf_counter()
+            _, memory_diff1 = self._measure_with_memory(
+                lambda t=templates: t.enterprise_scenarios
+            )
+            _, memory_diff2 = self._measure_with_memory(
+                lambda t=templates: t.enterprise_data_pools
+            )
+            _, memory_diff3 = self._measure_with_memory(
+                lambda t=templates: t.ENVIRONMENT_REQUIREMENTS
+            )
+            _, memory_diff4 = self._measure_with_memory(
+                lambda t=templates: t.COMPLIANCE_REQUIREMENTS
+            )
+            end_time = time.perf_counter()
+            multi_property_times.append(end_time - start_time)
+            # Combine memory diffs (this is a simplification)
+            total_memory_diff = sum(
+                d
+                for d in [memory_diff1, memory_diff2, memory_diff3, memory_diff4]
+                if d is not None
+            )
+            if total_memory_diff > 0:
+                multi_property_memory.append(total_memory_diff)
+
+        return multi_property_times, multi_property_memory
+
+    def _calculate_performance_improvement(
+        self, cold_times: list[float], cached_times: list[float]
+    ) -> float:
+        """Calculate performance improvement percentage."""
+        cold_mean = mean(cold_times)
+        cached_mean = mean(cached_times)
+        return ((cold_mean - cached_mean) / cold_mean) * 100 if cold_mean > 0 else 0
+
+    def _add_memory_stats_to_result(
+        self, result: dict[str, Any], key: str, memory_data: list[int]
+    ) -> None:
+        """Add memory statistics to result dictionary."""
+        if memory_data:
+            memory_stats = self._calculate_statistics([float(m) for m in memory_data])
+            if isinstance(result[key], dict):
+                result[key]["memory_usage"] = memory_stats  # type: ignore[index]
+
+    def benchmark_lazy_loading(self, warmup_iterations: int = 10) -> dict[str, Any]:
+        """Benchmark lazy loading system performance and benefits."""
+        iterations = 100
+
+        # Run individual benchmarks
+        cold_times, cold_memory = self._benchmark_cold_start_access(
+            warmup_iterations, iterations
+        )
+        cached_times, cached_memory = self._benchmark_cached_access(
+            warmup_iterations, iterations
+        )
+        multi_property_times, multi_property_memory = (
+            self._benchmark_multi_property_access(warmup_iterations, iterations)
+        )
+
+        # Calculate performance improvement
+        improvement = self._calculate_performance_improvement(cold_times, cached_times)
+
+        # Build result dictionary
+        result: dict[str, Any] = {
+            "first_access_cold": self._calculate_statistics(cold_times),
+            "cached_access": self._calculate_statistics(cached_times),
+            "multi_property_access": self._calculate_statistics(multi_property_times),
+            "performance_improvement_percent": improvement,
+            "cache_effectiveness": "High"
+            if improvement > 50
+            else "Medium"
+            if improvement > 20
+            else "Low",
+        }
+
+        # Add memory statistics
+        self._add_memory_stats_to_result(result, "first_access_cold", cold_memory)
+        self._add_memory_stats_to_result(result, "cached_access", cached_memory)
+        self._add_memory_stats_to_result(
+            result, "multi_property_access", multi_property_memory
+        )
+
+        return result
+
+    def benchmark_parallel_conversion(
+        self,
+        file_count: int = 10,
+        complexity: str = "medium",
+        max_workers: int = 4,
+    ) -> dict[str, Any]:
+        """Benchmark parallel directory conversion performance."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            input_dir = Path(temp_dir) / "input"
+            output_dir = Path(temp_dir) / "output"
+            input_dir.mkdir()
+            output_dir.mkdir()
+
+            # Generate multiple test files
+            for i in range(file_count):
+                test_data = self.generate_test_case(complexity)
+                test_data["testCase"]["name"] = f"Parallel Test Case {i + 1}"
+
+                input_file = input_dir / f"test_{i + 1}.json"
+                with open(input_file, "w", encoding="utf-8") as f:
+                    json.dump(test_data, f)
+
+            # Measure parallel conversion time and memory
+            start_time = time.perf_counter()
+
+            # Create a list of (input_file, output_file) tuples
+            conversion_tasks = []
+            for input_file in input_dir.glob("*.json"):
+                output_file = output_dir / f"{input_file.stem}.robot"
+                conversion_tasks.append((str(input_file), str(output_file)))
+
+            # Execute conversions in parallel
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=max_workers
+            ) as executor:
+                futures = [
+                    executor.submit(convert_file, task[0], task[1])
+                    for task in conversion_tasks
+                ]
+                # Wait for all conversions to complete
+                concurrent.futures.wait(futures)
+
+            end_time = time.perf_counter()
+
+            conversion_time = end_time - start_time
+            files_per_second = (
+                file_count / conversion_time if conversion_time > 0 else 0
+            )
+
+            result = {
+                "total_time": conversion_time,
+                "files_per_second": files_per_second,
+                "file_count": file_count,
+                "complexity": complexity,
+                "max_workers": max_workers,
+                "avg_time_per_file": conversion_time / file_count,
+            }
+
+            return result
+
+
+def main() -> None:
+    """Run performance benchmarks and display results."""
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(
+        description="Run Importobot performance benchmarks"
+    )
+    parser.add_argument(
+        "--iterations",
+        type=int,
+        default=10,
+        help="Number of iterations for single file conversion benchmarks (default: 10)",
+    )
+    parser.add_argument(
+        "--api-iterations",
+        type=int,
+        default=5,
+        help="Number of iterations for API method benchmarks (default: 5)",
+    )
+    parser.add_argument(
+        "--bulk-files",
+        type=int,
+        nargs="+",
+        default=[5, 10, 25, 50],
+        help="File counts for bulk conversion benchmarks (default: 5 10 25 50)",
+    )
+    parser.add_argument(
+        "--warmup",
+        type=int,
+        default=3,
+        help="Number of warmup iterations for benchmarks (default: 3)",
+    )
+    parser.add_argument(
+        "--parallel", action="store_true", help="Run parallel conversion benchmark"
+    )
+    parser.add_argument(
+        "--complexity",
+        choices=[level.value for level in ComplexityLevel],
+        type=str.lower,
+        default="medium",
+        help="Complexity level for benchmarks (default: medium)",
+    )
+
+    args = parser.parse_args()
+
+    benchmark = PerformanceBenchmark()
+    results = benchmark.run_comprehensive_benchmark(
+        single_file_iterations=args.iterations,
+        api_iterations=args.api_iterations,
+        bulk_file_counts=args.bulk_files,
+        run_parallel=args.parallel,
+    )
+
+    # Display results
+    print("\n" + benchmark.format_results(results))
+
+    # Save results to file
+    output_file = Path("performance_benchmark_results.json")
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=2)
+
+    print(f"\n📁 Detailed results saved to: {output_file}")
+    print("=" * 70)
+
+
+if __name__ == "__main__":
+    main()

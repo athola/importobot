@@ -6,6 +6,7 @@ from importobot.utils.security import (
     get_ssh_security_guidelines,
     validate_test_security,
 )
+from tests.shared_test_data import SSH_SECURITY_TOPICS
 
 
 class TestSecurityValidator:  # pylint: disable=too-many-public-methods
@@ -319,15 +320,7 @@ class TestGetSSHSecurityGuidelines:
         """Test that SSH guidelines cover all important aspects."""
         guidelines = get_ssh_security_guidelines()
 
-        expected_topics = [
-            "key-based authentication",
-            "connection timeouts",
-            "host key fingerprints",
-            "dedicated test environments",
-            "privileges",
-            "audit trails",
-            "credentials",
-            "secrets",
+        expected_topics = SSH_SECURITY_TOPICS + [
             "error handling",
             "audits",
         ]

@@ -20,3 +20,15 @@ LIBRARY_DETECTION_TEST_CASES = [
     ("navigate browser", "SeleniumLibrary"),
     ("api request", "RequestsLibrary"),
 ]
+
+# SSH security topics used by multiple test modules
+SSH_SECURITY_TOPICS = [
+    "key-based authentication",
+    "connection timeouts",
+    "host key fingerprints",
+    "dedicated test environments",
+    "privileges",
+    "audit trails",
+    "credentials",
+    "secrets",
+]

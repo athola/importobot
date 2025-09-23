@@ -272,7 +272,7 @@ class TestBusinessLogicAlignment:
                 test_json = json.dumps(test_case)
                 result = converter.convert_json_string(test_json)
                 tc_in_res = "*** Test Cases ***" in result
-                name_in_res = test_case["name"] in result
+                name_in_res = str(test_case["name"]) in result
                 if tc_in_res and name_in_res:
                     successful_conversions += 1
             except Exception:
