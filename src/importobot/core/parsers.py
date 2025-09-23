@@ -28,14 +28,15 @@ class GenericTestFileParser(TestFileParser):
 
         # Strategy 1: Look for explicit test arrays
         for key, value in data.items():
-            if isinstance(value, list) and key.lower() in [
+            key_lower = key.lower()
+            if isinstance(value, list) and key_lower in [
                 "tests",
                 "testcases",
                 "test_cases",
             ]:
                 tests.extend([t for t in value if isinstance(t, dict)])
-            elif key.lower() == "test_case" and isinstance(value, dict):
-                # Strategy 3: Look inside test_case key
+            elif key_lower in ["test_case", "testcase"] and isinstance(value, dict):
+                # Strategy 3: Look inside test_case/testCase key
                 if is_test_case(value):
                     tests.append(value)
 

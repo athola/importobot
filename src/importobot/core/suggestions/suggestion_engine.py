@@ -70,6 +70,21 @@ class GenericSuggestionEngine(SuggestionEngine):
             logger.error("Error generating suggestions: %s", e)
             return [f"Error analyzing test data: {str(e)}"]
 
+    def suggest_improvements(self, test_data_list: list[Any]) -> list[str]:
+        """Generate improvement suggestions for a list of test data.
+
+        Args:
+            test_data_list: List of test data to analyze
+
+        Returns:
+            list: List of improvement suggestions
+        """
+        all_suggestions = []
+        for test_data in test_data_list:
+            suggestions = self.get_suggestions(test_data)
+            all_suggestions.extend(suggestions)
+        return all_suggestions
+
     def apply_suggestions(
         self, json_data: Union[dict[str, Any], list[Any], Any]
     ) -> tuple[Any, list[dict[str, Any]]]:

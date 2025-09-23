@@ -70,6 +70,52 @@ class JsonToRobotConverter:
                 f"Failed to convert JSON to Robot Framework: {str(e)}"
             ) from e
 
+    def convert_json_data_lenient(self, json_data: dict[str, Any]) -> str:
+        """Convert JSON data with lenient handling of empty inputs.
+
+        This method produces placeholder output for empty inputs instead of
+        raising errors.
+        Used for backward compatibility with existing integration points.
+        """
+        if not isinstance(json_data, dict):
+            raise exceptions.ValidationError("JSON data must be a dictionary")
+
+        try:
+            return self.conversion_engine.convert(json_data, strict=False)
+        except Exception as e:
+            logger.exception("Error during conversion")
+            raise exceptions.ConversionError(
+                f"Failed to convert JSON to Robot Framework: {str(e)}"
+            ) from e
+
+    def convert_file(self, input_file: str, output_file: str) -> dict[str, Any]:
+        """Convert a JSON file to Robot Framework format.
+
+        Args:
+            input_file: Path to input JSON file
+            output_file: Path to output Robot Framework file
+
+        Returns:
+            dict: Conversion result with success status and metadata
+        """
+        # Delegate to standalone function but return result dict
+        convert_file(input_file, output_file)
+        return {"success": True, "input_file": input_file, "output_file": output_file}
+
+    def convert_directory(self, input_dir: str, output_dir: str) -> dict[str, Any]:
+        """Convert all JSON files in a directory to Robot Framework format.
+
+        Args:
+            input_dir: Path to input directory containing JSON files
+            output_dir: Path to output directory for Robot Framework files
+
+        Returns:
+            dict: Conversion result with success/error counts
+        """
+        # Delegate to standalone function but return result dict
+        convert_directory(input_dir, output_dir)
+        return {"success": True, "input_dir": input_dir, "output_dir": output_dir}
+
 
 # Standalone suggestion functions
 def get_conversion_suggestions(json_data: dict[str, Any]) -> list[str]:
@@ -173,7 +219,7 @@ def convert_file(input_file: str, output_file: str) -> None:
 
     json_data = load_json(input_file)
     converter = JsonToRobotConverter()
-    robot_content = converter.convert_json_data(json_data)
+    robot_content = converter.convert_json_data_lenient(json_data)
     save_robot_file(robot_content, output_file)
 
 

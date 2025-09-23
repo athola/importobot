@@ -148,10 +148,7 @@ class TestRobotFrameworkKeywordRegistry:
         """Test registry validation finds no integrity issues."""
         errors = RobotFrameworkKeywordRegistry.validate_registry_integrity()
 
-        # Print any errors for debugging
-        if errors:
-            for error in errors:
-                print(f"Registry error: {error}")
+        # Debug prints removed for cleaner test output
 
         assert isinstance(errors, list)
         # There should be no validation errors in the registry

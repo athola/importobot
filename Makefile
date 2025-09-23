@@ -16,6 +16,7 @@ help:
 	@echo "  lint         - Run linting"
 	@echo "  format       - Format code"
 	@echo "  typecheck    - Run type checking"
+	@echo "  validate     - Validate PR readiness (lint + typecheck + test)"
 	@echo "  clean        - Clean temp files"
 	@echo "  examples     - Run all example conversions"
 	@echo "  example-basic           - Basic login example"
@@ -30,6 +31,7 @@ help:
 	@echo "  interactive-demo-test   - Run interactive demo in non-interactive mode"
 	@echo "  mcp-query               - Query the Qwen model through MCP"
 	@echo "  mcp-review              - Request a code review through MCP"
+	@echo "  bench                   - Run performance benchmarks"
 	@echo ""
 	@echo "Scripts subproject commands:"
 	@echo "  scripts-test            - Run tests for scripts subproject"
@@ -96,6 +98,23 @@ typecheck:
 	$(info $(NEWLINE)==================== Running type checking ====================$(NEWLINE))
 	uv run ty check .
 	uv run mypy .
+
+# Validate PR readiness
+.PHONY: validate
+validate: lint typecheck test
+	$(info $(NEWLINE)==================== Validating PR readiness ====================$(NEWLINE))
+	$(info $(NEWLINE)Checking for exposed secrets...$(NEWLINE))
+	@command -v detect-secrets >/dev/null 2>&1 || { echo "⚠️  detect-secrets not found. Install with: pip install detect-secrets"; exit 1; }
+	@detect-secrets scan --all-files . || { echo "⚠️  Secrets detected! Run 'detect-secrets scan --all-files .' to see details"; exit 1; }
+	$(info $(NEWLINE)Checking dependency updates...$(NEWLINE))
+	@uv pip list --outdated || true
+	$(info $(NEWLINE)Checking for uncommitted changes...$(NEWLINE))
+	@git status --porcelain | head -5 || true
+	$(info $(NEWLINE)Checking for security vulnerabilities...$(NEWLINE))
+	@command -v bandit >/dev/null 2>&1 || { echo "⚠️  bandit not found. Install with: pip install bandit"; exit 1; }
+	@bandit -r src/ -f json -o bandit-report.json || { echo "⚠️  Security issues found! Check bandit-report.json"; exit 1; }
+	@rm -f bandit-report.json
+	$(info $(NEWLINE)✅ All validation checks passed! Ready for PR review.$(NEWLINE))
 
 # Cleanup
 .PHONY: clean
@@ -200,6 +219,12 @@ mcp-query:
 mcp-review:
 	$(info $(NEWLINE)==================== Requesting code review through MCP ====================$(NEWLINE))
 	uv run importobot-mcp review
+
+# Performance benchmark
+.PHONY: bench
+bench:
+	$(info $(NEWLINE)==================== Running performance benchmarks ====================$(NEWLINE))
+	uv run python scripts/src/importobot_scripts/performance_benchmark.py
 
 # Enterprise demo - bulk conversion test
 .PHONY: enterprise-demo

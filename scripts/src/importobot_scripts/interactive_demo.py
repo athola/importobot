@@ -17,12 +17,14 @@ from typing import Any
 # Third-party conditional imports
 try:
     import matplotlib.pyplot as plt
+
     MATPLOTLIB_AVAILABLE = True
 except ImportError:
     MATPLOTLIB_AVAILABLE = False
 
 try:
     import numpy as np
+
     NUMPY_AVAILABLE = True
 except ImportError:
     NUMPY_AVAILABLE = False
@@ -71,13 +73,15 @@ def _check_visualization_dependencies() -> None:
         print("Note: Using validated performance benchmarks")
 
 
-def _safe_visualization(func):
-    """Decorator to safely handle visualization functions."""
-    def wrapper(*args, **kwargs):
+def _safe_visualization(func):  # type: ignore
+    """Safely handle visualization functions."""
+
+    def wrapper(*args, **kwargs):  # type: ignore
         if not MATPLOTLIB_AVAILABLE or not NUMPY_AVAILABLE:
             print("Note: Visualization skipped - missing dependencies")
             return None
         return func(*args, **kwargs)
+
     return wrapper
 
 

@@ -8,20 +8,20 @@
 
 ## What is Importobot?
 
-**Importobot** is a Python automation tool that converts test cases from test management frameworks (like Zephyr, JIRA/Xray, and TestLink) into executable Robot Framework format. It aims to be the most powerful and flexible open-source tool for migrating legacy test suites to modern automation frameworks.
+**Importobot** is a Python automation tool that converts test cases from test management frameworks (like Zephyr, JIRA/Xray, and TestLink) into executable Robot Framework format. It is a powerful and flexible open-source tool for migrating legacy test suites to modern automation frameworks.
 
-Organizations often have thousands of test cases in legacy systems. Migrating them manually is a slow, error-prone, and expensive process. Importobot automates this entire conversion process, saving significant time and resources while preserving valuable test knowledge and business logic.
+Organizations often have thousands of test cases in legacy systems. Migrating them manually is a slow, error-prone, and expensive process. Importobot automates this conversion process, saving time and resources while preserving test knowledge and business logic.
 
 ## Main Features
 
 - **Automated Conversion**: Convert entire test suites with a single command.
 - **Bulk Processing**: Recursively find and convert test cases in a directory.
 - **Intelligent Field Mapping**: Automatically map test steps, expected results, tags, and priorities.
-- **Extensible by Design**: A modular architecture allows for adding new input formats and conversion strategies.
-- **Enterprise-Ready API**: A `pandas`-inspired API for seamless integration into CI/CD pipelines and enterprise workflows.
+- **Extensible**: A modular architecture allows for adding new input formats and conversion strategies.
+- **Pandas-inspired API**: A `pandas`-inspired API for seamless integration into CI/CD pipelines and enterprise workflows.
 - **Validation and Suggestions**: Proactively validate input data and provide suggestions for ambiguous or poorly-defined test cases.
-- **High-Quality Output**: Maintains perfect code quality standards (10.00/10.00 lint score) with comprehensive test coverage.
-- **Production Ready**: Battle-tested with 1150+ passing tests and enterprise-scale performance validation.
+- **High-Quality Output**: Maintains a high code quality standard with comprehensive test coverage.
+- **Production Ready**: The project has over 1150 tests and has been validated for enterprise-scale performance.
 
 ## Installation
 
@@ -94,7 +94,7 @@ User Login Functionality
 
 ## API Usage
 
-Importobot follows **pandas-inspired design patterns** for professional integration:
+Importobot provides a pandas-inspired API for easy integration:
 
 ### Simple Usage
 ```python

@@ -108,7 +108,6 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
         """Determine Robot Framework keyword based on step content."""
         combined = f"{description} {test_data}".lower()
         intent = IntentRecognitionEngine.recognize_intent(combined)
-        print(f"Combined: {combined}, Intent: {intent}")
 
         # Check for ambiguous cases and provide suggestions
         ambiguous_keywords = self._detect_ambiguous_cases(

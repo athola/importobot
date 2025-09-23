@@ -124,8 +124,8 @@ def print_suggestions(filtered_suggestions: list[str]) -> None:
         len(filtered_suggestions) == 1
         and "No improvements needed" in filtered_suggestions[0]
     ):
-        print("\nYour conversion is already optimal!")
-        print("No changes needed - your JSON structure follows best practices.")
+        print("\nYour conversion is already well-structured.")
+        print("No suggestions for improvement.")
         return
 
     print("\n💡 Conversion Suggestions:")
@@ -133,7 +133,7 @@ def print_suggestions(filtered_suggestions: list[str]) -> None:
     for i, suggestion in enumerate(filtered_suggestions, 1):
         print(f"  {i}. {suggestion}")
     print(
-        "\nThese suggestions can help improve the quality of the "
+        "\nThese suggestions can improve the quality of the "
         "generated Robot Framework code."
     )
 

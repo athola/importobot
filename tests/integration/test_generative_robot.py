@@ -823,9 +823,9 @@ def test_generative_fuzz_testing(tmp_path, iterations):
             if validation_result["syntax_valid"]:
                 valid_syntax_count += 1
 
-        except Exception as e:
+        except Exception:
             # Log but don't fail - we're testing robustness
-            print(f"Fuzz iteration {i} failed: {e}")
+            pass  # Debug print removed for cleaner test output
 
     # At least 80% of conversions should succeed
     success_rate = successful_conversions / iterations
@@ -886,9 +886,9 @@ def test_generative_edge_case_handling(tmp_path):
         try:
             convert_file(str(json_file), str(robot_file))
             assert robot_file.exists()
-        except Exception as e:
+        except Exception:
             # Log but allow - some edge cases may legitimately fail
-            print(f"Edge case {i} failed conversion: {e}")
+            pass  # Debug print removed for cleaner test output
 
 
 if __name__ == "__main__":
