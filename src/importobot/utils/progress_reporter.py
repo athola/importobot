@@ -1,7 +1,8 @@
 """Reusable progress reporting utilities."""
 
 import logging
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 from importobot.utils.defaults import PROGRESS_CONFIG
 
@@ -10,7 +11,7 @@ class ProgressReporter:
     """Utility class for consistent progress reporting across operations."""
 
     def __init__(
-        self, logger: Optional[logging.Logger] = None, operation_name: str = "operation"
+        self, logger: logging.Logger | None = None, operation_name: str = "operation"
     ):
         """Initialize progress reporter.
 
@@ -26,7 +27,7 @@ class ProgressReporter:
         self.last_reported_milestone = 0
 
     def initialize(
-        self, total_items: int, milestone_percentage: Optional[int] = None
+        self, total_items: int, milestone_percentage: int | None = None
     ) -> None:
         """Initialize progress tracking for a new operation.
 
@@ -83,7 +84,7 @@ class BatchProgressReporter(ProgressReporter):
 
     def __init__(
         self,
-        logger: Optional[logging.Logger] = None,
+        logger: logging.Logger | None = None,
         operation_name: str = "batch_operation",
     ):
         """Initialize batch progress reporter."""
@@ -124,8 +125,8 @@ class BatchProgressReporter(ProgressReporter):
 def with_progress_reporting(
     total_items: int,
     operation_name: str = "operation",
-    logger: Optional[logging.Logger] = None,
-    milestone_percentage: Optional[int] = None,
+    logger: logging.Logger | None = None,
+    milestone_percentage: int | None = None,
 ) -> Callable:
     """Add progress reporting to functions.
 

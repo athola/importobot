@@ -1,7 +1,7 @@
 """Conversion strategies for different input types."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, cast
+from typing import Any, cast
 
 from importobot import exceptions
 from importobot.core.converter import (
@@ -61,17 +61,17 @@ class SingleFileConversionStrategy(ConversionStrategy):
         )
         self._display_suggestions(args.input, args.no_suggestions)
 
-    def _prepare_conversion_data(self, improved_data: Any) -> Dict[str, Any]:
+    def _prepare_conversion_data(self, improved_data: Any) -> dict[str, Any]:
         """Prepare data for conversion."""
         if isinstance(improved_data, list) and len(improved_data) > 0:
-            return cast(Dict[str, Any], improved_data[0])
-        return cast(Dict[str, Any], improved_data)
+            return cast(dict[str, Any], improved_data[0])
+        return cast(dict[str, Any], improved_data)
 
     def _convert_with_temp_file(
         self,
-        conversion_data: Dict[str, Any],
+        conversion_data: dict[str, Any],
         robot_filename: str,
-        changes_made: List[Dict[str, Any]],
+        changes_made: list[dict[str, Any]],
         args: Any,
     ) -> None:
         """Convert data using a temporary file."""
@@ -101,7 +101,7 @@ class SingleFileConversionStrategy(ConversionStrategy):
         except Exception as e:
             logger.warning("Could not generate suggestions: %s", str(e))
 
-    def _print_suggestions(self, suggestions: List[str]) -> None:
+    def _print_suggestions(self, suggestions: list[str]) -> None:
         """Print suggestions if they are meaningful."""
         if not suggestions:
             return
@@ -146,7 +146,7 @@ class DirectoryConversionStrategy(ConversionStrategy):
 class MultipleFilesConversionStrategy(ConversionStrategy):
     """Strategy for converting multiple files."""
 
-    def __init__(self, files: List[str]):
+    def __init__(self, files: list[str]):
         """Initialize with list of files to convert."""
         self.files = files
 
@@ -216,7 +216,7 @@ class ConversionStrategyFactory:
 
     @staticmethod
     def create_strategy(
-        input_type: str, detected_files: List[str]
+        input_type: str, detected_files: list[str]
     ) -> ConversionStrategy:
         """Create a conversion strategy based on input type.
 

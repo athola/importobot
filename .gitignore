@@ -9,6 +9,13 @@ dist/
 *.egg-info/
 *.egg
 
+# Editor temporary files
+*.swp
+*.swo
+*~
+.*.swp
+.*.swo
+
 # Virtual environments
 .env
 .venv
@@ -16,6 +23,7 @@ env/
 venv/
 
 # Testing
+*.json
 .pytest_cache/
 .coverage
 coverage.xml
@@ -24,6 +32,7 @@ htmlcov/
 robot-tests/
 zephyr-tests/
 tests/unit/test_data/
+examples/json/*improved.json
 
 # Robot Framework output files
 log.html
@@ -31,6 +40,9 @@ report.html
 output.xml
 selenium-screenshot-*.png
 *.log
+
+# Demo and script logs
+scripts/logs/
 
 # IDE
 .idea/
@@ -55,3 +67,10 @@ presentation/*.vrb
 test-results.xml
 texput.log
 compile.log
+
+# Generated visualizations
+visualizations/
+.aider*
+
+# MCP configuration
+.mcp/config.json

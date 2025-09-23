@@ -1,5 +1,9 @@
-"""Utility module for Zephyr to Robot Framework converter."""
+"""Internal utility modules - not part of public API.
 
-from importobot.utils import logging, validation
+This module contains implementation utilities and should not be accessed
+directly. Use public validation functions through importobot.api.validation instead.
+"""
 
-__all__ = ["logging", "validation"]
+# No public exports - these are implementation details
+# Access public validation utilities through importobot.api.validation
+__all__: list[str] = []

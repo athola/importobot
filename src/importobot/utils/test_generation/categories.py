@@ -2,7 +2,6 @@
 
 from enum import Enum
 from pathlib import Path
-from typing import Dict
 
 from typing_extensions import TypedDict
 
@@ -23,7 +22,7 @@ class CategoryEnum(Enum):
     E2E = "e2e"
 
     @classmethod
-    def get_default_weights(cls) -> Dict["CategoryEnum", float]:
+    def get_default_weights(cls) -> dict["CategoryEnum", float]:
         """Get default distribution weights for enterprise testing."""
         return {
             cls.REGRESSION: 0.3125,  # 31.25%

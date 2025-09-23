@@ -1,13 +1,13 @@
-"""
-Comprehensive Robot Framework keyword registry and library mappings.
+"""Comprehensive Robot Framework keyword registry and library mappings.
 
 This module provides centralized keyword definitions, library patterns,
 and intent recognition patterns used throughout the conversion system.
 """
 
 import re
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any, Dict, List, Tuple
 
+from importobot.core.pattern_matcher import PatternMatcher
 from importobot.utils.security import SSH_SECURITY_GUIDELINES, extract_security_warnings
 
 
@@ -20,6 +20,7 @@ class RobotFrameworkKeywordRegistry:
         "builtin": {
             "Log": {"args": ["message", "level=INFO"], "description": "Log a message"},
             "Set Variable": {"args": ["value"], "description": "Set a variable"},
+            "Get Variable": {"args": ["name"], "description": "Get variable value"},
             "Should Be Equal": {
                 "args": ["first", "second"],
                 "description": "Assert equality",
@@ -39,6 +40,43 @@ class RobotFrameworkKeywordRegistry:
                 "args": ["name", "value"],
                 "description": "Set test variable",
             },
+            "Convert To Integer": {
+                "args": ["item"],
+                "description": "Convert to integer",
+            },
+            "Convert To String": {"args": ["item"], "description": "Convert to string"},
+            "Convert To Boolean": {
+                "args": ["item"],
+                "description": "Convert to boolean",
+            },
+            "Convert To Number": {"args": ["item"], "description": "Convert to number"},
+            "Get Length": {"args": ["item"], "description": "Get length of item"},
+            "Length Should Be": {
+                "args": ["item", "length"],
+                "description": "Verify length",
+            },
+            "Should Start With": {
+                "args": ["string", "prefix"],
+                "description": "Verify prefix",
+            },
+            "Should End With": {
+                "args": ["string", "suffix"],
+                "description": "Verify suffix",
+            },
+            "Should Match": {
+                "args": ["string", "pattern"],
+                "description": "Verify pattern match",
+            },
+            "Evaluate": {"args": ["expression"], "description": "Evaluate expression"},
+            "Run Keyword If": {
+                "args": ["condition", "keyword"],
+                "description": "Run keyword if condition",
+            },
+            "Repeat Keyword": {
+                "args": ["times", "keyword"],
+                "description": "Repeat keyword",
+            },
+            "Get Count": {"args": ["item"], "description": "Get count of items"},
         },
         # OperatingSystem Library
         "OperatingSystem": {
@@ -113,6 +151,26 @@ class RobotFrameworkKeywordRegistry:
             },
             "Read": {"args": [], "description": "Read command output"},
             "Write": {"args": ["text"], "description": "Write to SSH session"},
+            "Create Directory": {
+                "args": ["path"],
+                "description": "Create directory via SSH",
+            },
+            "List Directory": {
+                "args": ["path"],
+                "description": "List directory contents via SSH",
+            },
+            "Read Until": {
+                "args": ["expected"],
+                "description": "Read until expected output",
+            },
+            "Enable Logging": {
+                "args": ["logfile"],
+                "description": "Enable SSH logging",
+            },
+            "Switch Connection": {
+                "args": ["alias"],
+                "description": "Switch to another SSH connection",
+            },
         },
         # SeleniumLibrary (Web automation)
         "SeleniumLibrary": {
@@ -296,7 +354,6 @@ class RobotFrameworkKeywordRegistry:
             },
         },
     }
-
     # Intent to library keyword mapping
     INTENT_TO_LIBRARY_KEYWORDS = {
         # File operations
@@ -306,6 +363,10 @@ class RobotFrameworkKeywordRegistry:
         "file_read": ("OperatingSystem", "Get File"),
         "file_copy": ("OperatingSystem", "Copy File"),
         "file_move": ("OperatingSystem", "Move File"),
+        "file_transfer": ("OperatingSystem", "Copy File"),
+        "file_verification": ("OperatingSystem", "File Should Exist"),
+        "file_removal": ("OperatingSystem", "Remove File"),
+        "file_creation": ("OperatingSystem", "Create File"),
         # Directory operations
         "dir_create": ("OperatingSystem", "Create Directory"),
         "dir_remove": ("OperatingSystem", "Remove Directory"),
@@ -318,6 +379,14 @@ class RobotFrameworkKeywordRegistry:
         "ssh_put_file": ("SSHLibrary", "Put File"),
         "ssh_execute": ("SSHLibrary", "Execute Command"),
         "ssh_login": ("SSHLibrary", "Login"),
+        "ssh_file_upload": ("SSHLibrary", "Put File"),
+        "ssh_file_download": ("SSHLibrary", "Get File"),
+        "ssh_directory_create": ("SSHLibrary", "Create Directory"),
+        "ssh_directory_list": ("SSHLibrary", "List Directory"),
+        "ssh_read_until": ("SSHLibrary", "Read Until"),
+        "ssh_write": ("SSHLibrary", "Write"),
+        "ssh_enable_logging": ("SSHLibrary", "Enable Logging"),
+        "ssh_switch_connection": ("SSHLibrary", "Switch Connection"),
         # Web operations
         "web_open": ("SeleniumLibrary", "Open Browser"),
         "web_close": ("SeleniumLibrary", "Close Browser"),
@@ -328,6 +397,14 @@ class RobotFrameworkKeywordRegistry:
         "web_verify_text": ("SeleniumLibrary", "Page Should Contain"),
         "web_verify_element": ("SeleniumLibrary", "Element Should Be Visible"),
         "web_get_text": ("SeleniumLibrary", "Get Text"),
+        # New browser intents from PatternMatcher
+        "browser_open": ("SeleniumLibrary", "Open Browser"),
+        "browser_navigate": ("SeleniumLibrary", "Go To"),
+        "input_username": ("SeleniumLibrary", "Input Text"),
+        "input_password": ("SeleniumLibrary", "Input Password"),
+        "click": ("SeleniumLibrary", "Click Element"),
+        "element_verification": ("SeleniumLibrary", "Element Should Be Visible"),
+        "content_verification": ("SeleniumLibrary", "Page Should Contain"),
         # Process operations
         "process_run": ("Process", "Run Process"),
         "process_start": ("Process", "Start Process"),
@@ -339,6 +416,9 @@ class RobotFrameworkKeywordRegistry:
         "api_delete": ("RequestsLibrary", "DELETE On Session"),
         "api_session": ("RequestsLibrary", "Create Session"),
         "api_verify_status": ("RequestsLibrary", "Status Should Be"),
+        # New API intents from PatternMatcher
+        "api_request": ("RequestsLibrary", "GET On Session"),
+        "api_response": ("RequestsLibrary", "Status Should Be"),
         # Database operations
         "db_connect": ("DatabaseLibrary", "Connect To Database"),
         "db_disconnect": ("DatabaseLibrary", "Disconnect From Database"),
@@ -346,12 +426,38 @@ class RobotFrameworkKeywordRegistry:
         "db_query": ("DatabaseLibrary", "Query"),
         "db_table_exists": ("DatabaseLibrary", "Table Must Exist"),
         "db_check_exists": ("DatabaseLibrary", "Check If Exists In Database"),
+        # New database intents from PatternMatcher
+        "db_modify": ("DatabaseLibrary", "Execute Sql String"),
+        "db_row_count": ("DatabaseLibrary", "Check If Exists In Database"),
         # Built-in operations
         "log_message": ("builtin", "Log"),
         "set_variable": ("builtin", "Set Variable"),
+        "get_variable": ("builtin", "Get Variable"),
         "assert_equal": ("builtin", "Should Be Equal"),
         "assert_contains": ("builtin", "Should Contain"),
+        "assertion_contains": ("builtin", "Should Contain"),
         "sleep": ("builtin", "Sleep"),
+        # Built-in conversion operations
+        "convert_to_integer": ("builtin", "Convert To Integer"),
+        "convert_to_string": ("builtin", "Convert To String"),
+        "convert_to_boolean": ("builtin", "Convert To Boolean"),
+        "convert_to_number": ("builtin", "Convert To Number"),
+        # Built-in collection operations
+        "create_list": ("Collections", "Create List"),
+        "create_dictionary": ("Collections", "Create Dictionary"),
+        "get_length": ("builtin", "Get Length"),
+        "length_should_be": ("builtin", "Length Should Be"),
+        "should_start_with": ("builtin", "Should Start With"),
+        "should_end_with": ("builtin", "Should End With"),
+        "should_match": ("builtin", "Should Match"),
+        # Built-in evaluation and control flow
+        "evaluate_expression": ("builtin", "Evaluate"),
+        "run_keyword_if": ("builtin", "Run Keyword If"),
+        "repeat_keyword": ("builtin", "Repeat Keyword"),
+        "fail_test": ("builtin", "Fail"),
+        "get_count": ("builtin", "Get Count"),
+        # Command execution intent
+        "command": ("Process", "Run Process"),
     }
 
     @classmethod
@@ -375,174 +481,107 @@ class RobotFrameworkKeywordRegistry:
         """Get library and keyword for an intent."""
         return cls.INTENT_TO_LIBRARY_KEYWORDS.get(intent, ("builtin", "No Operation"))
 
+    @classmethod
+    def validate_registry_integrity(cls) -> List[str]:
+        """Validate that all intent mappings reference valid keywords.
 
-class LibraryDetector:
-    """Unified library detection based on text patterns."""
+        Returns:
+            List of validation errors found in the registry
+        """
+        errors = []
 
-    # Library detection patterns consolidated from both modules
-    LIBRARY_PATTERNS = {
-        "SeleniumLibrary": (
-            r"\b(?:browser|navigate|click|input|page|web|url|login|button|element"
-            r"|selenium|page.*should.*contain|should.*contain.*page|verify.*content"
-            r"|check.*content|ensure.*content|page.*contains|contains.*page"
-            r"|verify.*text|check.*text|ensure.*text|title.*should|"
-            r"location.*should)\b"
-        ),
-        "SSHLibrary": (
-            r"\b(?:ssh|remote|connection|host|server|ssh.*connect"
-            r"|ssh.*disconnect|execute.*command|open.*connection|close.*connection)\b"
-        ),
-        "Process": (
-            r"\b(?:command|execute|run|curl|wget|bash|process|run.*process"
-            r"|start.*process|terminate.*process|wait.*for.*process)\b"
-        ),
-        "OperatingSystem": (
-            r"\b(?:file|directory|exists|remove|delete|filesystem|create.*file"
-            r"|copy.*file|move.*file|file.*should.*exist|create.*directory"
-            r"|remove.*directory|list.*directory|get.*file)\b"
-        ),
-        "DatabaseLibrary": (
-            r"\b(?:database|sql|query|table|connect.*database|db_|execute.*sql"
-            r"|row.*count|insert.*into|update.*table|delete.*from|select.*from"
-            r"|database.*connection|db.*query|db.*execute|table.*exist"
-            r"|row.*count|verify.*row|check.*database|"
-            r"disconnect.*from.*database)\b"
-        ),
-        "RequestsLibrary": (
-            r"\b(?:api|rest|request|response|session|get.*request|post.*request"
-            r"|put.*request|delete.*request|http|create.*session|make.*request"
-            r"|send.*request|api.*call|rest.*api|http.*request|verify.*response"
-            r"|check.*status|get.*response|status.*should.*be)\b"
-        ),
-        "Collections": (
-            r"\b(?:list|dictionary|collection|append|get.*from.*list"
-            r"|get.*from.*dict|create.*list|create.*dictionary|dictionary.*key"
-            r"|list.*item|collections|dict.*update|append.*to.*list)\b"
-        ),
-        "String": (
-            r"\b(?:string|uppercase|lowercase|replace.*string|split.*string|strip"
-            r"|string.*operation|string.*manipulation|convert.*case"
-            r"|format.*string|convert.*to.*uppercase|convert.*to.*lowercase)\b"
-        ),
-    }
+        # Validate intent mappings reference valid libraries and keywords
+        for intent, (library, keyword) in cls.INTENT_TO_LIBRARY_KEYWORDS.items():
+            if library not in cls.KEYWORD_LIBRARIES:
+                errors.append(
+                    f"Intent '{intent}' references unknown library '{library}'"
+                )
+            elif keyword not in cls.KEYWORD_LIBRARIES[library]:
+                errors.append(
+                    f"Intent '{intent}' references unknown keyword "
+                    f"'{keyword}' in library '{library}'"
+                )
+
+        # Note: LibraryDetector validation moved to avoid circular import
+        # This can be validated separately or with a registry initialization check
+
+        return errors
 
     @classmethod
-    def detect_libraries_from_text(cls, text: str) -> Set[str]:
-        """Detect required Robot Framework libraries from text content."""
-        if not text:
-            return set()
+    def get_registry_metrics(cls) -> Dict[str, Any]:
+        """Get metrics about the registry usage and coverage.
 
-        libraries = set()
-        text_lower = text.lower()
+        Returns:
+            Dictionary containing registry metrics
+        """
+        total_libraries = len(cls.KEYWORD_LIBRARIES)
+        total_keywords = sum(
+            len(keywords) for keywords in cls.KEYWORD_LIBRARIES.values()
+        )
+        total_intents = len(cls.INTENT_TO_LIBRARY_KEYWORDS)
 
-        for library, pattern in cls.LIBRARY_PATTERNS.items():
-            if re.search(pattern, text_lower):
-                libraries.add(library)
+        # Count keywords by library
+        keywords_by_library = {
+            library: len(keywords)
+            for library, keywords in cls.KEYWORD_LIBRARIES.items()
+        }
 
-        return libraries
+        # Count intents by library
+        intents_by_library: Dict[str, int] = {}
+        for _, (library, _) in cls.INTENT_TO_LIBRARY_KEYWORDS.items():
+            intents_by_library[library] = intents_by_library.get(library, 0) + 1
 
-    @classmethod
-    def detect_libraries_from_steps(cls, steps: List[Dict[str, Any]]) -> Set[str]:
-        """Detect required libraries from step content."""
-        combined_text = []
-        for step in steps:
-            for value in step.values():
-                if isinstance(value, str):
-                    combined_text.append(value.lower())
+        # Count security warnings
+        security_warnings_count = 0
+        for library_keywords in cls.KEYWORD_LIBRARIES.values():
+            for keyword_info in library_keywords.values():
+                if "security_warning" in keyword_info:
+                    security_warnings_count += 1
 
-        return cls.detect_libraries_from_text(" ".join(combined_text))
+        return {
+            "total_libraries": total_libraries,
+            "total_keywords": total_keywords,
+            "total_intents": total_intents,
+            "keywords_by_library": keywords_by_library,
+            "intents_by_library": intents_by_library,
+            "security_warnings_count": security_warnings_count,
+            "coverage_ratio": total_intents / total_keywords
+            if total_keywords > 0
+            else 0,
+        }
 
 
 class IntentRecognitionEngine:
-    """Centralized intent recognition patterns."""
+    """Centralized intent recognition using PatternMatcher."""
 
-    # Intent patterns consolidated from multiple modules
-    INTENT_PATTERNS = {
-        # Command execution (check first for curl/wget)
-        r"\b(?:initiate.*download|execute.*curl|run.*wget|curl|wget)\b": (
-            "command_execution"
-        ),
-        # General command execution (for echo, hash, etc.)
-        r"\b(?:echo|hash|sha256sum)\b": "command_execution",
-        # File operations (most specific patterns first)
-        r"\b(?:verify|check|ensure).*file.*exists?\b": "file_verification",
-        r"\b(?:remove|delete|clean).*file\b": "file_removal",
-        r"\b(?:get|retrieve).*file\b": "file_transfer",
-        r"\btransfer.*file\b": "file_transfer",
-        r"\b(?:create|write).*file\b": "file_creation",
-        r"\b(?:copy|move).*file\b": "file_operation",
-        # SSH operations
-        r"\b(?:open|establish|create).*(?:ssh|connection|remote)\b": "ssh_connect",
-        r"\b(?:close|disconnect|terminate).*(?:connection|ssh)\b": "ssh_disconnect",
-        r"\b(?:execute|run).*(?:command|ssh)\b": "ssh_execute",
-        # Browser operations
-        r"\b(?:open|navigate|visit).*(?:browser|page|url|application)\b": (
-            "web_navigation"
-        ),
-        r"\b(?:go to|navigate to)\b.*\b(?:url|page|site)\b": "web_navigation",
-        r"\b(?:enter|input|type|fill).*username\b": "web_input_username",
-        r"\b(?:enter|input|type|fill).*password\b": "web_input_password",
-        r"\b(?:click|press|tap).*(?:button|element)\b": "web_click",
-        # Specific patterns for builtin assertions
-        r"\bassert.*contains?\b": "assertion_contains",
-        # Content verification
-        r"\b(?:verify|check|ensure|assert).*(?:content|contains|displays)\b": (
-            "content_verification"
-        ),
-        # Database operations
-        r"\b(?:connect|establish|open).*(?:database|db connection)\b": "db_connect",
-        r"\b(?:execute|run).*(?:sql|query)\b": "db_execute",
-        r"\b(?:disconnect|close|terminate).*(?:database|db)\b": "db_disconnect",
-        r"\b(?:insert|update|delete).*(?:record|row)\b": "db_modify",
-        r"\b(?:verify|check|validate).*(?:row|record).*count\b": "db_row_count",
-        # API operations
-        r"\b(?:make|send|perform).*(?:get|post|put|delete).*(?:request|api)\b": (
-            "api_request"
-        ),
-        r"\b(?:create|establish).*(?:session|api connection)\b": "api_session",
-        r"\b(?:verify|check|validate).*(?:response|status)\b": "api_response",
-        # Monitoring and performance
-        r"\b(?:monitor|measure|track).*(?:performance|metrics|load)\b": (
-            "performance_monitoring"
-        ),
-        r"\b(?:test|execute).*(?:performance|load|stress)\b": "performance_testing",
-        # Security operations
-        r"\b(?:security|authenticate|authorization|vulnerability)\b": (
-            "security_testing"
-        ),
-        r"\b(?:scan|penetration|security.*test)\b": "security_scanning",
-    }
+    _pattern_matcher = PatternMatcher()
 
     @classmethod
     def recognize_intent(cls, text: str) -> str:
-        """Recognize intent from text description."""
+        """Recognize intent from text description using PatternMatcher."""
         if not text:
             return "unknown"
 
-        text_lower = text.lower()
-
-        for pattern, intent in cls.INTENT_PATTERNS.items():
-            if re.search(pattern, text_lower):
-                return intent
-
+        detected_intent = cls._pattern_matcher.detect_intent(text)
+        if detected_intent:
+            return detected_intent.value
         return "unknown"
 
     @classmethod
-    def get_intent_patterns(cls) -> Dict[str, str]:
-        """Get all intent patterns."""
-        return cls.INTENT_PATTERNS.copy()
+    def detect_all_intents(cls, text: str) -> List[str]:
+        """Detect all matching intents from text using PatternMatcher."""
+        detected_intents = cls._pattern_matcher.detect_all_intents(text)
+        return [intent.value for intent in detected_intents]
 
     @classmethod
     def get_security_warnings_for_keyword(cls, library: str, keyword: str) -> List[str]:
         """Get security warnings for a specific keyword."""
         warnings = []
-
         if library in RobotFrameworkKeywordRegistry.KEYWORD_LIBRARIES:
             keyword_info = RobotFrameworkKeywordRegistry.KEYWORD_LIBRARIES[library].get(
                 keyword, {}
             )
             warnings.extend(extract_security_warnings(keyword_info))
-
         return warnings
 
     @classmethod
@@ -563,14 +602,12 @@ class IntentRecognitionEngine:
             (r"&&\s*rm", "Chained delete command"),
             (r"curl.*\|\s*sh", "Download and execute pattern"),
         ]
-
         issues = []
         for pattern, description in dangerous_patterns:
             if re.search(pattern, command, re.IGNORECASE):
                 issues.append(
                     {"pattern": pattern, "description": description, "severity": "high"}
                 )
-
         return {
             "is_safe": len(issues) == 0,
             "issues": issues,

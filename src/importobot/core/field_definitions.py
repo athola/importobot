@@ -1,7 +1,7 @@
 """Centralized field definitions for test case parsing and conversion."""
 
 from dataclasses import dataclass
-from typing import Any, Optional, Set
+from typing import Any
 
 from importobot.core.constants import EXPECTED_RESULT_FIELD_NAMES, TEST_DATA_FIELD_NAMES
 
@@ -17,7 +17,7 @@ class FieldGroup:
         """Check if a field name is in this group."""
         return item.lower() in (f.lower() for f in self.fields)
 
-    def find_first(self, data: dict) -> tuple[Optional[str], Any]:
+    def find_first(self, data: dict) -> tuple[str | None, Any]:
         """Find the first matching field in data and return (field_name, value)."""
         for field in self.fields:
             if field in data and data[field]:
@@ -145,7 +145,7 @@ def has_field(data: dict, field_group: FieldGroup) -> bool:
     return any(field in data and data[field] for field in field_group.fields)
 
 
-def detect_libraries_from_text(text: str) -> Set[str]:
+def detect_libraries_from_text(text: str) -> set[str]:
     """Detect required libraries from text content."""
     text_lower = text.lower()
     text_words = set(text_lower.split())
@@ -158,7 +158,7 @@ def detect_libraries_from_text(text: str) -> Set[str]:
     return detected_libraries
 
 
-def is_test_case(data: dict) -> bool:
+def is_test_case(data: Any) -> bool:
     """Check if data looks like a test case."""
     if not isinstance(data, dict):
         return False

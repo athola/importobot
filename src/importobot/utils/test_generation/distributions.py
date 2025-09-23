@@ -1,12 +1,12 @@
 """Distribution and weight management for test generation."""
 
-from typing import Dict, Optional, Union
+from typing import Union
 
 from importobot.utils.test_generation.categories import CategoryEnum
 
 # Type aliases for flexibility in weight specification
-WeightsDict = Union[Dict[CategoryEnum, float], Dict[str, float]]
-DistributionDict = Dict[str, int]
+WeightsDict = Union[dict[CategoryEnum, float], dict[str, float]]
+DistributionDict = dict[str, int]
 
 
 class DistributionManager:
@@ -15,17 +15,17 @@ class DistributionManager:
     @staticmethod
     def get_test_distribution(
         total_tests: int,
-        distribution: Optional[DistributionDict] = None,
-        weights: Optional[WeightsDict] = None,
+        distribution: DistributionDict | None = None,
+        weights: WeightsDict | None = None,
     ) -> DistributionDict:
         """Get normalized test distribution from weights or absolute counts."""
         if distribution is not None:
-            return DistributionManager._process_absolute_distribution(
+            return DistributionManager.process_absolute_distribution(
                 total_tests, distribution
             )
 
         if weights is not None:
-            return DistributionManager._process_weighted_distribution(
+            return DistributionManager.process_weighted_distribution(
                 total_tests, weights
             )
 
@@ -36,7 +36,7 @@ class DistributionManager:
         )
 
     @staticmethod
-    def _process_absolute_distribution(
+    def process_absolute_distribution(
         total_tests: int, distribution: DistributionDict
     ) -> DistributionDict:
         """Process absolute distribution values."""
@@ -75,7 +75,7 @@ class DistributionManager:
         return distribution_copy
 
     @staticmethod
-    def _process_weighted_distribution(
+    def process_weighted_distribution(
         total_tests: int, weights: WeightsDict
     ) -> DistributionDict:
         """Process weighted distribution values."""
@@ -89,7 +89,7 @@ class DistributionManager:
             raise ValueError(f"Weights contain non-positive values: {invalid_weights}")
 
         # Convert CategoryEnum keys to strings if necessary
-        string_weights: Dict[str, float]
+        string_weights: dict[str, float]
         if isinstance(next(iter(weights.keys())), CategoryEnum):
             string_weights = {
                 k.value if isinstance(k, CategoryEnum) else str(k): v
@@ -103,7 +103,7 @@ class DistributionManager:
         if total_weight == 0:
             raise ValueError("Total weight cannot be zero")
 
-        normalized_weights: Dict[str, float] = {
+        normalized_weights: dict[str, float] = {
             k: v / total_weight for k, v in string_weights.items()
         }
         computed_distribution: DistributionDict = {
