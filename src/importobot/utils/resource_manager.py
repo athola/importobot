@@ -4,7 +4,7 @@ import logging
 import os
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any
 
 import psutil
 
@@ -29,7 +29,7 @@ class ResourceOperation:
         """Initialize resource operation context manager."""
         self.manager = manager
         self.operation_name = operation_name
-        self.operation_id: Optional[str] = None
+        self.operation_id: str | None = None
 
     def __enter__(self) -> str:
         """Enter context manager and start operation."""
@@ -48,24 +48,24 @@ class ResourceManager:
     _instance = None
     _initialized = False
 
-    def __new__(cls, limits: Optional[ResourceLimits] = None) -> "ResourceManager":
+    def __new__(cls, limits: ResourceLimits | None = None) -> "ResourceManager":
         """Ensure only one instance exists (singleton pattern)."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self, limits: Optional[ResourceLimits] = None):
+    def __init__(self, limits: ResourceLimits | None = None):
         """Initialize resource manager with configurable limits."""
         if self._initialized:
             return
 
         self.limits = limits or ResourceLimits()
         self.logger = logging.getLogger(__name__)
-        self._operation_start_time: Optional[float] = None
+        self._operation_start_time: float | None = None
         self._active_operations = 0
         self._total_files_generated = 0
         self._total_disk_usage_mb: float = 0
-        self._current_operation_id: Optional[str] = None
+        self._current_operation_id: str | None = None
         self._initialized = True
 
     def __enter__(self) -> "ResourceManager":
@@ -85,9 +85,21 @@ class ResourceManager:
 
     def validate_generation_request(self, total_tests: int, output_dir: str) -> None:
         """Validate a test generation request against resource limits."""
-        validation_errors = []
+        validation_errors: list[str] = []
 
-        # Check total tests limit
+        self._validate_test_count(total_tests, validation_errors)
+        self._validate_disk_space(total_tests, output_dir, validation_errors)
+        self._validate_memory_usage(total_tests, validation_errors)
+
+        if validation_errors:
+            raise ValueError(
+                f"Resource validation failed: {'; '.join(validation_errors)}"
+            )
+
+        self.logger.info("Resource validation passed for %d tests", total_tests)
+
+    def _validate_test_count(self, total_tests: int, validation_errors: list) -> None:
+        """Validate test count against limits."""
         if total_tests <= 0:
             validation_errors.append("total_tests must be greater than 0")
         elif total_tests > self.limits.max_total_tests:
@@ -96,13 +108,14 @@ class ResourceManager:
                 f"{self.limits.max_total_tests}"
             )
 
-        # Check available disk space
+    def _validate_disk_space(
+        self, total_tests: int, output_dir: str, validation_errors: list
+    ) -> None:
+        """Validate disk space requirements."""
         try:
             disk_usage = psutil.disk_usage(output_dir)
             available_gb = disk_usage.free / (1024**3)
-            estimated_usage_gb = (
-                total_tests * 5
-            ) / 1024  # Rough estimate: 5KB per test
+            estimated_usage_gb = (total_tests * 5) / 1024  # 5KB per test
 
             if estimated_usage_gb > available_gb:
                 validation_errors.append(
@@ -117,13 +130,12 @@ class ResourceManager:
         except (OSError, AttributeError) as e:
             self.logger.warning("Could not check disk usage: %s", e)
 
-        # Check available memory
+    def _validate_memory_usage(self, total_tests: int, validation_errors: list) -> None:
+        """Validate memory usage requirements."""
         try:
             memory = psutil.virtual_memory()
             available_mb = memory.available / (1024**2)
-            estimated_memory_mb = (
-                total_tests * 0.1
-            )  # Rough estimate: 100KB per test in memory
+            estimated_memory_mb = total_tests * 0.1  # 100KB per test
 
             if estimated_memory_mb > available_mb:
                 validation_errors.append(
@@ -137,13 +149,6 @@ class ResourceManager:
                 )
         except (OSError, AttributeError) as e:
             self.logger.warning("Could not check memory usage: %s", e)
-
-        if validation_errors:
-            raise ValueError(
-                f"Resource validation failed: {'; '.join(validation_errors)}"
-            )
-
-        self.logger.info("Resource validation passed for %d tests", total_tests)
 
     def start_operation(self, operation_name: str) -> str:
         """Start tracking a resource-intensive operation."""
@@ -256,7 +261,7 @@ class ResourceManager:
                 self._total_disk_usage_mb,
             )
 
-    def get_resource_stats(self) -> Dict[str, Any]:
+    def get_resource_stats(self) -> dict[str, Any]:
         """Get current resource usage statistics."""
         try:
             memory = psutil.virtual_memory()

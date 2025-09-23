@@ -2,7 +2,7 @@
 
 import logging
 import random
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class TemplateManager:
@@ -10,8 +10,8 @@ class TemplateManager:
 
     def __init__(self) -> None:
         """Initialize template manager with cached templates."""
-        self._scenario_cache: Dict[str, Any] = {}
-        self._template_cache: Dict[str, Any] = {}
+        self._scenario_cache: dict[str, Any] = {}
+        self._template_cache: dict[str, Any] = {}
         self.logger = logging.getLogger(__name__)
         self._build_template_cache()
         self.logger.info(
@@ -76,7 +76,7 @@ class TemplateManager:
             "Disconnect from remote server",
         ]
 
-    def get_templates_for_scenario(self, category: str, scenario: str) -> List[str]:
+    def get_templates_for_scenario(self, category: str, scenario: str) -> list[str]:
         """Get templates for a specific scenario with caching."""
         cache_key = f"{category}_{scenario}"
 
@@ -106,7 +106,7 @@ class TemplateManager:
 
     def get_optimized_random_templates(
         self, category: str, scenario: str, count: int
-    ) -> List[str]:
+    ) -> list[str]:
         """Get random templates optimized to avoid repeated random.choice() calls."""
         available_templates = self.get_templates_for_scenario(category, scenario)
 
@@ -191,8 +191,8 @@ class TemplateManager:
         return (min_steps, max_steps)
 
     def get_scenario_info(
-        self, category: str, scenario: str, complexity_override: Optional[str] = None
-    ) -> Dict[str, Any]:
+        self, category: str, scenario: str, complexity_override: str | None = None
+    ) -> dict[str, Any]:
         """Get comprehensive scenario information."""
         complexity = complexity_override or self.get_scenario_complexity(scenario)
         min_steps, max_steps = self.get_scenario_steps_range(scenario, complexity)
@@ -216,7 +216,7 @@ class TemplateManager:
         self._template_cache.clear()
         self._build_template_cache()
 
-    def get_available_scenarios(self) -> Dict[str, Dict[str, List[str]]]:
+    def get_available_scenarios(self) -> dict[str, dict[str, list[str]]]:
         """Get all available scenarios organized by category."""
         return {
             "regression": {

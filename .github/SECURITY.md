@@ -13,7 +13,7 @@ Please refer to our main [SECURITY.md](../../SECURITY.md) file for our complete 
 
 ## GitHub Security Features
 
-We utilize GitHub's built-in security features:
+We use GitHub's built-in security features:
 
 - **Dependabot Alerts**: Automatic monitoring for vulnerable dependencies
 - **Code Scanning**: Static analysis to detect security issues

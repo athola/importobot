@@ -2,13 +2,14 @@
 
 import json
 import logging
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Union
 
 
 def create_enhanced_json_error_message(
     error: json.JSONDecodeError,
-    file_path: Optional[Union[str, Path]] = None,
+    file_path: Union[str, Path] | None = None,
     context: str = "JSON parsing",
 ) -> str:
     """Create enhanced error message for JSON decode errors.
@@ -40,7 +41,7 @@ def create_enhanced_json_error_message(
 
 def create_enhanced_io_error_message(
     error: IOError,
-    file_path: Optional[Union[str, Path]] = None,
+    file_path: Union[str, Path] | None = None,
     context: str = "file operation",
 ) -> str:
     """Create enhanced error message for IO errors.
@@ -70,8 +71,8 @@ def create_enhanced_io_error_message(
 def create_missing_resource_error_message(
     resource_name: str,
     resource_type: str = "resource",
-    available_resources: Optional[List[str]] = None,
-    suggestion: Optional[str] = None,
+    available_resources: list[str] | None = None,
+    suggestion: str | None = None,
 ) -> str:
     """Create enhanced error message for missing resources.
 
@@ -87,8 +88,15 @@ def create_missing_resource_error_message(
     message_parts = [f"No {resource_type} found for '{resource_name}'."]
 
     if available_resources:
+        # Handle pluralization properly
+        if resource_type.endswith("y"):
+            plural_type = resource_type[:-1] + "ies"
+        elif resource_type.endswith(("s", "sh", "ch", "x", "z")):
+            plural_type = resource_type + "es"
+        else:
+            plural_type = resource_type + "s"
         message_parts.append(
-            f"Available {resource_type}s: {', '.join(available_resources)}"
+            f"Available {plural_type}: {', '.join(available_resources)}"
         )
 
     if suggestion:
@@ -98,9 +106,9 @@ def create_missing_resource_error_message(
 
 
 def create_validation_error_message(
-    validation_errors: List[str],
+    validation_errors: list[str],
     context: str = "validation",
-    suggestions: Optional[List[str]] = None,
+    suggestions: list[str] | None = None,
 ) -> str:
     """Create enhanced error message for validation failures.
 
@@ -124,7 +132,7 @@ class EnhancedErrorLogger:
     """Utility class for consistent error logging with enhanced context."""
 
     def __init__(
-        self, logger: Optional[logging.Logger] = None, component_name: str = "component"
+        self, logger: logging.Logger | None = None, component_name: str = "component"
     ):
         """Initialize enhanced error logger.
 
@@ -138,7 +146,7 @@ class EnhancedErrorLogger:
     def log_json_error(
         self,
         error: json.JSONDecodeError,
-        file_path: Optional[Union[str, Path]] = None,
+        file_path: Union[str, Path] | None = None,
         level: int = logging.ERROR,
     ) -> None:
         """Log JSON decode error with enhanced context."""
@@ -150,7 +158,7 @@ class EnhancedErrorLogger:
     def log_io_error(
         self,
         error: IOError,
-        file_path: Optional[Union[str, Path]] = None,
+        file_path: Union[str, Path] | None = None,
         operation: str = "file operation",
         level: int = logging.ERROR,
     ) -> None:
@@ -174,7 +182,7 @@ class EnhancedErrorLogger:
         self,
         resource_name: str,
         resource_type: str = "resource",
-        available_resources: Optional[List[str]] = None,
+        available_resources: list[str] | None = None,
         level: int = logging.WARNING,
     ) -> None:
         """Log missing resource error with enhanced context."""
@@ -185,9 +193,9 @@ class EnhancedErrorLogger:
 
     def log_validation_error(
         self,
-        validation_errors: List[str],
+        validation_errors: list[str],
         context: str = "validation",
-        suggestions: Optional[List[str]] = None,
+        suggestions: list[str] | None = None,
         level: int = logging.ERROR,
     ) -> None:
         """Log validation error with enhanced context."""
@@ -199,9 +207,9 @@ class EnhancedErrorLogger:
 
 def safe_json_load(
     file_path: Union[str, Path],
-    logger: Optional[logging.Logger] = None,
+    logger: logging.Logger | None = None,
     component_name: str = "component",
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     """Safely load JSON file with enhanced error handling.
 
     Args:
@@ -235,10 +243,10 @@ def safe_json_load(
 def safe_file_operation(
     operation_func: Callable,
     file_path: Union[str, Path],
-    logger: Optional[logging.Logger] = None,
+    logger: logging.Logger | None = None,
     component_name: str = "component",
     operation_name: str = "file operation",
-) -> Optional[Any]:
+) -> Any | None:
     """Safely perform file operation with enhanced error handling.
 
     Args:

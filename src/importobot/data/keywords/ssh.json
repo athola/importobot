@@ -3,38 +3,178 @@
   "description": "SSH operations and remote command execution",
   "keywords": {
     "Open Connection": {
-      "args": ["host", "username", "password"],
-      "description": "Open SSH connection",
+      "args": ["host", "port=22", "alias=None", "timeout=3s", "newline=LF", "prompt=None", "term_type=vt100", "width=80", "height=24", "path_separator=/", "encoding=UTF-8"],
+      "description": "Opens a new SSH connection to the given host and port",
       "security_warning": "⚠️  Use key-based authentication instead of passwords for production"
     },
     "Close Connection": {
       "args": [],
-      "description": "Close SSH connection"
+      "description": "Closes the current SSH connection"
     },
-    "Get File": {
-      "args": ["source", "destination"],
-      "description": "Download file via SSH",
-      "security_warning": "⚠️  Validate file paths to prevent directory traversal"
+    "Close All Connections": {
+      "args": [],
+      "description": "Closes all open SSH connections"
     },
-    "Put File": {
-      "args": ["source", "destination"],
-      "description": "Upload file via SSH",
-      "security_warning": "⚠️  Validate destination paths and file permissions"
+    "Switch Connection": {
+      "args": ["index_or_alias"],
+      "description": "Switches to another existing connection"
     },
-    "Execute Command": {
-      "args": ["command"],
-      "description": "Execute command via SSH",
-      "security_warning": "⚠️  Sanitize commands to prevent injection attacks"
+    "Get Connection": {
+      "args": ["index_or_alias=None", "index=False"],
+      "description": "Returns information about the connection"
+    },
+    "Get Connections": {
+      "args": ["index=False"],
+      "description": "Returns information about all open connections"
     },
     "Login": {
-      "args": ["username", "password"],
-      "description": "Login to SSH",
+      "args": ["username", "password", "delay=0.5s"],
+      "description": "Logs into the SSH server with the given username and password",
       "security_warning": "⚠️  Avoid hardcoding credentials in test scripts"
     },
     "Login With Public Key": {
-      "args": ["username", "keyfile"],
-      "description": "Login to SSH using public key",
+      "args": ["username", "keyfile", "password=", "delay=0.5s"],
+      "description": "Logs into the SSH server using key-based authentication",
       "security_note": "✅ Recommended secure authentication method"
+    },
+    "Set Default Configuration": {
+      "args": ["timeout=None", "newline=None", "prompt=None", "loglevel=None", "term_type=None", "width=None", "height=None", "path_separator=None", "encoding=None"],
+      "description": "Updates default library configuration values"
+    },
+    "Set Client Configuration": {
+      "args": ["timeout=None", "newline=None", "prompt=None", "term_type=None", "width=None", "height=None", "path_separator=None", "encoding=None"],
+      "description": "Updates configuration values for current SSH connection"
+    },
+    "Execute Command": {
+      "args": ["command", "return_stdout=True", "return_stderr=False", "return_rc=False", "sudo=False", "sudo_password=None"],
+      "description": "Executes command in a new shell on the remote machine",
+      "security_warning": "⚠️  Sanitize commands to prevent injection attacks"
+    },
+    "Start Command": {
+      "args": ["command", "sudo=False", "sudo_password=None"],
+      "description": "Starts executing command on the remote machine in background"
+    },
+    "Read Command Output": {
+      "args": ["return_stdout=True", "return_stderr=False", "return_rc=False"],
+      "description": "Returns output from the started command"
+    },
+    "Write": {
+      "args": ["text", "loglevel=None"],
+      "description": "Writes the given text to the server"
+    },
+    "Write Bare": {
+      "args": ["text"],
+      "description": "Writes the given text to the server without appending newline"
+    },
+    "Read": {
+      "args": ["loglevel=None", "delay=None"],
+      "description": "Consumes and returns everything available on the server output"
+    },
+    "Read Until": {
+      "args": ["expected", "loglevel=None", "delay=None"],
+      "description": "Consumes and returns the server output until expected text is encountered"
+    },
+    "Read Until Prompt": {
+      "args": ["loglevel=None", "delay=None"],
+      "description": "Consumes and returns the server output until prompt is found"
+    },
+    "Read Until Regexp": {
+      "args": ["regexp", "loglevel=None", "delay=None"],
+      "description": "Consumes and returns the server output until regexp is found"
+    },
+    "Write Until Expected Output": {
+      "args": ["text", "expected", "timeout", "retry_interval"],
+      "description": "Writes the given text repeatedly until expected output is found"
+    },
+    "Put File": {
+      "args": ["source", "destination=.", "mode=0o744", "newline=", "path_separator=None", "scp=OFF"],
+      "description": "Copies files from local machine to remote machine",
+      "security_warning": "⚠️  Validate destination paths and file permissions"
+    },
+    "Put Directory": {
+      "args": ["source", "destination=.", "mode=0o744", "recursive=True", "scp=OFF"],
+      "description": "Copies directories from local machine to remote machine"
+    },
+    "Get File": {
+      "args": ["source", "destination=.", "scp=OFF"],
+      "description": "Copies files from remote machine to local machine",
+      "security_warning": "⚠️  Validate file paths to prevent directory traversal"
+    },
+    "Get Directory": {
+      "args": ["source", "destination=.", "recursive=True", "scp=OFF"],
+      "description": "Copies directories from remote machine to local machine"
+    },
+    "List Directory": {
+      "args": ["path=.", "pattern=None", "absolute=False"],
+      "description": "Returns and logs items in the remote path, optionally filtered by pattern"
+    },
+    "List Files In Directory": {
+      "args": ["path=.", "pattern=None", "absolute=False"],
+      "description": "Returns files in the remote path, optionally filtered by pattern"
+    },
+    "List Directories In Directory": {
+      "args": ["path=.", "pattern=None", "absolute=False"],
+      "description": "Returns directories in the remote path, optionally filtered by pattern"
+    },
+    "File Should Exist": {
+      "args": ["path"],
+      "description": "Fails if the given path does not point to an existing file"
+    },
+    "File Should Not Exist": {
+      "args": ["path"],
+      "description": "Fails if the given path points to an existing file"
+    },
+    "Directory Should Exist": {
+      "args": ["path"],
+      "description": "Fails if the given path does not point to an existing directory"
+    },
+    "Directory Should Not Exist": {
+      "args": ["path"],
+      "description": "Fails if the given path points to an existing directory"
+    },
+    "Create File": {
+      "args": ["path", "content=", "encoding=UTF-8"],
+      "description": "Creates a file with the given content to the specified path"
+    },
+    "Create Directory": {
+      "args": ["path", "mode=0o744", "recursive=True"],
+      "description": "Creates a directory to the specified path"
+    },
+    "Move File": {
+      "args": ["source", "destination"],
+      "description": "Moves source file to destination"
+    },
+    "Move Directory": {
+      "args": ["source", "destination"],
+      "description": "Moves source directory to destination"
+    },
+    "Remove File": {
+      "args": ["path"],
+      "description": "Removes a file from the remote machine"
+    },
+    "Remove Directory": {
+      "args": ["path", "recursive=False"],
+      "description": "Removes a directory from the remote machine"
+    },
+    "Get File Size": {
+      "args": ["path"],
+      "description": "Returns the size of the file on the remote machine"
+    },
+    "Get File Permissions": {
+      "args": ["path"],
+      "description": "Returns the permissions of the file on the remote machine"
+    },
+    "Set File Permissions": {
+      "args": ["path", "mode"],
+      "description": "Sets the permissions of the file on the remote machine"
+    },
+    "Enable Ssh Logging": {
+      "args": ["logfile"],
+      "description": "Enables logging of SSH traffic to the given file"
+    },
+    "Disable Ssh Logging": {
+      "args": [],
+      "description": "Disables SSH traffic logging"
     }
   }
 }

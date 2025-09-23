@@ -5,7 +5,7 @@ import logging
 import random
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from importobot.core.business_domains import BusinessDomainTemplates, TestCaseTemplates
 from importobot.core.keywords_registry import RobotFrameworkKeywordRegistry
@@ -47,9 +47,9 @@ class EnterpriseTestGenerator:
         self.template_manager = TemplateManager()
         self.resource_manager = get_resource_manager()
         self.logger = logging.getLogger(__name__)
-        self._file_write_queue: List[Any] = []
+        self._file_write_queue: list[Any] = []
 
-    def generate_realistic_test_data(self) -> Dict[str, str]:
+    def generate_realistic_test_data(self) -> dict[str, str]:
         """Generate realistic test data for enterprise scenarios."""
         # Enterprise environment configurations
         environments = ["prod", "staging", "dev", "qa", "uat"]
@@ -79,8 +79,8 @@ class EnterpriseTestGenerator:
         return base_data
 
     def generate_enterprise_test_step(
-        self, template: str, test_data: Dict[str, str], step_index: int
-    ) -> Dict[str, Any]:
+        self, template: str, test_data: dict[str, str], step_index: int
+    ) -> dict[str, Any]:
         """Generate a sophisticated test step with realistic enterprise context."""
         try:
             step_description = template.format(**test_data)
@@ -133,7 +133,7 @@ class EnterpriseTestGenerator:
         }
 
     def _extract_test_data_from_template(
-        self, template: str, test_data: Dict[str, str]
+        self, template: str, test_data: dict[str, str]
     ) -> str:
         """Extract relevant test data from template context."""
         # Enhanced test data extraction for enterprise scenarios
@@ -223,6 +223,18 @@ class EnterpriseTestGenerator:
             return "medium"
         return "low"
 
+    def _determine_criticality(self, step_description: str) -> str:
+        """Determine criticality level for enterprise test step planning."""
+        high_risk_keywords = ["delete", "remove", "truncate", "drop", "production"]
+        medium_risk_keywords = ["update", "modify", "insert", "create", "admin"]
+
+        step_lower = step_description.lower()
+        if any(keyword in step_lower for keyword in high_risk_keywords):
+            return "critical"
+        if any(keyword in step_lower for keyword in medium_risk_keywords):
+            return "high"
+        return "medium"
+
     def _evaluate_automation_complexity(self, template: str) -> str:
         """Evaluate automation complexity for enterprise resource planning."""
         complex_keywords = ["file", "ssh", "database", "integration"]
@@ -240,8 +252,8 @@ class EnterpriseTestGenerator:
         category: str,
         scenario: str,
         test_id: int,
-        complexity_override: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        complexity_override: str | None = None,
+    ) -> dict[str, Any]:
         """Generate an enterprise test case."""
         # Validate scenario exists
         if not self.template_manager.validate_scenario(category, scenario):
@@ -278,8 +290,8 @@ class EnterpriseTestGenerator:
         return test_case
 
     def _generate_test_steps(
-        self, scenario_info: Dict[str, Any], complexity: str, test_data: Dict[str, str]
-    ) -> List[Dict[str, Any]]:
+        self, scenario_info: dict[str, Any], complexity: str, test_data: dict[str, str]
+    ) -> list[dict[str, Any]]:
         """Generate test steps for a test case."""
         min_steps, max_steps = scenario_info.get("steps_count", (3, 8))
 
@@ -312,8 +324,8 @@ class EnterpriseTestGenerator:
         scenario: str,
         test_id: int,
         complexity: str,
-        test_context: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        test_context: dict[str, Any],
+    ) -> dict[str, Any]:
         """Generate comprehensive test case metadata."""
         created_date = datetime.now() - timedelta(days=random.randint(1, 180))
         updated_date = created_date + timedelta(days=random.randint(1, 30))
@@ -358,7 +370,7 @@ class EnterpriseTestGenerator:
             return random.choice(["Medium", "High"])
         return random.choice(["Low", "Medium"])
 
-    def _calculate_estimated_execution_time(self, steps: List[Dict[str, Any]]) -> int:
+    def _calculate_estimated_execution_time(self, steps: list[dict[str, Any]]) -> int:
         """Calculate estimated execution time in seconds."""
         total_time = 0
         for step in steps:
@@ -370,7 +382,7 @@ class EnterpriseTestGenerator:
 
     def _generate_test_tags(
         self, category: str, scenario: str, complexity: str
-    ) -> List[str]:
+    ) -> list[str]:
         """Generate relevant tags for test categorization."""
         tags = [category, scenario, complexity]
 
@@ -394,10 +406,13 @@ class EnterpriseTestGenerator:
         self,
         output_dir: str,
         total_tests: int = 800,
-        distribution: Optional[DistributionDict] = None,
-        weights: Optional[WeightsDict] = None,
+        distribution: DistributionDict | None = None,
+        weights: WeightsDict | None = None,
     ) -> DistributionDict:
         """Generate an enterprise test suite."""
+        # Create output directory before validation
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
+
         # Comprehensive resource validation
         self.resource_manager.validate_generation_request(total_tests, output_dir)
 
@@ -407,13 +422,12 @@ class EnterpriseTestGenerator:
         )
 
         try:
-            Path(output_dir).mkdir(parents=True, exist_ok=True)
             distribution = DistributionManager.get_test_distribution(
                 total_tests, distribution, weights
             )
             category_scenarios = self.template_manager.get_available_scenarios()
 
-            generated_counts: Dict[str, int] = {}
+            generated_counts: dict[str, int] = {}
             test_id = 1
 
             for category, count in distribution.items():
@@ -447,9 +461,9 @@ class EnterpriseTestGenerator:
         self,
         category: str,
         count: int,
-        scenarios: Dict[str, List[str]],
+        scenarios: dict[str, list[str]],
         category_info: CategoryInfo,
-        generated_counts: Dict[str, int],
+        generated_counts: dict[str, int],
         start_test_id: int,
     ) -> None:
         """Generate tests for a specific category."""
@@ -526,7 +540,7 @@ class EnterpriseTestGenerator:
         # Flush any remaining queued writes
         self._flush_write_queue()
 
-    def _queue_file_write(self, filepath: Path, content: Dict[str, Any]) -> None:
+    def _queue_file_write(self, filepath: Path, content: dict[str, Any]) -> None:
         """Queue a file write operation for batching."""
         self._file_write_queue.append({"filepath": filepath, "content": content})
 
@@ -558,92 +572,234 @@ class EnterpriseTestGenerator:
 
         self._file_write_queue.clear()
 
-    def _get_keyword_generator_map(
-        self, test_data: Dict[str, str]
-    ) -> Dict[str, Dict[str, Any]]:
-        """Get keyword generator mapping for test data generation."""
+    def _gen_browser_data(self, test_data: dict[str, str]) -> dict[str, Any]:
+        """Generate browser keyword data."""
+        return {
+            "data": f"{test_data.get('url', get_default_value('web', 'url'))} "
+            f"{test_data.get('browser', get_default_value('web', 'browser'))}"
+        }
 
-        def _gen_browser() -> Dict[str, Any]:
-            return {
-                "data": f"{test_data.get('url', get_default_value('web', 'url'))} "
-                f"{test_data.get('browser', get_default_value('web', 'browser'))}"
-            }
+    def _gen_input_data(self, test_data: dict[str, str]) -> dict[str, Any]:
+        """Generate input keyword data."""
+        locator = test_data.get("locator", get_default_value("web", "locator"))
+        username = test_data.get("username", get_default_value("user", "username"))
+        return {"data": f"{locator} {username}"}
 
-        def _gen_input() -> Dict[str, Any]:
-            locator = test_data.get("locator", get_default_value("web", "locator"))
-            username = test_data.get("username", get_default_value("user", "username"))
-            return {"data": f"{locator} {username}"}
+    def _gen_click_data(self, test_data: dict[str, str]) -> dict[str, Any]:
+        """Generate click keyword data."""
+        locator = test_data.get("locator", get_default_value("web", "locator"))
+        return {"data": f"{locator}"}
 
-        def _gen_click() -> Dict[str, Any]:
-            locator = test_data.get("locator", get_default_value("web", "locator"))
-            return {"data": f"{locator}"}
+    def _gen_wait_data(self, test_data: dict[str, str]) -> dict[str, Any]:
+        """Generate wait keyword data."""
+        timeout = test_data.get("timeout", get_default_value("web", "timeout"))
+        return {"data": f"{timeout}"}
 
-        def _gen_wait() -> Dict[str, Any]:
-            timeout = test_data.get("timeout", get_default_value("web", "timeout"))
-            return {"data": f"{timeout}"}
+    def _gen_verify_data(self, test_data: dict[str, str]) -> dict[str, Any]:
+        """Generate verify keyword data."""
+        expected = test_data.get("expected", "value")
+        actual = test_data.get("actual", "value")
+        return {"data": f"{expected} {actual}"}
 
-        def _gen_verify() -> Dict[str, Any]:
-            expected = test_data.get("expected", "value")
-            actual = test_data.get("actual", "value")
-            return {"data": f"{expected} {actual}"}
+    def _gen_ssh_data(self, test_data: dict[str, str]) -> dict[str, Any]:
+        """Generate SSH keyword data."""
+        host = test_data.get("host", get_default_value("ssh", "host"))
+        username = test_data.get("username", get_default_value("ssh", "username"))
+        return {"data": f"{host} {username}"}
 
-        def _gen_ssh() -> Dict[str, Any]:
-            host = test_data.get("host", get_default_value("ssh", "host"))
-            username = test_data.get("username", get_default_value("ssh", "username"))
-            return {"data": f"{host} {username}"}
+    def _gen_db_data(self, test_data: dict[str, str]) -> dict[str, Any]:
+        """Generate database keyword data."""
+        query = test_data.get("query", get_default_value("database", "query"))
+        connection = test_data.get(
+            "connection", get_default_value("database", "connection")
+        )
+        return {"data": f"{query} {connection}"}
 
-        def _gen_db() -> Dict[str, Any]:
-            query = test_data.get("query", get_default_value("database", "query"))
-            connection = test_data.get(
-                "connection", get_default_value("database", "connection")
+    def _gen_api_data(self, test_data: dict[str, str]) -> dict[str, Any]:
+        """Generate API keyword data."""
+        endpoint = test_data.get("endpoint", get_default_value("api", "endpoint"))
+        method = test_data.get("method", get_default_value("api", "method"))
+        return {"data": f"{endpoint} {method}"}
+
+    def _gen_builtin_conversion_data(
+        self, _test_data: dict[str, str]
+    ) -> dict[str, Any]:
+        """Generate BuiltIn conversion keyword data."""
+        values = ["123", "hello", "true", "false", "3.14"]
+        return {"data": f"value: {random.choice(values)}"}
+
+    def _gen_builtin_conditional_data(
+        self, _test_data: dict[str, str]
+    ) -> dict[str, Any]:
+        """Generate BuiltIn conditional keyword data."""
+        conditions = ["${status} == 'pass'", "${count} > 0", "${result} != 'failed'"]
+        keywords = ["Log", "Continue For Loop", "Exit For Loop"]
+        args = ["Success", "Continuing", "Condition met"]
+        return {
+            "data": (
+                f"condition: {random.choice(conditions)}, "
+                f"keyword: {random.choice(keywords)}, "
+                f"args: {random.choice(args)}"
             )
-            return {"data": f"{query} {connection}"}
+        }
 
-        def _gen_api() -> Dict[str, Any]:
-            endpoint = test_data.get("endpoint", get_default_value("api", "endpoint"))
-            method = test_data.get("method", get_default_value("api", "method"))
-            return {"data": f"{endpoint} {method}"}
+    def _gen_builtin_repeat_data(self, _test_data: dict[str, str]) -> dict[str, Any]:
+        """Generate BuiltIn repeat keyword data."""
+        times = random.randint(2, 5)
+        keywords = ["Log", "Sleep", "No Operation"]
+        args = ["Repeated message", "1s", ""]
+        return {
+            "data": (
+                f"times: {times}, keyword: {random.choice(keywords)}, "
+                f"args: {random.choice(args)}"
+            )
+        }
 
+    def _gen_builtin_variable_data(self, _test_data: dict[str, str]) -> dict[str, Any]:
+        """Generate BuiltIn variable keyword data."""
+        var_names = ["test_var", "result", "counter", "status"]
+        var_values = ["test_value", "success", "1", "pass"]
+        return {
+            "data": (
+                f"name: {random.choice(var_names)}, value: {random.choice(var_values)}"
+            )
+        }
+
+    def _gen_builtin_collection_data(
+        self, _test_data: dict[str, str]
+    ) -> dict[str, Any]:
+        """Generate BuiltIn collection keyword data."""
+        items = ["item1", "item2", "item3"]
+        containers = ["${test_list}", "${data}", "${results}"]
+        return {
+            "data": (
+                f"container: {random.choice(containers)}, item: {random.choice(items)}"
+            )
+        }
+
+    def _gen_builtin_log_data(self, _test_data: dict[str, str]) -> dict[str, Any]:
+        """Generate BuiltIn log keyword data."""
+        messages = ["Test message", "Operation completed", "Debug info", "Status check"]
+        levels = ["INFO", "DEBUG", "WARN", "ERROR"]
+        return {
+            "data": (
+                f"message: {random.choice(messages)}, level: {random.choice(levels)}"
+            )
+        }
+
+    def _gen_builtin_evaluation_data(
+        self, _test_data: dict[str, str]
+    ) -> dict[str, Any]:
+        """Generate BuiltIn evaluation keyword data."""
+        expressions = [
+            "2 + 3",
+            "len('hello')",
+            "datetime.now()",
+            "random.randint(1, 10)",
+        ]
+        modules = ["", "datetime", "random", "os"]
+        expr = random.choice(expressions)
+        mod = random.choice(modules)
+        if mod:
+            return {"data": f"expression: {expr}, modules: {mod}"}
+        return {"data": f"expression: {expr}"}
+
+    def _get_keyword_generator_map(
+        self, test_data: dict[str, str]
+    ) -> dict[str, dict[str, Any]]:
+        """Get keyword generator mapping for test data generation."""
         return {
             "browser": {
                 "patterns": KEYWORD_PATTERNS.browser_patterns,
-                "generator": _gen_browser,
+                "generator": lambda: self._gen_browser_data(test_data),
             },
             "input": {
                 "patterns": KEYWORD_PATTERNS.input_patterns,
-                "generator": _gen_input,
+                "generator": lambda: self._gen_input_data(test_data),
             },
             "click": {
                 "patterns": KEYWORD_PATTERNS.click_patterns,
-                "generator": _gen_click,
+                "generator": lambda: self._gen_click_data(test_data),
             },
             "wait": {
                 "patterns": KEYWORD_PATTERNS.wait_patterns,
-                "generator": _gen_wait,
+                "generator": lambda: self._gen_wait_data(test_data),
             },
             "verification": {
                 "patterns": KEYWORD_PATTERNS.verification_patterns,
-                "generator": _gen_verify,
+                "generator": lambda: self._gen_verify_data(test_data),
             },
             "ssh": {
                 "patterns": KEYWORD_PATTERNS.ssh_patterns,
                 "library_check": lambda lib: "ssh" in lib.lower(),
-                "generator": _gen_ssh,
+                "generator": lambda: self._gen_ssh_data(test_data),
             },
             "database": {
                 "patterns": KEYWORD_PATTERNS.database_patterns,
                 "library_check": lambda lib: "database" in lib.lower(),
-                "generator": _gen_db,
+                "generator": lambda: self._gen_db_data(test_data),
             },
             "api": {
                 "patterns": KEYWORD_PATTERNS.api_patterns,
                 "library_check": lambda lib: "requests" in lib.lower(),
-                "generator": _gen_api,
+                "generator": lambda: self._gen_api_data(test_data),
+            },
+            "builtin_conversion": {
+                "patterns": ["Convert To", "convert", "conversion"],
+                "library_check": lambda lib: "builtin" in lib.lower(),
+                "generator": (lambda: self._gen_builtin_conversion_data(test_data)),
+            },
+            "builtin_conditional": {
+                "patterns": [
+                    "Run Keyword If",
+                    "Run Keyword Unless",
+                    "conditional",
+                    "if",
+                ],
+                "library_check": lambda lib: "builtin" in lib.lower(),
+                "generator": (lambda: self._gen_builtin_conditional_data(test_data)),
+            },
+            "builtin_repeat": {
+                "patterns": ["Repeat Keyword", "repeat", "loop"],
+                "library_check": lambda lib: "builtin" in lib.lower(),
+                "generator": (lambda: self._gen_builtin_repeat_data(test_data)),
+            },
+            "builtin_variable": {
+                "patterns": [
+                    "Set Variable",
+                    "Get Variable",
+                    "variable",
+                    "set",
+                    "create",
+                ],
+                "library_check": lambda lib: "builtin" in lib.lower(),
+                "generator": (lambda: self._gen_builtin_variable_data(test_data)),
+            },
+            "builtin_collection": {
+                "patterns": [
+                    "Get Count",
+                    "Should Contain",
+                    "Length",
+                    "count",
+                    "contain",
+                ],
+                "library_check": lambda lib: "builtin" in lib.lower(),
+                "generator": (lambda: self._gen_builtin_collection_data(test_data)),
+            },
+            "builtin_log": {
+                "patterns": ["Log", "Log Many", "Log To Console", "log"],
+                "library_check": lambda lib: "builtin" in lib.lower(),
+                "generator": (lambda: self._gen_builtin_log_data(test_data)),
+            },
+            "builtin_evaluation": {
+                "patterns": ["Evaluate", "evaluate", "expression"],
+                "library_check": lambda lib: "builtin" in lib.lower(),
+                "generator": (lambda: self._gen_builtin_evaluation_data(test_data)),
             },
         }
 
     def generate_keyword_specific_data(
-        self, keyword_info: Dict[str, Any], test_data: Dict[str, str]
+        self, keyword_info: dict[str, Any], test_data: dict[str, str]
     ) -> str:
         """Generate keyword-specific test data based on keyword info and test context.
 
@@ -683,8 +839,8 @@ class EnterpriseTestGenerator:
     def _get_test_distribution(
         self,
         total_tests: int,
-        distribution: Optional[DistributionDict] = None,
-        weights: Optional[WeightsDict] = None,
+        distribution: DistributionDict | None = None,
+        weights: WeightsDict | None = None,
     ) -> DistributionDict:
         """Get test distribution (delegate to DistributionManager)."""
         return DistributionManager.get_test_distribution(
@@ -693,9 +849,9 @@ class EnterpriseTestGenerator:
 
     def generate_random_json(
         self,
-        structure: Optional[str] = None,
-        complexity: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        structure: str | None = None,
+        complexity: str | None = None,
+    ) -> dict[str, Any]:
         """Generate random JSON test data."""
         # Use structure to determine category and scenario
         if structure == "zephyr_basic":
@@ -715,6 +871,6 @@ class EnterpriseTestGenerator:
             complexity_override=test_complexity,
         )
 
-    def _get_category_scenarios(self) -> Dict[str, Dict[str, List[str]]]:
+    def _get_category_scenarios(self) -> dict[str, dict[str, list[str]]]:
         """Get available scenarios by category."""
         return self.template_manager.get_available_scenarios()

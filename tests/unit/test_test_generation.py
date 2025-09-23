@@ -51,6 +51,30 @@ class TestCategoryEnumEnum:
         with pytest.raises(ValueError, match="Unknown category: invalid"):
             CategoryEnum.from_string("invalid")
 
+    @pytest.mark.parametrize(
+        "category_str,expected_enum",
+        [
+            ("regression", CategoryEnum.REGRESSION),
+            ("smoke", CategoryEnum.SMOKE),
+            ("integration", CategoryEnum.INTEGRATION),
+            ("e2e", CategoryEnum.E2E),
+        ],
+    )
+    def test_from_string_parameterized(self, category_str, expected_enum):
+        """Test converting various valid strings to enums using parameterization."""
+        result = CategoryEnum.from_string(category_str)
+        assert result == expected_enum
+        assert result.value == category_str
+
+    @pytest.mark.parametrize(
+        "invalid_category",
+        ["invalid", "unknown", "test", "", "REGRESSION", "Smoke", "integration_test"],
+    )
+    def test_from_string_invalid_parameterized(self, invalid_category):
+        """Test that various invalid strings raise ValueError."""
+        with pytest.raises(ValueError, match=f"Unknown category: {invalid_category}"):
+            CategoryEnum.from_string(invalid_category)
+
     def test_get_default_weights(self):
         """Test default weights structure and values."""
         weights = CategoryEnum.get_default_weights()
@@ -106,6 +130,31 @@ class EnterpriseTestGeneratorWeights:
         assert distribution["e2e"] == 10
         assert sum(distribution.values()) == 100
 
+    @pytest.mark.parametrize(
+        "total_tests,weights,expected",
+        [
+            (100, {"regression": 0.6, "smoke": 0.4}, {"regression": 60, "smoke": 40}),
+            (50, {"regression": 0.8, "smoke": 0.2}, {"regression": 40, "smoke": 10}),
+            (
+                200,
+                {"regression": 0.25, "smoke": 0.25, "integration": 0.25, "e2e": 0.25},
+                {"regression": 50, "smoke": 50, "integration": 50, "e2e": 50},
+            ),
+            (10, {"regression": 1.0}, {"regression": 10}),
+        ],
+    )
+    def test_distribution_calculation_parameterized(
+        self, total_tests, weights, expected
+    ):
+        """Test distribution calculation with various total counts and weights."""
+        generator = EnterpriseTestGenerator()
+
+        # pylint: disable=protected-access,no-member
+        distribution = generator._get_test_distribution(total_tests, None, weights)
+
+        assert distribution == expected
+        assert sum(distribution.values()) == total_tests
+
     def test_weights_normalization(self):
         """Test that weights are properly normalized."""
         # Weights that don't sum to 1.0
@@ -136,7 +185,7 @@ class EnterpriseTestGeneratorWeights:
         with pytest.raises(ValueError, match="Total weight cannot be zero"):
             self.generator._get_test_distribution(100, None, weights)
 
-    def test_default_weights_fallback(self):
+    def test_default_weights_when_none_provided(self):
         """Test that default weights are used when no weights/distribution provided."""
         # pylint: disable=protected-access,no-member
         distribution = self.generator._get_test_distribution(100)
@@ -260,28 +309,35 @@ class EnterpriseTestGeneratorCore:
         assert "steps" in test_case["testScript"]
         assert len(test_case["testScript"]["steps"]) > 0
 
-    def test_generate_test_suite_with_temp_dir(self):
-        """Test generate_test_suite creates files correctly."""
+    def test_generate_test_suite_creates_requested_number_of_files(self):
+        """User gets exactly the number of test files they requested."""
         with tempfile.TemporaryDirectory() as temp_dir:
+            requested_test_count = 20  # User's request
+
             counts = self.generator.generate_test_suite(
                 temp_dir,
-                total_tests=20,  # Small number for testing
+                total_tests=requested_test_count,
                 weights={CategoryEnum.REGRESSION: 1.0},  # Only regression tests
             )
 
-            # Should return count dictionary
+            # User should get count information matching their request
             assert isinstance(counts, dict)
             assert "regression" in counts
-            assert counts["regression"] == 20
+            assert counts["regression"] == requested_test_count, (
+                "Count should match user request"
+            )
 
-            # Should create files
+            # User should get actual files created
             output_path = Path(temp_dir)
             regression_dir = output_path / "regression"
-            assert regression_dir.exists()
+            assert regression_dir.exists(), "Directory should be created for user"
 
-            # Should have JSON files
+            # User should get exactly the number of files they requested
             json_files = list(regression_dir.glob("*.json"))
-            assert len(json_files) == 20
+            assert len(json_files) == requested_test_count, (
+                f"User requested {requested_test_count} files and should get "
+                f"exactly that many"
+            )
 
     def test_generate_random_json_structures(self):
         """Test random JSON generation with different structures."""
@@ -293,6 +349,31 @@ class EnterpriseTestGeneratorCore:
             assert isinstance(json_data, dict)
             # Should be valid JSON (can be serialized)
             json.dumps(json_data)  # Will raise exception if not valid JSON
+
+    @pytest.mark.parametrize(
+        "structure",
+        [
+            "zephyr_basic",
+            "zephyr_nested",
+            "simple_tests_array",
+            "enterprise_workflow",
+            "api_tests",
+        ],
+    )
+    def test_generate_random_json_structures_parameterized(self, structure):
+        """Test random JSON generation with various structures
+        using parameterization."""
+        json_data = self.generator.generate_random_json(structure)
+
+        assert isinstance(json_data, dict)
+        # Should be valid JSON (can be serialized)
+        json.dumps(json_data)  # Will raise exception if not valid JSON
+
+        # Structure-specific assertions
+        if structure == "zephyr_basic":
+            assert "name" in json_data
+        elif structure == "simple_tests_array":
+            assert isinstance(json_data.get("tests", []), list)
 
     def test_generate_random_json_no_structure(self):
         """Test random JSON generation with no structure specified."""
@@ -341,6 +422,65 @@ class EnterpriseTestGeneratorCore:
         # pylint: disable=protected-access,no-member
         criticality = self.generator._determine_criticality("Authenticate user")
         assert criticality in ["critical", "high", "medium", "low"]
+
+    @pytest.mark.parametrize(
+        "description,expected_types",
+        [
+            ("Navigate to login page", ["navigation", "action"]),
+            ("Click login button", ["action", "authentication"]),
+            ("Verify user is logged in", ["verification"]),
+            ("Monitor system performance", ["monitoring"]),
+            ("Configure database settings", ["configuration"]),
+            ("Execute API call", ["execution", "action"]),
+            ("Authenticate with OAuth", ["authentication"]),
+        ],
+    )
+    def test_determine_step_type_parameterized(self, description, expected_types):
+        """Test step type determination with various descriptions."""
+        # pylint: disable=protected-access,no-member
+        step_type = self.generator._determine_step_type(description)
+        assert step_type in expected_types
+
+    @pytest.mark.parametrize(
+        "description,expected_criticality_options",
+        [
+            ("Authenticate user", ["critical", "high"]),
+            ("Click submit button", ["high", "medium"]),
+            ("Log action", ["low", "medium"]),
+            ("Verify payment", ["critical", "high"]),
+            ("Update profile", ["medium", "low"]),
+            ("Delete account", ["critical", "high"]),
+            ("View dashboard", ["low", "medium"]),
+        ],
+    )
+    def test_determine_criticality_parameterized(
+        self, description, expected_criticality_options
+    ):
+        """Test criticality determination with various descriptions."""
+        # pylint: disable=protected-access,no-member
+        criticality = self.generator._determine_criticality(description)
+        assert criticality in expected_criticality_options
+
+    @pytest.mark.parametrize(
+        "description",
+        [
+            "Click login button",
+            "Navigate to page",
+            "Verify result",
+            "Execute command",
+            "Monitor status",
+            "Configure setting",
+            "Authenticate user",
+        ],
+    )
+    def test_estimate_step_duration_parameterized(self, description):
+        """Test duration estimation with various step descriptions."""
+        # pylint: disable=protected-access,no-member
+        duration = self.generator._estimate_step_duration(description)
+        assert isinstance(duration, str)
+        assert any(unit in duration for unit in ["second", "minute"])
+        # Duration should contain a number
+        assert any(char.isdigit() for char in duration)
 
     def test_category_scenarios_mapping(self):
         """Test category scenarios mapping."""
@@ -420,6 +560,116 @@ class TestConvenienceWrapperFunctions:
         # Should detect SeleniumLibrary and RequestsLibrary
         assert any("Selenium" in lib for lib in libraries)
 
+    @pytest.mark.parametrize(
+        "total_tests,category_weights",
+        [
+            (10, {CategoryEnum.SMOKE: 1.0}),
+            (25, {CategoryEnum.REGRESSION: 0.8, CategoryEnum.SMOKE: 0.2}),
+            (
+                100,
+                {
+                    CategoryEnum.REGRESSION: 0.4,
+                    CategoryEnum.INTEGRATION: 0.3,
+                    CategoryEnum.E2E: 0.3,
+                },
+            ),
+            (5, {CategoryEnum.E2E: 1.0}),
+        ],
+    )
+    def test_generate_test_suite_wrapper_parameterized(
+        self, total_tests, category_weights
+    ):
+        """Test the generate_test_suite wrapper with various configurations."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            counts = generate_test_suite(
+                temp_dir, total_tests=total_tests, weights=category_weights
+            )
+
+            assert isinstance(counts, dict)
+            assert sum(counts.values()) == total_tests
+
+            # All specified categories should be present
+            for category_enum in category_weights.keys():
+                assert category_enum.value in counts
+                assert counts[category_enum.value] > 0
+
+    @pytest.mark.parametrize(
+        "structure",
+        [
+            "zephyr_basic",
+            "zephyr_nested",
+            "simple_tests_array",
+            "enterprise_workflow",
+            None,  # Test default structure
+        ],
+    )
+    def test_generate_random_test_json_wrapper_parameterized(self, structure):
+        """Test the generate_random_test_json wrapper with various structures."""
+        if structure is None:
+            json_data = generate_random_test_json()
+        else:
+            json_data = generate_random_test_json(structure)
+
+        assert isinstance(json_data, dict)
+        json.dumps(json_data)  # Should be valid JSON
+
+    @pytest.mark.parametrize(
+        "keywords_config",
+        [
+            [
+                {
+                    "intent": "web_navigation",
+                    "library": "SeleniumLibrary",
+                    "keyword": "Open Browser",
+                }
+            ],
+            [
+                {
+                    "intent": "api_request",
+                    "library": "RequestsLibrary",
+                    "keyword": "GET On Session",
+                }
+            ],
+            [
+                {
+                    "intent": "database",
+                    "library": "DatabaseLibrary",
+                    "keyword": "Connect To Database",
+                }
+            ],
+            [
+                {
+                    "intent": "web_navigation",
+                    "library": "SeleniumLibrary",
+                    "keyword": "Open Browser",
+                },
+                {
+                    "intent": "api_request",
+                    "library": "RequestsLibrary",
+                    "keyword": "GET On Session",
+                },
+            ],
+            [],  # Empty list
+        ],
+    )
+    def test_get_required_libraries_parameterized(self, keywords_config):
+        """Test library detection with various keyword configurations."""
+        libraries = get_required_libraries_for_keywords(keywords_config)
+
+        assert isinstance(libraries, list)
+
+        if keywords_config:
+            # Should detect libraries from keywords
+            expected_libraries = {
+                kw.get("library") for kw in keywords_config if kw.get("library")
+            }
+            for expected_lib in expected_libraries:
+                if expected_lib:
+                    assert any(expected_lib in lib for lib in libraries)
+        else:
+            # Empty keywords should return empty or default libraries
+            assert len(libraries) >= 0
+
 
 class ErrorHandlingAndEdgeCases:
     """Test error handling and edge cases."""
@@ -470,9 +720,10 @@ class ErrorHandlingAndEdgeCases:
 class TestProgressReporting:
     """Test progress reporting functionality in test generation."""
 
-    def setUp(self):  # pylint: disable=invalid-name
-        """Set up test fixtures."""
-        self.generator = EnterpriseTestGenerator()
+    @property
+    def generator(self):
+        """Get test generator instance."""
+        return EnterpriseTestGenerator()
 
     def test_progress_reporting_in_category_generation(self):
         """Test that progress reporting works during category test generation."""

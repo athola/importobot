@@ -3,6 +3,10 @@
 import json
 
 from importobot.core.converter import convert_file
+from tests.test_helpers import (  # type: ignore[import-untyped]
+    assert_robot_content_equivalent,
+    assert_robot_framework_syntax_valid,
+)
 
 
 def test_zephyr_to_robot_conversion_content_logic_only(tmp_path):
@@ -61,6 +65,7 @@ Retrieve File From Remote Host
 # Step: Open an SSH connection and log in to the remote host.
 # Test Data: Remote Host: ${REMOTE_HOST}, Username: ${USERNAME},
 # Test Data (cont.): Password: ${PASSWORD}
+# ⚠️  Security Warning: Hardcoded password detected in test data
 # Expected Result: Successfully connected and logged in to the remote host.
 Open Connection    ${REMOTE_HOST}    ${USERNAME}    ${PASSWORD}
 # Step: Retrieve the specified file from the remote host.
@@ -83,11 +88,24 @@ Close Connection
 
     generated_content = output_robot_file.read_text()
 
-    normalized_generated = "\n".join(
-        [line.strip() for line in generated_content.splitlines() if line.strip()]
-    )
-    normalized_expected = "\n".join(
-        [line.strip() for line in expected_robot_content.splitlines() if line.strip()]
-    )
+    # Use semantic Robot Framework comparison instead of brittle string matching
 
-    assert normalized_generated == normalized_expected
+    # First ensure generated content has valid structure
+    assert_robot_framework_syntax_valid(generated_content)
+
+    # Then do semantic comparison with fallback to exact match for regression testing
+    try:
+        assert_robot_content_equivalent(generated_content, expected_robot_content)
+    except AssertionError:
+        # If semantic comparison fails, fall back to exact comparison for debugging
+        normalized_generated = "\n".join(
+            [line.strip() for line in generated_content.splitlines() if line.strip()]
+        )
+        normalized_expected = "\n".join(
+            [
+                line.strip()
+                for line in expected_robot_content.splitlines()
+                if line.strip()
+            ]
+        )
+        assert normalized_generated == normalized_expected

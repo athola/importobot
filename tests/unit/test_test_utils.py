@@ -2,7 +2,7 @@
 
 import pytest
 
-from tests.utils import validate_test_script_structure
+from tests.utils import validate_test_script_structure  # type: ignore[import-untyped]
 
 
 class TestValidateTestScriptStructure:

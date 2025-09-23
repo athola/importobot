@@ -1,13 +1,105 @@
 """Tests for keyword loader functionality."""
 
-# pylint: disable=protected-access
-
 import json
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from importobot.core.keyword_loader import KeywordLibraryLoader
+
+
+@pytest.fixture
+def sample_builtin_library_data():
+    """Sample BuiltIn library data for testing."""
+    return {
+        "library_name": "BuiltIn",
+        "keywords": {
+            "Log": {
+                "description": "Logs the given message with the given level",
+                "args": ["message", "level=INFO"],
+            },
+            "Set Variable": {
+                "description": (
+                    "Returns the given values which can then be assigned to a variables"
+                ),
+                "args": ["*values"],
+            },
+        },
+    }
+
+
+@pytest.fixture
+def sample_ssh_library_data():
+    """Sample SSHLibrary data for testing."""
+    return {
+        "library_name": "SSHLibrary",
+        "keywords": {
+            "Execute Command": {
+                "description": "Execute command on remote",
+                "args": ["command"],
+                "security_warning": "Command execution can be dangerous",
+                "security_note": "Validate all inputs",
+            },
+            "Safe Keyword": {"description": "A safe keyword", "args": []},
+        },
+    }
+
+
+@pytest.fixture
+def invalid_library_data():
+    """Invalid library data for testing validation."""
+    return {
+        "keywords": {
+            "Invalid Keyword": "not a dict",
+            "Missing Args": {"description": "Missing args field"},
+        }
+    }
+
+
+@pytest.fixture
+def keyword_loader_fixture(tmp_path):
+    """Create a KeywordLibraryLoader with test data."""
+    loader = KeywordLibraryLoader()
+    loader.data_dir = tmp_path
+
+    # Create test library files
+    builtin_data = {
+        "library_name": "BuiltIn",
+        "keywords": {
+            "Log": {
+                "description": "Logs the given message with the given level",
+                "args": ["message", "level=INFO"],
+            },
+            "Set Variable": {
+                "description": (
+                    "Returns the given values which can then be assigned to a variables"
+                ),
+                "args": ["*values"],
+            },
+        },
+    }
+    ssh_data = {
+        "library_name": "SSHLibrary",
+        "keywords": {
+            "Execute Command": {
+                "description": "Execute command on remote",
+                "args": ["command"],
+                "security_warning": "Command execution can be dangerous",
+                "security_note": "Validate all inputs",
+            },
+            "Safe Keyword": {"description": "A safe keyword", "args": []},
+        },
+    }
+
+    builtin_file = tmp_path / "builtin.json"
+    builtin_file.write_text(json.dumps(builtin_data, indent=2))
+
+    ssh_file = tmp_path / "ssh.json"
+    ssh_file.write_text(json.dumps(ssh_data, indent=2))
+
+    return loader
 
 
 class TestKeywordLibraryLoader:
@@ -18,7 +110,7 @@ class TestKeywordLibraryLoader:
         loader = KeywordLibraryLoader()
         assert hasattr(loader, "data_dir")
         assert hasattr(loader, "_cache")
-        assert not loader._cache
+        assert not loader._cache  # pylint: disable=protected-access
 
     def test_load_library_unknown_library(self):
         """Test loading unknown library returns empty dict with enhanced error."""
@@ -203,121 +295,77 @@ class TestKeywordLibraryLoader:
                             "Permission denied" in str(arg) for arg in error_args
                         )
 
-    def test_load_library_success_with_caching(self):
+    def test_load_library_success_with_caching(
+        self,
+        keyword_loader_fixture,  # pylint: disable=redefined-outer-name
+    ):
         """Test successful library loading with caching."""
-        loader = KeywordLibraryLoader()
+        loader = keyword_loader_fixture
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            loader.data_dir = Path(temp_dir)
+        # First load
+        result1 = loader.load_library("BuiltIn")
+        assert result1["library_name"] == "BuiltIn"
+        assert "Log" in result1["keywords"]
+        assert "BuiltIn" in loader._cache  # pylint: disable=protected-access
 
-            # Create valid JSON file
-            valid_data = {
-                "library_name": "TestLibrary",
-                "keywords": {
-                    "Test Keyword": {
-                        "description": "A test keyword",
-                        "args": ["arg1", "arg2"],
-                    }
-                },
-            }
-            json_file = loader.data_dir / "builtin.json"
-            json_file.write_text(json.dumps(valid_data))
+        # Second load should use cache
+        result2 = loader.load_library("BuiltIn")
+        assert result2["library_name"] == "BuiltIn"
+        assert result1 is result2  # Same object from cache
 
-            # First load
-            result1 = loader.load_library("BuiltIn")
-            assert result1 == valid_data
-            assert "BuiltIn" in loader._cache
+    def test_get_keywords_for_library(
+        self,
+        keyword_loader_fixture,  # pylint: disable=redefined-outer-name
+    ):
+        """Test get_keywords_for_library method."""
+        loader = keyword_loader_fixture
 
-            # Second load should use cache
-            result2 = loader.load_library("BuiltIn")
-            assert result2 == valid_data
-            assert result1 is result2  # Same object from cache
+        keywords = loader.get_keywords_for_library("BuiltIn")
+        assert len(keywords) == 2
+        assert "Log" in keywords
+        assert "Set Variable" in keywords
 
-    def test_get_keywords_for_library(self):
-        """Test getting keywords for specific library."""
-        loader = KeywordLibraryLoader()
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            loader.data_dir = Path(temp_dir)
-
-            valid_data = {
-                "library_name": "TestLibrary",
-                "keywords": {
-                    "Keyword1": {"description": "Test", "args": []},
-                    "Keyword2": {"description": "Test2", "args": ["arg1"]},
-                },
-            }
-            json_file = loader.data_dir / "builtin.json"
-            json_file.write_text(json.dumps(valid_data))
-
-            keywords = loader.get_keywords_for_library("BuiltIn")
-            assert len(keywords) == 2
-            assert "Keyword1" in keywords
-            assert "Keyword2" in keywords
-
-    def test_get_available_libraries(self):
+    def test_get_available_libraries(
+        self,
+        keyword_loader_fixture,  # pylint: disable=redefined-outer-name
+    ):
         """Test getting list of available libraries."""
-        loader = KeywordLibraryLoader()
+        loader = keyword_loader_fixture
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            loader.data_dir = Path(temp_dir)
+        libraries = loader.get_available_libraries()
+        assert len(libraries) == 2
+        assert "BuiltIn" in libraries
+        assert "SSHLibrary" in libraries
 
-            # Create multiple library files
-            for lib_name in ["lib1", "lib2", "lib3"]:
-                lib_data = {"library_name": lib_name, "keywords": {}}
-                json_file = loader.data_dir / f"{lib_name}.json"
-                json_file.write_text(json.dumps(lib_data))
-
-            libraries = loader.get_available_libraries()
-            assert len(libraries) == 3
-            assert all(lib in libraries for lib in ["lib1", "lib2", "lib3"])
-
-    def test_get_security_warnings_for_keyword(self):
+    def test_get_security_warnings_for_keyword(
+        self,
+        keyword_loader_fixture,  # pylint: disable=redefined-outer-name
+    ):
         """Test getting security warnings for specific keywords."""
-        loader = KeywordLibraryLoader()
+        loader = keyword_loader_fixture
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            loader.data_dir = Path(temp_dir)
+        # Test keyword with warnings
+        warnings = loader.get_security_warnings_for_keyword("ssh", "Execute Command")
+        assert len(warnings) == 2
+        assert "Command execution can be dangerous" in warnings
+        assert "Validate all inputs" in warnings
 
-            lib_data = {
-                "library_name": "SSHLibrary",
-                "keywords": {
-                    "Execute Command": {
-                        "description": "Execute command on remote",
-                        "args": ["command"],
-                        "security_warning": "Command execution can be dangerous",
-                        "security_note": "Validate all inputs",
-                    },
-                    "Safe Keyword": {"description": "A safe keyword", "args": []},
-                },
-            }
-            json_file = loader.data_dir / "ssh.json"
-            json_file.write_text(json.dumps(lib_data))
-
-            # Test keyword with warnings
-            warnings = loader.get_security_warnings_for_keyword(
-                "ssh", "Execute Command"
-            )
-            assert len(warnings) == 2
-            assert "Command execution can be dangerous" in warnings
-            assert "Validate all inputs" in warnings
-
-            # Test keyword without warnings
-            warnings = loader.get_security_warnings_for_keyword("ssh", "Safe Keyword")
-            assert len(warnings) == 0
+        # Test keyword without warnings
+        warnings = loader.get_security_warnings_for_keyword("ssh", "Safe Keyword")
+        assert len(warnings) == 0
 
     def test_refresh_cache(self):
         """Test cache refresh functionality."""
         loader = KeywordLibraryLoader()
 
         # Add something to cache
-        loader._cache["test"] = {"data": "test"}
-        assert len(loader._cache) == 1
+        loader._cache["test"] = {"data": "test"}  # pylint: disable=protected-access
+        assert len(loader._cache) == 1  # pylint: disable=protected-access
 
         with patch.object(loader.logger, "info") as mock_info:
             loader.refresh_cache()
 
-            assert len(loader._cache) == 0
+            assert len(loader._cache) == 0  # pylint: disable=protected-access
             mock_info.assert_called_once_with("Keyword library cache cleared")
 
     def test_validate_configurations(self):
@@ -357,7 +405,7 @@ class TestKeywordLibraryLoader:
             validation_results = loader.validate_configurations()
 
             assert len(validation_results) == 3
-            assert validation_results["valid.json"] == []  # No errors
+            assert not validation_results["valid.json"]  # No errors
             assert len(validation_results["invalid.json"]) > 0  # Has errors
             assert len(validation_results["broken.json"]) > 0  # JSON parse error
 

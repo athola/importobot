@@ -1,13 +1,15 @@
-"""
-JSON to Robot Framework converter.
+"""Heavy lifting for converting JSON test data into Robot Framework format.
 
-Handles Zephyr and similar test formats. Main conversion logic.
+This module does the heavy lifting of converting JSON test data into Robot Framework
+format.
+
+Works with Zephyr exports and pretty much any similar JSON structure you throw at it.
 """
 
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Union
 
 from importobot import exceptions
 from importobot.core.engine import GenericConversionEngine
@@ -21,15 +23,19 @@ logger = setup_logger(__name__)
 
 
 class JsonToRobotConverter:
-    """Generic converter that handles any JSON test format programmatically."""
+    """Main converter class that transforms JSON test formats into Robot Framework code.
+
+    This class provides the primary interface for converting JSON test formats
+    into Robot Framework code.
+    """
 
     def __init__(self) -> None:
-        """Initialize the converter with modular components."""
+        """Initialize the converter with conversion and suggestion engines."""
         self.conversion_engine = GenericConversionEngine()
         self.suggestion_engine = GenericSuggestionEngine()
 
     def convert_json_string(self, json_string: str) -> str:
-        """Convert JSON string directly to Robot Framework format."""
+        """Convert a JSON string directly to Robot Framework format."""
         if not json_string or not json_string.strip():
             raise exceptions.ValidationError("Empty JSON string provided")
 
@@ -51,8 +57,8 @@ class JsonToRobotConverter:
                 f"Failed to convert JSON to Robot Framework: {str(e)}"
             ) from e
 
-    def convert_json_data(self, json_data: Dict[str, Any]) -> str:
-        """Convert JSON data dict to Robot Framework format."""
+    def convert_json_data(self, json_data: dict[str, Any]) -> str:
+        """Convert a JSON dictionary to Robot Framework format."""
         if not isinstance(json_data, dict):
             raise exceptions.ValidationError("JSON data must be a dictionary")
 
@@ -64,35 +70,89 @@ class JsonToRobotConverter:
                 f"Failed to convert JSON to Robot Framework: {str(e)}"
             ) from e
 
+    def convert_json_data_lenient(self, json_data: dict[str, Any]) -> str:
+        """Convert JSON data with lenient handling of empty inputs.
+
+        This method produces placeholder output for empty inputs instead of
+        raising errors.
+        Used for backward compatibility with existing integration points.
+        """
+        if not isinstance(json_data, dict):
+            raise exceptions.ValidationError("JSON data must be a dictionary")
+
+        try:
+            return self.conversion_engine.convert(json_data, strict=False)
+        except Exception as e:
+            logger.exception("Error during conversion")
+            raise exceptions.ConversionError(
+                f"Failed to convert JSON to Robot Framework: {str(e)}"
+            ) from e
+
+    def convert_file(self, input_file: str, output_file: str) -> dict[str, Any]:
+        """Convert a JSON file to Robot Framework format.
+
+        Args:
+            input_file: Path to input JSON file
+            output_file: Path to output Robot Framework file
+
+        Returns:
+            dict: Conversion result with success status and metadata
+        """
+        # Delegate to standalone function but return result dict
+        convert_file(input_file, output_file)
+        return {"success": True, "input_file": input_file, "output_file": output_file}
+
+    def convert_directory(self, input_dir: str, output_dir: str) -> dict[str, Any]:
+        """Convert all JSON files in a directory to Robot Framework format.
+
+        Args:
+            input_dir: Path to input directory containing JSON files
+            output_dir: Path to output directory for Robot Framework files
+
+        Returns:
+            dict: Conversion result with success/error counts
+        """
+        # Delegate to standalone function but return result dict
+        convert_directory(input_dir, output_dir)
+        return {"success": True, "input_dir": input_dir, "output_dir": output_dir}
+
 
 # Standalone suggestion functions
-def get_conversion_suggestions(json_data: Dict[str, Any]) -> List[str]:
+def get_conversion_suggestions(json_data: dict[str, Any]) -> list[str]:
     """Generate suggestions for improving JSON test data for Robot conversion."""
     suggestion_engine = GenericSuggestionEngine()
     return suggestion_engine.get_suggestions(json_data)
 
 
 def apply_conversion_suggestions(
-    json_data: Dict[str, Any],
-) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+    json_data: Union[dict[str, Any], list[Any]],
+) -> tuple[Union[dict[str, Any], list[Any]], list[dict[str, Any]]]:
     """Apply automatic improvements to JSON test data for Robot Framework conversion."""
     suggestion_engine = GenericSuggestionEngine()
-    return suggestion_engine.apply_suggestions(json_data)
+    try:
+        return suggestion_engine.apply_suggestions(json_data)
+    except exceptions.ImportobotError:
+        # For invalid JSON structures, return the original data with no changes
+        return json_data, []
 
 
-def apply_conversion_suggestions_simple(json_data: Dict[str, Any]) -> Dict[str, Any]:
+def apply_conversion_suggestions_simple(
+    json_data: Union[dict[str, Any], list[Any]],
+) -> Union[dict[str, Any], list[Any]]:
     """Apply improvements to JSON test data, returning only the improved data."""
     improved_data, _ = apply_conversion_suggestions(json_data)
     return improved_data
 
 
 # File I/O functions
-def load_json(file_path: str) -> Dict[str, Any]:
+def load_json(file_path: str) -> dict[str, Any]:
     """Load and validate JSON file."""
     validated_path = validate_safe_path(file_path)
 
-    with open(validated_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
+    try:
+        with open(validated_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
         # Handle case where JSON is an array with a single test case
         if isinstance(data, list):
             if len(data) == 1 and isinstance(data[0], dict):
@@ -106,6 +166,14 @@ def load_json(file_path: str) -> Dict[str, Any]:
                 "JSON content must be a dictionary or array."
             )
         return data
+    except json.JSONDecodeError as e:
+        raise json.JSONDecodeError(
+            f"JSON file appears to be corrupted at line {e.lineno}, "
+            f"column {e.colno}: {e.msg}. Please check the file format and "
+            "fix any syntax errors.",
+            e.doc,
+            e.pos,
+        ) from e
 
 
 def save_robot_file(content: str, file_path: str) -> None:
@@ -122,7 +190,13 @@ def save_robot_file(content: str, file_path: str) -> None:
 
 
 def convert_file(input_file: str, output_file: str) -> None:
-    """Convert single JSON file to Robot Framework."""
+    """Convert single JSON file to Robot Framework.
+
+    Raises:
+        ValidationError: For invalid input parameters.
+        ConversionError: For conversion failures.
+        FileNotFoundError: If input file doesn't exist.
+    """
     if not isinstance(input_file, str):
         raise exceptions.ValidationError(
             f"Input file path must be a string, got {type(input_file).__name__}"
@@ -145,11 +219,11 @@ def convert_file(input_file: str, output_file: str) -> None:
 
     json_data = load_json(input_file)
     converter = JsonToRobotConverter()
-    robot_content = converter.convert_json_data(json_data)
+    robot_content = converter.convert_json_data_lenient(json_data)
     save_robot_file(robot_content, output_file)
 
 
-def convert_multiple_files(input_files: List[str], output_dir: str) -> None:
+def convert_multiple_files(input_files: list[str], output_dir: str) -> None:
     """Convert multiple JSON files to Robot Framework files."""
     if not isinstance(input_files, list):
         raise exceptions.ValidationError(
@@ -231,7 +305,7 @@ def _validate_directory_args(input_dir: str, output_dir: str) -> None:
         )
 
 
-def _find_json_files_in_directory(input_dir: str) -> List[str]:
+def _find_json_files_in_directory(input_dir: str) -> list[str]:
     """Find all JSON files in a directory recursively."""
     all_files = Path(input_dir).rglob("*")
     json_files = [
