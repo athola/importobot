@@ -14,9 +14,9 @@ from importobot.core.converter import (
 )
 from importobot.utils.file_operations import (
     display_suggestion_changes,
-    load_json_file,
     process_single_file_with_suggestions,
 )
+from importobot.utils.json_utils import load_json_file
 from importobot.utils.logging import setup_logger
 
 logger = setup_logger("importobot-cli")

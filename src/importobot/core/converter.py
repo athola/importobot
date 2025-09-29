@@ -14,7 +14,7 @@ from typing import Any, Union
 from importobot import exceptions
 from importobot.core.engine import GenericConversionEngine
 from importobot.core.suggestions import GenericSuggestionEngine
-from importobot.utils.file_operations import load_json_file
+from importobot.utils.json_utils import load_json_file
 from importobot.utils.logging import setup_logger
 from importobot.utils.validation import (
     validate_json_dict,
