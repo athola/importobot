@@ -183,7 +183,7 @@ class TestSuggestionHandling:
         suggestions = ["Improve step description", "Add expected result"]
         print_suggestions(suggestions)
         captured = capsys.readouterr()
-        assert "💡 Conversion Suggestions:" in captured.out
+        assert "Conversion Suggestions:" in captured.out
         assert "1. Improve step description" in captured.out
         assert "2. Add expected result" in captured.out
 

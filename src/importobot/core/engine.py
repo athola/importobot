@@ -24,13 +24,14 @@ class GenericConversionEngine(ConversionEngine):
         self.parser = GenericTestFileParser()
         self.keyword_generator = GenericKeywordGenerator()
 
-    def convert(self, json_data: dict[str, Any], *, strict: bool = True) -> str:
+    def convert(
+        self,
+        json_data: dict[str, Any],
+    ) -> str:  # pylint: disable=unused-argument
         """Convert JSON test data to Robot Framework format.
 
         Args:
             json_data: The JSON data to convert
-            strict: If True, raise errors for no tests found. If False,
-                generate placeholder.
         """
         # Extract test cases from the JSON structure
         tests = self.parser.find_tests(json_data)
@@ -56,21 +57,16 @@ class GenericConversionEngine(ConversionEngine):
         # Generate test cases
         test_cases_content = []
         if not tests:
-            if strict:
-                # Raise clear error when no tests found (new API behavior)
-                available_keys = (
-                    list(json_data.keys()) if isinstance(json_data, dict) else []
-                )
-                raise exceptions.ValidationError(
-                    f"No test cases found in input data. "
-                    f"Expected structures like {{'testCase': {{...}}}}, "
-                    f"{{'tests': [...]}}, "
-                    f"or test cases with 'name' and 'steps' fields. "
-                    f"Found top-level keys: {available_keys}"
-                )
-            # Create placeholder test case (backward compatibility)
-            test_cases_content.extend(
-                ["Empty Test Case", "    Log    No test cases found in input", ""]
+            # Raise clear error when no tests found
+            available_keys = (
+                list(json_data.keys()) if isinstance(json_data, dict) else []
+            )
+            raise exceptions.ValidationError(
+                f"No test cases found in input data. "
+                f"Expected structures like {{'testCase': {{...}}}}, "
+                f"{{'tests': [...]}}, "
+                f"or test cases with 'name' and 'steps' fields. "
+                f"Found top-level keys: {available_keys}"
             )
 
         if tests:
@@ -134,3 +130,8 @@ class GenericConversionEngine(ConversionEngine):
 
         find_tags(data)
         return tags
+
+
+__all__ = [
+    "GenericConversionEngine",
+]

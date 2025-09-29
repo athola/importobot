@@ -43,6 +43,7 @@ dependencies = [
     "robotframework-requests>=0.9.4",
     "robotframework-databaselibrary>=1.2.4",
     "psutil>=7.0.0",
+    "scipy>=1.15.3",
 ]
 
 [project.urls]
@@ -51,7 +52,6 @@ dependencies = [
 "Bug Tracker" = "https://github.com/athola/importobot/issues"
 "Documentation" = "https://github.com/athola/importobot/wiki"
 "Changelog" = "https://github.com/athola/importobot/blob/main/CHANGELOG.md"
-"Packages" = "https://github.com/athola/importobot/packages"
 
 [project.optional-dependencies]
 viz = [
@@ -68,14 +68,37 @@ demo = [
     "numpy>=2.2.6",
     "pandas>=2.0.0",
 ]
+medallion = [
+    # Core medallion architecture dependencies
+    # Note: All dependencies use standard library or existing requirements
+    # Storage backends (for future cloud integration)
+    # "boto3>=1.26.0",  # For AWS S3 backend (commented out for now)
+    # "azure-storage-blob>=12.14.0",  # For Azure backend (commented out for now)
+    # "google-cloud-storage>=2.7.0",  # For GCP backend (commented out for now)
+]
+enterprise = [
+    # Enterprise features
+    "pandas>=2.0.0",  # For advanced analytics
+    "numpy>=2.2.6",   # For statistical analysis
+    # Cloud storage backends
+    # "boto3>=1.26.0",  # AWS integration
+    # "azure-storage-blob>=12.14.0",  # Azure integration
+    # "google-cloud-storage>=2.7.0",  # GCP integration
+]
 all = [
     "matplotlib>=3.10.6",
     "numpy>=2.2.6",
     "pandas>=2.0.0",
+    # Medallion architecture included in 'all'
 ]
 
 [project.scripts]
 importobot = "importobot.__main__:main"
+
+[dependency-groups]
+dev = [
+    "scipy-stubs>=1.15.3.0",
+]
 
 [tool.uv]
 dev-dependencies = [
@@ -96,6 +119,7 @@ dev-dependencies = [
     "matplotlib",
     "detect-secrets>=1.5.0",
     "bandit>=1.7.0",
+    "hypothesis>=6.140.2",
 ]
 
 [tool.setuptools.packages.find]
@@ -136,6 +160,10 @@ select = [
 extend-ignore = [
     "E501", # Line too long (handled by ruff format)
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# Mathematical algorithms in format detector are inherently complex
+"src/importobot/medallion/bronze/format_detector.py" = ["C901"]
 
 [tool.ruff.format]
 quote-style = "double"

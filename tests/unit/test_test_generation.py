@@ -14,7 +14,10 @@ import pytest
 
 from importobot.utils.test_generation.categories import CategoryEnum, CategoryInfo
 from importobot.utils.test_generation.distributions import DistributionDict, WeightsDict
-from importobot.utils.test_generation.generators import EnterpriseTestGenerator
+from importobot.utils.test_generation.generators import (
+    CategoryTestParams,
+    EnterpriseTestGenerator,
+)
 from importobot.utils.test_generation.helpers import (
     generate_random_test_json,
     generate_test_suite,
@@ -741,15 +744,18 @@ class TestProgressReporting:
                     "user_interaction": ["scenario3", "scenario4"],
                 }
 
-                # Generate small number of tests to see progress reporting
-                generator._generate_category_tests(
+                # Create parameter object matching CategoryTestParams structure
+
+                params = CategoryTestParams(
                     category="test_category",
                     count=20,  # Small count to test progress milestones
                     scenarios=scenarios,
                     category_info=category_info,
-                    generated_counts={},
                     start_test_id=1,
                 )
+
+                # Generate small number of tests to see progress reporting
+                generator._generate_category_tests(params)
 
                 # Verify progress reporting calls
                 progress_calls = [
@@ -777,14 +783,16 @@ class TestProgressReporting:
 
             # Test with 100 tests (should report every 10%)
             with patch.object(generator.logger, "info") as mock_info:
-                generator._generate_category_tests(
+                # Create parameter object
+
+                params = CategoryTestParams(
                     category="test",
                     count=100,
                     scenarios=scenarios,
                     category_info=category_info,
-                    generated_counts={},
                     start_test_id=1,
                 )
+                generator._generate_category_tests(params)
 
                 # Should have progress reports at 10%, 20%, etc.
                 progress_messages = [
@@ -804,14 +812,16 @@ class TestProgressReporting:
 
             # Test with very small count
             with patch.object(generator.logger, "info") as mock_info:
-                generator._generate_category_tests(
+                # Create parameter object
+
+                params = CategoryTestParams(
                     category="small_test",
                     count=5,
                     scenarios=scenarios,
                     category_info=category_info,
-                    generated_counts={},
                     start_test_id=1,
                 )
+                generator._generate_category_tests(params)
 
                 # Should still report progress (milestone should be at least 1)
                 progress_calls = [
@@ -889,15 +899,17 @@ class TestProgressReporting:
             scenarios = {"test": ["scenario1"]}
 
             with patch.object(generator.logger, "info") as mock_info:
+                # Create parameter object matching CategoryTestParams structure
+
                 total_tests = 50
-                generator._generate_category_tests(
+                params = CategoryTestParams(
                     category="accuracy_test",
                     count=total_tests,
                     scenarios=scenarios,
                     category_info=category_info,
-                    generated_counts={},
                     start_test_id=1,
                 )
+                generator._generate_category_tests(params)
 
                 # Extract progress percentages
                 progress_calls = [
@@ -931,14 +943,16 @@ class TestProgressReporting:
                     category_info: CategoryInfo = {"dir": Path(temp_dir), "count": 0}
                     scenarios = {"test": ["scenario1"]}
 
-                    generator._generate_category_tests(
+                    # Create parameter object
+
+                    params = CategoryTestParams(
                         category="integration_test",
                         count=25,
                         scenarios=scenarios,
                         category_info=category_info,
-                        generated_counts={},
                         start_test_id=1,
                     )
+                    generator._generate_category_tests(params)
 
                 # Should have both resource manager and progress reporting logs
                 all_messages = [str(call) for call in mock_info.call_args_list]
@@ -956,14 +970,16 @@ class TestProgressReporting:
                     category_info: CategoryInfo = {"dir": Path(temp_dir), "count": 0}
                     scenarios = {f"test_{category_num}": ["scenario1"]}
 
-                    generator._generate_category_tests(
+                    # Create parameter object
+
+                    params = CategoryTestParams(
                         category=f"concurrent_test_{category_num}",
                         count=15,
                         scenarios=scenarios,
                         category_info=category_info,
-                        generated_counts={},
                         start_test_id=category_num * 100,
                     )
+                    generator._generate_category_tests(params)
 
                 # Should have progress messages for each category
                 all_calls = mock_info.call_args_list

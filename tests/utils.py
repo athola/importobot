@@ -1,7 +1,8 @@
 """Test utility functions."""
 
 import subprocess
-from typing import Any
+import time
+from typing import Any, Callable
 
 from robot.api import TestSuite
 
@@ -48,6 +49,71 @@ def parse_robot_file(file_path: str) -> list[dict[str, Any]]:
         result.append(test_info)
 
     return result
+
+
+def measure_performance(
+    operation: Callable[[], Any],
+    expected_result: Any,
+    max_time: float = 5.0,
+    error_message: str = "Operation should complete within time limit",
+) -> float:
+    """Measure performance of an operation and validate results.
+
+    Args:
+        operation: Function to measure
+        expected_result: Expected result from operation
+        max_time: Maximum allowed time in seconds
+        error_message: Error message for time assertion
+
+    Returns:
+        Time taken for the operation
+    """
+    start_time = time.time()
+    result = operation()
+    detection_time = time.time() - start_time
+
+    assert result == expected_result, f"Operation returned unexpected result: {result}"
+    assert detection_time < max_time, error_message
+
+    return detection_time
+
+
+def create_test_case_base(
+    test_id: int,
+    title: str,
+    *,
+    section_id: int = 101,
+    template_id: int = 1,
+    type_id: int = 3,
+    priority_id: int = 2,
+    milestone_id: int = 789,
+    refs: str = "REQ-123",
+) -> dict[str, Any]:
+    """Create a base test case structure with common fields.
+
+    Args:
+        test_id: Test case ID
+        title: Test case title
+        section_id: Section ID (default: 101)
+        template_id: Template ID (default: 1)
+        type_id: Type ID (default: 3 - Automated)
+        priority_id: Priority ID (default: 2 - Medium)
+        milestone_id: Milestone ID (default: 789)
+        refs: References (default: "REQ-123")
+
+    Returns:
+        Base test case dictionary
+    """
+    return {
+        "id": test_id,
+        "title": title,
+        "section_id": section_id,
+        "template_id": template_id,
+        "type_id": type_id,
+        "priority_id": priority_id,
+        "milestone_id": milestone_id,
+        "refs": refs,
+    }
 
 
 def validate_test_script_structure(test_script: dict[str, Any]) -> None:
