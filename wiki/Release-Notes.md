@@ -70,6 +70,41 @@
 - **Refactoring**: Major refactoring of the core conversion logic.
 - **New Tests**: Added new tests for bulk conversion, positional arguments, and get_file parsing.
 
+## v0.1.1
+
+**🚀 Major Architecture Release - Medallion Data Platform**
+
+This release introduces a complete enterprise-grade medallion architecture with advanced Bayesian format detection and comprehensive validation capabilities.
+
+### 🎯 Key Features
+- **Medallion Architecture**: Bronze/Silver/Gold layer separation for enterprise data processing
+- **Advanced Format Detection**: Bayesian confidence scoring with mathematical foundations
+- **Multi-Format Support**: Zephyr, Xray, TestLink, TestRail, and Generic test formats
+- **Validation Service**: Comprehensive quality assessment and security gateway
+- **Performance Optimization**: Enterprise-scale caching and benchmarking
+
+### 🔬 Quality & Testing
+- **1382 Tests**: Comprehensive test suite with full coverage
+- **34 Invariant Tests**: Property-based testing with Hypothesis framework
+- **10.00/10 Pylint Score**: Perfect code quality across entire codebase
+- **Type Safety**: Complete mypy validation (236 files clean)
+
+### 🛡️ Reliability
+- **Fail-Fast Principles**: Early error detection throughout the architecture
+- **Invariant Testing**: System property validation for reliability guarantees
+- **Input Validation**: Robust handling of malformed data and edge cases
+
+### 📚 Infrastructure
+- Enhanced CI/CD with GitHub Packages integration
+- Mathematical foundations documentation
+- Performance benchmarking and enterprise demos
+- Example scripts for advanced usage patterns
+
+### ⚠️ Breaking Changes
+- New service layer architecture requires API updates
+- Medallion pattern changes data flow for enterprise users
+- Enhanced validation may catch previously undetected issues
+
 ## v0.1.0
 
 - **Zephyr JSON Support**: Convert Zephyr JSON test cases to Robot Framework format.

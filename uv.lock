@@ -748,7 +748,7 @@ wheels = [
 
 [[package]]
 name = "importobot"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "." }
 dependencies = [
     { name = "psutil" },
@@ -863,7 +863,7 @@ dev = [
 
 [[package]]
 name = "importobot-scripts"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "scripts" }
 dependencies = [
     { name = "importobot" },
