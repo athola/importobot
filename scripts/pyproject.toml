@@ -28,8 +28,8 @@ generate-enterprise-tests = "importobot_scripts.generate_enterprise_tests:main"
 generate-zephyr-tests = "importobot_scripts.generate_zephyr_tests:main"
 importobot-mcp = "importobot_scripts.mcp_cli:main"
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-mock>=3.10.0",

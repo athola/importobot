@@ -98,10 +98,6 @@ importobot = "importobot.__main__:main"
 [dependency-groups]
 dev = [
     "scipy-stubs>=1.15.3.0",
-]
-
-[tool.uv]
-dev-dependencies = [
     "pytest>=7.0.0",
     "coverage>=7.0.0",
     "ruff>=0.1.0",
