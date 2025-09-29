@@ -14,9 +14,14 @@ from typing import Any, Union
 from importobot import exceptions
 from importobot.core.engine import GenericConversionEngine
 from importobot.core.suggestions import GenericSuggestionEngine
+from importobot.utils.file_operations import load_json_file
 from importobot.utils.logging import setup_logger
 from importobot.utils.validation import (
+    validate_json_dict,
+    validate_not_empty,
     validate_safe_path,
+    validate_string_content,
+    validate_type,
 )
 
 logger = setup_logger(__name__)
@@ -36,8 +41,8 @@ class JsonToRobotConverter:
 
     def convert_json_string(self, json_string: str) -> str:
         """Convert a JSON string directly to Robot Framework format."""
-        if not json_string or not json_string.strip():
-            raise exceptions.ValidationError("Empty JSON string provided")
+        validate_string_content(json_string)
+        validate_not_empty(json_string, "JSON string")
 
         try:
             json_data = json.loads(json_string)
@@ -46,8 +51,7 @@ class JsonToRobotConverter:
                 f"Invalid JSON at line {e.lineno}: {e.msg}"
             ) from e
 
-        if not isinstance(json_data, dict):
-            raise exceptions.ValidationError("JSON data must be a dictionary")
+        validate_json_dict(json_data)
 
         try:
             return self.conversion_engine.convert(json_data)
@@ -59,29 +63,10 @@ class JsonToRobotConverter:
 
     def convert_json_data(self, json_data: dict[str, Any]) -> str:
         """Convert a JSON dictionary to Robot Framework format."""
-        if not isinstance(json_data, dict):
-            raise exceptions.ValidationError("JSON data must be a dictionary")
+        validate_json_dict(json_data)
 
         try:
             return self.conversion_engine.convert(json_data)
-        except Exception as e:
-            logger.exception("Error during conversion")
-            raise exceptions.ConversionError(
-                f"Failed to convert JSON to Robot Framework: {str(e)}"
-            ) from e
-
-    def convert_json_data_lenient(self, json_data: dict[str, Any]) -> str:
-        """Convert JSON data with lenient handling of empty inputs.
-
-        This method produces placeholder output for empty inputs instead of
-        raising errors.
-        Used for backward compatibility with existing integration points.
-        """
-        if not isinstance(json_data, dict):
-            raise exceptions.ValidationError("JSON data must be a dictionary")
-
-        try:
-            return self.conversion_engine.convert(json_data, strict=False)
         except Exception as e:
             logger.exception("Error during conversion")
             raise exceptions.ConversionError(
@@ -144,44 +129,9 @@ def apply_conversion_suggestions_simple(
     return improved_data
 
 
-# File I/O functions
-def load_json(file_path: str) -> dict[str, Any]:
-    """Load and validate JSON file."""
-    validated_path = validate_safe_path(file_path)
-
-    try:
-        with open(validated_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-
-        # Handle case where JSON is an array with a single test case
-        if isinstance(data, list):
-            if len(data) == 1 and isinstance(data[0], dict):
-                # Extract the first test case from the array
-                return data[0]
-            raise exceptions.ValidationError(
-                "JSON array must contain exactly one test case dictionary."
-            )
-        if not isinstance(data, dict):
-            raise exceptions.ValidationError(
-                "JSON content must be a dictionary or array."
-            )
-        return data
-    except json.JSONDecodeError as e:
-        raise json.JSONDecodeError(
-            f"JSON file appears to be corrupted at line {e.lineno}, "
-            f"column {e.colno}: {e.msg}. Please check the file format and "
-            "fix any syntax errors.",
-            e.doc,
-            e.pos,
-        ) from e
-
-
 def save_robot_file(content: str, file_path: str) -> None:
     """Save Robot Framework content to file."""
-    if not isinstance(content, str):
-        raise exceptions.ValidationError(
-            f"Content must be a string, got {type(content).__name__}"
-        )
+    validate_string_content(content)
 
     validated_path = validate_safe_path(file_path)
 
@@ -197,46 +147,22 @@ def convert_file(input_file: str, output_file: str) -> None:
         ConversionError: For conversion failures.
         FileNotFoundError: If input file doesn't exist.
     """
-    if not isinstance(input_file, str):
-        raise exceptions.ValidationError(
-            f"Input file path must be a string, got {type(input_file).__name__}"
-        )
+    validate_type(input_file, str, "Input file path")
+    validate_type(output_file, str, "Output file path")
+    validate_not_empty(input_file, "Input file path")
+    validate_not_empty(output_file, "Output file path")
 
-    if not isinstance(output_file, str):
-        raise exceptions.ValidationError(
-            f"Output file path must be a string, got {type(output_file).__name__}"
-        )
-
-    if not input_file.strip():
-        raise exceptions.ValidationError(
-            "Input file path cannot be empty or whitespace"
-        )
-
-    if not output_file.strip():
-        raise exceptions.ValidationError(
-            "Output file path cannot be empty or whitespace"
-        )
-
-    json_data = load_json(input_file)
+    json_data = load_json_file(input_file)
     converter = JsonToRobotConverter()
-    robot_content = converter.convert_json_data_lenient(json_data)
+    robot_content = converter.convert_json_data(json_data)
     save_robot_file(robot_content, output_file)
 
 
 def convert_multiple_files(input_files: list[str], output_dir: str) -> None:
     """Convert multiple JSON files to Robot Framework files."""
-    if not isinstance(input_files, list):
-        raise exceptions.ValidationError(
-            f"Input files must be a list, got {type(input_files).__name__}"
-        )
-
-    if not isinstance(output_dir, str):
-        raise exceptions.ValidationError(
-            f"Output directory must be a string, got {type(output_dir).__name__}"
-        )
-
-    if not input_files:
-        raise exceptions.ValidationError("Input files list cannot be empty")
+    validate_type(input_files, list, "Input files")
+    validate_type(output_dir, str, "Output directory")
+    validate_not_empty(input_files, "Input files list")
 
     try:
         os.makedirs(output_dir, exist_ok=True)
@@ -294,15 +220,8 @@ def convert_directory(input_dir: str, output_dir: str) -> None:
 
 def _validate_directory_args(input_dir: str, output_dir: str) -> None:
     """Validate directory conversion arguments."""
-    if not isinstance(input_dir, str):
-        raise exceptions.ValidationError(
-            f"Input directory must be a string, got {type(input_dir).__name__}"
-        )
-
-    if not isinstance(output_dir, str):
-        raise exceptions.ValidationError(
-            f"Output directory must be a string, got {type(output_dir).__name__}"
-        )
+    validate_type(input_dir, str, "Input directory")
+    validate_type(output_dir, str, "Output directory")
 
 
 def _find_json_files_in_directory(input_dir: str) -> list[str]:
@@ -316,11 +235,4 @@ def _find_json_files_in_directory(input_dir: str) -> list[str]:
 
 __all__ = [
     "JsonToRobotConverter",
-    "load_json",
-    "save_robot_file",
-    "convert_file",
-    "convert_multiple_files",
-    "convert_directory",
-    "get_conversion_suggestions",
-    "apply_conversion_suggestions",
 ]

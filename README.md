@@ -8,20 +8,22 @@
 
 ## What is Importobot?
 
-**Importobot** is a Python automation tool that converts test cases from test management frameworks (like Zephyr, JIRA/Xray, and TestLink) into executable Robot Framework format. It is a powerful and flexible open-source tool for migrating legacy test suites to modern automation frameworks.
+**Importobot** converts test cases from test management frameworks (like Zephyr, JIRA/Xray, and TestLink) into executable Robot Framework format. It automates migration of legacy test suites to modern automation frameworks.
 
-Organizations often have thousands of test cases in legacy systems. Migrating them manually is a slow, error-prone, and expensive process. Importobot automates this conversion process, saving time and resources while preserving test knowledge and business logic.
+Organizations often have thousands of test cases in legacy systems. Manual migration is slow, error-prone, and expensive. Importobot automates this conversion, saving time and resources while preserving test knowledge and business logic.
 
 ## Main Features
 
-- **Automated Conversion**: Convert entire test suites with a single command.
-- **Bulk Processing**: Recursively find and convert test cases in a directory.
-- **Intelligent Field Mapping**: Automatically map test steps, expected results, tags, and priorities.
-- **Extensible**: A modular architecture allows for adding new input formats and conversion strategies.
-- **Pandas-inspired API**: A `pandas`-inspired API for seamless integration into CI/CD pipelines and enterprise workflows.
-- **Validation and Suggestions**: Proactively validate input data and provide suggestions for ambiguous or poorly-defined test cases.
-- **High-Quality Output**: Maintains a high code quality standard with comprehensive test coverage.
-- **Production Ready**: The project has over 1150 tests and has been validated for enterprise-scale performance.
+- **Automated Conversion**: Convert entire test suites with a single command
+- **Bulk Processing**: Recursively find and convert test cases in a directory
+- **Intelligent Field Mapping**: Automatically map test steps, expected results, tags, and priorities
+- **Extensible**: Modular architecture supports adding new input formats and conversion strategies
+- **API Integration**: Python API for CI/CD pipelines and enterprise workflows
+- **Validation and Suggestions**: Input data validation with suggestions for ambiguous test cases
+- **Quality Standards**: Maintains code quality with complete test coverage
+- **Production Ready**: Over 1150 tests validate enterprise-scale performance
+- **Medallion Architecture**: Data processing with Bronze/Silver/Gold layer quality gates
+- **Code Quality**: Maintains 10.00/10 pylint score with complete linting compliance
 
 ## Installation
 
@@ -31,11 +33,6 @@ Organizations often have thousands of test cases in legacy systems. Migrating th
 pip install importobot
 ```
 
-### From GitHub Packages
-
-```sh
-pip install --index-url https://pypi.org/simple/ --extra-index-url https://pip.fury.io/athola/ importobot
-```
 
 ### From Source
 
@@ -61,7 +58,7 @@ uv sync --dev
 
 ## Quick Start
 
-Here's a simple example of converting a Zephyr JSON export to a Robot Framework file.
+Example of converting a Zephyr JSON export to a Robot Framework file:
 
 **Input (Zephyr JSON):**
 ```json
@@ -108,7 +105,7 @@ User Login Functionality
 
 ## API Usage
 
-Importobot provides a pandas-inspired API for easy integration:
+Importobot provides a Python API for integration:
 
 ### Simple Usage
 ```python
@@ -136,7 +133,7 @@ engine = suggestions.GenericSuggestionEngine()
 improvements = engine.suggest_improvements(problematic_tests)
 ```
 
-### Advanced Configuration
+### Configuration
 ```python
 import importobot
 

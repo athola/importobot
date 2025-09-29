@@ -1,4 +1,4 @@
-name: Publish to PyPI and GitHub Packages
+name: Publish to PyPI
 
 on:
   release:
@@ -27,7 +27,7 @@ jobs:
       run: uv build
 
     - name: Publish to PyPI
-      if: github.event_name == 'release'
+      if: github.event_name == 'release' && secrets.PYPI_API_TOKEN != ''
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
@@ -35,23 +35,18 @@ jobs:
         uv tool install twine
         uv tool run twine upload dist/*
 
-    - name: Publish to GitHub Packages
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+    - name: PyPI Token Missing
+      if: github.event_name == 'release' && secrets.PYPI_API_TOKEN == ''
       run: |
-        uv tool install twine
-        # Configure .pypirc for GitHub Packages
-        cat > ~/.pypirc << EOF
-        [distutils]
-        index-servers =
-            github
+        echo "⚠️  PYPI_API_TOKEN secret not configured"
+        echo "To enable PyPI publishing:"
+        echo "1. Go to https://pypi.org/manage/account/token/"
+        echo "2. Create a new API token for this project"
+        echo "3. Add it as PYPI_API_TOKEN in repository secrets"
+        echo "4. Re-run this workflow or create a new release"
 
-        [github]
-        repository = https://upload.pypi.org/legacy/
-        username = __token__
-        password = ${{ secrets.GITHUB_TOKEN }}
-        EOF
-
-        # Upload to GitHub Packages
-        uv tool run twine upload --repository github dist/*
+    - name: GitHub Packages Info
+      run: |
+        echo "ℹ️  GitHub Packages does not support Python/PyPI packages"
+        echo "Python packages are published to PyPI only"
+        echo "For other package types, see: https://docs.github.com/en/packages"

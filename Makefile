@@ -18,7 +18,7 @@ help:
 	@echo "  typecheck    - Run type checking"
 	@echo "  validate     - Validate PR readiness (lint + typecheck + test)"
 	@echo "  clean        - Clean temp files"
-	@echo "  examples     - Run all example conversions"
+	@echo "  examples     - Run all example conversions and usage examples"
 	@echo "  example-basic           - Basic login example"
 	@echo "  example-login           - Browser login example"
 	@echo "  example-suggestions     - Hash file example with suggestions"
@@ -26,6 +26,9 @@ help:
 	@echo "  example-user-registration   - Web form automation example"
 	@echo "  example-file-transfer       - SSH file transfer example"
 	@echo "  example-database-api        - Database and API testing example"
+	@echo "  example-usage-basic         - Basic API usage examples"
+	@echo "  example-usage-advanced      - Advanced features examples"
+	@echo "  example-usage-cli           - CLI usage examples"
 	@echo "  enterprise-demo         - Bulk conversion test"
 	@echo "  interactive-demo        - Run interactive business benefits demo"
 	@echo "  interactive-demo-test   - Run interactive demo in non-interactive mode"
@@ -137,7 +140,7 @@ clean:
 
 # Examples
 .PHONY: examples
-examples: example-basic example-login example-suggestions example-user-registration example-file-transfer example-database-api
+examples: example-basic example-login example-suggestions example-user-registration example-file-transfer example-database-api example-usage-basic example-usage-advanced example-usage-cli
 
 .PHONY: example-basic
 example-basic:
@@ -196,6 +199,21 @@ example-parameters:
 	uv run importobot examples/json/cat_file.json examples/robot/cat_file.robot
 	@cat examples/robot/cat_file.robot
 	uv run robot --dryrun examples/robot/cat_file.robot
+
+.PHONY: example-usage-basic
+example-usage-basic:
+	$(info $(NEWLINE)==================== Running basic API usage examples ====================$(NEWLINE))
+	uv run python scripts/src/importobot_scripts/example_basic_usage.py
+
+.PHONY: example-usage-advanced
+example-usage-advanced:
+	$(info $(NEWLINE)==================== Running advanced features examples ====================$(NEWLINE))
+	uv run python scripts/src/importobot_scripts/example_advanced_features.py
+
+.PHONY: example-usage-cli
+example-usage-cli:
+	$(info $(NEWLINE)==================== Running CLI usage examples ====================$(NEWLINE))
+	uv run python scripts/src/importobot_scripts/example_cli_usage.py
 
 
 # Interactive demo

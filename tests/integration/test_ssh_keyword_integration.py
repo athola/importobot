@@ -5,10 +5,11 @@ import time
 
 import pytest
 
-from importobot.core.converter import convert_file, load_json
+from importobot.core.converter import convert_file
 from importobot.core.engine import GenericConversionEngine
 from importobot.core.parsers import GenericTestFileParser
 from importobot.core.pattern_matcher import LibraryDetector
+from importobot.utils.file_operations import load_json_file as load_json
 
 
 class TestSSHKeywordIntegration:
