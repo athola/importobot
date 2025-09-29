@@ -1,9 +1,5 @@
 name: Claude Code
 
-concurrency:
-  group: claude-${{ github.event.issue.number || github.event.pull_request.number }}
-  cancel-in-progress: false
-
 on:
   issue_comment:
     types: [created]
@@ -29,15 +25,8 @@ jobs:
       id-token: write
       actions: read # Required for Claude to read CI results on PRs
     steps:
-      - name: Check for CLAUDE_CODE_OAUTH_TOKEN
-        run: |
-          if [ -z "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" ]; then
-            echo "CLAUDE_CODE_OAUTH_TOKEN secret is not set. Claude action will not run."
-            exit 1
-          fi
-
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
@@ -56,6 +45,6 @@ jobs:
 
           # Optional: Add claude_args to customize behavior and configuration
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
-          # or https://docs.anthropic.com/en/docs/claude-code/sdk#command-line for available options
+          # or https://docs.claude.com/en/docs/claude-code/sdk#command-line for available options
           # claude_args: '--model claude-opus-4-1-20250805 --allowed-tools Bash(gh pr:*)'
 
