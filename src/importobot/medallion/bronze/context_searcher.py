@@ -112,6 +112,7 @@ class ContextSearcher:
     @staticmethod
     def search_with_generic_context(data: Dict[str, Any], key: str) -> Dict[str, Any]:
         """Search with generic context as fallback behavior."""
+
         def search_recursive(
             obj: Any, target_key: str, path: str = ""
         ) -> Dict[str, Any]:
