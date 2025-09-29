@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2025-09-29
+
+### Added
+- **Medallion Architecture Implementation** with comprehensive bronze layer data processing
+- **Advanced Bayesian Confidence Scoring** for format detection with mathematical foundations
+- **Multi-Format Support** for Zephyr, Xray, TestLink, TestRail, and Generic test formats
+- **Comprehensive Validation Service** with quality assessment and security gateway
+- **Invariant Testing Framework** with 34 property-based tests using Hypothesis
+- **Performance Optimization** with caching and enterprise-scale benchmarking
+- **Example Scripts** for advanced features and CLI usage demonstrations
+
+### Infrastructure
+- Expanded test suite to **1382 comprehensive tests** with full coverage
+- Added **mathematical foundations documentation** for confidence algorithms
+- Enhanced CI/CD with improved GitHub Packages integration
+- Added performance benchmarking and enterprise demo capabilities
+
+### Quality Improvements
+- Achieved **10.00/10 pylint score** across entire codebase
+- Fixed all validation issues including AttributeError for non-string dictionary keys
+- Added comprehensive type checking with mypy (236 files clean)
+- Implemented fail-fast principles throughout the architecture
+- Added shared test data structures to eliminate code duplication
+
+### Breaking Changes
+- Introduced medallion architecture with bronze/silver/gold layer separation
+- Added new service layer with validation, security, and format detection
+- Enhanced API surface with enterprise-focused capabilities
+
 ## [0.1.0] - 2025-09-23
 
 ### Added
