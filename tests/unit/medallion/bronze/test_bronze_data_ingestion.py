@@ -20,10 +20,10 @@ from pathlib import Path
 from typing import Any
 
 from importobot.core.converter import JsonToRobotConverter
-from importobot.medallion.base_layers import BronzeLayer
 from importobot.medallion.bronze.raw_data_processor import (
     RawDataProcessor,
 )
+from importobot.medallion.bronze_layer import BronzeLayer
 from importobot.medallion.interfaces.data_models import LayerQuery
 from importobot.medallion.interfaces.enums import ProcessingStatus, SupportedFormat
 from importobot.utils.validation_models import QualitySeverity

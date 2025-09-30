@@ -98,6 +98,36 @@ Transform Importobot's test conversion pipeline using Databricks Medallion archi
   - Performance metrics and bottleneck identification
   - Quality trend analysis and recommendations
 
+### Outstanding Implementation Items
+
+#### Bronze Layer Method Implementation (Low/Medium Effort)
+**Issue**: Three BronzeLayer methods are currently not implemented
+**Location**: `src/importobot/medallion/bronze_layer.py`
+**Status**: Ready for implementation (infrastructure already exists)
+
+**Methods to Implement:**
+1. **`get_record_metadata(record_id: str)`** - 🟢 **Low Effort (30-60 min)**
+   - Currently returns `None` with misleading comment
+   - Data already stored in `self._metadata_store`
+   - Simple lookup and RecordMetadata conversion needed
+
+2. **`get_record_lineage(record_id: str)`** - 🟢 **Low Effort (30-60 min)**
+   - Currently returns `None` with misleading comment
+   - Data already stored in `self._lineage_store`
+   - Simple lookup and DataLineage conversion needed
+
+3. **`get_bronze_records(filter_criteria, limit)`** - 🟡 **Medium Effort (2-3 hours)**
+   - Currently returns empty list with misleading comment
+   - Data already stored in `self._data_store`
+   - Requires filtering logic, pagination, and BronzeRecord conversion
+
+**Implementation Details:**
+- **Total Effort**: 3-5 hours including tests
+- **Infrastructure**: All required storage mechanisms already exist
+- **Comments**: Current "doesn't maintain persistent records" comments are incorrect
+- **Testing**: Each method needs comprehensive test coverage
+- **Dependencies**: No external dependencies required
+
 ### Technical Architecture
 
 #### Layer Structure:

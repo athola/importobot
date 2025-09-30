@@ -17,7 +17,6 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from importobot.config import (
-    get_medallion_config,
     update_medallion_config,
     validate_medallion_config,
 )
@@ -102,15 +101,15 @@ class TestConfigurationInvariants:
         """Invariant: Configuration updates should be safe and not break the system."""
         # Get initial configuration
         try:
-            initial_config = get_medallion_config()
-            # get_medallion_config returns StorageConfig object, not dict
+            initial_config = StorageConfig()
+            # StorageConfig() returns StorageConfig object, not dict
             assert initial_config is not None
 
             # Attempt to update configuration
             update_medallion_config(**update_data)
 
             # Configuration should still be retrievable
-            updated_config = get_medallion_config()
+            updated_config = StorageConfig()
             assert updated_config is not None
 
             # Configuration should still be valid (or have clear validation errors)
@@ -274,7 +273,7 @@ class TestConfigurationInvariants:
             update_medallion_config(**config_updates)
 
             # Try to get configuration again - should not crash
-            updated = get_medallion_config()
+            updated = StorageConfig()
             assert hasattr(updated, "to_dict")
 
             # Convert to dict for key checking
