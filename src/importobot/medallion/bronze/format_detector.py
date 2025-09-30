@@ -41,6 +41,9 @@ class FormatDetector:
         # Thread safety
         self._cache_lock = threading.Lock()
 
+        # Regex compilation cache for performance optimization
+        self._compiled_regex_cache: Dict[str, re.Pattern[str]] = {}
+
         logger.info(
             "Initialized modular FormatDetector with %d formats",
             len(self.format_registry.get_all_formats()),
@@ -433,6 +436,23 @@ class FormatDetector:
 
         return evidence
 
+    def _get_compiled_regex(self, pattern: str) -> re.Pattern[str]:
+        """Get compiled regex with caching for performance optimization.
+
+        Args:
+            pattern: Regular expression pattern string
+
+        Returns:
+            Compiled regex pattern with IGNORECASE flag
+
+        Raises:
+            re.error: If pattern compilation fails
+        """
+        if pattern not in self._compiled_regex_cache:
+            # Compile with IGNORECASE flag for consistent behavior
+            self._compiled_regex_cache[pattern] = re.compile(pattern, re.IGNORECASE)
+        return self._compiled_regex_cache[pattern]
+
     def _collect_field_patterns_evidence(
         self, data_str: str, patterns: Dict[str, Any]
     ) -> List[EvidenceItem]:
@@ -443,7 +463,9 @@ class FormatDetector:
         for field_name, pattern in field_patterns.items():
             if field_name.lower() in data_str and pattern:
                 try:
-                    if re.search(pattern, data_str, re.IGNORECASE):
+                    # Use cached compiled regex for performance
+                    compiled_pattern = self._get_compiled_regex(pattern)
+                    if compiled_pattern.search(data_str):
                         weight, confidence = (
                             ContextSearcher.get_evidence_weight_for_key(
                                 field_name, "pattern"

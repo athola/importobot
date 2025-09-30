@@ -12,7 +12,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional, Union
 
-from importobot.medallion.base_layers import BronzeLayer
+from importobot.medallion.bronze_layer import BronzeLayer
 from importobot.medallion.interfaces.data_models import (
     DataQualityMetrics,
     LayerMetadata,

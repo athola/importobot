@@ -19,8 +19,8 @@ import pytest
 from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
-from importobot.medallion.base_layers import BronzeLayer
 from importobot.medallion.bronze.raw_data_processor import RawDataProcessor
+from importobot.medallion.bronze_layer import BronzeLayer
 from importobot.medallion.interfaces.enums import ProcessingStatus
 from importobot.medallion.interfaces.records import BronzeRecord
 

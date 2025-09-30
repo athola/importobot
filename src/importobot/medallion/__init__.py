@@ -11,6 +11,8 @@ The medallion architecture provides:
 - Separation of concerns with clear layer responsibilities
 """
 
+from importobot.medallion.bronze_layer import BronzeLayer
+from importobot.medallion.gold_layer import GoldLayer
 from importobot.medallion.interfaces.base_interfaces import DataLayer
 from importobot.medallion.interfaces.data_models import (
     DataQualityMetrics,
@@ -18,9 +20,13 @@ from importobot.medallion.interfaces.data_models import (
     LineageInfo,
     ProcessingResult,
 )
+from importobot.medallion.silver_layer import SilverLayer
 from importobot.utils.validation_models import ValidationResult
 
 __all__ = [
+    "BronzeLayer",
+    "SilverLayer",
+    "GoldLayer",
     "DataLayer",
     "LayerMetadata",
     "DataQualityMetrics",
