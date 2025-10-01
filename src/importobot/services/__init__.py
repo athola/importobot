@@ -4,21 +4,18 @@ This package consolidates core business services to reduce coupling
 and improve maintainability as identified in the staff engineering review.
 """
 
-from .data_ingestion_service import DataIngestionService
-from .format_detection_service import FormatDetectionService
-from .metadata_service import MetadataService
+# Import only services that don't cause circular imports
 from .performance_cache import PerformanceCache, cached_json_dumps, cached_string_lower
-from .quality_assessment_service import QualityAssessmentService
 from .security_gateway import SecurityError, SecurityGateway
 from .security_types import SecurityLevel
 from .validation_service import ValidationService
 
+# Note: FormatDetectionService, DataIngestionService, MetadataService, and
+# QualityAssessmentService are excluded from __init__.py to break circular imports.
+# Import them directly from their modules when needed.
+
 __all__ = [
     "ValidationService",
-    "DataIngestionService",
-    "FormatDetectionService",
-    "QualityAssessmentService",
-    "MetadataService",
     "PerformanceCache",
     "SecurityGateway",
     "SecurityError",
