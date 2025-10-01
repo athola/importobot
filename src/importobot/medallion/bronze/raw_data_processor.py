@@ -1,8 +1,7 @@
-"""Refactored Raw Data Processor using service decomposition.
+"""Raw Data Processor using service decomposition.
 
-This replaces the monolithic RawDataProcessor (574 lines, 23 methods) with a
-composition-based approach using focused services. Maintains API compatibility
-while significantly improving maintainability and separation of concerns.
+Provides composition-based approach using focused services for improved
+maintainability and separation of concerns.
 """
 
 from __future__ import annotations
@@ -27,14 +26,12 @@ from importobot.medallion.interfaces.data_models import (
 )
 from importobot.medallion.interfaces.enums import ProcessingStatus, SupportedFormat
 from importobot.medallion.interfaces.records import BronzeRecord, RecordMetadata
-from importobot.services import (
-    DataIngestionService,
-    FormatDetectionService,
-    MetadataService,
-    QualityAssessmentService,
-    SecurityLevel,
-    ValidationService,
-)
+from importobot.services.data_ingestion_service import DataIngestionService
+from importobot.services.format_detection_service import FormatDetectionService
+from importobot.services.metadata_service import MetadataService
+from importobot.services.quality_assessment_service import QualityAssessmentService
+from importobot.services.security_types import SecurityLevel
+from importobot.services.validation_service import ValidationService
 from importobot.utils.logging import setup_logger
 from importobot.utils.validation_models import QualitySeverity, ValidationResult
 
@@ -78,10 +75,9 @@ class BronzeRecordResponse(dict, BronzeRecord):
 
 
 class RawDataProcessor(DataLayer):  # pylint: disable=too-many-public-methods
-    """Refactored Bronze layer processor using service composition.
+    """Bronze layer processor using service composition.
 
-    This version replaces the monolithic approach (574 lines, 23 methods) with
-    focused services, reducing complexity while maintaining full API compatibility.
+    Provides focused services for data processing with reduced complexity.
 
     Services:
     - DataIngestionService: Handles data intake with optional security hardening
@@ -239,16 +235,16 @@ class RawDataProcessor(DataLayer):  # pylint: disable=too-many-public-methods
         }
 
     # DataLayer Interface Methods
-    def ingest(self, data: Any, metadata: LayerMetadata) -> ProcessingResult:
-        """Implement DataLayer interface."""
+    def ingest_to_layer(self, data: Any, metadata: LayerMetadata) -> ProcessingResult:
+        """Implement DataLayer interface for direct layer ingestion."""
         return self.bronze_layer.ingest(data, metadata)
 
-    def retrieve(self, query: LayerQuery) -> LayerData:
-        """Implement DataLayer interface."""
+    def retrieve_from_layer(self, query: LayerQuery) -> LayerData:
+        """Implement DataLayer interface for layer data retrieval."""
         return self.bronze_layer.retrieve(query)
 
-    def validate(self, data: Any) -> ValidationResult:
-        """Implement DataLayer interface using validation service."""
+    def validate_layer_data(self, data: Any) -> ValidationResult:
+        """Implement DataLayer interface validation using validation service."""
         service_result = self.validation_service.validate(data, strategy_name="json")
 
         # Convert service ValidationResult to interface ValidationResult
@@ -394,7 +390,6 @@ class RawDataProcessor(DataLayer):  # pylint: disable=too-many-public-methods
             lineage=lineage,
             payload=response_payload,
         )
-        response["record"] = response
         response["status"] = processing_status
 
         return response
