@@ -517,7 +517,8 @@ class TestKeywordGeneratorIntegration:
 
         # Test short comment not split
         short_data = "Short test data"
-        result = generator._format_test_data_comment(short_data)  # pylint: disable=protected-access  # noqa: E501
+        # pylint: disable=protected-access
+        result = generator._format_test_data_comment(short_data)
         assert len(result) == 1
         assert "Test Data: Short test data" in result[0]
 
@@ -526,7 +527,8 @@ class TestKeywordGeneratorIntegration:
             "Very long test data string that exceeds normal limits, "
             "with comma used for splitting"
         )
-        result = generator._format_test_data_comment(long_data)  # pylint: disable=protected-access  # noqa: E501
+        # pylint: disable=protected-access
+        result = generator._format_test_data_comment(long_data)
         assert isinstance(result, list)
         assert len(result) >= 1
 

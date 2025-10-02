@@ -6,6 +6,7 @@ import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
+
 import pytest
 
 from importobot.medallion.interfaces.data_models import (
@@ -17,6 +18,8 @@ from importobot.medallion.interfaces.enums import SupportedFormat
 from importobot.medallion.storage.local import LocalStorageBackend
 
 
+# Tests internal implementation details - protected-access needed
+# pylint: disable=protected-access
 class TestLocalStorageBackend:
     """Test LocalStorageBackend class."""
 
@@ -105,7 +108,9 @@ class TestLocalStorageBackend:
 
         # Verify files were created
         data_file = storage_backend.base_path / "bronze" / "data" / "test_001.json"
-        metadata_file = storage_backend.base_path / "bronze" / "metadata" / "test_001.json"
+        metadata_file = (
+            storage_backend.base_path / "bronze" / "metadata" / "test_001.json"
+        )
 
         assert data_file.exists()
         assert metadata_file.exists()
@@ -124,7 +129,7 @@ class TestLocalStorageBackend:
     def test_store_data_failure(self, storage_backend, sample_data, sample_metadata):
         """Test data storage failure handling."""
         # Mock json.dump to raise an exception
-        with patch('json.dump', side_effect=OSError("Disk full")):
+        with patch("json.dump", side_effect=OSError("Disk full")):
             result = storage_backend.store_data(
                 layer_name="bronze",
                 data_id="test_001",
@@ -161,7 +166,9 @@ class TestLocalStorageBackend:
         result = storage_backend.retrieve_data("bronze", "nonexistent")
         assert result is None
 
-    def test_retrieve_data_missing_files(self, storage_backend, sample_data, sample_metadata):
+    def test_retrieve_data_missing_files(
+        self, storage_backend, sample_data, sample_metadata
+    ):
         """Test data retrieval when files are missing."""
         # Store data first
         storage_backend.store_data(
@@ -178,7 +185,9 @@ class TestLocalStorageBackend:
         result = storage_backend.retrieve_data("bronze", "test_001")
         assert result is None
 
-    def test_retrieve_data_corrupted_metadata(self, storage_backend, sample_data, sample_metadata):
+    def test_retrieve_data_corrupted_metadata(
+        self, storage_backend, sample_data, sample_metadata
+    ):
         """Test data retrieval with corrupted metadata."""
         # Store data first
         storage_backend.store_data(
@@ -189,7 +198,9 @@ class TestLocalStorageBackend:
         )
 
         # Corrupt metadata file
-        metadata_file = storage_backend.base_path / "bronze" / "metadata" / "test_001.json"
+        metadata_file = (
+            storage_backend.base_path / "bronze" / "metadata" / "test_001.json"
+        )
         with open(metadata_file, "w", encoding="utf-8") as f:
             f.write("invalid json content")
 
@@ -207,7 +218,9 @@ class TestLocalStorageBackend:
         assert len(result.records) == 0
         assert len(result.metadata) == 0
 
-    def test_query_data_with_results(self, storage_backend, sample_data, sample_metadata):
+    def test_query_data_with_results(
+        self, storage_backend, sample_data, sample_metadata
+    ):
         """Test querying data with results."""
         # Store multiple data items
         for i in range(3):
@@ -226,7 +239,9 @@ class TestLocalStorageBackend:
         assert len(result.records) == 3
         assert len(result.metadata) == 3
 
-    def test_query_data_with_limit_offset(self, storage_backend, sample_data, sample_metadata):
+    def test_query_data_with_limit_offset(
+        self, storage_backend, sample_data, sample_metadata
+    ):
         """Test querying data with limit and offset."""
         # Store multiple data items
         for i in range(5):
@@ -272,7 +287,9 @@ class TestLocalStorageBackend:
 
         # Verify files are gone
         data_file = storage_backend.base_path / "bronze" / "data" / "test_001.json"
-        metadata_file = storage_backend.base_path / "bronze" / "metadata" / "test_001.json"
+        metadata_file = (
+            storage_backend.base_path / "bronze" / "metadata" / "test_001.json"
+        )
 
         assert not data_file.exists()
         assert not metadata_file.exists()
@@ -293,7 +310,9 @@ class TestLocalStorageBackend:
         )
 
         # Remove metadata file manually
-        metadata_file = storage_backend.base_path / "bronze" / "metadata" / "test_001.json"
+        metadata_file = (
+            storage_backend.base_path / "bronze" / "metadata" / "test_001.json"
+        )
         metadata_file.unlink()
 
         # Delete should still work (removes data file)
@@ -303,7 +322,7 @@ class TestLocalStorageBackend:
     def test_delete_data_failure(self, storage_backend):
         """Test delete data failure handling."""
         # Create invalid backend to trigger failure
-        with patch.object(Path, 'unlink', side_effect=PermissionError("Access denied")):
+        with patch.object(Path, "unlink", side_effect=PermissionError("Access denied")):
             # Store some data first
             storage_backend.store_data(
                 layer_name="bronze",
@@ -411,16 +430,22 @@ class TestLocalStorageBackend:
 
     def test_cleanup_old_data_nonexistent_layer(self, storage_backend):
         """Test cleanup on nonexistent layer."""
-        cleaned_count = storage_backend.cleanup_old_data("nonexistent", retention_days=5)
+        cleaned_count = storage_backend.cleanup_old_data(
+            "nonexistent", retention_days=5
+        )
         assert cleaned_count == 0
 
-    def test_cleanup_old_data_corrupted_metadata(self, storage_backend, sample_data, sample_metadata):
+    def test_cleanup_old_data_corrupted_metadata(
+        self, storage_backend, sample_data, sample_metadata
+    ):
         """Test cleanup with corrupted metadata file."""
         # Store valid data
         storage_backend.store_data("bronze", "valid_data", sample_data, sample_metadata)
 
         # Create corrupted metadata file
-        corrupted_metadata_file = storage_backend.base_path / "bronze" / "metadata" / "corrupted.json"
+        corrupted_metadata_file = (
+            storage_backend.base_path / "bronze" / "metadata" / "corrupted.json"
+        )
         with open(corrupted_metadata_file, "w", encoding="utf-8") as f:
             f.write("invalid json")
 
@@ -428,7 +453,9 @@ class TestLocalStorageBackend:
         cleaned_count = storage_backend.cleanup_old_data("bronze", retention_days=5)
         assert cleaned_count >= 0  # Should not crash
 
-    def test_backup_layer_success(self, storage_backend, sample_data, sample_metadata, temp_dir):
+    def test_backup_layer_success(
+        self, storage_backend, sample_data, sample_metadata, temp_dir
+    ):
         """Test successful layer backup."""
         # Store some data
         storage_backend.store_data("bronze", "test_001", sample_data, sample_metadata)
@@ -459,7 +486,9 @@ class TestLocalStorageBackend:
 
         assert result is False
 
-    def test_restore_layer_success(self, storage_backend, sample_data, sample_metadata, temp_dir):
+    def test_restore_layer_success(
+        self, storage_backend, sample_data, sample_metadata, temp_dir
+    ):
         """Test successful layer restore."""
         # Create backup first
         storage_backend.store_data("bronze", "test_001", sample_data, sample_metadata)
@@ -489,7 +518,7 @@ class TestLocalStorageBackend:
         backup_path = storage_backend.base_path / "existing_bronze"
         backup_path.mkdir(parents=True, exist_ok=True)
 
-        with patch('shutil.copytree', side_effect=PermissionError("Access denied")):
+        with patch("shutil.copytree", side_effect=PermissionError("Access denied")):
             result = storage_backend.restore_layer("bronze", backup_path)
             assert result is False
 
@@ -575,7 +604,7 @@ class TestLocalStorageBackend:
         assert result.records[0]["id"] == 2  # After offset=1
         assert result.records[1]["id"] == 3
 
-    def test_process_metadata_files(self, storage_backend, temp_dir, sample_metadata, sample_data):
+    def test_process_metadata_files(self, storage_backend, temp_dir, sample_data):
         """Test processing metadata files."""
         # Create metadata files
         metadata_files = []
@@ -610,8 +639,10 @@ class TestLocalStorageBackend:
         query = LayerQuery(layer_name="bronze", filters={})
 
         # Mock the _matches_query method to return True
-        with patch.object(storage_backend, '_matches_query', return_value=True):
-            result = storage_backend._process_metadata_files(metadata_files, temp_dir, query)
+        with patch.object(storage_backend, "_matches_query", return_value=True):
+            result = storage_backend._process_metadata_files(
+                metadata_files, temp_dir, query
+            )
 
         assert len(result) == 3
         for i, (data, metadata) in enumerate(result):

@@ -1,7 +1,8 @@
 """Tests for optimization algorithms and mathematical utilities."""
+# Tests internal implementation - protected-access needed
+# pylint: disable=protected-access
 
-import math
-import pytest
+import random
 from unittest.mock import patch
 
 from importobot.utils.optimization import (
@@ -78,7 +79,7 @@ class TestGradientDescentOptimizer:
         assert optimizer.config.learning_rate == 0.01
         assert optimizer.velocity is None
         assert optimizer.iteration_count == 0
-        assert optimizer.convergence_history == []
+        assert not optimizer.convergence_history
 
     def test_init_custom_config(self):
         """Test initialization with custom config."""
@@ -125,7 +126,7 @@ class TestGradientDescentOptimizer:
             parameter_bounds={"x": (1.5, 3.0)},
         )
 
-        best_params, best_value, metadata = result
+        best_params, _, _ = result
         assert 1.5 <= best_params["x"] <= 3.0
         assert abs(best_params["x"] - 2.0) < 0.1
 
@@ -149,7 +150,7 @@ class TestGradientDescentOptimizer:
             gradient_function=gradient_function,
         )
 
-        best_params, best_value, metadata = result
+        best_params, _, _ = result
         assert abs(best_params["x"]) < 0.1
 
     def test_numerical_gradients(self):
@@ -338,7 +339,7 @@ class TestSimulatedAnnealing:
             config=config,
         )
 
-        best_params, best_value, metadata = result
+        best_params, _, metadata = result
         assert abs(best_params["x"] - 3.0) < 1.0
         assert metadata["iterations"] > 0
         assert 0 <= metadata["acceptance_rate"] <= 1
@@ -353,7 +354,7 @@ class TestSimulatedAnnealing:
             initial_parameters={"x": 5.0},
         )
 
-        best_params, best_value, metadata = result
+        _, best_value, metadata = result
         assert best_value >= 0  # Should be non-negative
         assert "iterations" in metadata
         assert "acceptance_rate" in metadata
@@ -376,7 +377,7 @@ class TestSimulatedAnnealing:
             config=config,
         )
 
-        best_params, best_value, metadata = result
+        _, _, metadata = result
         # Temperature should have cooled down
         assert metadata["final_temperature"] < config.initial_temperature
 
@@ -394,7 +395,7 @@ class TestSimulatedAnnealing:
             config=config,
         )
 
-        best_params, best_value, metadata = result
+        best_params, _, _ = result
         assert -2 <= best_params["x"] <= 2
 
     @patch('random.random')
@@ -443,7 +444,7 @@ class TestIntegrationScenarios:
             parameter_bounds={"x": (-2, 2), "y": (-2, 2)},
         )
 
-        best_params, best_value, metadata = result
+        best_params, _, _ = result
         # Should converge reasonably close to (1, 1)
         assert abs(best_params["x"] - 1.0) < 0.5
         assert abs(best_params["y"] - 1.0) < 0.5
@@ -483,7 +484,6 @@ class TestIntegrationScenarios:
         """Test optimization with noisy objective function."""
         def noisy_quadratic(params):
             x = params.get("x", 0)
-            import random
             noise = random.gauss(0, 0.01)
             return x**2 + noise
 
@@ -496,7 +496,7 @@ class TestIntegrationScenarios:
             initial_parameters={"x": 3.0},
         )
 
-        best_params, best_value, metadata = result
+        _, best_value, metadata = result
         # With noise, convergence is less reliable, so we use a more lenient check
         # Just verify the algorithm ran and produced a reasonable result
         assert best_value >= 0  # Quadratic function should be non-negative

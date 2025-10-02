@@ -211,7 +211,8 @@ class TestPrivateMethods:
         engine = GenericSuggestionEngine()
         test_data = [{"name": "Test1"}, {"name": "Test2"}]
 
-        result = engine._extract_test_cases(test_data)  # pylint: disable=protected-access  # noqa: E501
+        # pylint: disable=protected-access
+        result = engine._extract_test_cases(test_data)
         assert result == test_data
 
     def test_extract_test_cases_with_dict_tests_key(self):
