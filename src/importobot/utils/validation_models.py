@@ -26,6 +26,27 @@ class QualitySeverity(Enum):
     HIGH = "high"
     CRITICAL = "critical"
 
+    @classmethod
+    def from_counts(cls, error_count: int, warning_count: int) -> "QualitySeverity":
+        """Determine severity based on error and warning counts.
+
+        Args:
+            error_count: Number of errors
+            warning_count: Number of warnings
+
+        Returns:
+            Appropriate QualitySeverity level
+        """
+        if error_count > 0:
+            return cls.CRITICAL
+        if warning_count > 5:
+            return cls.HIGH
+        if warning_count > 2:
+            return cls.MEDIUM
+        if warning_count > 0:
+            return cls.LOW
+        return cls.INFO
+
 
 @dataclass
 class ValidationResult:

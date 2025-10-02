@@ -6,10 +6,34 @@ import re
 from typing import Any, Dict, List, Optional
 
 from importobot.utils.logging import setup_logger
+from importobot.utils.regex_cache import get_compiled_pattern
 
 from .format_models import EvidenceThreshold, EvidenceWeight
 
 logger = setup_logger(__name__)
+
+
+def _compile_pattern_safe(pattern: str) -> re.Pattern | None:
+    """Compile and cache regex patterns with error handling.
+
+    Args:
+        pattern: Regular expression pattern string
+
+    Returns:
+        Compiled pattern or None if pattern is invalid
+    """
+    try:
+        return get_compiled_pattern(pattern, re.IGNORECASE)
+    except re.error as e:
+        logger.warning(
+            "Invalid regex pattern during compilation",
+            extra={
+                "pattern": pattern,
+                "error": str(e),
+                "context": "pattern_compilation",
+            },
+        )
+        return None
 
 
 class ScoringConstants:
@@ -120,7 +144,7 @@ class ScoringAlgorithms:
         score = 0
         optional_keys = patterns.get("optional_keys", [])
         for key in optional_keys:
-            if any(opt_key.lower() in data_str for opt_key in [key]):
+            if key.lower() in data_str:
                 score += ScoringAlgorithms.OPTIONAL_KEY_SCORE
         return score
 
@@ -218,19 +242,9 @@ class ScoringAlgorithms:
     def _score_string_pattern(data_str: str, field_name: str, pattern: str) -> int:
         """Score pattern matching for string data."""
         if field_name.lower() in data_str:
-            try:
-                if re.search(pattern, data_str, re.IGNORECASE):
-                    return ScoringAlgorithms.FIELD_PATTERN_SCORE
-            except re.error as e:
-                logger.warning(
-                    "Invalid regex pattern in string matching",
-                    extra={
-                        "pattern": pattern,
-                        "field_name": field_name,
-                        "error": str(e),
-                        "context": "string_pattern_validation",
-                    },
-                )
+            compiled_pattern = _compile_pattern_safe(pattern)
+            if compiled_pattern and compiled_pattern.search(data_str):
+                return ScoringAlgorithms.FIELD_PATTERN_SCORE
         return 0
 
     @staticmethod
@@ -238,38 +252,18 @@ class ScoringAlgorithms:
         field_name: str, pattern: str, field_values: List[Any]
     ) -> bool:
         """Check if pattern matches field name or any field values."""
+        compiled_pattern = _compile_pattern_safe(pattern)
+        if compiled_pattern is None:
+            return False
+
         # First, check if the field name itself matches the pattern
-        try:
-            if re.search(pattern, field_name, re.IGNORECASE):
-                return True
-        except re.error as e:
-            logger.warning(
-                "Invalid regex pattern in field name matching",
-                extra={
-                    "pattern": pattern,
-                    "field_name": field_name,
-                    "error": str(e),
-                    "context": "field_name_pattern_validation",
-                },
-            )
+        if compiled_pattern.search(field_name):
+            return True
 
         # If field name doesn't match, check field values
         for value in field_values:
-            try:
-                if re.search(pattern, str(value), re.IGNORECASE):
-                    return True
-            except re.error as e:
-                logger.warning(
-                    "Invalid regex pattern in field value matching",
-                    extra={
-                        "pattern": pattern,
-                        "field_name": field_name,
-                        "field_value": str(value)[:100],  # Truncate long values
-                        "error": str(e),
-                        "context": "field_value_pattern_validation",
-                    },
-                )
-                continue
+            if compiled_pattern.search(str(value)):
+                return True
         return False
 
     @staticmethod

@@ -86,7 +86,7 @@ class BronzeValidator:
         warning_count += content_result.warning_count
 
         # Determine overall validation result
-        severity = self._determine_severity(error_count, warning_count)
+        severity = QualitySeverity.from_counts(error_count, warning_count)
 
         return create_validation_result(
             severity=severity,
@@ -120,7 +120,7 @@ class BronzeValidator:
                 details["empty_data"] = True
 
             # Check nesting depth
-            depth = self._calculate_nesting_depth(data)
+            depth = calculate_nesting_depth(data, 0, self.max_nesting_depth + 5)
             details["nesting_depth"] = depth
             if depth > self.max_nesting_depth:
                 issues.append(
@@ -156,8 +156,8 @@ class BronzeValidator:
         warning_count = 0
         details: dict[str, Any] = {}
 
+        # Calculate data size
         try:
-            # Calculate data size
             data_str = json.dumps(data, default=str)
             size_bytes = len(data_str.encode("utf-8"))
             size_mb = size_bytes / (1024 * 1024)
@@ -171,30 +171,37 @@ class BronzeValidator:
                     f"({self.max_data_size_mb} MB)"
                 )
                 error_count += 1
-
-            # Check for extremely large individual fields
-            if isinstance(data, dict):
-                large_fields = []
-                for key, value in data.items():
-                    try:
-                        field_str = json.dumps(value, default=str)
-                        field_size_mb = len(field_str.encode("utf-8")) / (1024 * 1024)
-                        if field_size_mb > ValidationThresholds.LARGE_FIELD_SIZE_MB:
-                            large_fields.append((key, field_size_mb))
-                    except (TypeError, ValueError):
-                        continue
-
-                if large_fields:
-                    details["large_fields"] = large_fields
-                    issues.append(
-                        f"Found {len(large_fields)} large fields that may cause "
-                        "processing issues"
-                    )
-                    warning_count += 1
-
         except (TypeError, ValueError) as e:
             issues.append(f"Unable to calculate data size: {str(e)}")
             error_count += 1
+
+        # Check for extremely large individual fields
+        if isinstance(data, dict):
+            large_fields = []
+            problematic_fields = []
+            for key, value in data.items():
+                try:
+                    field_str = json.dumps(value, default=str)
+                    field_size_mb = len(field_str.encode("utf-8")) / (1024 * 1024)
+                    if field_size_mb > ValidationThresholds.LARGE_FIELD_SIZE_MB:
+                        large_fields.append((key, field_size_mb))
+                except (TypeError, ValueError) as e:
+                    problematic_fields.append(key)
+                    issues.append(
+                        f"Unable to calculate size for field '{key}': {str(e)}"
+                    )
+                    error_count += 1
+
+            if large_fields:
+                details["large_fields"] = large_fields
+                issues.append(
+                    f"Found {len(large_fields)} large fields that may cause "
+                    "processing issues"
+                )
+                warning_count += 1
+
+            if problematic_fields:
+                details["problematic_fields"] = problematic_fields
 
         severity = QualitySeverity.CRITICAL if error_count > 0 else QualitySeverity.LOW
 
@@ -273,10 +280,6 @@ class BronzeValidator:
             issues=issues,
             details=details,
         )
-
-    def _calculate_nesting_depth(self, obj: Any, current_depth: int = 0) -> int:
-        """Calculate the maximum nesting depth of a data structure."""
-        return calculate_nesting_depth(obj, current_depth, self.max_nesting_depth + 5)
 
     def _find_test_indicators(self, data: dict[str, Any]) -> list[str]:
         """Find indicators that suggest this is test data."""
@@ -370,17 +373,3 @@ class BronzeValidator:
             "null_values": null_values,
             "null_percentage": null_percentage,
         }
-
-    def _determine_severity(
-        self, error_count: int, warning_count: int
-    ) -> QualitySeverity:
-        """Determine the overall severity based on error and warning counts."""
-        if error_count > 0:
-            return QualitySeverity.CRITICAL
-        if warning_count > 5:
-            return QualitySeverity.HIGH
-        if warning_count > 2:
-            return QualitySeverity.MEDIUM
-        if warning_count > 0:
-            return QualitySeverity.LOW
-        return QualitySeverity.INFO

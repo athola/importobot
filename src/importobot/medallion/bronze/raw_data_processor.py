@@ -235,6 +235,35 @@ class RawDataProcessor(DataLayer):  # pylint: disable=too-many-public-methods
         }
 
     # DataLayer Interface Methods
+    def ingest(self, data: Any, metadata: LayerMetadata) -> ProcessingResult:
+        """Implement DataLayer abstract method for ingestion."""
+        return self.bronze_layer.ingest(data, metadata)
+
+    def retrieve(self, query: LayerQuery) -> LayerData:
+        """Implement DataLayer abstract method for retrieval."""
+        return self.bronze_layer.retrieve(query)
+
+    def validate(self, data: Any) -> ValidationResult:
+        """Implement DataLayer abstract method for validation."""
+        service_result = self.validation_service.validate(data, strategy_name="json")
+
+        # Convert service ValidationResult to interface ValidationResult
+        return ValidationResult(
+            is_valid=service_result.is_valid,
+            severity=(
+                QualitySeverity.HIGH
+                if not service_result.is_valid
+                else QualitySeverity.LOW
+            ),
+            error_count=len(
+                [msg for msg in service_result.messages if "error" in msg.lower()]
+            ),
+            warning_count=len(
+                [msg for msg in service_result.messages if "warning" in msg.lower()]
+            ),
+            issues=service_result.messages,
+        )
+
     def ingest_to_layer(self, data: Any, metadata: LayerMetadata) -> ProcessingResult:
         """Implement DataLayer interface for direct layer ingestion."""
         return self.bronze_layer.ingest(data, metadata)
@@ -287,7 +316,7 @@ class RawDataProcessor(DataLayer):  # pylint: disable=too-many-public-methods
             processing_status = ProcessingStatus.FAILED
 
         # Create record metadata with lineage context
-        record_id = hashlib.md5(str(data).encode()).hexdigest()
+        record_id = hashlib.blake2b(str(data).encode()).hexdigest()
         metadata = RecordMetadata(
             record_id=record_id,
             ingestion_timestamp=processing_started_at,
