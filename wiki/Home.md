@@ -16,8 +16,14 @@ Importobot automates the migration process, which would otherwise require manual
 
 - [Getting Started](Getting-Started) - Installation and basic usage
 - [User Guide](User-Guide) - Usage instructions
+- [Migration Guide](Migration-Guide) - Incremental adoption plan
+- [Usage Examples](Usage-Examples) - Quick CLI and API snippets
 - [API Reference](API-Reference) - Documentation of functions and classes
 - [Mathematical Foundations](Mathematical-Foundations) - Mathematical principles and algorithms
+- [Performance Benchmarks](Performance-Benchmarks) - Benchmark harness instructions
+- [Performance Characteristics](Performance-Characteristics) - Baseline metrics & thresholds
+- [Deployment Guide](Deployment-Guide) - Local, container, and CI/CD steps
+- [Architecture Decision Records](architecture/ADR-0001-medallion-architecture) - Design history
 - [Contributing](Contributing) - Guidelines for contributors
 - [FAQ](FAQ) - Common issues and solutions
 - [Roadmap](Roadmap) - Future development plans

@@ -144,6 +144,33 @@ while temperature > min_temperature:
 - **Temperature Schedule**: Exponential cooling ensures convergence
 - **Complexity**: O(i×f) where i=iterations, f=objective function cost
 
+### Gold Layer Optimization Benchmark Plan
+
+Importobot's Gold layer will use these optimizers to tune conversion heuristics
+before exporting Robot Framework suites. The new `OptimizationService`
+(`src/importobot/services/optimization_service.py`) provides a lightweight
+integration point that the Gold layer can call during ingestion to preview
+parameter tuning runs. The OptimizedConverter rollout will execute a benchmark
+program built around three pillars:
+
+- **Objectives** – Measure conversion quality uplift, latency reduction, and
+  algorithm runtime for gradient descent, simulated annealing, and the genetic
+  algorithm relative to the tuned heuristic baseline.
+- **Datasets** – Bronze/Silver fixtures representing small (<25 tests), medium
+  (25-150), and large (150+) suites across Zephyr, TestRail, and JIRA/Xray; the
+  OptimizedConverter synthetic stress scenarios; and existing regression corpora
+  from the performance benchmark harness.
+- **Success Criteria** – Gradient descent must reach the target quality scores
+  (≥0.90) while cutting preview latency by at least 15% within 30 iterations.
+  Simulated annealing or genetic algorithms must deliver ≥5% additional
+  improvement beyond gradient descent to remain enabled for the preview path;
+  otherwise they will be candidates for removal to keep the system lean.
+
+Each benchmark run captures wall-clock timings, iteration counts, and conversion
+metrics through the `conversion_optimization` metadata channel exposed in
+`GoldLayer.ingest`. Results flow back into placeholder previews so future MRs
+can activate production-grade optimization without re-plumbing the math layer.
+
 ## Advanced Mathematical Approaches
 
 ### Structural Density Compensation

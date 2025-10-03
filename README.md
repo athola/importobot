@@ -155,7 +155,16 @@ print(f"Failed: {results['error_count']} files")
 
 ## Documentation
 
-The official documentation, including a full API reference, is available in the [project wiki](https://github.com/athola/importobot/wiki).
+The official documentation, including a full API reference, lives in the [project wiki](https://github.com/athola/importobot/wiki). Highlights:
+
+- [Medallion workflow walkthrough](https://github.com/athola/importobot/wiki/User-Guide#medallion-workflow-example)
+- [Migration guide for existing users](https://github.com/athola/importobot/wiki/Migration-Guide)
+- [Optimization and performance benchmark plans](https://github.com/athola/importobot/wiki/Mathematical-Foundations#gold-layer-optimization-benchmark-plan)
+- [Performance benchmark harness](https://github.com/athola/importobot/wiki/Performance-Benchmarks)
+  - Includes guidance for interpreting memory deltas and cache hit/miss metrics
+- [Architecture decision records](https://github.com/athola/importobot/wiki/architecture/ADR-0001-medallion-architecture)
+- [Performance characteristics](https://github.com/athola/importobot/wiki/Performance-Characteristics)
+- [Deployment guide](https://github.com/athola/importobot/wiki/Deployment-Guide)
 
 ## Contributing
 

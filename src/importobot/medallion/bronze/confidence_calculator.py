@@ -231,7 +231,7 @@ class ConfidenceCalculator:
             # Minimal evidence gets conservative baseline
             baseline_confidence = min(
                 self.MINIMAL_BASELINE_CONFIDENCE,
-                detected_score / self.MINIMAL_EVIDENCE_DIVISOR
+                detected_score / self.MINIMAL_EVIDENCE_DIVISOR,
             )
 
         return max(confidence, baseline_confidence)
@@ -252,9 +252,11 @@ class ConfidenceCalculator:
         second_best = score_info["second_best"]
 
         # Fallback 1: Unique indicator with minimal competition
-        if (target_score >= self.FALLBACK_UNIQUE_SCORE_THRESHOLD
-                and detected_score == target_score
-                and second_best < self.FALLBACK_UNIQUE_COMPETITION_THRESHOLD):
+        if (
+            target_score >= self.FALLBACK_UNIQUE_SCORE_THRESHOLD
+            and detected_score == target_score
+            and second_best < self.FALLBACK_UNIQUE_COMPETITION_THRESHOLD
+        ):
             return max(confidence, self.FALLBACK_UNIQUE_CONFIDENCE)
 
         # Fallback 2: Strong indicator with good spread
@@ -294,7 +296,7 @@ class ConfidenceCalculator:
             # Good confidence for moderate evidence (7-9 points)
             return min(
                 cls.EVIDENCE_SCALE_MODERATE_MAX,
-                score / cls.EVIDENCE_SCALE_MODERATE_DIVISOR
+                score / cls.EVIDENCE_SCALE_MODERATE_DIVISOR,
             )
         if score >= cls.EVIDENCE_SCALE_BASIC_THRESHOLD:
             # Moderate confidence for basic evidence (4-6 points)
@@ -344,10 +346,12 @@ class ConfidenceCalculator:
                 prior, likelihood, data, data_str
             )
 
-            return float(max(
-                self.CONFIDENCE_THRESHOLD_MIN,
-                min(self.CONFIDENCE_THRESHOLD_MAX, posterior)
-            ))
+            return float(
+                max(
+                    self.CONFIDENCE_THRESHOLD_MIN,
+                    min(self.CONFIDENCE_THRESHOLD_MAX, posterior),
+                )
+            )
 
         except Exception as e:
             logger.warning(
@@ -383,8 +387,8 @@ class ConfidenceCalculator:
 
             if expected_keys > 0:
                 # Closer match in key count suggests higher prior
-                key_match_ratio = (
-                    min(data_keys, expected_keys) / max(data_keys, expected_keys, 1)
+                key_match_ratio = min(data_keys, expected_keys) / max(
+                    data_keys, expected_keys, 1
                 )
                 base_prior += self.PRIOR_PROBABILITY_BOOST * key_match_ratio
 
@@ -399,7 +403,7 @@ class ConfidenceCalculator:
             "optional_fields": 0.0,
             "structural_match": 0.0,
             "negative_evidence": 0.0,
-            "pattern_bonus": 0.0
+            "pattern_bonus": 0.0,
         }
 
         patterns = self.format_patterns.get(target_format, {})
@@ -419,9 +423,7 @@ class ConfidenceCalculator:
                 evidence["optional_fields"] += self.EVIDENCE_WEIGHT_OPTIONAL
 
         # Structural evidence
-        evidence["structural_match"] = self._assess_structural_evidence(
-            data, patterns
-        )
+        evidence["structural_match"] = self._assess_structural_evidence(data, patterns)
 
         # Pattern matching bonus
         if self._has_format_specific_patterns(target_format, data_str):
@@ -433,10 +435,10 @@ class ConfidenceCalculator:
         """Calculate likelihood of evidence given the target format."""
         # Sum weighted evidence with smoothing
         total_positive_evidence = (
-            evidence_scores["required_fields"] +
-            evidence_scores["optional_fields"] +
-            evidence_scores["structural_match"] +
-            evidence_scores["pattern_bonus"]
+            evidence_scores["required_fields"]
+            + evidence_scores["optional_fields"]
+            + evidence_scores["structural_match"]
+            + evidence_scores["pattern_bonus"]
         )
 
         total_negative_evidence = evidence_scores["negative_evidence"]
@@ -520,12 +522,12 @@ class ConfidenceCalculator:
 
     def _type_matches_expectation(self, value: Any, expected_type: str) -> bool:
         """Check if a value matches the expected type."""
-        type_mapping = {
+        type_mapping: dict[str, type | tuple[type, ...]] = {
             "string": str,
             "number": (int, float),
             "list": list,
             "dict": dict,
-            "boolean": bool
+            "boolean": bool,
         }
 
         expected_python_type = type_mapping.get(expected_type.lower())
@@ -534,9 +536,7 @@ class ConfidenceCalculator:
 
         return False
 
-    def _score_calculation(
-        self, data_str: str, patterns: Dict[str, Any]
-    ) -> int:
+    def _score_calculation(self, data_str: str, patterns: Dict[str, Any]) -> int:
         """Calculate simple scoring for confidence calculation."""
         score = 0
 

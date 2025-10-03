@@ -11,7 +11,7 @@ from importobot.services.security_types import SecurityLevel
 
 
 @pytest.fixture
-def security_gateway():
+def standard_security_gateway():
     """Create a SecurityGateway instance for testing."""
     return SecurityGateway(SecurityLevel.STANDARD)
 
@@ -46,14 +46,16 @@ class TestSecurityGatewayInitialization:
         gateway = SecurityGateway()
         assert gateway.security_level == SecurityLevel.STANDARD
 
-    def test_dangerous_patterns_initialized(self, security_gateway):
+    def test_dangerous_patterns_initialized(self, standard_security_gateway):
         """Test that dangerous patterns are properly initialized."""
         # pylint: disable=protected-access
-        patterns = security_gateway._dangerous_patterns
+        patterns = standard_security_gateway._dangerous_patterns
         assert len(patterns) > 0
-        assert any("script" in pattern for pattern in patterns)
-        assert any("javascript:" in pattern for pattern in patterns)
-        assert any("\\.\\." in pattern for pattern in patterns)
+        # Patterns are now tuples of (compiled_regex, description)
+        pattern_strings = [p[0].pattern for p in patterns]
+        assert any("script" in p for p in pattern_strings)
+        assert any("javascript" in p for p in pattern_strings)
+        assert any("\\.\\." in p for p in pattern_strings)
 
     def test_security_level_comparison(self):
         """Test different security levels."""
@@ -76,60 +78,60 @@ class TestSecurityGatewayInitialization:
 class TestJSONSanitization:
     """Test JSON input sanitization."""
 
-    def test_sanitize_json_input_valid(self, security_gateway):
+    def test_sanitize_json_input_valid(self, standard_security_gateway):
         """Test sanitizing valid JSON input."""
         data = {"test": "data", "items": [1, 2, 3]}
-        result = security_gateway.sanitize_api_input(data, "json")
+        result = standard_security_gateway.sanitize_api_input(data, "json")
 
         assert result["is_safe"] is True
         assert result["sanitized_data"] == data
         assert len(result["security_issues"]) == 0
         assert result["input_type"] == "json"
 
-    def test_sanitize_json_input_string(self, security_gateway):
+    def test_sanitize_json_input_string(self, standard_security_gateway):
         """Test sanitizing JSON string input."""
         data = '{"test": "data", "value": 123}'
-        result = security_gateway.sanitize_api_input(data, "json")
+        result = standard_security_gateway.sanitize_api_input(data, "json")
 
         assert result["is_safe"] is True
         assert result["sanitized_data"] == {"test": "data", "value": 123}
 
-    def test_sanitize_json_input_invalid(self, security_gateway):
+    def test_sanitize_json_input_invalid(self, standard_security_gateway):
         """Test sanitizing invalid JSON input."""
         data = '{"invalid": json}'
-        result = security_gateway.sanitize_api_input(data, "json")
+        result = standard_security_gateway.sanitize_api_input(data, "json")
 
         assert result["is_safe"] is False
         assert len(result["security_issues"]) > 0
         assert "JSON validation failed" in result["security_issues"][0]
 
-    def test_sanitize_json_input_with_xss(self, security_gateway):
+    def test_sanitize_json_input_with_xss(self, standard_security_gateway):
         """Test sanitizing JSON with XSS content."""
         data = {"content": "<script>alert('xss')</script>"}
-        result = security_gateway.sanitize_api_input(data, "json")
+        result = standard_security_gateway.sanitize_api_input(data, "json")
 
         assert result["is_safe"] is False
         assert len(result["security_issues"]) > 0
 
-    def test_sanitize_with_context(self, security_gateway):
+    def test_sanitize_with_context(self, standard_security_gateway):
         """Test sanitization with additional context."""
         data = {"test": "data"}
         context = {"source": "api", "user": "test_user"}
 
-        result = security_gateway.sanitize_api_input(data, "json", context)
+        result = standard_security_gateway.sanitize_api_input(data, "json", context)
 
         assert "security_level" in result
         assert result["input_type"] == "json"
 
-    def test_json_input_none_result(self, security_gateway):
+    def test_json_input_none_result(self, standard_security_gateway):
         """Test JSON input sanitization returning None."""
         # Test with invalid JSON that results in None
         with patch.object(
-            security_gateway,
-            '_sanitize_json_input',
+            standard_security_gateway,
+            "_sanitize_json_input",
             return_value=(None, ["JSON error"]),
         ):
-            result = security_gateway.sanitize_api_input("invalid", "json")
+            result = standard_security_gateway.sanitize_api_input("invalid", "json")
 
             assert result["is_safe"] is False
             assert result["sanitized_data"] is None
@@ -138,23 +140,23 @@ class TestJSONSanitization:
 class TestFilePathSanitization:
     """Test file path sanitization."""
 
-    def test_sanitize_file_path_valid(self, security_gateway):
+    def test_sanitize_file_path_valid(self, standard_security_gateway):
         """Test sanitizing valid file path."""
         data = "/home/user/documents/file.txt"
-        result = security_gateway.sanitize_api_input(data, "file_path")
+        result = standard_security_gateway.sanitize_api_input(data, "file_path")
 
         assert result["is_safe"] is True
         assert isinstance(result["sanitized_data"], str)
 
-    def test_sanitize_file_path_traversal(self, security_gateway):
+    def test_sanitize_file_path_traversal(self, standard_security_gateway):
         """Test sanitizing file path with traversal attempt."""
         data = "/home/user/../../../etc/passwd"
-        result = security_gateway.sanitize_api_input(data, "file_path")
+        result = standard_security_gateway.sanitize_api_input(data, "file_path")
 
         assert result["is_safe"] is False
         assert len(result["security_issues"]) > 0
 
-    def test_sanitize_file_path_dangerous_patterns(self, security_gateway):
+    def test_sanitize_file_path_dangerous_patterns(self, standard_security_gateway):
         """Test sanitizing file path with dangerous patterns."""
         dangerous_paths = [
             "javascript:void(0)",
@@ -163,18 +165,18 @@ class TestFilePathSanitization:
         ]
 
         for path in dangerous_paths:
-            result = security_gateway.sanitize_api_input(path, "file_path")
+            result = standard_security_gateway.sanitize_api_input(path, "file_path")
             assert result["is_safe"] is False
             assert len(result["security_issues"]) > 0
 
-    def test_sanitize_file_path_normalization_failure(self, security_gateway):
+    def test_sanitize_file_path_normalization_failure(self, standard_security_gateway):
         """Test file path sanitization with normalization failure."""
         # pylint: disable=protected-access
         with patch(
-            'pathlib.Path.resolve',
+            "pathlib.Path.resolve",
             side_effect=OSError("Path resolution failed"),
         ):
-            _, issues = security_gateway._sanitize_file_path("/some/path")
+            _, issues = standard_security_gateway._sanitize_file_path("/some/path")
 
             assert len(issues) > 0
             assert "Path normalization failed" in issues[0]
@@ -183,18 +185,18 @@ class TestFilePathSanitization:
 class TestStringSanitization:
     """Test string input sanitization."""
 
-    def test_sanitize_string_input_clean(self, security_gateway):
+    def test_sanitize_string_input_clean(self, standard_security_gateway):
         """Test sanitizing clean string input."""
         data = "This is a clean string with no dangerous content"
-        result = security_gateway.sanitize_api_input(data, "string")
+        result = standard_security_gateway.sanitize_api_input(data, "string")
 
         assert result["is_safe"] is True
         assert result["sanitized_data"] == data
 
-    def test_sanitize_string_input_with_html(self, security_gateway):
+    def test_sanitize_string_input_with_html(self, standard_security_gateway):
         """Test sanitizing string input with HTML tags."""
         data = "Hello <b>world</b> and <script>alert('xss')</script>"
-        result = security_gateway.sanitize_api_input(data, "string")
+        result = standard_security_gateway.sanitize_api_input(data, "string")
 
         assert result["is_safe"] is False
         assert len(result["security_issues"]) > 0
@@ -202,7 +204,7 @@ class TestStringSanitization:
         assert "<b>" not in result["sanitized_data"]
         assert "<script>" not in result["sanitized_data"]
 
-    def test_sanitize_string_input_dangerous_patterns(self, security_gateway):
+    def test_sanitize_string_input_dangerous_patterns(self, standard_security_gateway):
         """Test sanitizing string with dangerous patterns."""
         dangerous_strings = [
             "javascript:alert('xss')",
@@ -211,15 +213,17 @@ class TestStringSanitization:
         ]
 
         for dangerous_string in dangerous_strings:
-            result = security_gateway.sanitize_api_input(dangerous_string, "string")
+            result = standard_security_gateway.sanitize_api_input(
+                dangerous_string, "string"
+            )
             assert result["is_safe"] is False
             assert len(result["security_issues"]) > 0
 
-    def test_sanitize_string_input_no_html(self, security_gateway):
+    def test_sanitize_string_input_no_html(self, standard_security_gateway):
         """Test string sanitization without HTML content."""
         # pylint: disable=protected-access
         data = "Plain text without any HTML tags"
-        sanitized, issues = security_gateway._sanitize_string_input(data)
+        sanitized, issues = standard_security_gateway._sanitize_string_input(data)
 
         assert sanitized == data
         assert len(issues) == 0
@@ -228,7 +232,7 @@ class TestStringSanitization:
 class TestNestedStructures:
     """Test sanitization of nested data structures."""
 
-    def test_sanitize_nested_dict(self, security_gateway):
+    def test_sanitize_nested_dict(self, standard_security_gateway):
         """Test sanitizing nested dictionary structures."""
         data = {
             "level1": {
@@ -243,7 +247,7 @@ class TestNestedStructures:
             }
         }
 
-        result = security_gateway.sanitize_api_input(data, "json")
+        result = standard_security_gateway.sanitize_api_input(data, "json")
 
         assert result["is_safe"] is False
         assert len(result["security_issues"]) > 0
@@ -251,7 +255,7 @@ class TestNestedStructures:
         sanitized = result["sanitized_data"]
         assert "script" not in str(sanitized)
 
-    def test_sanitize_list_values(self, security_gateway):
+    def test_sanitize_list_values(self, standard_security_gateway):
         """Test sanitizing list values."""
         data = [
             "safe content",
@@ -260,12 +264,12 @@ class TestNestedStructures:
             ["nested", "list", "<i>italic</i>"],
         ]
 
-        result = security_gateway.sanitize_api_input(data, "json")
+        result = standard_security_gateway.sanitize_api_input(data, "json")
 
         assert result["is_safe"] is False
         assert len(result["security_issues"]) > 0
 
-    def test_sanitize_dict_values_recursive(self, security_gateway):
+    def test_sanitize_dict_values_recursive(self, standard_security_gateway):
         """Test recursive dictionary value sanitization."""
         # pylint: disable=protected-access
         data = {
@@ -276,12 +280,12 @@ class TestNestedStructures:
             }
         }
 
-        sanitized, issues = security_gateway._sanitize_dict_values(data)
+        sanitized, issues = standard_security_gateway._sanitize_dict_values(data)
 
         assert len(issues) > 0
         assert "script" not in str(sanitized)
 
-    def test_sanitize_list_values_recursive(self, security_gateway):
+    def test_sanitize_list_values_recursive(self, standard_security_gateway):
         """Test recursive list value sanitization."""
         # pylint: disable=protected-access
         data = [
@@ -290,7 +294,7 @@ class TestNestedStructures:
             {"dict_in_list": "<b>bold</b>"},
         ]
 
-        sanitized, issues = security_gateway._sanitize_list_values(data)
+        sanitized, issues = standard_security_gateway._sanitize_list_values(data)
 
         assert len(issues) > 0
         assert "script" not in str(sanitized)
@@ -299,20 +303,22 @@ class TestNestedStructures:
 class TestFileOperationValidation:
     """Test file operation validation."""
 
-    def test_validate_file_operation_safe(self, security_gateway):
+    def test_validate_file_operation_safe(self, standard_security_gateway):
         """Test validating safe file operation."""
         with tempfile.TemporaryDirectory() as temp_dir:
             file_path = Path(temp_dir) / "test.txt"
             file_path.write_text("test content")
 
-            result = security_gateway.validate_file_operation(file_path, "read")
+            result = standard_security_gateway.validate_file_operation(
+                file_path, "read"
+            )
 
             assert result["is_safe"] is True
             assert result["operation"] == "read"
             assert result["file_path"] == str(file_path)
             assert "normalized_path" in result
 
-    def test_validate_file_operation_dangerous(self, security_gateway):
+    def test_validate_file_operation_dangerous(self, standard_security_gateway):
         """Test validating dangerous file operation."""
         dangerous_paths = [
             "../../../etc/passwd",
@@ -321,11 +327,13 @@ class TestFileOperationValidation:
         ]
 
         for path in dangerous_paths:
-            result = security_gateway.validate_file_operation(path, "read")
+            result = standard_security_gateway.validate_file_operation(path, "read")
             assert result["is_safe"] is False
             assert len(result["security_issues"]) > 0
 
-    def test_validate_file_operation_different_operations(self, security_gateway):
+    def test_validate_file_operation_different_operations(
+        self, standard_security_gateway
+    ):
         """Test validating different file operations."""
         operations = ["read", "write", "delete"]
 
@@ -333,17 +341,19 @@ class TestFileOperationValidation:
             file_path = Path(temp_dir) / "test.txt"
 
             for operation in operations:
-                result = security_gateway.validate_file_operation(file_path, operation)
+                result = standard_security_gateway.validate_file_operation(
+                    file_path, operation
+                )
                 assert result["operation"] == operation
 
-    def test_validate_file_operation_failure(self, security_gateway):
+    def test_validate_file_operation_failure(self, standard_security_gateway):
         """Test file operation validation failure handling."""
         # Use a path that will cause validation to fail
         with patch(
-            'importobot.utils.validation.validate_file_path',
+            "importobot.services.security_gateway.validate_file_path",
             side_effect=Exception("Validation error"),
         ):
-            result = security_gateway.validate_file_operation(
+            result = standard_security_gateway.validate_file_operation(
                 "/some/path", "read"
             )
 
@@ -355,9 +365,9 @@ class TestFileOperationValidation:
 class TestJSONParserConfiguration:
     """Test JSON parser configuration."""
 
-    def test_create_secure_json_parser_default(self, security_gateway):
+    def test_create_secure_json_parser_default(self, standard_security_gateway):
         """Test creating secure JSON parser with default settings."""
-        parser_config = security_gateway.create_secure_json_parser()
+        parser_config = standard_security_gateway.create_secure_json_parser()
 
         assert parser_config["max_size_mb"] == 10
         assert parser_config["allow_duplicate_keys"] is False
@@ -365,9 +375,11 @@ class TestJSONParserConfiguration:
         assert "forbidden_patterns" in parser_config
         assert parser_config["validate_before_parse"] is True
 
-    def test_create_secure_json_parser_custom(self, security_gateway):
+    def test_create_secure_json_parser_custom(self, standard_security_gateway):
         """Test creating secure JSON parser with custom settings."""
-        parser_config = security_gateway.create_secure_json_parser(max_size_mb=5)
+        parser_config = standard_security_gateway.create_secure_json_parser(
+            max_size_mb=5
+        )
 
         assert parser_config["max_size_mb"] == 5
 
@@ -381,7 +393,7 @@ class TestJSONParserConfiguration:
 class TestSecurityChecks:
     """Test security checks and pattern detection."""
 
-    def test_universal_security_checks(self, security_gateway):
+    def test_universal_security_checks(self, standard_security_gateway):
         """Test universal security checks."""
         dangerous_content = [
             "eval(malicious_code)",
@@ -392,11 +404,11 @@ class TestSecurityChecks:
         ]
 
         for content in dangerous_content:
-            result = security_gateway.sanitize_api_input(content, "string")
+            result = standard_security_gateway.sanitize_api_input(content, "string")
             assert result["is_safe"] is False
             assert len(result["security_issues"]) > 0
 
-    def test_check_path_traversal(self, security_gateway):
+    def test_check_path_traversal(self, standard_security_gateway):
         """Test path traversal detection."""
         # pylint: disable=protected-access
         traversal_paths = [
@@ -408,11 +420,11 @@ class TestSecurityChecks:
         ]
 
         for path in traversal_paths:
-            issues = security_gateway._check_path_traversal(path)
+            issues = standard_security_gateway._check_path_traversal(path)
             assert len(issues) > 0
             assert "Path traversal attempt detected" in issues[0]
 
-    def test_check_path_traversal_safe(self, security_gateway):
+    def test_check_path_traversal_safe(self, standard_security_gateway):
         """Test path traversal detection with safe paths."""
         # pylint: disable=protected-access
         safe_paths = [
@@ -422,10 +434,10 @@ class TestSecurityChecks:
         ]
 
         for path in safe_paths:
-            issues = security_gateway._check_path_traversal(path)
+            issues = standard_security_gateway._check_path_traversal(path)
             assert len(issues) == 0
 
-    def test_perform_universal_security_checks(self, security_gateway):
+    def test_perform_universal_security_checks(self, standard_security_gateway):
         """Test universal security checks."""
         # pylint: disable=protected-access
         dangerous_data = [
@@ -438,10 +450,10 @@ class TestSecurityChecks:
         ]
 
         for data in dangerous_data:
-            issues = security_gateway._perform_universal_security_checks(data)
+            issues = standard_security_gateway._perform_universal_security_checks(data)
             assert len(issues) > 0
 
-    def test_perform_universal_security_checks_safe(self, security_gateway):
+    def test_perform_universal_security_checks_safe(self, standard_security_gateway):
         """Test universal security checks with safe data."""
         # pylint: disable=protected-access
         safe_data = [
@@ -451,10 +463,10 @@ class TestSecurityChecks:
         ]
 
         for data in safe_data:
-            issues = security_gateway._perform_universal_security_checks(data)
+            issues = standard_security_gateway._perform_universal_security_checks(data)
             assert len(issues) == 0
 
-    def test_comprehensive_dangerous_pattern_detection(self, security_gateway):
+    def test_comprehensive_dangerous_pattern_detection(self, standard_security_gateway):
         """Test comprehensive dangerous pattern detection."""
         patterns_to_test = [
             ("<script>alert('xss')</script>", "XSS script"),
@@ -469,19 +481,17 @@ class TestSecurityChecks:
         ]
 
         for pattern, description in patterns_to_test:
-            result = security_gateway.sanitize_api_input(pattern, "string")
-            assert (
-                result["is_safe"] is False
-            ), f"Failed to detect: {description}"
-            assert (
-                len(result["security_issues"]) > 0
-            ), f"No issues found for: {description}"
+            result = standard_security_gateway.sanitize_api_input(pattern, "string")
+            assert result["is_safe"] is False, f"Failed to detect: {description}"
+            assert len(result["security_issues"]) > 0, (
+                f"No issues found for: {description}"
+            )
 
 
 class TestIntegration:
     """Test integration with other services."""
 
-    @patch('importobot.services.security_gateway.ValidationService')
+    @patch("importobot.services.security_gateway.ValidationService")
     def test_validation_service_integration(self, mock_validation_service):
         """Test integration with validation service."""
         mock_validator = Mock()
@@ -496,13 +506,11 @@ class TestIntegration:
         assert result["is_safe"] is False
         assert "Validation failed" in result["validation_issues"]
 
-    @patch('importobot.services.security_gateway.SecurityValidator')
+    @patch("importobot.services.security_gateway.SecurityValidator")
     def test_security_validator_integration(self, mock_security_validator):
         """Test integration with security validator."""
         mock_validator = Mock()
-        mock_validator.validate_file_operations.return_value = [
-            "Security warning"
-        ]
+        mock_validator.validate_file_operations.return_value = ["Security warning"]
         mock_security_validator.return_value = mock_validator
 
         gateway = SecurityGateway(SecurityLevel.STANDARD)
@@ -518,17 +526,17 @@ class TestIntegration:
 class TestEdgeCases:
     """Test edge cases and error handling."""
 
-    def test_sanitize_api_input_exception_handling(self, security_gateway):
+    def test_sanitize_api_input_exception_handling(self, standard_security_gateway):
         """Test exception handling in sanitize_api_input."""
         with patch.object(
-            security_gateway,
-            '_sanitize_json_input',
+            standard_security_gateway,
+            "_sanitize_json_input",
             side_effect=Exception("Test error"),
         ):
             with pytest.raises(SecurityError):
-                security_gateway.sanitize_api_input({"test": "data"}, "json")
+                standard_security_gateway.sanitize_api_input({"test": "data"}, "json")
 
-    def test_edge_cases(self, security_gateway):
+    def test_edge_cases(self, standard_security_gateway):
         """Test edge cases and boundary conditions."""
         edge_cases = [
             ("", "Empty string"),
@@ -541,7 +549,7 @@ class TestEdgeCases:
 
         for data, description in edge_cases:
             try:
-                result = security_gateway.sanitize_api_input(data, "json")
+                result = standard_security_gateway.sanitize_api_input(data, "json")
                 # Should not raise exceptions for basic types
                 assert "security_level" in result, f"Failed for: {description}"
             except Exception as e:

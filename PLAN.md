@@ -78,11 +78,16 @@ Transform Importobot's test conversion pipeline using Databricks Medallion archi
   - `OptimizedConverter` for performance-tuned Robot Framework generation
   - `SuiteOrganizer` for intelligent test grouping and dependency resolution
   - `LibraryOptimizer` for minimal, conflict-free library imports
+  - **Optimization Benchmarking** aligned with the OptimizedConverter rollout
+    - **Objectives**: Quantify conversion quality uplift, latency reduction, and algorithmic overhead for gradient descent, simulated annealing, and genetic algorithms. Confirm when advanced optimizers deliver measurable wins beyond a tuned baseline heuristic.
+    - **Datasets**: Curated Bronze/Silver fixtures representing small (<25 tests), medium (25-150), and large (150+) suites across Zephyr, TestRail, and JIRA/Xray formats; synthetic stress suites emitted by the OptimizedConverter preview; regression corpora from existing conversion benchmarks.
+    - **Success Criteria**: Gradient descent must achieve ≥15% latency reduction while meeting target quality scores (≥0.90) within 30 iterations; alternative algorithms must demonstrate ≥5% additional improvement versus gradient descent or be flagged for deprecation. Benchmarks record wall-clock time, iteration counts, and conversion metrics via `conversion_optimization` metadata.
 
 - **Export & Analytics**
   - Multiple output formats beyond Robot Framework (TestNG, pytest)
   - Conversion analytics and quality reporting dashboard
   - Integration with existing `GenericSuggestionEngine`
+  - ADR & deployment documentation tracked in `wiki/architecture` and `wiki/Deployment-Guide.md`
 
 #### MR 4: Enterprise Features & Scalability - PLANNED
 **Scope**: Production-ready features for enterprise deployment

@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from importobot.services.security_types import SecurityLevel
 from importobot.services.validation_service import ValidationService
@@ -22,6 +22,22 @@ from importobot.utils.validation import (
     validate_file_path,
     validate_json_dict,
     validate_safe_path,
+)
+
+try:
+    import bleach  # type: ignore[import-untyped]
+except ImportError:  # pragma: no cover - bleach is optional at runtime
+    bleach = None  # type: ignore[assignment]
+
+
+INLINE_EVENT_HANDLER_PATTERN = (
+    r"on(?:abort|afterprint|beforeprint|beforeunload|blur|change|click|contextmenu|"
+    r"copy|cut|dblclick|drag|dragend|dragenter|dragleave|dragover|dragstart|drop|"
+    r"error|focus|focusin|focusout|hashchange|input|invalid|keydown|keypress|"
+    r"keyup|load|loadeddata|loadedmetadata|loadstart|message|mousedown|mouseenter|"
+    r"mouseleave|mousemove|mouseout|mouseover|mouseup|paste|popstate|reset|resize|"
+    r"scroll|search|select|storage|submit|toggle|touchcancel|touchend|touchmove|"
+    r"touchstart|unload|wheel)\s*="
 )
 
 logger = setup_logger(__name__)
@@ -48,23 +64,72 @@ class SecurityGateway:
         self.validation_service = ValidationService(
             security_level=self.security_level.value
         )
-        # Dangerous patterns that should be blocked
-        self._dangerous_patterns = [
-            r"<script.*?>.*?</script>",  # XSS scripts
-            r"javascript:",  # JavaScript protocol
-            r"data:.*base64",  # Base64 data URIs
-            r"vbscript:",  # VBScript protocol
-            r"file://",  # File protocol
-            r"\.\./",  # Directory traversal
-            r"\\.\\.\\",  # Windows directory
-            # traversal
-            r"/etc/passwd",  # System files
-            r"/proc/",  # Process filesystem
-            r"C:\\Windows\\System32",  # Windows system directory
+        self._dangerous_patterns = self._build_dangerous_patterns()
+        self._dangerous_pattern_strings = [
+            pattern.pattern for pattern, _ in self._dangerous_patterns
         ]
         logger.info(
             "Initialized SecurityGateway with level=%s", self.security_level.value
         )
+
+    @staticmethod
+    def _build_dangerous_patterns() -> List[Tuple[re.Pattern[str], str]]:
+        """Compile dangerous pattern catalogue with case-insensitive coverage."""
+        return [
+            (re.compile(r"<\s*script\b", re.IGNORECASE), "Script tag detected"),
+            (
+                re.compile(r"<\s*iframe\b", re.IGNORECASE),
+                "Iframe tag detected",
+            ),
+            (
+                re.compile(INLINE_EVENT_HANDLER_PATTERN, re.IGNORECASE),
+                "Inline event handler attribute detected",
+            ),
+            (
+                re.compile(r"javascript\s*:", re.IGNORECASE),
+                "JavaScript protocol detected",
+            ),
+            (
+                re.compile(r"vbscript\s*:", re.IGNORECASE),
+                "VBScript protocol detected",
+            ),
+            (
+                re.compile(r"data\s*:[^;]+;?base64", re.IGNORECASE),
+                "Base64-encoded data URI detected",
+            ),
+            (
+                re.compile(r"file\s*:", re.IGNORECASE),
+                "File protocol reference detected",
+            ),
+            (
+                re.compile(r"(?:\.{2}/|\\\.\.)", re.IGNORECASE),
+                "Directory traversal sequence detected",
+            ),
+            (
+                re.compile(r"/etc/passwd", re.IGNORECASE),
+                "Sensitive system path reference detected",
+            ),
+            (
+                re.compile(r"/proc/", re.IGNORECASE),
+                "Process filesystem reference detected",
+            ),
+            (
+                re.compile(r"c:\\windows\\system32", re.IGNORECASE),
+                "Windows system directory reference detected",
+            ),
+            (
+                re.compile(r"\brm\s+-rf\s+/", re.IGNORECASE),
+                "Dangerous command pattern detected",
+            ),
+            (
+                re.compile(r"\b(?:rm|del|rmdir)\s+-[rf]+\s+", re.IGNORECASE),
+                "Dangerous file deletion command detected",
+            ),
+            (
+                re.compile(r";\s*(?:rm|del|format)\s+", re.IGNORECASE),
+                "Dangerous chained command detected",
+            ),
+        ]
 
     def sanitize_api_input(
         self,
@@ -102,11 +167,21 @@ class SecurityGateway:
             universal_issues = self._perform_universal_security_checks(sanitized_data)
             security_issues.extend(universal_issues)
             # Step 3: Validation service check
-            validation_result = self.validation_service.validate(
-                sanitized_data, strategy_name=input_type, context=context
-            )
-            if not validation_result.is_valid:
-                validation_issues = validation_result.messages
+            # Map input types to validation strategies
+            # Skip validation for plain strings (they're validated by sanitization)
+            if input_type == "file_path":
+                validation_result = self.validation_service.validate(
+                    sanitized_data, strategy_name="file", context=context
+                )
+                if not validation_result.is_valid:
+                    validation_issues = validation_result.messages
+            elif input_type == "json":
+                validation_result = self.validation_service.validate(
+                    sanitized_data, strategy_name="json", context=context
+                )
+                if not validation_result.is_valid:
+                    validation_issues = validation_result.messages
+            # String type doesn't need additional validation beyond sanitization
             # Step 4: Determine if input is safe
             is_safe = len(security_issues) == 0 and len(validation_issues) == 0
             return {
@@ -175,7 +250,7 @@ class SecurityGateway:
             "allow_duplicate_keys": False,
             "strict_mode": self.security_level
             in [SecurityLevel.STRICT, SecurityLevel.STANDARD],
-            "forbidden_patterns": self._dangerous_patterns,
+            "forbidden_patterns": self._dangerous_pattern_strings,
             "validate_before_parse": True,
         }
 
@@ -183,13 +258,16 @@ class SecurityGateway:
         """Sanitize JSON input data."""
         issues = []
         try:
-            # If it's a string, parse and validate it
+            # If it's a string, parse it first
             if isinstance(data, str):
-                validate_json_dict(data)
                 data = json.loads(data)
             # Check for dangerous content in JSON values
             if isinstance(data, dict):
+                validate_json_dict(data)
                 data, json_issues = self._sanitize_dict_values(data)
+                issues.extend(json_issues)
+            elif isinstance(data, list):
+                data, json_issues = self._sanitize_list_values(data)
                 issues.extend(json_issues)
             return data, issues
         except (json.JSONDecodeError, ValidationError) as e:
@@ -204,9 +282,9 @@ class SecurityGateway:
         try:
             normalized_path = str(Path(path_str).resolve())
             # Check for dangerous patterns
-            for pattern in self._dangerous_patterns:
-                if re.search(pattern, path_str, re.IGNORECASE):
-                    issues.append(f"Dangerous pattern detected in path: {pattern}")
+            for pattern, description in self._dangerous_patterns:
+                if pattern.search(path_str):
+                    issues.append(description)
             # Additional path traversal checks
             traversal_issues = self._check_path_traversal(path_str)
             issues.extend(traversal_issues)
@@ -217,18 +295,38 @@ class SecurityGateway:
 
     def _sanitize_string_input(self, data: str) -> tuple[str, List[str]]:
         """Sanitize string input."""
-        issues = []
-        # Check for dangerous patterns
-        for pattern in self._dangerous_patterns:
-            if re.search(pattern, data, re.IGNORECASE):
-                issues.append(f"Dangerous pattern detected: {pattern}")
-        # Basic XSS protection
-        sanitized_string = data
-        if "<" in data and ">" in data:
-            # Simple HTML tag removal (for basic protection)
+        issues: List[str] = []
+        seen: set[str] = set()
+        original = data
+
+        # Apply HTML sanitization using bleach when available, otherwise use a
+        # conservative fallback that strips markup.
+        if bleach is not None:
+            sanitized_string = bleach.clean(
+                data,
+                tags=[],
+                attributes={},
+                protocols=[],
+                strip=True,
+            )
+        else:  # pragma: no cover - bleach should be installed via project deps
             sanitized_string = re.sub(r"<[^>]*>", "", data)
-            if sanitized_string != data:
-                issues.append("HTML tags removed for security")
+            sanitized_string = re.sub(
+                INLINE_EVENT_HANDLER_PATTERN,
+                "",
+                sanitized_string,
+                flags=re.IGNORECASE,
+            )
+
+        if sanitized_string != original:
+            issues.append("HTML content sanitized for security")
+            seen.add("HTML content sanitized for security")
+
+        for pattern, description in self._dangerous_patterns:
+            if pattern.search(original) and description not in seen:
+                issues.append(description)
+                seen.add(description)
+
         return sanitized_string, issues
 
     def _sanitize_dict_values(
