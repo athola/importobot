@@ -221,7 +221,7 @@ class MVLPBayesianConfidenceScorer:
     def optimize_parameters(
         self,
         training_data: List[Tuple[EvidenceMetrics, float]],
-        method: str = "trust-constr",
+        method: str = "SLSQP",
     ) -> ConfidenceParameters:
         """Optimize parameters using constrained optimization.
 
@@ -258,14 +258,18 @@ class MVLPBayesianConfidenceScorer:
         # Initial parameter vector
         x0 = self._parameters_to_vector(self.parameters)
 
+        minimize_kwargs: Dict[str, Any] = {
+            "method": method,
+            "bounds": bounds,
+            "constraints": constraints,
+            "options": {"disp": False},
+        }
+
         # Optimize using constrained optimization
         result = optimize.minimize(  # type: ignore[call-overload]
             objective,
             x0,
-            method=method,
-            bounds=bounds,
-            constraints=constraints,
-            options={"disp": False},
+            **minimize_kwargs,
         )
 
         if result.success:

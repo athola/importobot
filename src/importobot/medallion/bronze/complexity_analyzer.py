@@ -43,7 +43,7 @@ class ComplexityAnalyzer:
             max_depth = 0
             current_depth = 0
             # Only check first N chars to prevent hangs
-            for char in data_str[:cls.SAMPLE_SIZE_FOR_DEPTH_CHECK]:
+            for char in data_str[: cls.SAMPLE_SIZE_FOR_DEPTH_CHECK]:
                 if char in "{[":
                     current_depth += 1
                     max_depth = max(max_depth, current_depth)
@@ -112,7 +112,9 @@ class ComplexityAnalyzer:
             }
 
     @classmethod
-    def calculate_max_nesting_depth(cls, data: Any, max_depth: int = None) -> int:
+    def calculate_max_nesting_depth(
+        cls, data: Any, max_depth: int | None = None
+    ) -> int:
         """Calculate maximum nesting depth of data structure."""
         if max_depth is None:
             max_depth = cls.DEFAULT_MAX_NESTING_DEPTH
@@ -123,15 +125,13 @@ class ComplexityAnalyzer:
             if not data:
                 return 1
             return 1 + max(
-                cls.calculate_max_nesting_depth(v, max_depth - 1)
-                for v in data.values()
+                cls.calculate_max_nesting_depth(v, max_depth - 1) for v in data.values()
             )
         if isinstance(data, list):
             if not data:
                 return 1
             return 1 + max(
-                cls.calculate_max_nesting_depth(v, max_depth - 1)
-                for v in data
+                cls.calculate_max_nesting_depth(v, max_depth - 1) for v in data
             )
         return 0
 
@@ -197,9 +197,7 @@ class ComplexityAnalyzer:
         type_counts[type_name] = type_counts.get(type_name, 0) + 1
 
     @classmethod
-    def _merge_type_counts(
-        cls, target: Dict[str, int], source: Dict[str, int]
-    ) -> None:
+    def _merge_type_counts(cls, target: Dict[str, int], source: Dict[str, int]) -> None:
         """Merge type counts from source into target."""
         for type_name, count in source.items():
             target[type_name] = target.get(type_name, 0) + count

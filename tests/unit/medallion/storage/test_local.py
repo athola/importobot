@@ -18,55 +18,60 @@ from importobot.medallion.interfaces.enums import SupportedFormat
 from importobot.medallion.storage.local import LocalStorageBackend
 
 
+# Shared fixtures for all test classes
+@pytest.fixture
+def temp_dir():
+    """Create a temporary directory for testing."""
+    temp_path = Path(tempfile.mkdtemp())
+    yield temp_path
+    # Cleanup
+    if temp_path.exists():
+        shutil.rmtree(temp_path)
+
+
+@pytest.fixture
+def storage_backend(temp_dir):
+    """Create a LocalStorageBackend instance for testing."""
+    config = {"base_path": str(temp_dir)}
+    return LocalStorageBackend(config)
+
+
+@pytest.fixture
+def sample_metadata():
+    """Create sample metadata for testing."""
+    return LayerMetadata(
+        source_path=Path("/test/source.json"),
+        layer_name="bronze",
+        ingestion_timestamp=datetime.now(),
+        processing_timestamp=datetime.now(),
+        data_hash="test_hash_123",
+        version="1.0",
+        format_type=SupportedFormat.UNKNOWN,
+        record_count=10,
+        file_size_bytes=1024,
+        processing_duration_ms=100.5,
+        user_id="test_user",
+        session_id="test_session",
+        custom_metadata={"test_key": "test_value"},
+    )
+
+
+@pytest.fixture
+def sample_data():
+    """Create sample data for testing."""
+    return {
+        "test_cases": [
+            {"id": "TC001", "name": "Test Case 1", "status": "passed"},
+            {"id": "TC002", "name": "Test Case 2", "status": "failed"},
+        ],
+        "summary": {"total": 2, "passed": 1, "failed": 1},
+    }
+
+
 # Tests internal implementation details - protected-access needed
 # pylint: disable=protected-access
-class TestLocalStorageBackend:
-    """Test LocalStorageBackend class."""
-
-    @pytest.fixture
-    def temp_dir(self):
-        """Create a temporary directory for testing."""
-        temp_path = Path(tempfile.mkdtemp())
-        yield temp_path
-        # Cleanup
-        if temp_path.exists():
-            shutil.rmtree(temp_path)
-
-    @pytest.fixture
-    def storage_backend(self, temp_dir):
-        """Create a LocalStorageBackend instance for testing."""
-        config = {"base_path": str(temp_dir)}
-        return LocalStorageBackend(config)
-
-    @pytest.fixture
-    def sample_metadata(self):
-        """Create sample metadata for testing."""
-        return LayerMetadata(
-            source_path=Path("/test/source.json"),
-            layer_name="bronze",
-            ingestion_timestamp=datetime.now(),
-            processing_timestamp=datetime.now(),
-            data_hash="test_hash_123",
-            version="1.0",
-            format_type=SupportedFormat.UNKNOWN,
-            record_count=10,
-            file_size_bytes=1024,
-            processing_duration_ms=100.5,
-            user_id="test_user",
-            session_id="test_session",
-            custom_metadata={"test_key": "test_value"},
-        )
-
-    @pytest.fixture
-    def sample_data(self):
-        """Create sample data for testing."""
-        return {
-            "test_cases": [
-                {"id": "TC001", "name": "Test Case 1", "status": "passed"},
-                {"id": "TC002", "name": "Test Case 2", "status": "failed"},
-            ],
-            "summary": {"total": 2, "passed": 1, "failed": 1},
-        }
+class TestLocalStorageInit:
+    """Test LocalStorageBackend initialization."""
 
     def test_init_default_config(self, temp_dir):
         """Test initialization with default configuration."""
@@ -94,6 +99,11 @@ class TestLocalStorageBackend:
 
         assert backend.create_compression is True
         assert backend.auto_backup is True
+
+
+# pylint: disable=protected-access
+class TestLocalStorageDataOps:
+    """Test basic data operations (store, retrieve, delete)."""
 
     def test_store_data_success(self, storage_backend, sample_data, sample_metadata):
         """Test successful data storage."""
@@ -207,70 +217,6 @@ class TestLocalStorageBackend:
         result = storage_backend.retrieve_data("bronze", "test_001")
         assert result is None
 
-    def test_query_data_empty_layer(self, storage_backend):
-        """Test querying data from empty layer."""
-        query = LayerQuery(layer_name="bronze", filters={})
-        result = storage_backend.query_data("bronze", query)
-
-        assert isinstance(result, LayerData)
-        assert result.total_count == 0
-        assert result.retrieved_count == 0
-        assert len(result.records) == 0
-        assert len(result.metadata) == 0
-
-    def test_query_data_with_results(
-        self, storage_backend, sample_data, sample_metadata
-    ):
-        """Test querying data with results."""
-        # Store multiple data items
-        for i in range(3):
-            storage_backend.store_data(
-                layer_name="bronze",
-                data_id=f"test_{i:03d}",
-                data={**sample_data, "id": i},
-                metadata=sample_metadata,
-            )
-
-        query = LayerQuery(layer_name="bronze", filters={})
-        result = storage_backend.query_data("bronze", query)
-
-        assert result.total_count == 3
-        assert result.retrieved_count == 3
-        assert len(result.records) == 3
-        assert len(result.metadata) == 3
-
-    def test_query_data_with_limit_offset(
-        self, storage_backend, sample_data, sample_metadata
-    ):
-        """Test querying data with limit and offset."""
-        # Store multiple data items
-        for i in range(5):
-            storage_backend.store_data(
-                layer_name="bronze",
-                data_id=f"test_{i:03d}",
-                data={**sample_data, "id": i},
-                metadata=sample_metadata,
-            )
-
-        query = LayerQuery(layer_name="bronze", filters={}, limit=2, offset=1)
-        result = storage_backend.query_data("bronze", query)
-
-        assert result.total_count == 5
-        assert result.retrieved_count == 2
-        assert len(result.records) == 2
-
-    def test_query_data_failure(self, storage_backend):
-        """Test query data failure handling."""
-        # Remove the layer directory to trigger failure
-        layer_path = storage_backend.base_path / "bronze"
-        shutil.rmtree(layer_path)
-
-        query = LayerQuery(layer_name="bronze", filters={})
-        result = storage_backend.query_data("bronze", query)
-
-        assert result.total_count == 0
-        assert result.retrieved_count == 0
-
     def test_delete_data_success(self, storage_backend, sample_data, sample_metadata):
         """Test successful data deletion."""
         # Store data first
@@ -339,6 +285,75 @@ class TestLocalStorageBackend:
             result = storage_backend.delete_data("bronze", "test_001")
             assert result is False
 
+
+# pylint: disable=protected-access
+class TestLocalStorageQuery:
+    """Test query and list operations."""
+
+    def test_query_data_empty_layer(self, storage_backend):
+        """Test querying data from empty layer."""
+        query = LayerQuery(layer_name="bronze", filters={})
+        result = storage_backend.query_data("bronze", query)
+
+        assert isinstance(result, LayerData)
+        assert result.total_count == 0
+        assert result.retrieved_count == 0
+        assert len(result.records) == 0
+        assert len(result.metadata) == 0
+
+    def test_query_data_with_results(
+        self, storage_backend, sample_data, sample_metadata
+    ):
+        """Test querying data with results."""
+        # Store multiple data items
+        for i in range(3):
+            storage_backend.store_data(
+                layer_name="bronze",
+                data_id=f"test_{i:03d}",
+                data={**sample_data, "id": i},
+                metadata=sample_metadata,
+            )
+
+        query = LayerQuery(layer_name="bronze", filters={})
+        result = storage_backend.query_data("bronze", query)
+
+        assert result.total_count == 3
+        assert result.retrieved_count == 3
+        assert len(result.records) == 3
+        assert len(result.metadata) == 3
+
+    def test_query_data_with_limit_offset(
+        self, storage_backend, sample_data, sample_metadata
+    ):
+        """Test querying data with limit and offset."""
+        # Store multiple data items
+        for i in range(5):
+            storage_backend.store_data(
+                layer_name="bronze",
+                data_id=f"test_{i:03d}",
+                data={**sample_data, "id": i},
+                metadata=sample_metadata,
+            )
+
+        query = LayerQuery(layer_name="bronze", filters={}, limit=2, offset=1)
+        result = storage_backend.query_data("bronze", query)
+
+        assert result.total_count == 5
+        assert result.retrieved_count == 2
+        assert len(result.records) == 2
+
+    def test_query_data_failure(self, storage_backend):
+        """Test query data failure handling."""
+        # Remove the layer directory to trigger failure
+        layer_path = storage_backend.base_path / "bronze"
+        shutil.rmtree(layer_path)
+
+        query = LayerQuery(layer_name="bronze", filters={})
+        result = storage_backend.query_data("bronze", query)
+
+        assert result.total_count == 0
+        assert result.retrieved_count == 0
+
     def test_list_data_ids_success(self, storage_backend, sample_data, sample_metadata):
         """Test successful data ID listing."""
         # Store multiple data items
@@ -392,6 +407,11 @@ class TestLocalStorageBackend:
         assert info["bronze_data_count"] == 1
         assert info["silver_data_count"] == 0
         assert info["gold_data_count"] == 0
+
+
+# pylint: disable=protected-access
+class TestLocalStorageMaintenance:
+    """Test maintenance operations (cleanup, backup, restore)."""
 
     def test_cleanup_old_data(self, storage_backend, sample_data):
         """Test cleaning up old data."""
@@ -521,6 +541,11 @@ class TestLocalStorageBackend:
         with patch("shutil.copytree", side_effect=PermissionError("Access denied")):
             result = storage_backend.restore_layer("bronze", backup_path)
             assert result is False
+
+
+# pylint: disable=protected-access
+class TestLocalStorageInternals:
+    """Test internal helper methods."""
 
     def test_matches_query_with_filters(self, storage_backend):
         """Test query matching with filters."""

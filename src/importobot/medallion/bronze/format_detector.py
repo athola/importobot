@@ -10,6 +10,7 @@ from typing import Any, Dict, List
 from importobot.medallion.interfaces.enums import SupportedFormat
 from importobot.utils.logging import setup_logger
 from importobot.utils.regex_cache import get_compiled_pattern
+from importobot.utils.string_cache import data_to_lower_cached
 
 from .complexity_analyzer import ComplexityAnalyzer
 from .confidence_calculator import ConfidenceCalculator
@@ -76,15 +77,6 @@ class FormatDetector:
                 },
             }
         return patterns
-
-    @staticmethod
-    def _safe_lower(value: Any) -> str | None:
-        """Safely convert value to lowercase string."""
-        if isinstance(value, str):
-            return value.lower()
-        if value is None:
-            return None
-        return str(value).lower()
 
     def detect_format(self, data: Dict[str, Any]) -> SupportedFormat:
         """Detect the format type of the provided test data.
@@ -272,6 +264,8 @@ class FormatDetector:
             return 0.0
 
         data_str = self.detection_cache.get_data_string_efficient(data)
+        data_str_lower = data_to_lower_cached(data_str)
+
         base_confidence = self.confidence_calculator.get_format_confidence(
             data, format_type, data_str, ScoringAlgorithms.calculate_format_score
         )
@@ -291,7 +285,7 @@ class FormatDetector:
                 # 'testcases'
                 generic_alternatives = ["tests", "test_cases", "testcases"]
                 has_any_alternative = any(
-                    alt.lower() in data_str.lower() for alt in generic_alternatives
+                    alt.lower() in data_str_lower for alt in generic_alternatives
                 )
 
                 if has_any_alternative:
@@ -300,7 +294,7 @@ class FormatDetector:
                 # If none of the alternatives are present, apply heavy penalty
                 return base_confidence * 0.01
             # For other formats, use the original logic
-            matches = sum(1 for key in required_keys if key.lower() in data_str.lower())
+            matches = sum(1 for key in required_keys if key.lower() in data_str_lower)
             total_required = len(required_keys)
             required_ratio = matches / total_required
 
@@ -339,16 +333,23 @@ class FormatDetector:
 
         data_str = self.detection_cache.get_data_string_efficient(data)
         patterns = self._build_format_patterns()[format_type]
+        data_str_lower = data_to_lower_cached(data_str)
 
         evidence_items = []
 
         # Collect evidence from different sources
-        evidence_items.extend(self._collect_required_keys_evidence(data_str, patterns))
-        evidence_items.extend(self._collect_optional_keys_evidence(data_str, patterns))
         evidence_items.extend(
-            self._collect_structure_indicators_evidence(data_str, patterns)
+            self._collect_required_keys_evidence(data_str_lower, patterns)
         )
-        evidence_items.extend(self._collect_field_patterns_evidence(data_str, patterns))
+        evidence_items.extend(
+            self._collect_optional_keys_evidence(data_str_lower, patterns)
+        )
+        evidence_items.extend(
+            self._collect_structure_indicators_evidence(data_str_lower, patterns)
+        )
+        evidence_items.extend(
+            self._collect_field_patterns_evidence(data_str, data_str_lower, patterns)
+        )
 
         total_weight = sum(item.weight for item in evidence_items)
 
@@ -366,14 +367,14 @@ class FormatDetector:
         }
 
     def _collect_required_keys_evidence(
-        self, data_str: str, patterns: Dict[str, Any]
+        self, data_str_lower: str, patterns: Dict[str, Any]
     ) -> List[EvidenceItem]:
         """Collect evidence from required keys."""
         evidence = []
         required_keys = patterns.get("required_keys", [])
 
         for key in required_keys:
-            if key.lower() in data_str:
+            if key.lower() in data_str_lower:
                 weight, confidence = ContextSearcher.get_evidence_weight_for_key(
                     key, "required"
                 )
@@ -389,14 +390,14 @@ class FormatDetector:
         return evidence
 
     def _collect_optional_keys_evidence(
-        self, data_str: str, patterns: Dict[str, Any]
+        self, data_str_lower: str, patterns: Dict[str, Any]
     ) -> List[EvidenceItem]:
         """Collect evidence from optional keys."""
         evidence = []
         optional_keys = patterns.get("optional_keys", [])
 
         for key in optional_keys:
-            if key.lower() in data_str:
+            if key.lower() in data_str_lower:
                 weight, confidence = ContextSearcher.get_evidence_weight_for_key(
                     key, "optional"
                 )
@@ -412,14 +413,14 @@ class FormatDetector:
         return evidence
 
     def _collect_structure_indicators_evidence(
-        self, data_str: str, patterns: Dict[str, Any]
+        self, data_str_lower: str, patterns: Dict[str, Any]
     ) -> List[EvidenceItem]:
         """Collect evidence from structure indicators."""
         evidence = []
         structure_indicators = patterns.get("structure_indicators", [])
 
         for indicator in structure_indicators:
-            if indicator.lower() in data_str:
+            if indicator.lower() in data_str_lower:
                 weight, confidence = ContextSearcher.get_evidence_weight_for_key(
                     indicator, "structure"
                 )
@@ -449,14 +450,14 @@ class FormatDetector:
         return get_compiled_pattern(pattern, re.IGNORECASE)
 
     def _collect_field_patterns_evidence(
-        self, data_str: str, patterns: Dict[str, Any]
+        self, data_str: str, data_str_lower: str, patterns: Dict[str, Any]
     ) -> List[EvidenceItem]:
         """Collect evidence from field patterns."""
         evidence = []
         field_patterns = patterns.get("field_patterns", {})
 
         for field_name, pattern in field_patterns.items():
-            if field_name.lower() in data_str and pattern:
+            if field_name.lower() in data_str_lower and pattern:
                 try:
                     # Use cached compiled regex for performance
                     compiled_pattern = self._get_compiled_regex(pattern)

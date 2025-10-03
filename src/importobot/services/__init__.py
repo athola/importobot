@@ -5,6 +5,7 @@ and improve maintainability as identified in the staff engineering review.
 """
 
 # Import only services that don't cause circular imports
+from .optimization_service import OptimizationService
 from .performance_cache import PerformanceCache, cached_json_dumps, cached_string_lower
 from .security_gateway import SecurityError, SecurityGateway
 from .security_types import SecurityLevel
@@ -17,6 +18,7 @@ from .validation_service import ValidationService
 __all__ = [
     "ValidationService",
     "PerformanceCache",
+    "OptimizationService",
     "SecurityGateway",
     "SecurityError",
     "SecurityLevel",

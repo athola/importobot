@@ -47,7 +47,7 @@ class DetectionCache:
                 "Cache rejected oversized content: %d bytes (limit: %d). "
                 "Potential DoS attempt detected.",
                 len(data_str),
-                self.MAX_CONTENT_SIZE
+                self.MAX_CONTENT_SIZE,
             )
             return data_str  # Don't cache, return directly
 
@@ -71,7 +71,7 @@ class DetectionCache:
                     "Cache rejected data due to collision chain limit: %d (limit: %d). "
                     "Potential hash collision attack detected.",
                     len(collision_list),
-                    self.MAX_COLLISION_CHAIN_LENGTH
+                    self.MAX_COLLISION_CHAIN_LENGTH,
                 )
                 return data_str  # Don't cache, return directly
             collision_list.append(cache_key)
@@ -103,7 +103,7 @@ class DetectionCache:
 
         # Generate Blake2b hash of the complete normalized content
         # Blake2b is faster than SHA-256 with equivalent collision resistance
-        content_hash = hashlib.blake2b(data_str.encode('utf-8')).hexdigest()
+        content_hash = hashlib.blake2b(data_str.encode("utf-8")).hexdigest()
 
         return content_hash, data_str
 
@@ -111,9 +111,9 @@ class DetectionCache:
         """Generate secondary hash for collision detection optimization."""
         # Use different algorithm for secondary hash to minimize correlation
         return hashlib.blake2b(
-            data_str.encode('utf-8'),
+            data_str.encode("utf-8"),
             digest_size=16,  # Smaller digest for efficiency
-            salt=b'collision_detect'  # Salt to differentiate from primary hash
+            salt=b"collision_detect",  # Salt to differentiate from primary hash
         ).hexdigest()
 
     def get_normalized_key_set(self, data: Dict[str, Any]) -> set[str]:
@@ -128,12 +128,12 @@ class DetectionCache:
                 "Cache rejected oversized key set: %d bytes (limit: %d). "
                 "Potential DoS attempt detected.",
                 len(keys_string),
-                self.MAX_CONTENT_SIZE
+                self.MAX_CONTENT_SIZE,
             )
             # Compute directly without caching
             return {key.lower().strip() for key in data.keys() if isinstance(key, str)}
 
-        primary_hash = hashlib.blake2b(keys_string.encode('utf-8')).hexdigest()
+        primary_hash = hashlib.blake2b(keys_string.encode("utf-8")).hexdigest()
         secondary_hash = self._get_secondary_hash(keys_string)
         cache_key = f"{primary_hash}_{secondary_hash[:8]}"
 
@@ -171,7 +171,7 @@ class DetectionCache:
                     "Cache rejected oversized detection result: %d bytes (limit: %d). "
                     "Potential DoS attempt detected.",
                     len(data_str),
-                    self.MAX_CONTENT_SIZE
+                    self.MAX_CONTENT_SIZE,
                 )
                 return  # Don't cache
 
@@ -200,7 +200,7 @@ class DetectionCache:
                     "Cache lookup rejected oversized content: %d bytes (limit: %d). "
                     "Potential DoS attempt detected.",
                     len(data_str),
-                    self.MAX_CONTENT_SIZE
+                    self.MAX_CONTENT_SIZE,
                 )
                 return None  # Don't lookup
 

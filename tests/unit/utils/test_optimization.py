@@ -90,6 +90,7 @@ class TestGradientDescentOptimizer:
 
     def test_simple_quadratic_optimization(self):
         """Test optimization of simple quadratic function."""
+
         def quadratic_function(params):
             x = params.get("x", 0)
             return x**2
@@ -112,9 +113,10 @@ class TestGradientDescentOptimizer:
 
     def test_optimization_with_bounds(self):
         """Test optimization with parameter bounds."""
+
         def quadratic_function(params):
             x = params.get("x", 0)
-            return (x - 2)**2
+            return (x - 2) ** 2
 
         optimizer = GradientDescentOptimizer(
             OptimizerConfig(learning_rate=0.1, max_iterations=100)
@@ -132,6 +134,7 @@ class TestGradientDescentOptimizer:
 
     def test_optimization_with_custom_gradient(self):
         """Test optimization with custom gradient function."""
+
         def quadratic_function(params):
             x = params.get("x", 0)
             return x**2
@@ -155,6 +158,7 @@ class TestGradientDescentOptimizer:
 
     def test_numerical_gradients(self):
         """Test numerical gradient computation."""
+
         def quadratic_function(params):
             x = params.get("x", 0)
             return x**2
@@ -174,13 +178,17 @@ class TestGradientDescentOptimizer:
 
         # Test increasing learning rate for decreasing gradient norm
         new_rate = optimizer._adjust_learning_rate(
-            {"x": 0.1}, 0.1, 1.0  # small current gradient, large previous
+            {"x": 0.1},
+            0.1,
+            1.0,  # small current gradient, large previous
         )
         assert new_rate > 0.1  # Should increase
 
         # Test decreasing learning rate for increasing gradient norm
         new_rate = optimizer._adjust_learning_rate(
-            {"x": 1.0}, 0.1, 0.1  # large current gradient, small previous
+            {"x": 1.0},
+            0.1,
+            0.1,  # large current gradient, small previous
         )
         assert new_rate < 0.1  # Should decrease
 
@@ -231,14 +239,13 @@ class TestGeneticAlgorithmOptimizer:
 
     def test_simple_fitness_optimization(self):
         """Test optimization of simple fitness function."""
+
         def fitness_function(params):
             x = params.get("x", 0)
             # Maximize -(x-5)^2, so optimal x=5
-            return -(x - 5)**2
+            return -((x - 5) ** 2)
 
-        optimizer = GeneticAlgorithmOptimizer(
-            population_size=20, max_generations=50
-        )
+        optimizer = GeneticAlgorithmOptimizer(population_size=20, max_generations=50)
 
         result = optimizer.optimize(
             fitness_function=fitness_function,
@@ -253,7 +260,7 @@ class TestGeneticAlgorithmOptimizer:
     def test_random_individual_generation(self):
         """Test random individual generation."""
         optimizer = GeneticAlgorithmOptimizer()
-        parameter_ranges = {"x": (0, 10), "y": (-5, 5)}
+        parameter_ranges = {"x": (0.0, 10.0), "y": (-5.0, 5.0)}
 
         individual = optimizer._generate_random_individual(parameter_ranges)
 
@@ -263,13 +270,13 @@ class TestGeneticAlgorithmOptimizer:
     def test_tournament_selection(self):
         """Test tournament selection."""
         optimizer = GeneticAlgorithmOptimizer(tournament_size=2)
-        population = [{"x": 1}, {"x": 2}, {"x": 3}, {"x": 4}]
-        fitness_scores = [10, 20, 30, 40]  # Higher is better
+        population = [{"x": 1.0}, {"x": 2.0}, {"x": 3.0}, {"x": 4.0}]
+        fitness_scores = [10.0, 20.0, 30.0, 40.0]  # Higher is better
 
-        with patch('random.sample', return_value=[2, 3]):
+        with patch("random.sample", return_value=[2, 3]):
             selected = optimizer._tournament_selection(population, fitness_scores)
             # Should select individual with index 3 (highest fitness in tournament)
-            assert selected["x"] == 4
+            assert selected["x"] == 4.0
 
     def test_crossover(self):
         """Test crossover operation."""
@@ -277,7 +284,7 @@ class TestGeneticAlgorithmOptimizer:
         parent1 = {"x": 1.0, "y": 2.0}
         parent2 = {"x": 3.0, "y": 4.0}
 
-        with patch('random.choice', side_effect=[1.0, 4.0]):
+        with patch("random.choice", side_effect=[1.0, 4.0]):
             child = optimizer._crossover(parent1, parent2)
             assert child["x"] == 1.0  # From parent1
             assert child["y"] == 4.0  # From parent2
@@ -286,9 +293,9 @@ class TestGeneticAlgorithmOptimizer:
         """Test mutation operation."""
         optimizer = GeneticAlgorithmOptimizer()
         individual = {"x": 5.0}
-        parameter_ranges = {"x": (0, 10)}
+        parameter_ranges = {"x": (0.0, 10.0)}
 
-        with patch('random.gauss', return_value=1.0):
+        with patch("random.gauss", return_value=1.0):
             mutated = optimizer._mutate(individual, parameter_ranges)
             # Should apply mutation but stay within bounds
             assert 0 <= mutated["x"] <= 10
@@ -296,15 +303,15 @@ class TestGeneticAlgorithmOptimizer:
     def test_elitism(self):
         """Test elitism preservation."""
         optimizer = GeneticAlgorithmOptimizer(elitism_count=2)
-        population = [{"x": 1}, {"x": 2}, {"x": 3}, {"x": 4}]
-        fitness_scores = [10, 40, 20, 30]
+        population = [{"x": 1.0}, {"x": 2.0}, {"x": 3.0}, {"x": 4.0}]
+        fitness_scores = [10.0, 40.0, 20.0, 30.0]
 
         elite = optimizer._apply_elitism(population, fitness_scores)
 
         # Should select the 2 best individuals (indices 1 and 3)
         assert len(elite) == 2
-        assert {"x": 2} in elite  # Fitness 40
-        assert {"x": 4} in elite  # Fitness 30
+        assert {"x": 2.0} in elite  # Fitness 40
+        assert {"x": 4.0} in elite  # Fitness 30
 
     def test_convergence_check(self):
         """Test convergence detection for genetic algorithm."""
@@ -324,9 +331,10 @@ class TestSimulatedAnnealing:
 
     def test_simple_optimization(self):
         """Test simulated annealing on simple function."""
+
         def objective_function(params):
             x = params.get("x", 0)
-            return (x - 3)**2  # Minimum at x=3
+            return (x - 3) ** 2  # Minimum at x=3
 
         config = AnnealingConfig(
             initial_temperature=10.0, max_iterations=100, min_temperature=0.01
@@ -346,8 +354,9 @@ class TestSimulatedAnnealing:
 
     def test_default_config(self):
         """Test simulated annealing with default configuration."""
+
         def objective_function(params):
-            return params.get("x", 0)**2
+            return params.get("x", 0) ** 2
 
         result = simulated_annealing(
             objective_function=objective_function,
@@ -361,8 +370,9 @@ class TestSimulatedAnnealing:
 
     def test_temperature_cooling(self):
         """Test that temperature decreases during annealing."""
+
         def objective_function(params):
-            return params.get("x", 0)**2
+            return params.get("x", 0) ** 2
 
         config = AnnealingConfig(
             initial_temperature=100.0,
@@ -383,8 +393,9 @@ class TestSimulatedAnnealing:
 
     def test_parameter_bounds_enforcement(self):
         """Test that parameter bounds are enforced."""
+
         def objective_function(params):
-            return params.get("x", 0)**2
+            return params.get("x", 0) ** 2
 
         config = AnnealingConfig(max_iterations=50)
 
@@ -398,15 +409,15 @@ class TestSimulatedAnnealing:
         best_params, _, _ = result
         assert -2 <= best_params["x"] <= 2
 
-    @patch('random.random')
-    @patch('random.gauss')
+    @patch("random.random")
+    @patch("random.gauss")
     def test_acceptance_probability(self, mock_gauss, mock_random):
         """Test acceptance probability calculation."""
         mock_gauss.return_value = 0.1
         mock_random.return_value = 0.5
 
         def objective_function(params):
-            return params.get("x", 0)**2
+            return params.get("x", 0) ** 2
 
         config = AnnealingConfig(
             initial_temperature=1.0, max_iterations=5, min_temperature=0.1
@@ -428,11 +439,12 @@ class TestIntegrationScenarios:
 
     def test_multi_parameter_optimization(self):
         """Test optimization with multiple parameters."""
+
         def objective_function(params):
             x = params.get("x", 0)
             y = params.get("y", 0)
             # Rosenbrock function (a = 1, b = 100)
-            return 100 * (y - x**2)**2 + (1 - x)**2
+            return 100 * (y - x**2) ** 2 + (1 - x) ** 2
 
         optimizer = GradientDescentOptimizer(
             OptimizerConfig(learning_rate=0.001, max_iterations=1000)
@@ -451,17 +463,16 @@ class TestIntegrationScenarios:
 
     def test_genetic_vs_gradient_comparison(self):
         """Compare genetic algorithm and gradient descent on same problem."""
+
         def fitness_function(params):
             x = params.get("x", 0)
-            return -(x - 2)**2  # Maximum at x=2
+            return -((x - 2) ** 2)  # Maximum at x=2
 
         def objective_function(params):
-            return (params.get("x", 0) - 2)**2  # Minimum at x=2
+            return (params.get("x", 0) - 2) ** 2  # Minimum at x=2
 
         # Genetic algorithm
-        ga_optimizer = GeneticAlgorithmOptimizer(
-            population_size=20, max_generations=50
-        )
+        ga_optimizer = GeneticAlgorithmOptimizer(population_size=20, max_generations=50)
         ga_result = ga_optimizer.optimize(
             fitness_function=fitness_function,
             parameter_ranges={"x": (0, 4)},
@@ -482,6 +493,7 @@ class TestIntegrationScenarios:
 
     def test_convergence_with_noise(self):
         """Test optimization with noisy objective function."""
+
         def noisy_quadratic(params):
             x = params.get("x", 0)
             noise = random.gauss(0, 0.01)

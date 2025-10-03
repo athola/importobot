@@ -43,6 +43,12 @@ Rather than testing specific scenarios, invariant tests define **properties the 
 - **Quality Metrics**: Scores within valid ranges and meaningful
 - **Scalability**: Performance doesn't degrade with load
 
+### Security Tests (`test_security_invariants.py`)
+- **Gateway Resilience**: Sanitization never raises unexpected exceptions
+- **HTML Purging**: Embedded markup is stripped and reported
+- **Dangerous Pattern Detection**: Shell injection markers always trigger alerts
+- **Path Traversal Detection**: Suspicious file paths are never marked safe
+
 ## Running Invariant Tests
 
 ### Quick Run (CI Profile - 20 examples per test)

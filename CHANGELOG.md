@@ -17,24 +17,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Invariant Testing Framework** with 34 property-based tests using Hypothesis
 - **Performance Optimization** with caching and enterprise-scale benchmarking
 - **Example Scripts** for advanced features and CLI usage demonstrations
+- **Comprehensive test suite for MVLP Bayesian Confidence Scorer** with 46 new tests achieving 78% coverage
+  - Unit tests for `ConfidenceParameters`, `EvidenceMetrics`, and `MVLPBayesianConfidenceScorer`
+  - Integration tests for end-to-end confidence calculation workflows
+  - Property-based tests for parameter optimization and constraint validation
 
 ### Infrastructure
-- Expanded test suite to **1382 comprehensive tests** with full coverage
+- Expanded test suite to **1539 comprehensive tests** (1493 → 1539) with full coverage
 - Added **mathematical foundations documentation** for confidence algorithms
 - Enhanced CI/CD with improved GitHub Packages integration
 - Added performance benchmarking and enterprise demo capabilities
 
+### Changed
+- Improved type annotations for better mypy compatibility
+  - Fixed `complexity_analyzer.py` parameter type annotations (`int | None`)
+  - Enhanced `confidence_calculator.py` type mapping for `isinstance` checks
+  - Updated `test_optimization.py` to use float types consistently
+
+### Fixed
+- Fixed flaky `test_format_detection_scalability_invariant` by using `time.perf_counter()` instead of `time.time()`
+- Fixed type checking errors in MVLP Bayesian confidence implementation
+- Resolved 8 mypy errors across 3 files
+
+### Removed
+- **Internal refactoring**: Removed unused `bayesian_confidence.py` (287 lines) in favor of canonical `mvlp_bayesian_confidence.py`
+  - No public API impact - file was never part of the public API or committed to repository
+  - `mvlp_bayesian_confidence.py` provides more sophisticated scipy-based optimization
+  - Active production use confirmed in `evidence_accumulator.py`
+
 ### Quality Improvements
 - Achieved **10.00/10 pylint score** across entire codebase
 - Fixed all validation issues including AttributeError for non-string dictionary keys
-- Added comprehensive type checking with mypy (236 files clean)
+- Added comprehensive type checking with mypy (243 files clean)
 - Implemented fail-fast principles throughout the architecture
 - Added shared test data structures to eliminate code duplication
 
+### Documentation
+- Enhanced migration guide with clear breaking change documentation
+- Added comprehensive API documentation following pandas-inspired design patterns
+- Updated mathematical foundations documentation
+
 ### Breaking Changes
-- Introduced medallion architecture with bronze/silver/gold layer separation
-- Added new service layer with validation, security, and format detection
-- Enhanced API surface with enterprise-focused capabilities
+- **BREAKING**: Introduced medallion architecture with bronze/silver/gold layer separation
+  - All data processing must go through medallion layers
+  - No backwards compatibility with pre-0.1.1 internal implementations
+  - Public API (`JsonToRobotConverter`, CLI) remains stable
+- **BREAKING**: New service layer with validation, security, and format detection
+  - Security gateway now required for all input validation
+  - Validation service provides unified quality assessment
+- **BREAKING**: Enhanced internal API surface with enterprise-focused capabilities
+  - Private modules (`importobot.core.*`, `importobot.medallion.*`) may change between minor versions
+  - Only public API modules are guaranteed stable
 
 ## [0.1.0] - 2025-09-23
 

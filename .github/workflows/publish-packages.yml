@@ -1,8 +1,11 @@
 name: Publish to PyPI
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - main
+    paths:
+      - "pyproject.toml"
   workflow_dispatch:
 
 permissions:
@@ -27,7 +30,7 @@ jobs:
       run: uv build
 
     - name: Publish to PyPI
-      if: github.event_name == 'release' && secrets.PYPI_API_TOKEN != ''
+      if: ${{ github.ref == 'refs/heads/main' && secrets.PYPI_API_TOKEN != '' }}
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
@@ -36,7 +39,7 @@ jobs:
         uv tool run twine upload dist/*
 
     - name: PyPI Token Missing
-      if: github.event_name == 'release' && secrets.PYPI_API_TOKEN == ''
+      if: ${{ github.ref == 'refs/heads/main' && secrets.PYPI_API_TOKEN == '' }}
       run: |
         echo "⚠️  PYPI_API_TOKEN secret not configured"
         echo "To enable PyPI publishing:"

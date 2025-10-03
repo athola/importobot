@@ -180,3 +180,48 @@ uv run importobot input.json output.robot
 5. **Use Batch Processing**: For large test suites, use batch processing for efficiency.
 6. **Clean Artifacts**: Regularly clean generated artifacts using `make clean` or `make deep-clean`.
 7. **Maintain Repository Cleanliness**: Ensure no artifacts are accidentally committed to the repository.
+
+## Advanced Features
+
+Importobot uses a medallion architecture internally (Bronze/Silver/Gold layers) to ensure data quality, but these implementation details are private. All features are accessed through the public API:
+
+### Using the Public API
+
+```python
+import importobot
+
+# Primary conversion interface
+converter = importobot.JsonToRobotConverter()
+
+# Convert a test case
+test_data = {
+    "testCase": {
+        "name": "Checkout Smoke",
+        "steps": [
+            {"stepDescription": "Open checkout", "expectedResult": "Checkout loads"},
+            {"stepDescription": "Submit order", "expectedResult": "Order created"},
+        ],
+    }
+}
+
+# Convert to Robot Framework format
+robot_content = converter.convert_json_data(test_data)
+print(robot_content)
+
+# For validation features
+from importobot.api import validation
+
+# Validate test data structure
+validation_result = validation.validate_test_structure(test_data)
+if validation_result.is_valid:
+    print("Test structure is valid")
+else:
+    print(f"Validation errors: {validation_result.errors}")
+```
+
+**What the medallion architecture provides (internally):**
+- **Bronze Layer**: Schema validation and format detection with quality metrics
+- **Silver Layer**: Data standardization and enrichment (in development)
+- **Gold Layer**: Optimized Robot Framework output generation
+
+**Important:** Always use the public API (`importobot.*` and `importobot.api.*`). Internal modules (`importobot.medallion.*`, `importobot.core.*`) are private implementation details that may change between versions.
