@@ -7,6 +7,8 @@ import time
 from datetime import datetime, timezone
 from typing import Any
 
+from importobot.utils.string_cache import data_to_lower_cached
+
 logger = logging.getLogger(__name__)
 
 
@@ -282,16 +284,6 @@ class SecurityValidator:
 
         return base_paths
 
-    @property
-    def dangerous_patterns_property(self) -> list[str]:
-        """Backward compatibility property."""
-        return self.dangerous_patterns
-
-    @property
-    def sensitive_paths_property(self) -> list[str]:
-        """Backward compatibility property."""
-        return self.sensitive_paths
-
     def validate_ssh_parameters(self, parameters: dict[str, Any]) -> list[str]:
         """Validate SSH operation parameters for security issues.
 
@@ -550,7 +542,8 @@ class SecurityValidator:
         warnings = []
 
         if any(
-            env in str(parameters).lower() for env in ["prod", "production", "live"]
+            env in data_to_lower_cached(parameters)
+            for env in ["prod", "production", "live"]
         ):
             warning_msg = (
                 "⚠️  Production environment detected - ensure proper authorization"
@@ -565,7 +558,7 @@ class SecurityValidator:
                     "detected_indicators": [
                         env
                         for env in ["prod", "production", "live"]
-                        if env in str(parameters).lower()
+                        if env in data_to_lower_cached(parameters)
                     ],
                     "parameter_preview": (
                         str(parameters)[:100] + "..."
@@ -712,7 +705,7 @@ class SecurityValidator:
 
         # Check for SSH usage
         if any(
-            "ssh" in str(value).lower() or "ssh" in key.lower()
+            "ssh" in data_to_lower_cached(value) or "ssh" in key.lower()
             for key, value in test_data.items()
         ):
             recommendations.extend(
@@ -726,12 +719,12 @@ class SecurityValidator:
 
         # Check for database operations
         if any(
-            "database" in str(value).lower()
-            or "sql" in str(value).lower()
-            or "select" in str(value).lower()
-            or "insert" in str(value).lower()
-            or "update" in str(value).lower()
-            or "delete" in str(value).lower()
+            "database" in data_to_lower_cached(value)
+            or "sql" in data_to_lower_cached(value)
+            or "select" in data_to_lower_cached(value)
+            or "insert" in data_to_lower_cached(value)
+            or "update" in data_to_lower_cached(value)
+            or "delete" in data_to_lower_cached(value)
             or "database" in key.lower()
             or "query" in key.lower()
             for key, value in test_data.items()
@@ -746,8 +739,8 @@ class SecurityValidator:
 
         # Check for web operations
         if any(
-            "browser" in str(value).lower()
-            or "web" in str(value).lower()
+            "browser" in data_to_lower_cached(value)
+            or "web" in data_to_lower_cached(value)
             or "browser" in key.lower()
             or "url" in key.lower()
             for key, value in test_data.items()
@@ -828,10 +821,13 @@ def validate_test_security(test_case: dict[str, Any]) -> dict[str, list[str]]:
     }
 
     # Validate SSH operations
-    if "ssh" in str(test_case).lower():
+    if "ssh" in data_to_lower_cached(test_case):
         # Extract SSH parameters from test case steps
         for step in test_case.get("steps", []):
-            if "ssh" in str(step).lower() or step.get("library") == "SSHLibrary":
+            if (
+                "ssh" in data_to_lower_cached(step)
+                or step.get("library") == "SSHLibrary"
+            ):
                 # Parse test_data for SSH parameters
                 test_data = step.get("test_data", "")
                 ssh_params = {}
@@ -937,3 +933,7 @@ def extract_security_warnings(keyword_info: dict[str, Any]) -> list[str]:
     if "security_note" in keyword_info:
         warnings.append(keyword_info["security_note"])
     return warnings
+
+
+# Internal utility - not part of public API
+__all__: list[str] = []

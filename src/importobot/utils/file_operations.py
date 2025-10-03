@@ -7,9 +7,12 @@ import tempfile
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Union, cast
+from typing import Any, Union
 
-from importobot.core.converter import apply_conversion_suggestions, convert_file
+from importobot.utils.json_utils import load_json_file
+
+# Conversion functions have been moved to importobot.core.converter
+# to avoid circular import issues. Import directly from there.
 
 
 @contextmanager
@@ -46,6 +49,10 @@ def convert_with_temp_file(
     with temporary_json_file(conversion_data) as temp_filename:
         if display_changes_func and changes_made and args:
             display_changes_func(changes_made, args)
+        from importobot.core.converter import (  # pylint: disable=import-outside-toplevel  # noqa: E501
+            convert_file,
+        )
+
         convert_file(temp_filename, robot_filename)
         print(f"Successfully converted improved JSON to {robot_filename}")
 
@@ -118,43 +125,6 @@ def display_suggestion_changes(changes_made: list[dict[str, Any]], args: Any) ->
         print("   The JSON data is already in good shape!")
 
 
-def load_json_file(json_file_path: str | None) -> dict[str, Any]:
-    """Load JSON data from file with proper error handling.
-
-    Args:
-        json_file_path: Path to the JSON file to load
-
-    Returns:
-        Dict containing the loaded JSON data
-
-    Raises:
-        ValueError: If json_file_path is None or empty
-        FileNotFoundError: If the file doesn't exist
-        json.JSONDecodeError: If the file contains invalid JSON
-        IOError: If there are file permission or access issues
-    """
-    if not json_file_path:
-        raise ValueError("File path cannot be empty or None")
-
-    if not os.path.exists(json_file_path):
-        raise FileNotFoundError(f"Could not find JSON file: {json_file_path}")
-
-    try:
-        with open(json_file_path, "r", encoding="utf-8") as f:
-            return cast(dict[str, Any], json.load(f))
-    except json.JSONDecodeError as e:
-        raise json.JSONDecodeError(
-            f"JSON file appears to be corrupted at line {e.lineno}, "
-            f"column {e.colno}: {e.msg}",
-            e.doc,
-            e.pos,
-        ) from e
-    except PermissionError as e:
-        raise IOError(f"Permission denied accessing file: {json_file_path}") from e
-    except OSError as e:
-        raise IOError(f"Error reading file {json_file_path}: {e}") from e
-
-
 def process_single_file_with_suggestions(
     args: Any,
     display_changes_func: Callable | None = None,
@@ -171,6 +141,10 @@ def process_single_file_with_suggestions(
     json_data = load_json_file(args.input)
 
     # Apply suggestions
+    from importobot.core.converter import (  # pylint: disable=import-outside-toplevel
+        apply_conversion_suggestions,
+    )
+
     improved_data, changes_made = apply_conversion_suggestions(json_data)
 
     # Generate base name using appropriate method

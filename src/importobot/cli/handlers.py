@@ -14,9 +14,9 @@ from importobot.core.converter import (
 )
 from importobot.utils.file_operations import (
     display_suggestion_changes,
-    load_json_file,
     process_single_file_with_suggestions,
 )
+from importobot.utils.json_utils import load_json_file
 from importobot.utils.logging import setup_logger
 
 logger = setup_logger("importobot-cli")
@@ -128,7 +128,7 @@ def print_suggestions(filtered_suggestions: list[str]) -> None:
         print("No suggestions for improvement.")
         return
 
-    print("\n💡 Conversion Suggestions:")
+    print("\nConversion Suggestions:")
     print("=" * 50)
     for i, suggestion in enumerate(filtered_suggestions, 1):
         print(f"  {i}. {suggestion}")

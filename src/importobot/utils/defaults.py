@@ -61,8 +61,7 @@ class DataDefaults:
     """Organized default values for test data generation."""
 
     def __init__(self, **kwargs: Any) -> None:
-        """Initialize with support for both new and legacy attribute names."""
-        # Initialize nested defaults
+        """Initialize defaults with optional overrides."""
         self.web = WebDefaults()
         self.user = UserDefaults()
         self.ssh = SSHDefaults()
@@ -70,120 +69,14 @@ class DataDefaults:
         self.api = APIDefaults()
         self.file = FileDefaults()
 
-        # Handle legacy attribute names in constructor
-        legacy_mapping = {
-            "default_url": ("web", "url"),
-            "default_browser": ("web", "browser"),
-            "default_locator": ("web", "locator"),
-            "default_timeout": ("web", "timeout"),
-            "default_username": ("user", "username"),
-            "default_password": ("user", "password"),
-            "default_ssh_host": ("ssh", "host"),
-            "default_ssh_port": ("ssh", "port"),
-            "default_db_query": ("database", "query"),
-            "default_db_connection": ("database", "connection"),
-            "default_db_host": ("database", "host"),
-            "default_db_port": ("database", "port"),
-            "default_api_endpoint": ("api", "endpoint"),
-            "default_api_method": ("api", "method"),
-            "default_api_session": ("api", "session"),
-            "default_file_path": ("file", "path"),
-            "default_file_content": ("file", "content"),
-        }
-
+        # Apply any provided overrides using dot notation
         for key, value in kwargs.items():
-            if key in legacy_mapping:
-                category, attr = legacy_mapping[key]
-                category_obj = getattr(self, category)
-                setattr(category_obj, attr, value)
-            elif hasattr(self, key):
-                setattr(self, key, value)
-
-    # Backward compatibility properties for tests
-    @property
-    def default_url(self) -> str:
-        """Backward compatibility property."""
-        return self.web.url
-
-    @property
-    def default_browser(self) -> str:
-        """Backward compatibility property."""
-        return self.web.browser
-
-    @property
-    def default_locator(self) -> str:
-        """Backward compatibility property."""
-        return self.web.locator
-
-    @property
-    def default_timeout(self) -> str:
-        """Backward compatibility property."""
-        return self.web.timeout
-
-    @property
-    def default_username(self) -> str:
-        """Backward compatibility property."""
-        return self.user.username
-
-    @property
-    def default_password(self) -> str:
-        """Backward compatibility property."""
-        return self.user.password
-
-    @property
-    def default_ssh_host(self) -> str:
-        """Backward compatibility property."""
-        return self.ssh.host
-
-    @property
-    def default_ssh_port(self) -> int:
-        """Backward compatibility property."""
-        return self.ssh.port
-
-    @property
-    def default_db_query(self) -> str:
-        """Backward compatibility property."""
-        return self.database.query
-
-    @property
-    def default_db_connection(self) -> str:
-        """Backward compatibility property."""
-        return self.database.connection
-
-    @property
-    def default_db_host(self) -> str:
-        """Backward compatibility property."""
-        return self.database.host
-
-    @property
-    def default_db_port(self) -> int:
-        """Backward compatibility property."""
-        return self.database.port
-
-    @property
-    def default_api_endpoint(self) -> str:
-        """Backward compatibility property."""
-        return self.api.endpoint
-
-    @property
-    def default_api_method(self) -> str:
-        """Backward compatibility property."""
-        return self.api.method
-
-    @property
-    def default_api_session(self) -> str:
-        """Backward compatibility property."""
-        return self.api.session
-
-    @property
-    def default_file_path(self) -> str:
-        """Backward compatibility property."""
-        return self.file.path
-
-    @property
-    def default_file_content(self) -> str:
-        """Backward compatibility property."""
-        return self.file.content
+            if "." in key:
+                category, attr = key.split(".", 1)
+                if hasattr(self, category):
+                    category_obj = getattr(self, category)
+                    if hasattr(category_obj, attr):
+                        setattr(category_obj, attr, value)
 
 
 @dataclass
@@ -311,49 +204,22 @@ def get_default_value(category: str, key: str, fallback: str = "") -> str:
 
 
 def configure_defaults(**kwargs: Any) -> None:
-    """Configure default values at runtime."""
-    # Access module-level instances to modify their attributes
+    """Configure default values at runtime using dot notation."""
     test_defaults = TEST_DATA_DEFAULTS
     progress_config = PROGRESS_CONFIG
     keyword_patterns = KEYWORD_PATTERNS
 
-    # Backward compatibility mapping for old attribute names
-    legacy_mapping = {
-        "default_url": ("web", "url"),
-        "default_browser": ("web", "browser"),
-        "default_locator": ("web", "locator"),
-        "default_timeout": ("web", "timeout"),
-        "default_username": ("user", "username"),
-        "default_password": ("user", "password"),
-        "default_ssh_host": ("ssh", "host"),
-        "default_ssh_port": ("ssh", "port"),
-        "default_db_query": ("database", "query"),
-        "default_db_connection": ("database", "connection"),
-        "default_db_host": ("database", "host"),
-        "default_db_port": ("database", "port"),
-        "default_api_endpoint": ("api", "endpoint"),
-        "default_api_method": ("api", "method"),
-        "default_api_session": ("api", "session"),
-        "default_file_path": ("file", "path"),
-        "default_file_content": ("file", "content"),
-    }
-
     for key, value in kwargs.items():
-        # Handle legacy attribute names
-        if key in legacy_mapping:
-            category, attr = legacy_mapping[key]
-            category_obj = getattr(test_defaults, category)
-            setattr(category_obj, attr, value)
-        # Check top-level DataDefaults attributes
-        elif hasattr(test_defaults, key):
-            setattr(test_defaults, key, value)
-        # Check nested defaults (web, user, ssh, etc.)
-        elif "." in key:
+        # Handle nested defaults with dot notation (web.url, user.username, etc.)
+        if "." in key:
             category, attr = key.split(".", 1)
             if hasattr(test_defaults, category):
                 category_obj = getattr(test_defaults, category)
                 if hasattr(category_obj, attr):
                     setattr(category_obj, attr, value)
+        # Check top-level DataDefaults attributes
+        elif hasattr(test_defaults, key):
+            setattr(test_defaults, key, value)
         # Check progress config
         elif hasattr(progress_config, key):
             setattr(progress_config, key, value)
@@ -371,3 +237,7 @@ def get_library_canonical_name(library_name: str) -> str:
             return canonical
 
     return library_name.lower()
+
+
+# Internal utility - not part of public API
+__all__: list[str] = []

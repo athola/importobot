@@ -27,7 +27,8 @@ class TestTestFileParserInterface:
     def test_test_file_parser_cannot_be_instantiated(self):
         """Test that TestFileParser cannot be instantiated directly."""
         with pytest.raises(TypeError, match="Can't instantiate abstract class"):
-            TestFileParser()  # type: ignore[abstract]  # pylint: disable=abstract-class-instantiated  # noqa: E501
+            # pylint: disable=abstract-class-instantiated
+            TestFileParser()  # type: ignore[abstract]
 
     def test_test_file_parser_has_required_abstract_methods(self):
         """Test that TestFileParser has the required abstract methods."""
@@ -54,7 +55,8 @@ class TestKeywordGeneratorInterface:
     def test_keyword_generator_cannot_be_instantiated(self):
         """Test that KeywordGenerator cannot be instantiated directly."""
         with pytest.raises(TypeError, match="Can't instantiate abstract class"):
-            KeywordGenerator()  # type: ignore[abstract]  # pylint: disable=abstract-class-instantiated  # noqa: E501
+            # pylint: disable=abstract-class-instantiated
+            KeywordGenerator()  # type: ignore[abstract]
 
     def test_keyword_generator_has_required_abstract_methods(self):
         """Test that KeywordGenerator has the required abstract methods."""
@@ -100,7 +102,8 @@ class TestSuggestionEngineInterface:
     def test_suggestion_engine_cannot_be_instantiated(self):
         """Test that SuggestionEngine cannot be instantiated directly."""
         with pytest.raises(TypeError, match="Can't instantiate abstract class"):
-            SuggestionEngine()  # type: ignore[abstract]  # pylint: disable=abstract-class-instantiated  # noqa: E501
+            # pylint: disable=abstract-class-instantiated
+            SuggestionEngine()  # type: ignore[abstract]
 
     def test_suggestion_engine_has_required_abstract_methods(self):
         """Test that SuggestionEngine has the required abstract methods."""
@@ -135,7 +138,8 @@ class TestConversionEngineInterface:
     def test_conversion_engine_cannot_be_instantiated(self):
         """Test that ConversionEngine cannot be instantiated directly."""
         with pytest.raises(TypeError, match="Can't instantiate abstract class"):
-            ConversionEngine()  # type: ignore[abstract]  # pylint: disable=abstract-class-instantiated  # noqa: E501
+            # pylint: disable=abstract-class-instantiated
+            ConversionEngine()  # type: ignore[abstract]
 
     def test_conversion_engine_has_required_abstract_methods(self):
         """Test that ConversionEngine has the required abstract methods."""

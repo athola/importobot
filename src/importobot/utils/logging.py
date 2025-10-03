@@ -43,3 +43,7 @@ def log_exception(
     if context:
         message = f"{context} - {message}"
     logger.exception(message)
+
+
+# Internal utility - not part of public API
+__all__: list[str] = []

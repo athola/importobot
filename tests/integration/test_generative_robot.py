@@ -2,6 +2,7 @@
 # pylint: disable=too-many-lines
 
 import json
+import os
 import random
 import subprocess
 import tempfile
@@ -21,6 +22,8 @@ from importobot.utils.test_generation.helpers import (
 )
 from importobot.utils.test_generation.ssh_generator import SSHKeywordTestGenerator
 from tests.shared_ssh_test_data import (
+    EXPECTED_SSH_KEYWORD_COUNT,
+    EXPECTED_TOTAL_SSH_TESTS,
     SSH_COMMAND_KEYWORDS,
     SSH_CONNECTION_KEYWORDS,
     SSH_DIRECTORY_KEYWORDS,
@@ -58,8 +61,10 @@ class RobotFrameworkExecutor:
                 # Remove empty string
                 cmd = [c for c in cmd if c]
 
+            env = os.environ.copy()
+
             proc_result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=30, check=False
+                cmd, capture_output=True, text=True, timeout=30, check=False, env=env
             )
 
             return {
@@ -954,7 +959,8 @@ def test_ssh_comprehensive_keyword_coverage():
     all_ssh_tests = ssh_generator.generate_all_ssh_keyword_tests()
 
     # Verify we have the expected number of tests (42 keywords × 3 variations = 126)
-    assert len(all_ssh_tests) == 126, (
+
+    assert len(all_ssh_tests) == EXPECTED_TOTAL_SSH_TESTS, (
         f"Expected 126 SSH tests, got {len(all_ssh_tests)}"
     )
 
@@ -1085,7 +1091,8 @@ def test_ssh_keyword_categories_comprehensive():
 
     # Count total expected keywords
     total_expected = sum(len(keywords) for keywords in expected_categories.values())
-    assert total_expected == 42, (
+
+    assert total_expected == EXPECTED_SSH_KEYWORD_COUNT, (
         f"Expected 42 total keywords, category mapping has {total_expected}"
     )
 

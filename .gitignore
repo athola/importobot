@@ -33,6 +33,7 @@ robot-tests/
 zephyr-tests/
 tests/unit/test_data/
 examples/json/*improved.json
+examples/output/
 
 # Robot Framework output files
 log.html
@@ -77,3 +78,32 @@ visualizations/
 
 # Text artifacts
 *.txt
+
+# Agent analysis files
+.agent/
+
+# Hypothesis tests
+.hypothesis/
+
+# Additional cache directories
+.mypy_cache/
+.ruff_cache/
+.uv-cache/
+
+# Development tools cache
+.aider.*
+.claude/
+
+# Temporary analysis files
+*.analysis
+*.profile
+*.trace
+
+# Performance benchmarks output
+scripts/performance_results/
+scripts/benchmark_output/
+
+# Generated test data
+tests/generated/
+tests/temp/
+tests/output/

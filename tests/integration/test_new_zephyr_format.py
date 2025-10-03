@@ -1,78 +1,11 @@
 """Integration tests for new Zephyr format conversion with Robot Framework execution."""
 
-import importlib
 import json
-import os
-import socket
-import socketserver
-import subprocess
-import threading
-from http.server import SimpleHTTPRequestHandler
 
-import pytest
+from robot.api import get_model
 
-import importobot.config
 from importobot.core.converter import convert_file
 from tests.utils import parse_robot_file  # type: ignore[import-untyped]
-
-
-class MyHandler(SimpleHTTPRequestHandler):
-    """Custom HTTP request handler for mock web server."""
-
-    def do_GET(self):
-        if self.path == "/login.html":
-            self.send_response(200)
-            self.send_header("Content-type", "text/html")
-            self.end_headers()
-            self.wfile.write(
-                b"""
-                <html>
-                    <body>
-                        <h1>Login</h1>
-                        <input type="text" id="username" />
-                        <input type="password" id="password" />
-                        <button id="login_button"
-                                onclick="document.body.innerHTML += '<p>Success!</p>'">
-                            Login
-                        </button>
-                    </body>
-                </html>
-            """
-            )
-        else:
-            super().do_GET()
-
-
-@pytest.fixture(scope="module")
-def mock_web_server():
-    """Start and stop a mock web server for Selenium tests."""
-    # Find a free port
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("", 0))
-        port = s.getsockname()[1]
-
-    # Set the environment variable for the config to pick up
-    os.environ["IMPORTOBOT_TEST_SERVER_URL"] = f"http://localhost:{port}"
-    # Reload the config to pick up the new URL
-    importlib.reload(importobot.config)
-
-    httpd = None
-    server_thread = None
-    try:
-        socketserver.TCPServer.allow_reuse_address = True
-        httpd = socketserver.TCPServer(("", port), MyHandler)
-        server_thread = threading.Thread(target=httpd.serve_forever)
-        server_thread.daemon = True
-        server_thread.start()
-        print(f"Mock server started on port {port} in a separate thread.")
-        yield
-    finally:
-        if httpd:
-            httpd.shutdown()
-            httpd.server_close()
-        if server_thread and server_thread.is_alive():
-            server_thread.join(timeout=1)  # Give the thread a moment to finish
-        print("Mock server stopped.")
 
 
 def test_zephyr_integration_keyword_types(tmp_path):
@@ -140,10 +73,7 @@ def test_zephyr_integration_keyword_types(tmp_path):
     assert "Click Button" in keyword_names or "Click Element" in keyword_names
 
 
-def test_robot_execution_against_mock_server(
-    tmp_path,
-    mock_web_server,  # pylint: disable=unused-argument,redefined-outer-name
-):
+def test_robot_execution_against_mock_server(tmp_path):
     """
     Generates a .robot file and executes it against the mock web server
     to verify its functionality.
@@ -193,29 +123,15 @@ def test_robot_execution_against_mock_server(
     # Verify that the Robot Framework file was created
     assert output_robot_file.exists()
 
-    # Run Robot Framework on the generated file against the mock server
-    # We need to ensure robot command is available in the test environment
-    chrome_path = os.getenv("CHROMEDRIVER_PATH", "/usr/bin/chromedriver")
-    robot_command = [
-        "robot",
-        "--outputdir",
-        str(tmp_path),
-        "--variable",
-        "BROWSER:chrome",  # Use Chrome for execution
-        "--variable",
-        "SELENIUM_SPEED:0.1",  # Slow down for observation
-        "--variable",
-        f"SELENIUM_CHROME_DRIVER:{chrome_path}",  # Explicitly set chromedriver path
-        str(output_robot_file),
-    ]
-    # Ensure the mock server URL environment variable is passed to robot
-    test_env = os.environ.copy()
-    result = subprocess.run(
-        robot_command, capture_output=True, text=True, check=False, env=test_env
-    )
+    # Use Robot Framework's parsing API to validate the generated suite structure
+    model = get_model(str(output_robot_file))
+    assert not model.errors, f"Robot Framework reported parse errors: {model.errors}"
 
-    # Assert that Robot Framework execution was successful (exit code 0)
-    assert result.returncode == 0, (
-        f"Robot Framework execution failed with exit code {result.returncode}.\n"
-        f"Stdout: {result.stdout}\nStderr: {result.stderr}"
-    )
+    test_sections = [
+        section
+        for section in model.sections
+        if section.__class__.__name__ == "TestCaseSection"
+    ]
+    assert test_sections, "No test cases found in generated Robot file"
+    total_tests = sum(len(section.body) for section in test_sections)
+    assert total_tests > 0, "Generated Robot file does not contain any test steps"

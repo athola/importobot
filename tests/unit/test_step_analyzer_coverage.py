@@ -66,7 +66,8 @@ class TestStepAnalyzerCoverage:  # pylint: disable=too-many-public-methods
     def test_add_default_expected_result_when_missing(self, analyzer):
         """Test adding default expected result when missing."""
         step = {"step": "perform test action", "test_data": "input data"}
-        result = analyzer._add_default_expected_result(step)  # pylint: disable=protected-access  # noqa: E501
+        # pylint: disable=protected-access
+        result = analyzer._add_default_expected_result(step)
         assert isinstance(result, bool)
 
     def test_check_steps_functionality(self, analyzer):
@@ -95,7 +96,8 @@ class TestStepAnalyzerCoverage:  # pylint: disable=too-many-public-methods
     def test_fix_unmatched_braces_private(self, analyzer):
         """Test fixing unmatched braces private method."""
         step = {"step": "test {unmatched brace", "test_data": "data"}
-        result = analyzer._fix_unmatched_braces(step)  # pylint: disable=protected-access  # noqa: E501
+        # pylint: disable=protected-access
+        result = analyzer._fix_unmatched_braces(step)
         assert isinstance(result, bool)
 
     def test_improve_single_step_private(self, analyzer):
@@ -108,14 +110,16 @@ class TestStepAnalyzerCoverage:  # pylint: disable=too-many-public-methods
         """Test checking step fields private method."""
         step = {"step": "test action", "test_data": "data"}
         suggestions: list[dict[str, Any]] = []
-        analyzer._check_step_fields(step, 1, 1, suggestions)  # pylint: disable=protected-access  # noqa: E501
+        # pylint: disable=protected-access
+        analyzer._check_step_fields(step, 1, 1, suggestions)
         assert isinstance(suggestions, list)
 
     def test_check_brace_matching_private(self, analyzer):
         """Test brace matching check private method."""
         step = {"step": "test {matched} braces"}
         suggestions: list[dict[str, Any]] = []
-        analyzer._check_brace_matching(step, 1, 1, suggestions)  # pylint: disable=protected-access  # noqa: E501
+        # pylint: disable=protected-access
+        analyzer._check_brace_matching(step, 1, 1, suggestions)
 
     def test_fix_brace_mismatches_text(self, analyzer):
         """Test fixing brace mismatches in text."""

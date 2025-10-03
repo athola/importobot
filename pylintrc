@@ -9,7 +9,9 @@ load-plugins =
 [MESSAGES CONTROL]
 # Disable broad-exception-caught warning since we need to catch general exceptions
 # in the converter module for proper error handling
-disable = W0718
+# Disable redefined-outer-name for pytest fixtures (expected pattern)
+# Disable protected-access for tests that need to test private methods
+disable = W0718,W0621,W0212
 
 [FORMAT]
 # Maximum number of characters on a single line
@@ -35,13 +37,13 @@ max-statements = 50
 max-parents = 10
 
 # Maximum number of attributes for a class (see R0902).
-max-attributes = 10
+max-attributes = 15
 
 # Minimum number of public methods for a class (see R0903).
 min-public-methods = 0
 
 # Maximum number of public methods for a class (see R0904).
-max-public-methods = 20
+max-public-methods = 25
 
 # Maximum number of lines in a module (see C0302).
 max-module-lines = 2000

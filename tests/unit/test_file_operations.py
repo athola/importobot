@@ -122,7 +122,7 @@ class TestLoadJsonFile:
             os.unlink(temp_filename)
 
 
-@patch("importobot.utils.file_operations.convert_file")
+@patch("importobot.core.converter.convert_file")
 class TestConvertWithTempFile:
     """Tests for convert_with_temp_file function."""
 
@@ -309,7 +309,7 @@ class TestProcessSingleFileWithSuggestions:
     """Tests for process_single_file_with_suggestions function."""
 
     @patch("importobot.utils.file_operations.save_improved_json_and_convert")
-    @patch("importobot.utils.file_operations.apply_conversion_suggestions")
+    @patch("importobot.core.converter.apply_conversion_suggestions")
     @patch("importobot.utils.file_operations.load_json_file")
     def test_processes_file_with_os_splitext(
         self,
@@ -353,7 +353,7 @@ class TestProcessSingleFileWithSuggestions:
         )
 
     @patch("importobot.utils.file_operations.save_improved_json_and_convert")
-    @patch("importobot.utils.file_operations.apply_conversion_suggestions")
+    @patch("importobot.core.converter.apply_conversion_suggestions")
     @patch("importobot.utils.file_operations.load_json_file")
     def test_processes_file_with_path_stem(
         self,
@@ -389,7 +389,7 @@ class TestProcessSingleFileWithSuggestions:
         )
 
     @patch("importobot.utils.file_operations.save_improved_json_and_convert")
-    @patch("importobot.utils.file_operations.apply_conversion_suggestions")
+    @patch("importobot.core.converter.apply_conversion_suggestions")
     @patch("importobot.utils.file_operations.load_json_file")
     def test_handles_empty_json_data(
         self, mock_load_json, mock_apply_suggestions, mock_save_convert

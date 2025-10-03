@@ -4,6 +4,9 @@ import json
 import tempfile
 from pathlib import Path
 
+import pytest
+
+from importobot import exceptions
 from importobot.core.converter import convert_file
 
 
@@ -58,7 +61,7 @@ class TestIntegration:
             Path(output_filename).unlink(missing_ok=True)
 
     def test_conversion_with_empty_input(self):
-        """Test conversion with minimal JSON input."""
+        """Test conversion with empty JSON input should fail in strict mode."""
         # Create temporary files
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".json", delete=False, encoding="utf-8"
@@ -71,13 +74,9 @@ class TestIntegration:
             output_filename = output_file.name
 
         try:
-            # Perform conversion
-            convert_file(input_filename, output_filename)
-
-            # Verify output contains at least the basic structure
-            with open(output_filename, "r", encoding="utf-8") as f:
-                content = f.read()
-                assert "*** Test Cases ***" in content
+            # Conversion should fail with empty input in strict mode
+            with pytest.raises(exceptions.ConversionError, match="No test cases found"):
+                convert_file(input_filename, output_filename)
         finally:
             # Cleanup
             Path(input_filename).unlink(missing_ok=True)

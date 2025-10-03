@@ -1,11 +1,11 @@
 # Package Distribution Guide
 
-This document explains how importobot is distributed across different package registries.
+This document explains how importobot is distributed and published.
 
-## Package Registries
+## Package Registry
 
-### PyPI (Primary)
-The main distribution channel for importobot is PyPI (Python Package Index).
+### PyPI (Python Package Index)
+The distribution channel for importobot is PyPI.
 
 **Installation:**
 ```bash
@@ -14,24 +14,33 @@ pip install importobot
 
 **Package URL:** https://pypi.org/project/importobot/
 
-### GitHub Packages (Mirror)
-Importobot is also available via GitHub Packages as a mirror of the PyPI distribution.
-
-**Installation:**
-```bash
-# Configure pip to use GitHub Packages
-pip install --index-url https://pypi.org/simple/ --extra-index-url https://pip.fury.io/athola/ importobot
-```
-
-**Package URL:** https://github.com/athola/importobot/packages
+### GitHub Packages
+**Note:** GitHub Packages does not support Python/PyPI packages. Python packages must be distributed through PyPI or alternative Python package indexes.
 
 ## Automated Publishing
+
+### Prerequisites
+Before automated publishing works, configure these repository secrets:
+
+1. **PYPI_API_TOKEN**:
+   - Go to [PyPI Account Settings](https://pypi.org/manage/account/token/)
+   - Create a new API token (scope: entire account or specific to importobot)
+   - Add as repository secret at `https://github.com/athola/importobot/settings/secrets/actions`
+
+2. **GITHUB_TOKEN**:
+   - Automatically provided by GitHub Actions (no setup required)
 
 ### Release Process
 When a new release is created on GitHub:
 1. The `publish-packages.yml` workflow automatically triggers
 2. Package is built using `uv build`
-3. Package is published to both PyPI and GitHub Packages simultaneously
+3. Package is published to PyPI (if PYPI_API_TOKEN is configured)
+
+### First-Time Setup
+For the initial PyPI publication:
+1. Manually publish the first version to establish the package
+2. Configure the PYPI_API_TOKEN secret
+3. Future releases will be automatically published
 
 ### Manual Publishing
 For manual publishing or testing:
@@ -56,7 +65,7 @@ uv tool run twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
 python -c "import importobot; print('✅ Package installed successfully')"
 
 # Check version
-python -c "import importobot; print(f'Version: {getattr(importobot, \"__version__\", \"0.1.0\")}')"
+python -c "import importobot; print(f'Version: {getattr(importobot, \"__version__\", \"0.1.1\")}')"
 
 # Test CLI command
 importobot --help

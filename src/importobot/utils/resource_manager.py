@@ -61,7 +61,9 @@ class ResourceManager:
 
         self.limits = limits or ResourceLimits()
         self.logger = logging.getLogger(__name__)
-        self._operation_start_time: float | None = None
+        # Track per-operation baselines for correct time enforcement
+        self._operation_start_times: dict[str, float] = {}
+        self._operation_counter: int = 0
         self._active_operations = 0
         self._total_files_generated = 0
         self._total_disk_usage_mb: float = 0
@@ -158,9 +160,12 @@ class ResourceManager:
                 f"Maximum concurrent operations ({max_ops}) already running"
             )
 
-        operation_id = f"{operation_name}_{int(time.time())}"
+        # Generate a unique, stable operation id
+        self._operation_counter += 1
+        operation_id = f"{operation_name}_{int(time.time())}_{self._operation_counter}"
         self._active_operations += 1
-        self._operation_start_time = time.time()
+        # Record a per-operation baseline using wall-clock time (deterministic)
+        self._operation_start_times[operation_id] = time.time()
 
         self.logger.info(
             "Started operation '%s' (%d/%d active)",
@@ -173,11 +178,19 @@ class ResourceManager:
 
     def check_operation_limits(self, operation_id: str) -> None:
         """Check if operation is within resource limits."""
-        if self._operation_start_time is None:
+        start_time = self._operation_start_times.get(operation_id)
+        if start_time is None:
             return
 
         # Check execution time
-        elapsed_minutes = (time.time() - self._operation_start_time) / 60
+        now = time.time()
+        elapsed_seconds = now - start_time
+        # Safety bounds: guard against clock adjustments producing negative elapsed
+        if elapsed_seconds < 0:
+            # Reset baseline to now to avoid spurious timeouts
+            self._operation_start_times[operation_id] = now
+            elapsed_seconds = 0
+        elapsed_minutes = elapsed_seconds / 60
         if elapsed_minutes > self.limits.max_execution_time_minutes:
             self.finish_operation(operation_id)
             raise RuntimeError(
@@ -205,9 +218,10 @@ class ResourceManager:
             self._active_operations -= 1
 
         elapsed_time: float = 0
-        if self._operation_start_time:
-            elapsed_time = time.time() - self._operation_start_time
-            self._operation_start_time = None
+        start_time = self._operation_start_times.pop(operation_id, None)
+        if start_time is not None:
+            now = time.time()
+            elapsed_time = max(0.0, now - start_time)
 
         self.logger.info(
             "Finished operation '%s' in %.2fs (%d active operations remaining)",

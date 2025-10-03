@@ -88,6 +88,13 @@ ALL_SSH_KEYWORDS: List[str] = (
     + SSH_LOGGING_KEYWORDS
 )
 
+# Expected total count for validation
+EXPECTED_SSH_KEYWORD_COUNT = len(ALL_SSH_KEYWORDS)
+
+# Test generation constants
+TESTS_PER_SSH_KEYWORD = 3
+EXPECTED_TOTAL_SSH_TESTS = EXPECTED_SSH_KEYWORD_COUNT * TESTS_PER_SSH_KEYWORD
+
 # Basic SSH connection test data
 
 
