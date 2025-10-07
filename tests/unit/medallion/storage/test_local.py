@@ -87,6 +87,7 @@ class TestLocalStorageInit:
             assert (temp_dir / layer).exists()
             assert (temp_dir / layer / "data").exists()
             assert (temp_dir / layer / "metadata").exists()
+            assert (temp_dir / layer / "locks").exists()
 
     def test_init_custom_config(self, temp_dir):
         """Test initialization with custom configuration."""
@@ -135,6 +136,40 @@ class TestLocalStorageDataOps:
             stored_metadata = json.load(f)
         assert stored_metadata["layer_name"] == "bronze"
         assert stored_metadata["data_hash"] == "test_hash_123"
+
+    def test_store_data_acquires_lock(
+        self, storage_backend, sample_data, sample_metadata, monkeypatch
+    ):
+        """Ensure store_data uses the write lock context manager."""
+
+        calls: list[str] = []
+
+        class DummyLock:  # pylint: disable=too-few-public-methods
+            """Lock stub that records enter/exit invocations for assertions."""
+
+            def __enter__(self):
+                calls.append("enter")
+
+            def __exit__(self, exc_type, exc, exc_tb):
+                calls.append("exit")
+                return False
+
+        dummy_lock = DummyLock()
+
+        monkeypatch.setattr(
+            storage_backend,
+            "_acquire_write_lock",
+            lambda layer_path, data_id: dummy_lock,
+        )
+
+        storage_backend.store_data(
+            layer_name="bronze",
+            data_id="test_locked",
+            data=sample_data,
+            metadata=sample_metadata,
+        )
+
+        assert calls == ["enter", "exit"]
 
     def test_store_data_failure(self, storage_backend, sample_data, sample_metadata):
         """Test data storage failure handling."""

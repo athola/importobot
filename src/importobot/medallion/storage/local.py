@@ -2,11 +2,22 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, ContextManager, Iterator, Optional
+
+try:  # pragma: no cover - platform specific imports
+    import fcntl  # type: ignore[attr-defined]
+except ImportError:  # pragma: no cover - Windows fallback
+    fcntl = None  # type: ignore[assignment]
+
+try:  # pragma: no cover - platform specific imports
+    import msvcrt  # type: ignore[attr-defined]
+except ImportError:  # pragma: no cover - non-Windows platforms
+    msvcrt = None  # type: ignore[assignment]
 
 from importobot.medallion.interfaces.data_models import (
     LayerData,
@@ -19,6 +30,35 @@ from importobot.medallion.utils.query_filters import matches_query_filters
 from importobot.utils.logging import setup_logger
 
 logger = setup_logger(__name__)
+
+
+@contextlib.contextmanager
+def _exclusive_file_lock(lock_path: Path) -> Iterator[None]:
+    """Cross-platform exclusive file lock using advisory locking primitives."""
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    lock_file = open(lock_path, "a+", encoding="utf-8")
+    try:
+        if fcntl is not None:  # Unix-like systems
+            fcntl.flock(lock_file, fcntl.LOCK_EX)
+        elif msvcrt is not None:  # Windows fallback
+            lock_file.seek(0)
+            lock_file.write("0")
+            lock_file.flush()
+            msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
+        yield
+    finally:
+        try:
+            if fcntl is not None:
+                fcntl.flock(lock_file, fcntl.LOCK_UN)
+            elif msvcrt is not None:
+                lock_file.seek(0)
+                msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+        finally:
+            lock_file.close()
+            try:
+                lock_path.unlink()
+            except OSError:
+                pass
 
 
 class LocalStorageBackend(StorageBackend):
@@ -41,6 +81,7 @@ class LocalStorageBackend(StorageBackend):
             (self.base_path / layer).mkdir(exist_ok=True)
             (self.base_path / layer / "data").mkdir(exist_ok=True)
             (self.base_path / layer / "metadata").mkdir(exist_ok=True)
+            (self.base_path / layer / "locks").mkdir(exist_ok=True)
 
         logger.info("Initialized LocalStorageBackend at %s", self.base_path)
 
@@ -67,33 +108,35 @@ class LocalStorageBackend(StorageBackend):
             data_file = layer_path / "data" / f"{data_id}.json"
             metadata_file = layer_path / "metadata" / f"{data_id}.json"
 
-            # Store data
-            with open(data_file, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2, default=str, ensure_ascii=False)
+            lock_manager = self._acquire_write_lock(layer_path, data_id)
+            with lock_manager:
+                # Store data
+                with open(data_file, "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=2, default=str, ensure_ascii=False)
 
-            # Store metadata
-            metadata_dict = {
-                "source_path": str(metadata.source_path),
-                "layer_name": metadata.layer_name,
-                "ingestion_timestamp": metadata.ingestion_timestamp.isoformat(),
-                "processing_timestamp": (
-                    metadata.processing_timestamp.isoformat()
-                    if metadata.processing_timestamp
-                    else None
-                ),
-                "data_hash": metadata.data_hash,
-                "version": metadata.version,
-                "format_type": metadata.format_type.value,
-                "record_count": metadata.record_count,
-                "file_size_bytes": metadata.file_size_bytes,
-                "processing_duration_ms": metadata.processing_duration_ms,
-                "user_id": metadata.user_id,
-                "session_id": metadata.session_id,
-                "custom_metadata": metadata.custom_metadata,
-            }
+                # Store metadata
+                metadata_dict = {
+                    "source_path": str(metadata.source_path),
+                    "layer_name": metadata.layer_name,
+                    "ingestion_timestamp": metadata.ingestion_timestamp.isoformat(),
+                    "processing_timestamp": (
+                        metadata.processing_timestamp.isoformat()
+                        if metadata.processing_timestamp
+                        else None
+                    ),
+                    "data_hash": metadata.data_hash,
+                    "version": metadata.version,
+                    "format_type": metadata.format_type.value,
+                    "record_count": metadata.record_count,
+                    "file_size_bytes": metadata.file_size_bytes,
+                    "processing_duration_ms": metadata.processing_duration_ms,
+                    "user_id": metadata.user_id,
+                    "session_id": metadata.session_id,
+                    "custom_metadata": metadata.custom_metadata,
+                }
 
-            with open(metadata_file, "w", encoding="utf-8") as f:
-                json.dump(metadata_dict, f, indent=2, ensure_ascii=False)
+                with open(metadata_file, "w", encoding="utf-8") as f:
+                    json.dump(metadata_dict, f, indent=2, ensure_ascii=False)
 
             logger.debug("Stored data %s in layer %s", data_id, layer_name)
             return True
@@ -194,6 +237,15 @@ class LocalStorageBackend(StorageBackend):
         except Exception as e:
             logger.error("Failed to query data from layer %s: %s", layer_name, str(e))
             return self._empty_layer_data(query)
+
+    def _acquire_write_lock(
+        self, layer_path: Path, data_id: str
+    ) -> ContextManager[None]:
+        """Acquire an exclusive lock for a specific data record."""
+        lock_dir = layer_path / "locks"
+        lock_dir.mkdir(exist_ok=True)
+        lock_path = lock_dir / f"{data_id}.lock"
+        return _exclusive_file_lock(lock_path)
 
     def _empty_layer_data(self, query: LayerQuery) -> LayerData:
         """Create an empty LayerData response."""

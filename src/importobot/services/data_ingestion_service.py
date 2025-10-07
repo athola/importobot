@@ -15,7 +15,8 @@ from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
-from typing import Any, List, Optional, Union, cast
+from typing import Any, List, Mapping, Optional, Union, cast
+from uuid import uuid4
 
 from importobot.medallion.bronze_layer import BronzeLayer
 from importobot.medallion.interfaces.data_models import (
@@ -160,12 +161,13 @@ class DataIngestionService:
         """
         file_path = Path(file_path)
         start_time = datetime.now()
+        correlation_id = str(uuid4())
 
         try:
             # Optional security validation for file path
             if self.enable_security_gateway and self.security_gateway is not None:
                 file_validation = self.security_gateway.validate_file_operation(
-                    file_path, "read"
+                    file_path, "read", correlation_id=correlation_id
                 )
                 if not file_validation["is_safe"]:
                     error_msg = (
@@ -174,7 +176,11 @@ class DataIngestionService:
                     )
                     logger.warning(error_msg)
                     return self._create_error_result(
-                        start_time, error_msg, file_path, security_info=file_validation
+                        start_time,
+                        error_msg,
+                        file_path,
+                        security_info=file_validation,
+                        correlation_id=correlation_id,
                     )
 
             # Standard file validation
@@ -186,7 +192,12 @@ class DataIngestionService:
             # Process content (with optional security validation)
             if self.enable_security_gateway and self.security_gateway is not None:
                 json_validation = self.security_gateway.sanitize_api_input(
-                    content, input_type="json", context={"source": str(file_path)}
+                    content,
+                    input_type="json",
+                    context={
+                        "source": str(file_path),
+                        "correlation_id": correlation_id,
+                    },
                 )
                 if not json_validation["is_safe"]:
                     error_msg = (
@@ -195,7 +206,11 @@ class DataIngestionService:
                     )
                     logger.warning(error_msg)
                     return self._create_error_result(
-                        start_time, error_msg, file_path, security_info=json_validation
+                        start_time,
+                        error_msg,
+                        file_path,
+                        security_info=json_validation,
+                        correlation_id=correlation_id,
                     )
                 data = json_validation["sanitized_data"]
             else:
@@ -211,6 +226,7 @@ class DataIngestionService:
             if self.enable_security_gateway:
                 metadata.custom_metadata["security_validation"] = json_validation
                 metadata.custom_metadata["security_level"] = self.security_level.value
+                metadata.custom_metadata["correlation_id"] = correlation_id
 
             # Ingest data into Bronze layer
             result = self.bronze_layer.ingest(data, metadata)
@@ -221,6 +237,7 @@ class DataIngestionService:
                     "file_validation": file_validation,
                     "json_validation": json_validation,
                     "security_level": self.security_level.value,
+                    "correlation_id": correlation_id,
                 }
 
             logger.info("Successfully ingested file %s into Bronze layer", file_path)
@@ -229,17 +246,23 @@ class DataIngestionService:
         except FileNotFoundError:
             error_msg = f"File not found: {file_path}"
             logger.error(error_msg)
-            return self._create_error_result(start_time, error_msg, file_path)
+            return self._create_error_result(
+                start_time, error_msg, file_path, correlation_id=correlation_id
+            )
 
         except json.JSONDecodeError as e:
             error_msg = f"Invalid JSON in file {file_path}: {str(e)}"
             logger.error(error_msg)
-            return self._create_error_result(start_time, error_msg, file_path)
+            return self._create_error_result(
+                start_time, error_msg, file_path, correlation_id=correlation_id
+            )
 
         except Exception as e:
             error_msg = f"Failed to ingest file {file_path}: {str(e)}"
             logger.error(error_msg)
-            return self._create_error_result(start_time, error_msg, file_path)
+            return self._create_error_result(
+                start_time, error_msg, file_path, correlation_id=correlation_id
+            )
 
     def ingest_json_string(
         self, json_string: str, source_name: str = "string_input"
@@ -254,12 +277,18 @@ class DataIngestionService:
             ProcessingResult with ingestion status and security validation results
         """
         start_time = datetime.now()
+        correlation_id = str(uuid4())
 
         try:
             # Process JSON string (with optional security validation)
             if self.enable_security_gateway and self.security_gateway is not None:
                 json_validation = self.security_gateway.sanitize_api_input(
-                    json_string, input_type="json", context={"source": source_name}
+                    json_string,
+                    input_type="json",
+                    context={
+                        "source": source_name,
+                        "correlation_id": correlation_id,
+                    },
                 )
                 if not json_validation["is_safe"]:
                     error_msg = (
@@ -272,6 +301,7 @@ class DataIngestionService:
                         error_msg,
                         Path(source_name),
                         security_info=json_validation,
+                        correlation_id=correlation_id,
                     )
                 data = json_validation["sanitized_data"]
             else:
@@ -288,6 +318,7 @@ class DataIngestionService:
             if self.enable_security_gateway:
                 metadata.custom_metadata["security_validation"] = json_validation
                 metadata.custom_metadata["security_level"] = self.security_level.value
+                metadata.custom_metadata["correlation_id"] = correlation_id
 
             # Ingest data into Bronze layer
             result = self.bronze_layer.ingest(data, metadata)
@@ -297,6 +328,7 @@ class DataIngestionService:
                 result.details["security_info"] = {
                     "json_validation": json_validation,
                     "security_level": self.security_level.value,
+                    "correlation_id": correlation_id,
                 }
 
             logger.info(
@@ -307,12 +339,16 @@ class DataIngestionService:
         except json.JSONDecodeError as e:
             error_msg = f"Invalid JSON string '{source_name}': {str(e)}"
             logger.error(error_msg)
-            return self._create_error_result(start_time, error_msg, Path(source_name))
+            return self._create_error_result(
+                start_time, error_msg, Path(source_name), correlation_id=correlation_id
+            )
 
         except Exception as e:
             error_msg = f"Failed to ingest JSON string '{source_name}': {str(e)}"
             logger.error(error_msg)
-            return self._create_error_result(start_time, error_msg, Path(source_name))
+            return self._create_error_result(
+                start_time, error_msg, Path(source_name), correlation_id=correlation_id
+            )
 
     def ingest_batch(
         self, file_paths: List[Union[str, Path]], max_workers: int = 4
@@ -338,12 +374,18 @@ class DataIngestionService:
             ProcessingResult with ingestion status and security validation results
         """
         start_time = datetime.now()
+        correlation_id = str(uuid4())
 
         try:
             # Process dictionary data (with optional security validation)
             if self.enable_security_gateway and self.security_gateway is not None:
                 dict_validation = self.security_gateway.sanitize_api_input(
-                    data, input_type="json", context={"source": source_name}
+                    data,
+                    input_type="json",
+                    context={
+                        "source": source_name,
+                        "correlation_id": correlation_id,
+                    },
                 )
                 if not dict_validation["is_safe"]:
                     error_msg = (
@@ -356,6 +398,7 @@ class DataIngestionService:
                         error_msg,
                         Path(source_name),
                         security_info=dict_validation,
+                        correlation_id=correlation_id,
                     )
                 sanitized_data = dict_validation["sanitized_data"]
             else:
@@ -369,6 +412,7 @@ class DataIngestionService:
             if self.enable_security_gateway:
                 metadata.custom_metadata["security_validation"] = dict_validation
                 metadata.custom_metadata["security_level"] = self.security_level.value
+                metadata.custom_metadata["correlation_id"] = correlation_id
 
             # Ingest data into Bronze layer
             result = self.bronze_layer.ingest(sanitized_data, metadata)
@@ -378,6 +422,7 @@ class DataIngestionService:
                 result.details["security_info"] = {
                     "dict_validation": dict_validation,
                     "security_level": self.security_level.value,
+                    "correlation_id": correlation_id,
                 }
 
             logger.info(
@@ -388,7 +433,12 @@ class DataIngestionService:
         except Exception as e:
             error_msg = f"Failed to ingest dictionary '{source_name}': {str(e)}"
             logger.error(error_msg)
-            return self._create_error_result(start_time, error_msg, Path(source_name))
+            return self._create_error_result(
+                start_time,
+                error_msg,
+                Path(source_name),
+                correlation_id=correlation_id,
+            )
 
     def get_security_configuration(self) -> dict[str, Any]:
         """Get current security configuration."""
@@ -467,7 +517,9 @@ class DataIngestionService:
         start_time: datetime,
         error_msg: str,
         source_path: Path,
-        security_info: Optional[dict] = None,
+        *,
+        security_info: Optional[Mapping[str, Any]] = None,
+        correlation_id: Optional[str] = None,
     ) -> ProcessingResult:
         """Create error processing result with optional security context."""
         # Create metadata for the error result
@@ -504,10 +556,14 @@ class DataIngestionService:
 
         # Add security information if available
         if security_info or self.enable_security_gateway:
-            result.details["security_info"] = security_info or {
+            security_payload = security_info or {
                 "security_level": self.security_level,
                 "security_gateway_enabled": (self.enable_security_gateway),
             }
+            if correlation_id:
+                security_payload = dict(security_payload)
+                security_payload["correlation_id"] = correlation_id
+            result.details["security_info"] = security_payload
 
         return result
 

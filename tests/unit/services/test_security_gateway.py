@@ -123,6 +123,16 @@ class TestJSONSanitization:
         assert "security_level" in result
         assert result["input_type"] == "json"
 
+    def test_sanitize_json_includes_correlation_id(self, standard_security_gateway):
+        """Correlation IDs propagate through sanitization results."""
+        result = standard_security_gateway.sanitize_api_input(
+            {"test": "data"},
+            "json",
+            context={"source": "api", "correlation_id": "abc-123"},
+        )
+
+        assert result["correlation_id"] == "abc-123"
+
     def test_json_input_none_result(self, standard_security_gateway):
         """Test JSON input sanitization returning None."""
         # Test with invalid JSON that results in None
@@ -310,13 +320,14 @@ class TestFileOperationValidation:
             file_path.write_text("test content")
 
             result = standard_security_gateway.validate_file_operation(
-                file_path, "read"
+                file_path, "read", correlation_id="xyz"
             )
 
             assert result["is_safe"] is True
             assert result["operation"] == "read"
             assert result["file_path"] == str(file_path)
             assert "normalized_path" in result
+            assert result["correlation_id"] == "xyz"
 
     def test_validate_file_operation_dangerous(self, standard_security_gateway):
         """Test validating dangerous file operation."""
