@@ -4,7 +4,7 @@ from importobot.core.keywords_registry import (
     IntentRecognitionEngine,
     RobotFrameworkKeywordRegistry,
 )
-from importobot.core.pattern_matcher import LibraryDetector, PatternMatcher
+from importobot.core.pattern_matcher import IntentType, LibraryDetector, PatternMatcher
 from tests.shared_test_data import LIBRARY_DETECTION_TEST_CASES
 
 
@@ -282,23 +282,23 @@ class TestIntentRecognitionEngine:
         """Test intent recognition with empty text."""
         result = IntentRecognitionEngine.recognize_intent("")
 
-        assert result == "unknown"
+        assert result is None
 
     def test_recognize_intent_no_match(self):
         """Test intent recognition with no matching patterns."""
         text = "This is just some plain text with no intent patterns"
         result = IntentRecognitionEngine.recognize_intent(text)
 
-        assert result == "unknown"
+        assert result is None
 
     def test_recognize_intent_file_operations(self):
         """Test intent recognition for file operations."""
         test_cases = [
-            ("verify file exists", "file_exists"),
-            ("remove the file", "file_remove"),
-            ("get file from server", "file_transfer"),
-            ("create a new file", "file_creation"),
-            ("copy file to backup", "file_transfer"),
+            ("verify file exists", IntentType.FILE_EXISTS),
+            ("remove the file", IntentType.FILE_REMOVE),
+            ("get file from server", IntentType.FILE_TRANSFER),
+            ("create a new file", IntentType.FILE_CREATION),
+            ("copy file to backup", IntentType.FILE_TRANSFER),
         ]
 
         for text, expected_intent in test_cases:
@@ -310,9 +310,9 @@ class TestIntentRecognitionEngine:
     def test_recognize_intent_ssh_operations(self):
         """Test intent recognition for SSH operations."""
         test_cases = [
-            ("open ssh connection", "ssh_connect"),
-            ("disconnect from ssh", "ssh_disconnect"),
-            ("execute command via ssh", "ssh_execute"),
+            ("open ssh connection", IntentType.SSH_CONNECT),
+            ("disconnect from ssh", IntentType.SSH_DISCONNECT),
+            ("execute command via ssh", IntentType.SSH_EXECUTE),
         ]
 
         for text, expected_intent in test_cases:
@@ -322,10 +322,10 @@ class TestIntentRecognitionEngine:
     def test_recognize_intent_web_operations(self):
         """Test intent recognition for web operations."""
         test_cases = [
-            ("open browser and navigate", "browser_open"),
-            ("enter username in field", "input_username"),
-            ("type password", "input_password"),
-            ("click the button", "click"),
+            ("open browser and navigate", IntentType.BROWSER_OPEN),
+            ("enter username in field", IntentType.INPUT_USERNAME),
+            ("type password", IntentType.INPUT_PASSWORD),
+            ("click the button", IntentType.CLICK_ACTION),
         ]
 
         for text, expected_intent in test_cases:
@@ -335,9 +335,9 @@ class TestIntentRecognitionEngine:
     def test_recognize_intent_database_operations(self):
         """Test intent recognition for database operations."""
         test_cases = [
-            ("connect to database", "db_connect"),
-            ("execute sql query", "db_query"),
-            ("disconnect from db", "db_disconnect"),
+            ("connect to database", IntentType.DATABASE_CONNECT),
+            ("execute sql query", IntentType.DATABASE_EXECUTE),
+            ("disconnect from db", IntentType.DATABASE_DISCONNECT),
         ]
 
         for text, expected_intent in test_cases:
@@ -347,9 +347,9 @@ class TestIntentRecognitionEngine:
     def test_recognize_intent_api_operations(self):
         """Test intent recognition for API operations."""
         test_cases = [
-            ("make get request", "api_request"),
-            ("create api session", "api_session"),
-            ("verify response status", "api_response"),
+            ("make get request", IntentType.API_REQUEST),
+            ("create api session", IntentType.API_SESSION),
+            ("verify response status", IntentType.API_RESPONSE),
         ]
 
         for text, expected_intent in test_cases:
@@ -360,7 +360,7 @@ class TestIntentRecognitionEngine:
         """Test intent recognition is case insensitive."""
         result = IntentRecognitionEngine.recognize_intent("EXECUTE SQL QUERY")
 
-        assert result == "db_query"
+        assert result == IntentType.DATABASE_EXECUTE
 
     def test_recognize_intent_pattern_priority(self):
         """Test that more specific patterns are matched first."""
@@ -369,7 +369,7 @@ class TestIntentRecognitionEngine:
             "initiate download and verify file"
         )
 
-        assert result == "command"
+        assert result == IntentType.COMMAND_EXECUTION
 
     def test_detect_all_intents_functionality(self):
         """Test detect_all_intents functionality."""
@@ -383,7 +383,7 @@ class TestIntentRecognitionEngine:
 
         # Test empty text
         empty_intents = IntentRecognitionEngine.detect_all_intents("")
-        assert empty_intents == []
+        assert not empty_intents
 
     def test_intent_recognition_uses_pattern_matcher_integration(self):
         """Test that IntentRecognitionEngine properly integrates with PatternMatcher."""
@@ -401,20 +401,17 @@ class TestIntentRecognitionEngine:
         ]
 
         for test_text in test_cases:
-            # Get intent from IntentRecognitionEngine
+            # Get intent from IntentRecognitionEngine (returns IntentType enum or None)
             intent_engine_result = IntentRecognitionEngine.recognize_intent(test_text)
 
-            # Get intent from PatternMatcher directly
+            # Get intent from PatternMatcher directly (returns IntentType enum or None)
             pattern_matcher_result = pattern_matcher.detect_intent(test_text)
-            expected_result = (
-                pattern_matcher_result.value if pattern_matcher_result else "unknown"
-            )
 
             # They should match since IntentRecognitionEngine uses PatternMatcher
-            assert intent_engine_result == expected_result, (
+            assert intent_engine_result == pattern_matcher_result, (
                 f"Mismatch for '{test_text}': "
                 f"IntentRecognitionEngine='{intent_engine_result}' vs "
-                f"PatternMatcher='{expected_result}'"
+                f"PatternMatcher='{pattern_matcher_result}'"
             )
 
     def test_get_security_warnings_for_keyword_with_warning(self):

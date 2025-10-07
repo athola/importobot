@@ -2,39 +2,52 @@
 
 This document outlines the future development plans for Importobot.
 
-## Completed Features (v0.3.0)
+## Completed highlights (v0.3.0)
 
-- **Enterprise Test Generation**: Support for generating 1,050+ test cases with comprehensive coverage
-- **Advanced Automation Libraries**: SSH, API, database, and web automation keyword libraries
-- **Intelligent Features**: Suggestion engine and validation framework with security controls
-- **Enhanced CLI**: Comprehensive command-line interface with argument validation
-- **Infrastructure**: GitHub workflows for automated testing and code quality enforcement
-- **Test Coverage**: Achieved 1153+ passing tests for enterprise-grade reliability and stability
+- Conversion engine now ships with SSH/API/database/web keyword libraries and the suggestion engine by default.
+- CLI, validation, and GitHub workflows are the effective way to run Importobot in CI.
+- The test suite sits at 1,153 green checks after the recent fixture overhaul.
 
-## Near-term (Q4 2025)
+## Q3 2025 — in-flight
 
-- **Bulk Conversion**: Enhance bulk conversion capabilities.
-- **Additional Format Support**: Add support for JIRA/Xray and TestLink.
-- **Enhanced Intent Detection**: Improve test step pattern recognition.
-- **Expanded Library Coverage**: Expand Robot Framework library mappings.
-- **Performance Optimization**: Optimize conversion speed for large test suites.
-- **Timing Metrics**: Add timing metrics for conversion operations.
-- **Configuration Optimization**: Externalize large configuration data structures.
-- **I/O Optimization**: Optimize batch file I/O operations.
+- Bulk conversion polish so recursive runs handle large Zephyr exports without manual cleanup.
+- Xray/TestLink parser review; merge once validation matches the existing Zephyr flow.
+- Simple timing metrics and I/O profiling to pinpoint performance bottlenecks.
 
-## Medium-term (Q4 2025-Q1 2026)
+## Q4 2025 – Q1 2026 — queued next
 
-- **API Interface**: Create a REST API for CI/CD integration and a web interface.
-- **Plugin System**: Develop a plugin system for format converters.
-- **Quality Metrics**: Add conversion analytics and reporting.
-- **Enterprise Features**: Implement advanced validation, error recovery, and audit trails.
+- REST surface for CI/CD users who want a service instead of CLI access.
+- Plugin architecture study to let us slot in new formats without touching the converter core.
+- Lightweight reporting (success/error counts, skipped fields) so ops teams can track trends.
 
-## Long-term
+## Later — ideas parked until demand is clear
 
-- **Multi-framework Support**: Support conversion to and from other frameworks.
-- **AI-enhanced Conversion**: Add smart suggestions and predictive analysis.
-- **Cloud Integration**: Create a cloud-based version of Importobot.
+- Converters targeting frameworks beyond Robot Framework.
+- ML-assisted suggestions that propose tag/step tweaks.
+- Hosted Importobot for teams that cannot run the CLI themselves.
+
+## Cloud Storage Backend Roadmap
+
+### Phase 1: S3 backend
+
+- Build `S3StorageBackend` atop boto3, including endpoint overrides so MinIO/Wasabi/Backblaze/DigitalOcean work with the same code path.
+- Ship the dependency behind `pip install importobot[aws]` so the base install stays light.
+
+### Phase 2: Azure & GCP
+
+- Mirror the interface with `azure-storage-blob` and `google-cloud-storage` when demand requires it.
+- Offer `importobot[azure]` and `importobot[gcp]` extras instead of bundling everything.
+
+### Phase 3: Nice-to-haves
+
+- Benchmark alternatives such as `obstore` once the performance wall is hit.
+- Consider an fsspec layer only if external integrations need it.
+
+### Current status
+
+- Local filesystem backend is the production path today.
+- `StorageBackend` abstractions, configuration plumbing, and optional-dependency stubs already exist, so the cloud work can slot in when priorities allow.
 
 ## Feedback
 
-We welcome feedback on our roadmap! Please open an issue on GitHub for specific feature requests.
+Please provide feedback on this roadmap! Open an issue on GitHub for specific feature requests.

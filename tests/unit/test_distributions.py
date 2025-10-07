@@ -13,8 +13,8 @@ from importobot.utils.test_generation.distributions import (
 )
 
 
-class TestDistributionManager:  # pylint: disable=too-many-public-methods
-    """Test DistributionManager class."""
+class TestDistributionManagerBasicUsage:
+    """Test basic DistributionManager usage and get_test_distribution method."""
 
     def test_get_test_distribution_with_distribution(self):
         """Test get_test_distribution with explicit distribution."""
@@ -61,6 +61,10 @@ class TestDistributionManager:  # pylint: disable=too-many-public-methods
 
         assert sum(result.values()) == 50
         assert all(count > 0 for count in result.values())
+
+
+class TestDistributionManagerAbsoluteDistribution:
+    """Test DistributionManager absolute distribution processing."""
 
     def test_process_absolute_distribution_empty(self):
         """Test _process_absolute_distribution with empty distribution."""
@@ -117,6 +121,10 @@ class TestDistributionManager:  # pylint: disable=too-many-public-methods
         result = DistributionManager.process_absolute_distribution(4, distribution)
         assert sum(result.values()) == 4
         # All should be at least 1, and one should be 2 to make the total 4
+
+
+class TestDistributionManagerWeightedDistribution:
+    """Test DistributionManager weighted distribution processing."""
 
     def test_process_weighted_distribution_empty_weights(self):
         """Test _process_weighted_distribution with empty weights."""

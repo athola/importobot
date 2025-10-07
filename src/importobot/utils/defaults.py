@@ -1,7 +1,10 @@
 """Default values and configuration constants for test generation."""
 
+import os
 from dataclasses import dataclass, field
 from typing import Any
+
+_SAFE_HOME_ROOT = os.path.join(os.path.expanduser("~"), "importobot")
 
 
 @dataclass
@@ -53,7 +56,7 @@ class APIDefaults:
 class FileDefaults:
     """Default values for file operations."""
 
-    path: str = "/tmp/test_file.txt"
+    path: str = os.path.join(_SAFE_HOME_ROOT, "test_file.txt")
     content: str = "test content"
 
 

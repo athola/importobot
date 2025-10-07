@@ -260,14 +260,14 @@ class TestContextAnalysisAndSuggestions:
         # First step: hash a file
         step1 = {
             "description": "Calculate hash of source file",
-            "testData": "file: source.txt, algorithm: sha256",
+            "testData": "file: source.txt, algorithm: blake2b",
             "expectedResult": "Hash calculated",
         }
 
         # Second step: calculate hash of another file
         step2 = {
             "description": "Calculate hash of target file",
-            "testData": "file: target.txt, algorithm: sha256",
+            "testData": "file: target.txt, algorithm: blake2b",
             "expectedResult": "Hash calculated",
         }
 
@@ -406,3 +406,150 @@ class TestPerformanceAndScalability:
         assert isinstance(result, dict)
         # Should extract what it can from the complex structure
         assert len(result) >= 1
+
+
+class TestCredentialCompositeIntent:
+    """Test credential composite intent expansion (Smart Intent Expansion)."""
+
+    def test_enter_credentials_without_testdata(self):
+        """Test 'Enter credentials' without testData generates variable placeholders."""
+        generator = GenericKeywordGenerator()
+
+        step = {
+            "description": "Enter enterprise credentials",
+            "testData": "",
+            "expectedResult": "Credentials entered successfully",
+        }
+
+        result = generator.generate_step_keywords(step)
+
+        # Should generate both username and password inputs
+        assert any("Input Text" in line and "username" in line for line in result)
+        assert any("Input Password" in line and "password" in line for line in result)
+
+        # Should use Robot Framework variables (not hardcoded values)
+        assert any("${USERNAME}" in line for line in result)
+        assert any("${PASSWORD}" in line for line in result)
+
+    def test_credential_variations_without_testdata(self):
+        """Test various credential entry phrases without testData."""
+        generator = GenericKeywordGenerator()
+
+        variations = [
+            "Fill login credentials",
+            "Input credentials",
+            "Provide enterprise credentials",
+            "Enter login details",
+            "Type credentials",
+        ]
+
+        for description in variations:
+            step = {"description": description, "testData": "", "expectedResult": ""}
+
+            result = generator.generate_step_keywords(step)
+
+            # Each should generate 2 input keywords
+            input_keywords = [
+                line
+                for line in result
+                if line.strip().startswith(("Input Text", "Input Password"))
+            ]
+            assert len(input_keywords) == 2, (
+                f"'{description}' should generate 2 keywords, got {len(input_keywords)}"
+            )
+
+            # Should use variables
+            result_text = "\n".join(result)
+            assert "${USERNAME}" in result_text
+            assert "${PASSWORD}" in result_text
+
+    def test_credentials_with_structured_testdata_uses_multicommandparser(self):
+        """Test that structured testData takes priority over composite intent."""
+        generator = GenericKeywordGenerator()
+
+        step = {
+            "description": "Enter login credentials",
+            "testData": "username: admin, password: secret123",
+            "expectedResult": "Credentials entered successfully",
+        }
+
+        result = generator.generate_step_keywords(step)
+
+        # Should use MultiCommandParser with actual values (not variables)
+        assert any("admin" in line for line in result)
+        assert any("secret123" in line for line in result)
+
+        # Should NOT use variables when testData is provided
+        result_text = "\n".join(result)
+        assert "${USERNAME}" not in result_text
+        assert "${PASSWORD}" not in result_text
+
+    def test_credential_intent_generates_correct_robot_keywords(self):
+        """Test credential composite intent generates proper Robot Framework syntax."""
+        generator = GenericKeywordGenerator()
+
+        step = {
+            "description": "Enter credentials",
+            "testData": "",
+            "expectedResult": "",
+        }
+
+        result = generator.generate_step_keywords(step)
+
+        # Find the actual keyword lines
+        keyword_lines = [
+            line
+            for line in result
+            if line.strip().startswith(("Input Text", "Input Password"))
+        ]
+
+        # Should have exactly 2 keywords
+        assert len(keyword_lines) == 2
+
+        # Check first keyword (username)
+        assert "Input Text" in keyword_lines[0]
+        assert "id=username" in keyword_lines[0]
+        assert "${USERNAME}" in keyword_lines[0]
+
+        # Check second keyword (password)
+        assert "Input Password" in keyword_lines[1]
+        assert "id=password" in keyword_lines[1]
+        assert "${PASSWORD}" in keyword_lines[1]
+
+    def test_credential_intent_preserves_traceability_comments(self):
+        """Test that credential composite intent preserves step documentation."""
+        generator = GenericKeywordGenerator()
+
+        step = {
+            "description": "Enter enterprise credentials",
+            "testData": "",
+            "expectedResult": "User authenticated successfully",
+        }
+
+        result = generator.generate_step_keywords(step)
+
+        # Should include traceability comments
+        result_text = "\n".join(result)
+        assert "# Step: Enter enterprise credentials" in result_text
+        assert "# Expected Result: User authenticated successfully" in result_text
+
+    def test_non_credential_steps_not_affected(self):
+        """Test that non-credential steps continue to work normally."""
+        generator = GenericKeywordGenerator()
+
+        # Should not trigger credential composite intent
+        step = {
+            "description": "Click login button",
+            "testData": "",
+            "expectedResult": "Button clicked",
+        }
+
+        result = generator.generate_step_keywords(step)
+
+        # Should not generate username/password inputs
+        result_text = "\n".join(result)
+        assert "${USERNAME}" not in result_text
+        assert "${PASSWORD}" not in result_text
+
+        # Should generate click keyword instead
+        assert any("Click" in line for line in result)

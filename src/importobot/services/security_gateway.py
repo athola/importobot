@@ -21,6 +21,7 @@ from importobot.utils.validation import (
     ValidationError,
     validate_file_path,
     validate_json_dict,
+    validate_json_size,
     validate_safe_path,
 )
 
@@ -260,6 +261,8 @@ class SecurityGateway:
         try:
             # If it's a string, parse it first
             if isinstance(data, str):
+                # Validate size before parsing to prevent DoS
+                validate_json_size(data, max_size_mb=10)
                 data = json.loads(data)
             # Check for dangerous content in JSON values
             if isinstance(data, dict):

@@ -43,7 +43,15 @@ def convert_parameters_to_robot_variables(
         # Keep original if it doesn't look like a variable
         return match.group(0)
 
-    return re.sub(pattern, replace_parameter, text)
+    converted_lines: list[str] = []
+    for line in text.split("\n"):
+        stripped = line.lstrip()
+        if stripped.startswith("#"):
+            converted_lines.append(line)
+            continue
+        converted_lines.append(re.sub(pattern, replace_parameter, line))
+
+    return "\n".join(converted_lines)
 
 
 def sanitize_robot_string(text: Any) -> str:
@@ -61,12 +69,14 @@ def sanitize_robot_string(text: Any) -> str:
     if text is None:
         return ""
 
-    # Handle line endings preserving consecutive ones as multiple spaces
+    # Handle control characters and line endings while preserving intended spacing
     text_str = str(text)
     # Replace Windows line endings first to avoid double spaces
     text_str = text_str.replace("\r\n", " ")
     # Then replace remaining newlines and carriage returns
     text_str = text_str.translate({ord("\n"): " ", ord("\r"): " "})
+    # Replace other non-printable control characters with spaces (e.g., form feed)
+    text_str = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", text_str)
     # Trim leading/trailing whitespace but preserve internal spacing
     return text_str.strip()
 

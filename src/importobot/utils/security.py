@@ -415,9 +415,9 @@ class SecurityValidator:
                             {
                                 "parameter": key,
                                 "pattern": pattern,
-                                "value_preview": value[:20] + "..."
-                                if len(value) > 20
-                                else value,
+                                "value_preview": (
+                                    value[:20] + "..." if len(value) > 20 else value
+                                ),
                                 "risk_level": "MEDIUM",
                             },
                             "WARNING",
@@ -444,9 +444,9 @@ class SecurityValidator:
                         "DANGEROUS_COMMAND",
                         {
                             "pattern": pattern,
-                            "command_preview": command[:50] + "..."
-                            if len(command) > 50
-                            else command,
+                            "command_preview": (
+                                command[:50] + "..." if len(command) > 50 else command
+                            ),
                             "security_level": self.security_level,
                             "risk_level": "HIGH",
                         },
@@ -490,9 +490,9 @@ class SecurityValidator:
                             {
                                 "parameter": key,
                                 "pattern": pattern,
-                                "value_preview": value[:30] + "..."
-                                if len(value) > 30
-                                else value,
+                                "value_preview": (
+                                    value[:30] + "..." if len(value) > 30 else value
+                                ),
                                 "injection_type": "command_injection",
                                 "risk_level": "HIGH",
                             },
@@ -527,9 +527,9 @@ class SecurityValidator:
                             {
                                 "parameter": key,
                                 "pattern": pattern,
-                                "value_preview": value[:40] + "..."
-                                if len(value) > 40
-                                else value,
+                                "value_preview": (
+                                    value[:40] + "..." if len(value) > 40 else value
+                                ),
                                 "risk_level": "MEDIUM",
                             },
                             "WARNING",

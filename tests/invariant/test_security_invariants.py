@@ -5,7 +5,7 @@ based inputs to make sure sanitization never fails catastrophically and that
 dangerous patterns are consistently flagged.
 """
 
-# pylint: disable=missing-function-docstring,line-too-long
+# pylint: disable=missing-function-docstring
 
 from __future__ import annotations
 
@@ -59,7 +59,8 @@ class TestSecurityInvariants:
         try:
             result = gateway.sanitize_api_input(payload, "json")
         except SecurityError as exc:  # pragma: no cover - should not happen
-            pytest.fail(f"Security gateway should not raise for JSON payloads: {exc}")
+            msg = f"Security gateway should not raise for JSON payloads: {exc}"
+            pytest.fail(msg)
 
         assert result["input_type"] == "json"
         assert isinstance(result["is_safe"], bool)
@@ -104,7 +105,8 @@ class TestSecurityInvariants:
         result = gateway.sanitize_api_input(payload, "string")
 
         assert result["is_safe"] is False
-        assert result["security_issues"], "Dangerous command must surface issues"
+        msg = "Dangerous command must surface issues"
+        assert result["security_issues"], msg
         assert any(
             "danger" in issue.lower() or "command" in issue.lower()
             for issue in result["security_issues"]
@@ -125,8 +127,10 @@ class TestSecurityInvariants:
         result = gateway.sanitize_api_input(path, "file_path")
 
         assert result["is_safe"] is False
-        assert result["security_issues"], "Traversal attempt must yield issues"
+        msg = "Traversal attempt must yield issues"
+        assert result["security_issues"], msg
+        keywords = ("path", "traversal", "danger")
         assert any(
-            any(keyword in issue.lower() for keyword in ("path", "traversal", "danger"))
+            any(keyword in issue.lower() for keyword in keywords)
             for issue in result["security_issues"]
         )

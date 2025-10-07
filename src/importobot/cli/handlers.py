@@ -185,7 +185,8 @@ def convert_wildcard_files(args: argparse.Namespace, detected_files: list[str]) 
 def apply_suggestions_single_file(args: argparse.Namespace) -> None:
     """Apply suggestions and convert for a single file."""
     process_single_file_with_suggestions(
-        args,
+        args=args,
+        convert_file_func=convert_file,
         display_changes_func=display_suggestion_changes,
         use_stem_for_basename=False,
     )
@@ -196,7 +197,7 @@ def handle_bulk_conversion_with_suggestions(
     args: argparse.Namespace, input_type: str, detected_files: list
 ) -> None:
     """Handle conversion for directories or multiple files with suggestions warning."""
-    print("Warning: --apply-suggestions is only supported for single file conversion.")
+    print("Warning: --apply-suggestions only supported for single files.")
     print("Performing normal conversion instead...")
 
     if input_type == "directory":
@@ -250,7 +251,8 @@ def handle_files_conversion(
         args.output_file = args.output
 
         process_single_file_with_suggestions(
-            args,
+            args=args,
+            convert_file_func=convert_file,
             display_changes_func=display_suggestion_changes,
             use_stem_for_basename=False,
         )

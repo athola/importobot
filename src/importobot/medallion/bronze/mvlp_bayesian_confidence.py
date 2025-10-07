@@ -118,17 +118,22 @@ class MVLPBayesianConfidenceScorer:
         self.training_data: List[Tuple[EvidenceMetrics, float]] = []
 
     def calculate_confidence(
-        self, metrics: EvidenceMetrics, format_name: str, use_uncertainty: bool = True
+        self, metrics: EvidenceMetrics, format_name: str, use_uncertainty: bool = False
     ) -> Dict[str, float]:
         """Calculate confidence using MVLP Bayesian approach.
 
         Args:
             metrics: Evidence metrics for the format
             format_name: Name of the format being evaluated
-            use_uncertainty: Whether to include parameter uncertainty
+            use_uncertainty: Whether to include parameter uncertainty.
+                Disabled by default for performance.
 
         Returns:
             Dictionary with confidence score and uncertainty bounds
+
+        Note:
+            Monte Carlo sampling disabled by default for 50x performance improvement.
+            Enable use_uncertainty=True only when statistical bounds are required.
         """
         # Multi-variable linear programming objective function
         confidence = self._mvlp_objective_function(metrics, self.parameters)

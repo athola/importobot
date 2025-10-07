@@ -1,34 +1,69 @@
 # Importobot Project Plan
 
-This document outlines the roadmap for test framework conversion automation.
+This outline enforces the roadmap: what to ship next, what is parked, and which ideas still require further proof-of-concept.
+
+### Latest engineering update (October 2025)
+- Conversion invariants are stable again after teaching the formatter to leave comment placeholders untouched and to surface both raw and normalized names for auditing.
+- Selenium integration coverage now runs entirely in dry-run mode with an eagerly patched `robot.utils`, so CI no longer hits webdriver availability or deprecation warnings.
+- Property-based tests retain literal step bodies, which keeps Hypothesis satisfied while still exercising the parameter conversion logic.
 
 ## Roadmap
 
-### Near-term (Q3 2025)
-- **Bulk Conversion**: Enhance bulk conversion capabilities.
-- **Additional Formats**: Add support for JIRA/Xray and TestLink.
-- **Intent Detection**: Enhance test step pattern recognition.
-- **Library Coverage**: Expand Robot Framework library mappings.
-- **Performance**: Optimize conversion speed for large test suites.
-- **Timing Metrics**: Add timing metrics for conversion operations.
-- **Configuration Optimization**: Externalize large configuration data structures.
-- **I/O Optimization**: Optimize batch file I/O operations.
+### Q3 2025 — in-flight work
+- Bulk conversion polish. Tighten recursive directory handling and step mapping because current heuristics stumble on large Zephyr dumps.
+- Additional format support. Xray and TestLink parsers are in review; once merged, bake them into the same validation path as Zephyr so quality is consistent between formats.
+- Performance visibility. Adding simple timing metrics and I/O profiling so bottlenecks can be identified between parsing, mapping, or write-out.
 
-### Medium-term (Q4 2025-Q1 2026)
-- **API Interface**: Create a REST API for CI/CD integration.
-- **Plugin System**: Develop an extensible format converter architecture.
-- **Quality Metrics**: Add conversion analytics and reporting.
-- **Enterprise Features**: Implement advanced validation and error recovery.
+### Q4 2025 – Q1 2026 — queued next
+- REST surface for CI/CD. Request for a service wrapper instead of shell access, so prototype it once parsers are integrated.
+- Plugin architecture research. The goal is to let us snap in new source formats without rewriting the core converter. Need to prove abstraction on a format other than Zephyr.
+- Quality reporting. Lightweight analytics (success/error counts, skipped fields) so operations teams can spot regressions without perusing logs.
 
-### Long-term
-- **Multi-framework Support**: Support conversion to frameworks other than Robot Framework.
-- **AI-enhanced Conversion**: Add smart suggestions and predictive analysis.
-- **Cloud Integration**: Create a cloud-based version of Importobot.
+### Later — stays on the backlog until we learn more
+- Converters targeting frameworks beyond Robot Framework.
+- ML-assisted suggestions that propose tag/step tweaks automatically.
+- Cloud-hosted Importobot for customers who do not want to run the CLI themselves.
+
+## Storage Backend Strategy
+
+Only local filesystem backend has support with the current implementation. The abstractions for S3/Azure/GCP are in place but unimplemented; the code paths are exercised through unit tests with mocks such that cloud SDKs can later be added without rewriting callers.
+
+Initial priority is S3 because one implementation covers several lookalike providers (AWS, MinIO, Wasabi, Backblaze, DigitalOcean Spaces) by swapping the endpoint URL. Azure and GCP remain queued until live deployments require them to move up in priority.
+
+Configuration will follow the same pattern across providers:
+
+```python
+config = {
+    "backend_type": "s3",
+    "bucket_name": "my-medallion-data",
+    "endpoint_url": "https://s3.wasabisys.com",  # Optional override
+    "region_name": "us-east-1",
+}
+```
+
+### Implementation Roadmap
+
+**Phase 1: S3 backend (next up once roadmap items above land)**
+- Implement `S3StorageBackend` with boto3, starting with upload/download/listing.
+- Keep the optional dependency small: `pip install importobot[aws]` should bring in everything required.
+- Make endpoint overrides first-class so the same code runs against MinIO and friends.
+
+**Phase 2: Azure and GCP (i.e. when adopters request these to be added)**
+- Mirror the same interface with `azure-storage-blob` and `google-cloud-storage`.
+- Ship as optional extras (`importobot[azure]`, `importobot[gcp]`) to avoid inflating the base install.
+
+**Phase 3: Nice-to-haves**
+- Benchmark alternatives such as `obstore` if we hit performance walls.
+- Revisit a generic fsspec shim only if external tooling needs it.
+
+### Security & Best Practices
+
+No backend ships without story-for-story coverage of authentication and encryption. For S3 that means IAM roles first, access keys only when necessary. Azure and GCP equivalents (Managed Identity, service accounts) will follow the same pattern. All traffic remains HTTPS and server-side encryption stays on by default; customer-managed keys will be required by enterprise users, so each backend needs a way to plug them in.
 
 ## Medallion Architecture Implementation
 
 ### Overview
-Transform Importobot's test conversion pipeline using Databricks Medallion architecture (Bronze → Silver → Gold layers) to achieve enterprise-scale data quality, auditability, and processing efficiency.
+Decision was made to layer Databricks-style Bronze → Silver → Gold design onto Importobot so that raw exports, curated models, and final Robot suites each have their own guardrails. This pipeline will quickly identify where and why data gets stuck.
 
 ### Implementation Roadmap
 
@@ -75,13 +110,10 @@ Transform Importobot's test conversion pipeline using Databricks Medallion archi
 
 **Tasks:**
 - **Gold Layer Engine** (`src/importobot/medallion/gold/`)
-  - `OptimizedConverter` for performance-tuned Robot Framework generation
-  - `SuiteOrganizer` for intelligent test grouping and dependency resolution
-  - `LibraryOptimizer` for minimal, conflict-free library imports
-  - **Optimization Benchmarking** aligned with the OptimizedConverter rollout
-    - **Objectives**: Quantify conversion quality uplift, latency reduction, and algorithmic overhead for gradient descent, simulated annealing, and genetic algorithms. Confirm when advanced optimizers deliver measurable wins beyond a tuned baseline heuristic.
-    - **Datasets**: Curated Bronze/Silver fixtures representing small (<25 tests), medium (25-150), and large (150+) suites across Zephyr, TestRail, and JIRA/Xray formats; synthetic stress suites emitted by the OptimizedConverter preview; regression corpora from existing conversion benchmarks.
-    - **Success Criteria**: Gradient descent must achieve ≥15% latency reduction while meeting target quality scores (≥0.90) within 30 iterations; alternative algorithms must demonstrate ≥5% additional improvement versus gradient descent or be flagged for deprecation. Benchmarks record wall-clock time, iteration counts, and conversion metrics via `conversion_optimization` metadata.
+  - `OptimizedConverter` for faster Robot Framework generation without sacrificing readability
+  - `SuiteOrganizer` to keep related tests together instead of dumping them alphabetically
+  - `LibraryOptimizer` to trim redundant imports
+  - Optimization benchmarking: start with gradient-descent-style tuning, compare against the current heuristic, and keep extra algorithms only if they perform well on real fixtures (small, medium, large suites drawn from Zephyr/TestRail/Xray regressions).
 
 - **Export & Analytics**
   - Multiple output formats beyond Robot Framework (TestNG, pytest)
@@ -105,33 +137,14 @@ Transform Importobot's test conversion pipeline using Databricks Medallion archi
 
 ### Outstanding Implementation Items
 
-#### Bronze Layer Method Implementation (Low/Medium Effort)
-**Issue**: Three BronzeLayer methods are currently not implemented
-**Location**: `src/importobot/medallion/bronze_layer.py`
-**Status**: Ready for implementation (infrastructure already exists)
+#### Bronze Layer methods still undone
+Location: `src/importobot/medallion/bronze_layer.py`
 
-**Methods to Implement:**
-1. **`get_record_metadata(record_id: str)`** - 🟢 **Low Effort (30-60 min)**
-   - Currently returns `None` with misleading comment
-   - Data already stored in `self._metadata_store`
-   - Simple lookup and RecordMetadata conversion needed
+1. `get_record_metadata(record_id: str)` — low effort. Metadata already lives in `self._metadata_store`; return it instead of `None` and cover with unit tests.
+2. `get_record_lineage(record_id: str)` — low effort. Same story for `self._lineage_store`.
+3. `get_bronze_records(filter_criteria, limit)` — medium effort. Needs filtering/pagination plus conversion into `BronzeRecord` objects.
 
-2. **`get_record_lineage(record_id: str)`** - 🟢 **Low Effort (30-60 min)**
-   - Currently returns `None` with misleading comment
-   - Data already stored in `self._lineage_store`
-   - Simple lookup and DataLineage conversion needed
-
-3. **`get_bronze_records(filter_criteria, limit)`** - 🟡 **Medium Effort (2-3 hours)**
-   - Currently returns empty list with misleading comment
-   - Data already stored in `self._data_store`
-   - Requires filtering logic, pagination, and BronzeRecord conversion
-
-**Implementation Details:**
-- **Total Effort**: 3-5 hours including tests
-- **Infrastructure**: All required storage mechanisms already exist
-- **Comments**: Current "doesn't maintain persistent records" comments are incorrect
-- **Testing**: Each method needs comprehensive test coverage
-- **Dependencies**: No external dependencies required
+Estimated effort: roughly half a day for the trio, including tests. Please fix the misleading inline comments while touching these functions.
 
 ### Technical Architecture
 
@@ -170,84 +183,30 @@ Gold Layer (Consumption): Optimization → Organization → Export
 
 ## Recent Improvements
 
-### Artifact Management
-- Enhanced `.gitignore` to properly exclude generated artifacts and test output files
-- Added comprehensive `clean` and `deep-clean` Makefile targets to remove temporary files
-- Removed accidentally committed artifacts and ensured repository cleanliness
+### Artifact management
+- `.gitignore` now drops generated `.robot` files and scratch data so they stop sneaking into commits.
+- `make clean` and `make deep-clean` remove build and test leftovers, which keeps CI and laptops in sync.
+- Historical artifacts from before the cleanup have been removed.
 
-### Code Quality Excellence (September 2025)
-- **Achieved perfect 10.00/10.00 pylint score** through systematic code quality improvements
-- **Fixed all style violations**: Resolved pycodestyle E203/E501 and pydocstyle docstring formatting issues
-- **Removed unused imports and variables** to eliminate code clutter
-- **Standardized code formatting** with automated tools (Black, ruff)
-- **Improved error handling and validation** with fail-fast principles
-- **Enhanced type annotations** to pass mypy type checking requirements
+### Code quality snapshot (September 2025)
+- Restored the pylint score to 10.0 by fixing warnings rather than suppressing them.
+- Closed out pycodestyle/pydocstyle issues (mostly long lines and missing summaries) and standardized formatting with ruff/Black.
+- Tightened error handling and type hints so mypy runs cleanly.
 
-### Test Infrastructure Reliability (September 2025)
-- **Fixed 1118+ failing tests** to achieve 1153+ passing tests
-- **Resolved import path issues** in SSH keyword generators and validation modules
-- **Fixed test fixture inconsistencies** throughout the test suite
-- **Corrected test data structures** to match expected formats
-- **Enhanced library detection logic** for Robot Framework BuiltIn library handling
-- **Eliminated pytest collection warnings** by fixing test class constructors
-- **Improved test data management** and file organization for reliability
+### Tests and fixtures (September 2025)
+- Filled in missing fixtures and import paths so the suite now passes 1153 checks consistently.
+- Rebalanced SSH sample data that had been masking validation failures.
+- Cleared noisy pytest warnings by fixing constructors and redundant markers.
 
-### Makefile Improvements
-- Added missing targets to help menu for better discoverability
-- All Makefile targets now documented in the help section
-- Enhanced clean targets to remove additional artifact files
+### January 2025 cleanup highlights
+- Removed ~200 lines of legacy compatibility code and consolidated duplicate data-processing helpers.
+- Added explicit `__all__` exports to mark the public API surface and kept internal modules private.
+- Updated documentation across README/PLAN/CLAUDE/wiki to drop marketing filler and reflect the current architecture.
 
-### Code Quality & Architecture Refinement (January 2025)
-
-#### Comprehensive Codebase Cleanup
-- **Backwards Compatibility Removal**: Eliminated 200+ lines of legacy support code from utils/defaults.py, core/converter.py, and medallion architecture components
-- **API Boundary Enforcement**: Added proper `__all__` declarations to core and utils modules ensuring clean separation between public and private interfaces
-- **Code Deduplication**: Created shared utilities (utils/data_analysis.py) eliminating duplicate data processing patterns across services and medallion layers
-- **Performance Optimization**: Removed redundant validation wrapper functions, using direct ValidationResult constructors for better performance and reduced function call overhead
-- **Import Structure Cleanup**: Organized imports, removed unused backwards compatibility aliases, and established clear dependency patterns
-
-#### API Structure Improvements
-- **Public API Hardening**: Enforced pandas-style API organization with controlled namespace exposure
-- **Internal Module Privacy**: Marked internal utilities as private with empty `__all__` declarations
-- **Enterprise Integration Ready**: Validated API stability for CI/CD pipeline integration
-- **Memory Footprint Reduction**: Eliminated unnecessary layers of indirection and cleaned up module imports
-
-#### Documentation & Content Quality
-- **LLM Content Cleanup**: Removed conversational tone, excessive marketing adjectives, and unprofessional emoji usage from documentation
-- **Technical Writing Standards**: Converted documentation to professional technical writing style
-- **Comprehensive Updates**: Updated CLAUDE.md, PLAN.md, README.md, and wiki files with recent improvements
-- **Maintained Code Quality**: Preserved 10.00/10 pylint score throughout all cleanup operations
-
-### Latest Developments (September 2025)
-
-#### Interactive Demo System & Business Intelligence
-- **Added `scripts/` directory** with interactive demo infrastructure
-- **Created modular demo architecture** with separate components for configuration, logging, validation, scenarios, and visualization
-- **Implemented executive dashboards** with KPI cards, performance curves, competitive positioning, and ROI analysis
-- **Built portfolio analysis capabilities** across different business scenarios and scales
-- **Performance testing framework** for enterprise-scale validation with real-time visualization
-
-#### Code Quality & Architecture Achievements
-- **Achieved perfect 10.00/10.00 lint score** through systematic code quality improvements and complete cleanup
-- **Implemented shared utilities**: Created reusable components for pattern extraction and step comment generation
-- **Eliminated duplicate code patterns**: Replaced duplicate implementations across keyword generators with shared utilities
-- **Enhanced SSH infrastructure**: Complete test coverage for all 42 SSH keywords with generative testing
-- **Improved security handling**: Robust parameter extraction for sensitive SSH authentication and file operations
-- **Modular keyword architecture**: Enhanced separation of concerns with shared base functionality
-- **Fixed all style violations**: Complete resolution of pycodestyle, pydocstyle, and type checking issues
-
-#### Test Coverage Expansion
-- **Added extensive unit test suite** covering business domains, distributions, error handling, field definitions, JSON conversion, keywords, logging, progress reporting, security, suggestions, and validation
-- **Generated complete test coverage** with additional test files for reliability and validation
-- **SSH keyword testing**: Complete coverage of connection, authentication, file operations, directory management, and interactive shell keywords
-- **Security validation tests**: Parameter extraction, validation, and security compliance testing
-
-#### API Architecture Transformation (September 2025)
-- **Pandas-Inspired Design**: Restructured public API following industry-standard patterns from pandas, numpy, requests, and flask
-- **Enterprise API Toolkit**: Created `importobot.api` module for advanced enterprise features
-- **Namespace Management**: Implemented controlled namespace with industry-validated import/del patterns
-- **Version Stability**: Established stable public API contracts with internal implementation flexibility
-- **Type Safety Integration**: Added comprehensive TYPE_CHECKING imports for development support
+### Interactive demo + analytics work
+- Added `scripts/interactive_demo.py` with scenarios that show cost, conversion speed, and automation ROI for stakeholders.
+- Built lightweight visualization hooks for performance runs; results feed the same KPI cards for demo to leadership.
+- Shared utilities now power both the CLI and demo flows (pattern extraction, step comment generation, SSH keyword coverage).
 
 **API Design Decisions:**
 - **Primary Interface**: `import importobot` → `JsonToRobotConverter()` for core bulk conversion
@@ -283,3 +242,93 @@ Gold Layer (Consumption): Optimization → Organization → Export
 - **Load testing for large-scale generation**: Tests to verify performance when generating thousands of test cases
 - **Memory usage monitoring**: Tests to track memory consumption during large conversions
 - **Concurrent processing**: Tests for handling multiple simultaneous conversion requests
+
+## Test Suite Quality Improvement Plan
+
+### Executive Summary
+
+Comprehensive review of 90 test files revealed systematic opportunities to improve test quality, maintainability, and adherence to TDD principles. Current test suite has 1537+ passing tests with good coverage but requires structural improvements for maintainability.
+
+### Current Test Suite Status
+
+**Strengths:**
+✅ Good test coverage (1537+ tests)
+✅ Clear test organization (unit/integration/invariant/generative)
+✅ Existing shared test data and fixtures
+✅ Comprehensive edge case testing in some areas (distributions, security, SSH)
+✅ Use of hypothesis for property-based testing (invariant tests)
+
+**Areas for Improvement:**
+⚠️ 150+ hard-coded magic numbers without named constants
+⚠️ 13 files manually create temp directories instead of using fixtures
+⚠️ 862 duplicate test data declarations
+⚠️ 87 test files lack explicit AAA (Arrange-Act-Assert) structure
+⚠️ 100+ weak assertion messages
+⚠️ 20+ missed parametrization opportunities
+
+### Completed Improvements
+
+**Test Constants Module** (`tests/test_constants.py`):
+- Eliminates hard-coded magic numbers across test suite
+- Includes exit codes, security warning counts, distribution expectations, resource limits, optimization parameters
+- Makes 150+ test assertions more readable and maintainable
+
+**Enhanced Shared Test Data** (`tests/shared_test_data.py`):
+- Added common Zephyr format test data, enterprise app testing, web navigation, database operations, API testing
+- Reduces duplicate test data across 862+ instances
+
+### High-Priority Improvements (Ready for Implementation)
+
+**Priority 1: Use Test Constants**
+- **Effort**: Medium (2-3 hours)
+- **Impact**: High
+- **Files affected**: 15+ test files
+- Replace magic numbers in distributions, CLI, security, optimization, and resource management tests
+
+**Priority 2: Convert Temp Directory Creation to Fixtures**
+- **Effort**: Low (1-2 hours)
+- **Impact**: High
+- **Files affected**: 13 test files
+- Use existing `temp_dir` fixture instead of manual `tempfile.TemporaryDirectory()`
+
+**Priority 3: Add Parametrization to Similar Tests**
+- **Effort**: Medium (3-4 hours)
+- **Impact**: Medium-High
+- **Files affected**: 5+ test files
+- Consolidate similar security tests and distribution tests using `@pytest.mark.parametrize`
+
+**Priority 4: Add AAA Comments to Tests**
+- **Effort**: Low-Medium (2-3 hours for high-value tests)
+- **Impact**: Medium
+- **Files affected**: 87 test files (focus on complex ones first)
+- Add explicit Arrange-Act-Assert structure comments
+
+**Priority 5: Improve Assertion Messages**
+- **Effort**: Medium (3-4 hours)
+- **Impact**: High (better debugging experience)
+- **Files affected**: 100+ assertion statements
+- Add descriptive failure messages for better debugging
+
+### Implementation Phases
+
+**Phase 1: Quick Wins (Week 1)**
+- ✅ Create `test_constants.py`
+- ✅ Enhance `shared_test_data.py`
+- ⏳ Convert 5 key test files to use constants
+- ⏳ Convert temp directory creation to fixtures (13 files)
+
+**Phase 2: Quality Improvements (Week 2)**
+- ⏳ Add parametrization to security, distribution, and parser tests
+- ⏳ Add AAA comments to 20 most complex tests
+- ⏳ Improve assertion messages in 50 key assertions
+
+**Phase 3: Structural Improvements (Week 3)**
+- ⏳ Expand shared test data usage
+- ⏳ Split 5-10 multi-behavior tests
+- ⏳ Add missing edge case tests
+
+**Success Metrics**
+- Reduce hard-coded values by 80% (from 150+ to <30)
+- Reduce duplicate test data by 50% (from 862 to <450)
+- 100% of complex tests have AAA structure
+- 80% of assertions have descriptive failure messages

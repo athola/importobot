@@ -1,6 +1,7 @@
 """Comprehensive generative tests ensuring all 42 SSH keywords are covered."""
 
 import json
+import sys
 import tempfile
 import time
 from pathlib import Path
@@ -499,9 +500,6 @@ class TestSSHComprehensiveCoverage:
         )
 
         # Test memory usage (rough check)
-        # pylint: disable=import-outside-toplevel
-        import sys
-
         total_size = sum(sys.getsizeof(test) for test in all_tests)
         assert total_size < 10 * 1024 * 1024, (
             f"Generated tests too large: {total_size} bytes"

@@ -6,12 +6,17 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
+__all__ = ["VALID_BACKEND_TYPES", "StorageConfig"]
+
+# Valid storage backend types
+VALID_BACKEND_TYPES = ["local", "s3", "azure", "gcp"]
+
 
 @dataclass
 class StorageConfig:
     """Configuration for storage backends."""
 
-    backend_type: str = "local"  # local, s3, azure, gcp
+    backend_type: str = "local"  # Valid types: see VALID_BACKEND_TYPES
     base_path: Path = field(default_factory=lambda: Path("./medallion_data"))
 
     # Local storage specific
@@ -47,9 +52,9 @@ class StorageConfig:
             "cache_size_mb": self.cache_size_mb,
             "batch_size": self.batch_size,
             "encryption_enabled": self.encryption_enabled,
-            "encryption_key_path": str(self.encryption_key_path)
-            if self.encryption_key_path
-            else None,
+            "encryption_key_path": (
+                str(self.encryption_key_path) if self.encryption_key_path else None
+            ),
             "backup_enabled": self.backup_enabled,
             "backup_interval_hours": self.backup_interval_hours,
             "backup_retention_days": self.backup_retention_days,
@@ -119,7 +124,7 @@ class StorageConfig:
         """Validate the configuration and return any issues."""
         issues = []
 
-        if self.backend_type not in ["local", "s3", "azure", "gcp"]:
+        if self.backend_type not in VALID_BACKEND_TYPES:
             issues.append(f"Invalid backend_type: {self.backend_type}")
 
         if self.retention_days < 1:

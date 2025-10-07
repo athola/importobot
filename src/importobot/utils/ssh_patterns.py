@@ -1,5 +1,12 @@
 """Shared SSH patterns and indicators for consistent detection."""
 
+import tempfile
+from pathlib import Path
+
+_TEMP_DIR_INDICATOR = Path(tempfile.gettempdir()).as_posix()
+if not _TEMP_DIR_INDICATOR.endswith("/"):
+    _TEMP_DIR_INDICATOR = f"{_TEMP_DIR_INDICATOR}/"
+
 # SSH operation indicators
 SSH_STRONG_INDICATORS = [
     "ssh",
@@ -21,7 +28,14 @@ SSH_ADDITIONAL_PATTERNS = [
 ]
 
 # Remote file path indicators
-SSH_FILE_PATH_INDICATORS = ["/etc/", "/var/", "/opt/", "/home/", "/usr/", "/tmp/"]
+SSH_FILE_PATH_INDICATORS = [
+    "/etc/",
+    "/var/",
+    "/opt/",
+    "/home/",
+    "/usr/",
+    _TEMP_DIR_INDICATOR,
+]
 
 # Combined list for convenience
 ALL_SSH_INDICATORS = SSH_STRONG_INDICATORS + SSH_ADDITIONAL_PATTERNS

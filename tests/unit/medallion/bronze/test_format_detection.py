@@ -1,5 +1,6 @@
 """TDD tests for format detection across all supported test frameworks.
-# pylint: disable=line-too-long  # Test data contains long strings
+
+# Test data contains long strings
 
 These tests define the expected behavior for detecting various test management
 formats (Zephyr, TestLink, JIRA/Xray, TestRail) with high accuracy and confidence.

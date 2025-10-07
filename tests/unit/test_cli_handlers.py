@@ -25,6 +25,8 @@ from importobot.cli.handlers import (
     requires_output_directory,
     validate_input_and_output,
 )
+from importobot.core.converter import convert_file
+from importobot.utils.file_operations import display_suggestion_changes
 
 
 class TestInputTypeDetection:
@@ -455,11 +457,12 @@ class TestApplySuggestionsSingleFile:
         ):
             apply_suggestions_single_file(args)
 
-            mock_process.assert_called_once_with(
-                args,
-                display_changes_func=mock_process.call_args[1]["display_changes_func"],
-                use_stem_for_basename=False,
-            )
+            mock_process.assert_called_once()
+            kwargs = mock_process.call_args.kwargs
+            assert kwargs["args"] is args
+            assert kwargs["convert_file_func"] is convert_file
+            assert kwargs["display_changes_func"] is display_suggestion_changes
+            assert kwargs["use_stem_for_basename"] is False
             mock_display.assert_called_once_with("input.json", False)
 
 
@@ -477,10 +480,10 @@ class TestHandleBulkConversionWithSuggestions:
             handle_bulk_conversion_with_suggestions(args, "directory", ["/input/dir"])
 
             captured = capsys.readouterr()
-            assert (
-                "Warning: --apply-suggestions is only supported for "
-                "single file conversion" in captured.out
+            warning_msg = (
+                "Warning: --apply-suggestions only supported for single files."
             )
+            assert warning_msg in captured.out
             assert "Performing normal conversion instead..." in captured.out
             mock_convert.assert_called_once_with("/input/dir", "/output/dir")
 
@@ -597,6 +600,11 @@ class TestHandleFilesConversion:
             handle_files_conversion(args, parser)
 
             mock_process.assert_called_once()
+            kwargs = mock_process.call_args.kwargs
+            assert kwargs["args"] is args
+            assert kwargs["convert_file_func"] is convert_file
+            assert kwargs["display_changes_func"] is display_suggestion_changes
+            assert kwargs["use_stem_for_basename"] is False
             mock_display.assert_called_once_with("test.json", False)
 
     def test_handle_files_conversion_multiple_files(self, capsys):
@@ -647,8 +655,8 @@ class TestHandleDirectoryConversion:
 
             captured = capsys.readouterr()
             assert (
-                "Warning: --apply-suggestions is only supported for "
-                "single file conversion" in captured.out
+                "Warning: --apply-suggestions is only supported for single "
+                "file conversion." in captured.out
             )
             assert "Performing normal directory conversion instead..." in captured.out
             mock_convert.assert_called_once_with("/input/dir", "/output/dir")

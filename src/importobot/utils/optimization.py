@@ -54,7 +54,7 @@ class GradientDescentOptimizer:
         self.config = config or OptimizerConfig()
 
         # Optimization state
-        self.velocity: Optional[Dict[str, float]] = None
+        self.velocity: Dict[str, float] = {}
         self.iteration_count = 0
         self.convergence_history: List[float] = []
 
@@ -177,26 +177,24 @@ class GradientDescentOptimizer:
     ) -> None:
         """Update parameters using momentum and apply bounds."""
         # Update velocity with momentum
-        if self.velocity is not None:
-            for param in state.parameters:
-                if param in gradients:
-                    self.velocity[param] = (
-                        self.config.momentum * self.velocity[param]
-                        - state.learning_rate * gradients[param]
-                    )
+        for param in state.parameters:
+            if param in gradients:
+                self.velocity[param] = (
+                    self.config.momentum * self.velocity[param]
+                    - state.learning_rate * gradients[param]
+                )
 
         # Update parameters and apply bounds
-        if self.velocity is not None:
-            for param in state.parameters:
-                if param in self.velocity:
-                    state.parameters[param] += self.velocity[param]
+        for param in state.parameters:
+            if param in self.velocity:
+                state.parameters[param] += self.velocity[param]
 
-                # Apply parameter bounds
-                if param in parameter_bounds:
-                    min_val, max_val = parameter_bounds[param]
-                    state.parameters[param] = max(
-                        min_val, min(max_val, state.parameters[param])
-                    )
+            # Apply parameter bounds
+            if param in parameter_bounds:
+                min_val, max_val = parameter_bounds[param]
+                state.parameters[param] = max(
+                    min_val, min(max_val, state.parameters[param])
+                )
 
     def _adjust_learning_rate(
         self,
@@ -598,9 +596,11 @@ def simulated_annealing(
     optimization_metadata = {
         "iterations": iteration,
         "final_temperature": temperature,
-        "acceptance_rate": sum(acceptance_history) / len(acceptance_history)
-        if acceptance_history
-        else 0,
+        "acceptance_rate": (
+            sum(acceptance_history) / len(acceptance_history)
+            if acceptance_history
+            else 0
+        ),
         "converged": temperature <= config.min_temperature,
         "best_value": best_value,
     }

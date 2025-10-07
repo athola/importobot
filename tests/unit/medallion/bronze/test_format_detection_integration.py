@@ -1,5 +1,6 @@
 """TDD Integration tests for complete format detection workflow.
-# pylint: disable=line-too-long  # Test data contains long strings
+
+# Test data contains long strings
 
 Tests the integration of FormatDetector, FormatRegistry, and format definitions
 working together to accurately detect test management system formats with

@@ -97,15 +97,20 @@ class DetectionCache:
         """
         # Convert to JSON string for consistent formatting
         try:
-            data_str = json.dumps(data, separators=(",", ":"), sort_keys=True).lower()
+            normalized_str = json.dumps(
+                data, separators=(",", ":"), sort_keys=True
+            ).lower()
         except (TypeError, ValueError):
-            data_str = str(data).lower()
+            normalized_str = str(data).lower()
+
+        # Encode once so we can reuse the bytes for hashing and caching
+        normalized_bytes = normalized_str.encode("utf-8")
 
         # Generate Blake2b hash of the complete normalized content
         # Blake2b is faster than SHA-256 with equivalent collision resistance
-        content_hash = hashlib.blake2b(data_str.encode("utf-8")).hexdigest()
+        content_hash = hashlib.blake2b(normalized_bytes).hexdigest()
 
-        return content_hash, data_str
+        return content_hash, normalized_str
 
     def _get_secondary_hash(self, data_str: str) -> str:
         """Generate secondary hash for collision detection optimization."""

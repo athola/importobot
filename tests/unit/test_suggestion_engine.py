@@ -173,11 +173,14 @@ class TestApplySuggestions:
         engine = GenericSuggestionEngine()
         test_data: dict[str, Any] = {"steps": []}
 
-        _, changes = engine.apply_suggestions(test_data)
+        improved_data, changes = engine.apply_suggestions(test_data)
 
         assert isinstance(changes, list)
-        # Should have made some changes (like adding default name/description)
-        assert len(changes) >= 0
+        # Should have made some changes (like adding default name/description/steps)
+        # Verify tracked changes by ensuring the improved data differs from original
+        assert "name" in improved_data or "testScript" in improved_data
+        # Changes list should contain the modifications made
+        assert all(isinstance(change, dict) for change in changes)
 
     def test_apply_suggestions_with_nested_structure(self):
         """Test apply_suggestions with nested test structure."""
@@ -288,8 +291,12 @@ class TestSuggestionEngineIntegration:
         assert isinstance(improved_data, dict)
         assert isinstance(changes, list)
 
-        # Verify improvements were made
-        assert "name" in improved_data or len(changes) >= 0
+        # Verify improvements were made - assert separately
+        # The improved data should have a name field added
+        assert "name" in improved_data
+        # Changes should have been tracked (non-negative length is always true)
+        # So we verify it's actually a list that can contain changes
+        assert isinstance(changes, list)
 
     def test_suggestion_engine_with_complex_test_data(self):
         """Test suggestion engine with complex test structure."""

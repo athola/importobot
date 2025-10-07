@@ -1,7 +1,24 @@
 """Helper functions for robust testing of Robot Framework content."""
 
 import re
-from typing import List, Set
+from typing import Iterable, List, Set
+
+EXPECTED_PUBLIC_EXPORTS = {
+    "JsonToRobotConverter",
+    "config",
+    "exceptions",
+    "api",
+}
+
+
+def assert_module_exports(module: object, expected: Iterable[str]) -> None:
+    """Assert that a module exposes exactly the expected `__all__` entries."""
+
+    exports = getattr(module, "__all__", None)
+    assert exports is not None, "Module is missing __all__ definition"
+    assert set(exports) == set(expected), (
+        f"Unexpected exports: {sorted(exports)} != {sorted(expected)}"
+    )
 
 
 class RobotFrameworkAssertion:

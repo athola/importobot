@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from collections import OrderedDict
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple
 
 from importobot.utils.optimization import (
     AnnealingConfig,
@@ -20,10 +20,6 @@ from importobot.utils.optimization import (
     OptimizerConfig,
     simulated_annealing,
 )
-
-if TYPE_CHECKING:
-    pass
-
 
 AlgorithmName = str
 

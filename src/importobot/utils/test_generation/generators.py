@@ -17,7 +17,7 @@ from importobot.utils.defaults import (
 )
 from importobot.utils.progress_reporter import BatchProgressReporter, ProgressReporter
 from importobot.utils.resource_manager import get_resource_manager
-from importobot.utils.test_generation.categories import CategoryInfo
+from importobot.utils.test_generation.categories import CategoryEnum, CategoryInfo
 from importobot.utils.test_generation.distributions import (
     DistributionDict,
     DistributionManager,
@@ -462,6 +462,19 @@ class EnterpriseTestGenerator:
             )
             category_scenarios = self.template_manager.get_available_scenarios()
 
+            available_categories = set(category_scenarios.keys())
+            invalid_categories = [
+                category
+                for category in distribution
+                if category not in available_categories
+            ]
+            if invalid_categories:
+                valid_list = ", ".join(sorted(CategoryEnum.get_all_values()))
+                raise ValueError(
+                    "Invalid category "
+                    f"'{invalid_categories[0]}' not in CategoryEnum: {valid_list}"
+                )
+
             generated_counts: dict[str, int] = {}
             test_id = 1
 
@@ -878,8 +891,14 @@ class EnterpriseTestGenerator:
                     else str(result)
                 )
 
-        # Default case - return a generic test data string
-        return f"test_data_for_{keyword.lower().replace(' ', '_')}  # {library.lower()}"
+        # Default case - return a generic test data string enriched with description
+        description = keyword_info.get("description", "") or ""
+        fallback_description = description.strip() or "Unknown operation"
+        keyword_slug = keyword.lower().replace(" ", "_") if keyword else "keyword"
+        library_slug = library.lower() if library else "unknown_library"
+        return (
+            f"{fallback_description} :: test_data_for_{keyword_slug}  # {library_slug}"
+        )
 
     def _get_test_distribution(
         self,

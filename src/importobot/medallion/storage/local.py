@@ -76,9 +76,11 @@ class LocalStorageBackend(StorageBackend):
                 "source_path": str(metadata.source_path),
                 "layer_name": metadata.layer_name,
                 "ingestion_timestamp": metadata.ingestion_timestamp.isoformat(),
-                "processing_timestamp": metadata.processing_timestamp.isoformat()
-                if metadata.processing_timestamp
-                else None,
+                "processing_timestamp": (
+                    metadata.processing_timestamp.isoformat()
+                    if metadata.processing_timestamp
+                    else None
+                ),
                 "data_hash": metadata.data_hash,
                 "version": metadata.version,
                 "format_type": metadata.format_type.value,
@@ -136,11 +138,11 @@ class LocalStorageBackend(StorageBackend):
                 ingestion_timestamp=datetime.fromisoformat(
                     metadata_dict["ingestion_timestamp"]
                 ),
-                processing_timestamp=datetime.fromisoformat(
-                    metadata_dict["processing_timestamp"]
-                )
-                if metadata_dict.get("processing_timestamp")
-                else None,
+                processing_timestamp=(
+                    datetime.fromisoformat(metadata_dict["processing_timestamp"])
+                    if metadata_dict.get("processing_timestamp")
+                    else None
+                ),
                 data_hash=metadata_dict.get("data_hash", ""),
                 version=metadata_dict.get("version", "1.0"),
                 format_type=SupportedFormat(
@@ -238,11 +240,11 @@ class LocalStorageBackend(StorageBackend):
             ingestion_timestamp=datetime.fromisoformat(
                 metadata_dict["ingestion_timestamp"]
             ),
-            processing_timestamp=datetime.fromisoformat(
-                metadata_dict["processing_timestamp"]
-            )
-            if metadata_dict.get("processing_timestamp")
-            else None,
+            processing_timestamp=(
+                datetime.fromisoformat(metadata_dict["processing_timestamp"])
+                if metadata_dict.get("processing_timestamp")
+                else None
+            ),
             data_hash=metadata_dict.get("data_hash", ""),
             version=metadata_dict.get("version", "1.0"),
             format_type=SupportedFormat(metadata_dict.get("format_type", "unknown")),
@@ -469,13 +471,22 @@ class LocalStorageBackend(StorageBackend):
                 return False
 
             layer_path = self.base_path / layer_name
+            temp_path = layer_path.with_suffix(".restore_temp")
 
-            # Remove existing layer data if it exists
             if layer_path.exists():
-                shutil.rmtree(layer_path)
+                if temp_path.exists():
+                    shutil.rmtree(temp_path)
+                shutil.move(layer_path, temp_path)
 
-            # Restore from backup
-            shutil.copytree(backup_path, layer_path)
+            try:
+                shutil.copytree(backup_path, layer_path)
+            except Exception:
+                if temp_path.exists():
+                    shutil.move(temp_path, layer_path)
+                raise
+
+            if temp_path.exists():
+                shutil.rmtree(temp_path)
 
             logger.info(
                 "Successfully restored layer %s from %s", layer_name, backup_path

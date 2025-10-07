@@ -1,7 +1,7 @@
 """TDD tests for Bronze layer data ingestion business logic.
 
 These tests define the expected behavior for Bronze layer ingestion
-according to the MR1 acceptance criteria from GitHub issue #42.
+with comprehensive validation and format detection.
 
 Red-Green-Refactor Cycle:
 1. RED: Write failing tests that define desired behavior
@@ -33,17 +33,162 @@ from tests.shared_test_data_bronze import (
 )
 
 
-class TestBronzeDataIngestionBusinessLogic(  # pylint: disable=too-many-public-methods
-    unittest.TestCase
-):
-    """Business logic tests for Bronze layer data ingestion.
+# Module-level fixtures for shared test data
+def create_zephyr_test_data() -> dict[str, Any]:
+    """Create enhanced Zephyr test data with realistic format indicators."""
+    return {
+        "testCase": {
+            "name": "User Login Test",
+            "description": "Test user authentication",
+            "testCaseKey": "TEST-001",
+            "priority": "High",
+            "component": "Authentication",
+            "steps": [
+                {
+                    "stepDescription": "Open login page",
+                    "expectedResult": "Page loads",
+                    "stepNumber": 1,
+                },
+                {
+                    "stepDescription": "Enter credentials",
+                    "expectedResult": "Login successful",
+                    "stepNumber": 2,
+                },
+            ],
+        },
+        "execution": {
+            "status": "PASS",
+            "executionId": "EXEC-001",
+            "executedBy": "testuser",
+            "executionDate": "2025-01-01T10:00:00Z",
+            "cycleId": "CYCLE-001",
+        },
+        "cycle": {
+            "name": "Sprint 1",
+            "cycleId": "CYCLE-001",
+            "startDate": "2025-01-01",
+            "endDate": "2025-01-14",
+            "environment": "Production",
+        },
+        "project": {"key": "PROJ", "name": "Test Project"},
+        "version": {"name": "v1.0", "id": "VER-001"},
+        "sprint": {"name": "Sprint 1", "state": "Active"},
+    }
 
-    Tests based on MR1 acceptance criteria:
-    - Bronze layer can ingest JSON test files with full metadata capture
-    - Data lineage is tracked from source file to Bronze storage
-    - Format detection works for Zephyr, TestRail, and JIRA/Xray inputs
-    - Existing API functionality remains unchanged
-    - Performance benchmarks show <10% overhead vs current implementation
+
+def create_testlink_test_data() -> dict[str, Any]:
+    """Create enhanced TestLink test data with realistic format indicators."""
+    return {
+        "testsuites": {
+            "testsuite": [
+                {
+                    "name": "Login Tests",
+                    "testsuiteid": "1",
+                    "details": "Test suite for login functionality",
+                    "testcase": [
+                        {
+                            "name": "Valid Login",
+                            **COMMON_TEST_CASE_STRUCTURE,
+                        }
+                    ],
+                    **COMMON_TEST_SUITE_STRUCTURE,
+                }
+            ],
+            "project": {"name": "Authentication Project", "prefix": "AUTH"},
+            "testplan": {"name": "Login Test Plan", "testplan_id": "PLAN-001"},
+            "time": "90",
+            "tests": "1",
+        }
+    }
+
+
+def create_jira_xray_test_data() -> dict[str, Any]:
+    """Create enhanced JIRA/Xray test data with realistic format indicators."""
+    return {
+        "issues": [
+            {
+                "key": "TEST-123",
+                "fields": {
+                    "summary": "API Test Case",
+                    "description": "Test API authentication endpoints",
+                    "issuetype": {"name": "Test"},
+                    "priority": {"name": "High"},
+                    "status": {"name": "To Do"},
+                    "project": {"key": "TEST", "name": "Test Project"},
+                    "customfield_test_type": "Xray",
+                    "customfield_test_steps": [
+                        {
+                            "step": "Send GET request to /api/auth",
+                            "data": "GET /api/auth",
+                            "result": "Response status 200",
+                        },
+                        {
+                            "step": "Verify authentication token",
+                            "data": "Check token in response",
+                            "result": "Token present and valid",
+                        },
+                    ],
+                    "customfield_test_requirements": ["REQ-001", "REQ-002"],
+                    "labels": ["api", "authentication", "regression"],
+                    "components": [{"name": "Authentication"}],
+                },
+                "xray": {
+                    "testType": "Generic",
+                    "requirements": ["REQ-001", "REQ-002"],
+                    "testExecutions": [
+                        {
+                            "status": "PASS",
+                            "executionId": "EXEC-001",
+                            "executedBy": "testuser",
+                        }
+                    ],
+                },
+            }
+        ],
+        "testExecutions": [
+            {
+                "executionId": "EXEC-001",
+                "testKey": "TEST-123",
+                "status": "PASS",
+                "executedBy": "testuser",
+                "executionDate": "2025-01-01T10:00:00Z",
+                "comment": "Test executed successfully",
+            }
+        ],
+        "testInfo": {
+            "testKey": "TEST-123",
+            "testType": "Generic",
+            "requirements": ["REQ-001", "REQ-002"],
+            "labels": ["api", "authentication", "regression"],
+            "component": "Authentication",
+            "priority": "High",
+        },
+        "evidences": [
+            {
+                "evidenceId": "EV-001",
+                "filename": "screenshot.png",
+                "contentType": "image/png",
+                "data": "base64-encoded-image-data",
+            },
+            {
+                "evidenceId": "EV-002",
+                "filename": "logs.txt",
+                "contentType": "text/plain",
+                "data": "test execution logs",
+            },
+        ],
+        "xrayInfo": {"version": "4.0", "exportDate": "2025-01-01T10:00:00Z"},
+    }
+
+
+class TestBronzeDataIngestionCore(unittest.TestCase):
+    """Core data ingestion tests for Bronze layer.
+
+    Tests cover:
+    - Basic JSON file ingestion with metadata capture
+    - Data lineage tracking from source to Bronze storage
+    - Format detection for supported test frameworks
+    - Quality metrics and validation
     """
 
     def setUp(self):
@@ -52,151 +197,13 @@ class TestBronzeDataIngestionBusinessLogic(  # pylint: disable=too-many-public-m
         bronze_layer = BronzeLayer(storage_path=self.temp_dir)
         self.ingestion = RawDataProcessor(bronze_layer=bronze_layer)
 
-        # Sample test data for different formats
-        # Enhanced Zephyr test data with more realistic format indicators
-        self.zephyr_data = {
-            "testCase": {
-                "name": "User Login Test",
-                "description": "Test user authentication",
-                "testCaseKey": "TEST-001",
-                "priority": "High",
-                "component": "Authentication",
-                "steps": [
-                    {
-                        "stepDescription": "Open login page",
-                        "expectedResult": "Page loads",
-                        "stepNumber": 1,
-                    },
-                    {
-                        "stepDescription": "Enter credentials",
-                        "expectedResult": "Login successful",
-                        "stepNumber": 2,
-                    },
-                ],
-            },
-            "execution": {
-                "status": "PASS",
-                "executionId": "EXEC-001",
-                "executedBy": "testuser",
-                "executionDate": "2025-01-01T10:00:00Z",
-                "cycleId": "CYCLE-001",
-            },
-            "cycle": {
-                "name": "Sprint 1",
-                "cycleId": "CYCLE-001",
-                "startDate": "2025-01-01",
-                "endDate": "2025-01-14",
-                "environment": "Production",
-            },
-            "project": {"key": "PROJ", "name": "Test Project"},
-            "version": {"name": "v1.0", "id": "VER-001"},
-            "sprint": {"name": "Sprint 1", "state": "Active"},
-        }
-
-        # Enhanced TestLink test data with more realistic format indicators
-        self.testlink_data = {
-            "testsuites": {
-                "testsuite": [
-                    {
-                        "name": "Login Tests",
-                        "testsuiteid": "1",
-                        "details": "Test suite for login functionality",
-                        "testcase": [
-                            {
-                                "name": "Valid Login",
-                                **COMMON_TEST_CASE_STRUCTURE,
-                            }
-                        ],
-                        **COMMON_TEST_SUITE_STRUCTURE,
-                    }
-                ],
-                "project": {"name": "Authentication Project", "prefix": "AUTH"},
-                "testplan": {"name": "Login Test Plan", "testplan_id": "PLAN-001"},
-                "time": "90",
-                "tests": "1",
-            }
-        }
-
-        # Enhanced JIRA/Xray test data with more realistic format indicators
-        self.jira_xray_data = {
-            "issues": [
-                {
-                    "key": "TEST-123",
-                    "fields": {
-                        "summary": "API Test Case",
-                        "description": "Test API authentication endpoints",
-                        "issuetype": {"name": "Test"},
-                        "priority": {"name": "High"},
-                        "status": {"name": "To Do"},
-                        "project": {"key": "TEST", "name": "Test Project"},
-                        "customfield_test_type": "Xray",
-                        "customfield_test_steps": [
-                            {
-                                "step": "Send GET request to /api/auth",
-                                "data": "GET /api/auth",
-                                "result": "Response status 200",
-                            },
-                            {
-                                "step": "Verify authentication token",
-                                "data": "Check token in response",
-                                "result": "Token present and valid",
-                            },
-                        ],
-                        "customfield_test_requirements": ["REQ-001", "REQ-002"],
-                        "labels": ["api", "authentication", "regression"],
-                        "components": [{"name": "Authentication"}],
-                    },
-                    "xray": {
-                        "testType": "Generic",
-                        "requirements": ["REQ-001", "REQ-002"],
-                        "testExecutions": [
-                            {
-                                "status": "PASS",
-                                "executionId": "EXEC-001",
-                                "executedBy": "testuser",
-                            }
-                        ],
-                    },
-                }
-            ],
-            "testExecutions": [
-                {
-                    "executionId": "EXEC-001",
-                    "testKey": "TEST-123",
-                    "status": "PASS",
-                    "executedBy": "testuser",
-                    "executionDate": "2025-01-01T10:00:00Z",
-                    "comment": "Test executed successfully",
-                }
-            ],
-            "testInfo": {
-                "testKey": "TEST-123",
-                "testType": "Generic",
-                "requirements": ["REQ-001", "REQ-002"],
-                "labels": ["api", "authentication", "regression"],
-                "component": "Authentication",
-                "priority": "High",
-            },
-            "evidences": [
-                {
-                    "evidenceId": "EV-001",
-                    "filename": "screenshot.png",
-                    "contentType": "image/png",
-                    "data": "base64-encoded-image-data",
-                },
-                {
-                    "evidenceId": "EV-002",
-                    "filename": "logs.txt",
-                    "contentType": "text/plain",
-                    "data": "test execution logs",
-                },
-            ],
-            "xrayInfo": {"version": "4.0", "exportDate": "2025-01-01T10:00:00Z"},
-        }
+        # Load test data
+        self.zephyr_data = create_zephyr_test_data()
+        self.testlink_data = create_testlink_test_data()
+        self.jira_xray_data = create_jira_xray_test_data()
 
     def tearDown(self):
         """Clean up test environment."""
-
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     # Test 1: Basic JSON file ingestion with metadata capture
@@ -391,7 +398,65 @@ class TestBronzeDataIngestionBusinessLogic(  # pylint: disable=too-many-public-m
             validation_result.warning_count, 0
         )  # 0 or more warnings acceptable
 
-    # Test 5: Error handling and edge cases
+    # Test 5: Preview functionality
+    def test_preview_ingestion_without_storing(self):
+        """Test preview functionality provides insights without storing data."""
+        test_file = self.temp_dir / "preview_test.json"
+        with open(test_file, "w", encoding="utf-8") as f:
+            json.dump(self.zephyr_data, f)
+
+        preview = self.ingestion.preview_ingestion(test_file)
+
+        self.assertTrue(preview["preview_available"])
+        self.assertEqual(
+            preview["detected_format"], "zephyr"
+        )  # Fixed: now correctly detects Zephyr
+        # format_confidence is now a dict with format as key
+        self.assertIsInstance(preview["format_confidence"], dict)
+        self.assertTrue(preview["validation_ready"])
+        self.assertGreaterEqual(preview["quality_score"], 0.0)
+        self.assertIsInstance(preview["stats"], dict)
+        self.assertGreater(preview["stats"]["total_keys"], 0)
+
+    def test_preview_handles_problematic_files(self):
+        """Test preview gracefully handles problematic files."""
+        bad_file = self.temp_dir / "bad_preview.json"
+        with open(bad_file, "w", encoding="utf-8") as f:
+            f.write("{ malformed json")
+
+        preview = self.ingestion.preview_ingestion(bad_file)
+
+        self.assertFalse(preview["preview_available"])
+        self.assertIn("error", preview)
+
+
+class TestBronzeDataIngestionAdvanced(unittest.TestCase):
+    """Advanced data ingestion tests for Bronze layer.
+
+    Tests cover:
+    - Error handling and edge cases
+    - Performance requirements and benchmarks
+    - Configuration and customization
+    - Integration with existing API
+    - Backward compatibility
+    """
+
+    def setUp(self):
+        """Set up test environment."""
+        self.temp_dir = Path(tempfile.mkdtemp())
+        bronze_layer = BronzeLayer(storage_path=self.temp_dir)
+        self.ingestion = RawDataProcessor(bronze_layer=bronze_layer)
+
+        # Load test data
+        self.zephyr_data = create_zephyr_test_data()
+        self.testlink_data = create_testlink_test_data()
+        self.jira_xray_data = create_jira_xray_test_data()
+
+    def tearDown(self):
+        """Clean up test environment."""
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    # Test 1: Error handling and edge cases
     def test_file_not_found_error_handling(self):
         """Test proper handling of missing files."""
         nonexistent_file = self.temp_dir / "does_not_exist.json"
@@ -450,38 +515,7 @@ class TestBronzeDataIngestionBusinessLogic(  # pylint: disable=too-many-public-m
         self.assertEqual(result.metadata.file_size_bytes, 0)  # No physical file
         self.assertGreater(result.metadata.record_count, 0)  # Has logical data
 
-    # Test 6: Preview functionality
-    def test_preview_ingestion_without_storing(self):
-        """Test preview functionality provides insights without storing data."""
-        test_file = self.temp_dir / "preview_test.json"
-        with open(test_file, "w", encoding="utf-8") as f:
-            json.dump(self.zephyr_data, f)
-
-        preview = self.ingestion.preview_ingestion(test_file)
-
-        self.assertTrue(preview["preview_available"])
-        self.assertEqual(
-            preview["detected_format"], "zephyr"
-        )  # Fixed: now correctly detects Zephyr
-        # format_confidence is now a dict with format as key
-        self.assertIsInstance(preview["format_confidence"], dict)
-        self.assertTrue(preview["validation_ready"])
-        self.assertGreaterEqual(preview["quality_score"], 0.0)
-        self.assertIsInstance(preview["stats"], dict)
-        self.assertGreater(preview["stats"]["total_keys"], 0)
-
-    def test_preview_handles_problematic_files(self):
-        """Test preview gracefully handles problematic files."""
-        bad_file = self.temp_dir / "bad_preview.json"
-        with open(bad_file, "w", encoding="utf-8") as f:
-            f.write("{ malformed json")
-
-        preview = self.ingestion.preview_ingestion(bad_file)
-
-        self.assertFalse(preview["preview_available"])
-        self.assertIn("error", preview)
-
-    # Test 7: Performance requirements
+    # Test 2: Performance requirements
     def test_ingestion_performance_overhead_acceptable(self):
         """Test that Bronze layer adds <10% performance overhead."""
         # Create baseline data
@@ -532,7 +566,7 @@ class TestBronzeDataIngestionBusinessLogic(  # pylint: disable=too-many-public-m
         for result in results:
             self.assertEqual(result.status, ProcessingStatus.COMPLETED)
 
-    # Test 8: Integration with existing parser
+    # Test 3: Integration with existing parser
     def test_integration_with_generic_test_file_parser(self):
         """Test integration with existing GenericTestFileParser."""
         result = self.ingestion.ingest_data_dict(
@@ -544,7 +578,7 @@ class TestBronzeDataIngestionBusinessLogic(  # pylint: disable=too-many-public-m
         self.assertGreater(result.metadata.record_count, 0)
 
         # Verify preview provides useful information about the data
-        preview = self.ingestion.preview_ingestion_dict(self.zephyr_data)
+        preview = self.preview_ingestion_dict(self.zephyr_data)
         self.assertTrue(preview["preview_available"])
         self.assertIn(preview["detected_format"], ["zephyr", "generic"])
         self.assertGreater(preview["stats"]["total_keys"], 0)
@@ -557,7 +591,7 @@ class TestBronzeDataIngestionBusinessLogic(  # pylint: disable=too-many-public-m
             json.dump(data, f)
         return self.ingestion.preview_ingestion(temp_file)
 
-    # Test 9: Configuration and customization
+    # Test 4: Configuration and customization
     def test_storage_path_configuration(self):
         """Test that storage path can be configured."""
         custom_storage = self.temp_dir / "custom_bronze"
@@ -583,7 +617,7 @@ class TestBronzeDataIngestionBusinessLogic(  # pylint: disable=too-many-public-m
         adjusted_result = self.ingestion.validate_before_ingestion(borderline_data)
         self.assertEqual(adjusted_result.severity, QualitySeverity.MEDIUM)
 
-    # Test 10: Backward compatibility
+    # Test 5: Backward compatibility
     def test_existing_api_unchanged(self):
         """Test that existing API remains unchanged."""
         # Import existing converter to ensure it still works

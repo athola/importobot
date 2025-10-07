@@ -11,6 +11,7 @@ from importobot.core.converter import get_conversion_suggestions
 from importobot.core.interfaces import KeywordGenerator
 from importobot.core.keyword_generator import GenericKeywordGenerator
 from importobot.core.keywords.generators.builtin_keywords import BuiltInKeywordGenerator
+from importobot.core.pattern_matcher import IntentType
 
 
 class TestGenericKeywordGeneratorInitialization:
@@ -177,14 +178,17 @@ class TestGenerateStepKeywords:
     @patch("importobot.core.keyword_generator.IntentRecognitionEngine")
     def test_generate_step_keywords_with_intent_recognition(self, mock_intent_engine):
         """Test generate_step_keywords with intent recognition."""
-        mock_intent_engine.recognize_intent.return_value = "web_click"
+        mock_intent_engine.recognize_intent.return_value = IntentType.CLICK_ACTION
 
         generator = GenericKeywordGenerator()
         step = {"step": "Click submit button"}
 
         result = generator.generate_step_keywords(step)
         assert isinstance(result, list)
-        mock_intent_engine.recognize_intent.assert_called_once()
+        # recognize_intent is called twice now:
+        # 1) to check for credential_input composite intent
+        # 2) in _determine_robot_keyword for actual keyword generation
+        assert mock_intent_engine.recognize_intent.call_count == 2
 
     def test_generate_multiple_keywords_from_single_step(self):
         """Test that a single step with multiple test data parts generates "
@@ -302,7 +306,7 @@ class TestIntentHandling:
         self, mock_web_generator_class, mock_intent_engine
     ):
         """Test _determine_robot_keyword with web navigation intent."""
-        mock_intent_engine.recognize_intent.return_value = "web_navigation"
+        mock_intent_engine.recognize_intent.return_value = IntentType.BROWSER_OPEN
         mock_web_generator = Mock()
         mock_web_generator.generate_browser_keyword.return_value = "Open Browser"
         mock_web_generator_class.return_value = mock_web_generator
@@ -323,7 +327,7 @@ class TestIntentHandling:
         self, mock_database_generator_class, mock_intent_engine
     ):
         """Test _determine_robot_keyword with database connect intent."""
-        mock_intent_engine.recognize_intent.return_value = "db_connect"
+        mock_intent_engine.recognize_intent.return_value = IntentType.DATABASE_CONNECT
         mock_database_generator = Mock()
         mock_database_generator.generate_connect_keyword.return_value = (
             "Connect To Database"
@@ -346,7 +350,7 @@ class TestIntentHandling:
         self, mock_ssh_generator_class, mock_intent_engine
     ):
         """Test _determine_robot_keyword with SSH connect intent."""
-        mock_intent_engine.recognize_intent.return_value = "ssh_connect"
+        mock_intent_engine.recognize_intent.return_value = IntentType.SSH_CONNECT
         mock_ssh_generator = Mock()
         mock_ssh_generator.generate_connect_keyword.return_value = "Open Connection"
         mock_ssh_generator_class.return_value = mock_ssh_generator
@@ -362,7 +366,7 @@ class TestIntentHandling:
     @patch("importobot.core.keyword_generator.IntentRecognitionEngine")
     def test_determine_robot_keyword_unrecognized_intent(self, mock_intent_engine):
         """Test _determine_robot_keyword with unrecognized intent."""
-        mock_intent_engine.recognize_intent.return_value = "unknown_intent"
+        mock_intent_engine.recognize_intent.return_value = None  # Unknown intent
 
         generator = GenericKeywordGenerator()
 
@@ -377,7 +381,7 @@ class TestIntentHandling:
         self, mock_builtin_generator_class, mock_intent_engine
     ):
         """Test _determine_robot_keyword with builtin operations."""
-        mock_intent_engine.recognize_intent.return_value = "log_message"
+        mock_intent_engine.recognize_intent.return_value = IntentType.LOG_MESSAGE
         mock_builtin_generator = Mock()
         mock_builtin_generator.generate_log_keyword.return_value = "Log    Message"
         mock_builtin_generator_class.return_value = mock_builtin_generator
@@ -549,7 +553,28 @@ class TestKeywordGeneratorIntegration:
 
         suggestions = get_conversion_suggestions(test_data)
         assert isinstance(suggestions, list)
-        # Should handle all steps without ordering issues
+
+        # Verify suggestions are ordered correctly (1, 2, ..., 10, 11, 12)
+        # Extract step numbers from suggestions
+        step_numbers = []
+        for suggestion in suggestions:
+            # Suggestions contain "Step X" references
+            if "Step" in suggestion:
+                # Extract number after "Step "
+                parts = suggestion.split("Step ")
+                for part in parts[1:]:
+                    try:
+                        # Get the number before the colon
+                        num_str = part.split(":")[0].strip()
+                        step_numbers.append(int(num_str))
+                    except (ValueError, IndexError):
+                        continue
+
+        # Verify we found step numbers and they're in order
+        if step_numbers:
+            assert step_numbers == sorted(step_numbers), (
+                f"Step numbers not in order: {step_numbers}"
+            )
 
     def test_complex_step_generation_with_all_fields(self):
         """Test complex step generation with all available fields."""

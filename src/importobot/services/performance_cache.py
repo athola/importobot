@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections import OrderedDict
 from typing import Any, Dict, Optional
 from weakref import WeakKeyDictionary
 
@@ -154,7 +155,7 @@ class PerformanceCache:
         else:
             data_str = str(data)
 
-        return hashlib.sha256(data_str.encode()).hexdigest()[:24]
+        return hashlib.blake2b(data_str.encode()).hexdigest()[:24]
 
     def _evict_oldest_string_entry(self) -> None:
         """Evict the oldest entry from string cache (simple FIFO)."""
@@ -179,7 +180,7 @@ class LazyEvaluator:
             cache: Optional performance cache to use
         """
         self.cache = cache or PerformanceCache()
-        self._string_ops_cache: Dict[str, Any] = {}
+        self._string_ops_cache: "OrderedDict[str, Any]" = OrderedDict()
 
     def lazy_format_detection(
         self, data: Dict[str, Any], format_detector_func: Any
@@ -210,7 +211,7 @@ class LazyEvaluator:
         return _detect
 
     def cached_string_operations(self, data_hash: str, operation: str) -> Any:
-        """Cache string operations with manual cache management.
+        """Cache string operations with true LRU eviction.
 
         Args:
             data_hash: Hash of the data
@@ -222,18 +223,20 @@ class LazyEvaluator:
         # Use instance-level cache to avoid memory leaks from lru_cache on methods
         cache_key = f"{data_hash}_{operation}"
 
-        # Cache is initialized in __init__
+        # Check if key exists and move to end (mark as recently used)
+        if cache_key in self._string_ops_cache:
+            self._string_ops_cache.move_to_end(cache_key)
+            return self._string_ops_cache[cache_key]
 
-        # Check cache size and clear if needed (simple LRU-like behavior)
+        # Check cache size and evict LRU entries if needed
         if len(self._string_ops_cache) > 500:
-            # Remove oldest entries (simple FIFO, could be improved to true LRU)
-            keys_to_remove = list(self._string_ops_cache.keys())[:100]
-            for key in keys_to_remove:
-                del self._string_ops_cache[key]
+            # Remove least recently used entries (first 100 entries in OrderedDict)
+            for _ in range(100):
+                if self._string_ops_cache:
+                    self._string_ops_cache.popitem(last=False)
 
-        # This would be used by specific string operations
-        # The actual computation would be done by the caller
-        return self._string_ops_cache.get(cache_key)
+        # Cache miss - caller handles computation
+        return None
 
 
 # Global performance cache instance

@@ -34,8 +34,8 @@ def hash_test_data():
                         "description": (
                             "In target machine's terminal, get the sha of new file"
                         ),
-                        "testData": "sha256sum testfile.txt",
-                        "expectedResult": "The sha256sum is shown",
+                        "testData": "blake2bsum testfile.txt",
+                        "expectedResult": "The blake2bsum is shown",
                     },
                     {
                         "description": "Use the hash command on the CLI",
@@ -97,8 +97,8 @@ def hash_file_fixture(tmp_path):
                         "description": (
                             "In target machine's terminal, get the sha of new file"
                         ),
-                        "testData": "sha256sum testfile.txt",
-                        "expectedResult": "The sha256sum is shown",
+                        "testData": "blake2bsum testfile.txt",
+                        "expectedResult": "The blake2bsum is shown",
                     },
                     {
                         "description": "Use the hash command on the CLI",
@@ -300,13 +300,13 @@ class TestHashFileExample:
 
         # Should contain test data from the steps
         assert "echo" in content
-        assert "sha256sum" in content
+        assert "blake2bsum" in content
         assert "hash" in content
 
         # Should contain expected results as comments
         assert "File created" in content
         assert "Hash matches that from step 2" in content
-        assert "The sha256sum is shown" in content
+        assert "The blake2bsum is shown" in content
 
     # pylint: disable=redefined-outer-name
     def test_hash_file_conversion_provides_helpful_suggestions(self, hash_test_data):

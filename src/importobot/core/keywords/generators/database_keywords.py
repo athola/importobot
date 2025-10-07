@@ -3,6 +3,7 @@
 import re
 from typing import Any
 
+from importobot import exceptions
 from importobot.core.keywords.base_generator import BaseKeywordGenerator
 from importobot.utils.step_comments import generate_step_comments
 from importobot.utils.step_processing import extract_step_information
@@ -21,6 +22,55 @@ _SELECT_PATTERN = re.compile(r"(SELECT\s+.+?);?", re.IGNORECASE | re.DOTALL)
 _INSERT_PATTERN = re.compile(r"(INSERT\s+.+?);?", re.IGNORECASE | re.DOTALL)
 _UPDATE_PATTERN = re.compile(r"(UPDATE\s+.+?);?", re.IGNORECASE | re.DOTALL)
 _DELETE_PATTERN = re.compile(r"(DELETE\s+.+?);?", re.IGNORECASE | re.DOTALL)
+
+
+def _sanitize_identifier(name: str, fallback: str) -> str:
+    """Allow only safe characters in SQL identifiers to avoid injection."""
+    cleaned = re.sub(r"[^A-Za-z0-9_]+", "", name)
+    return cleaned or fallback
+
+
+def _validate_sql_query(sql: str) -> str:
+    """Validate SQL query for dangerous patterns.
+
+    Args:
+        sql: SQL query to validate
+
+    Returns:
+        Validated SQL query
+
+    Raises:
+        ValidationError: If dangerous SQL patterns detected
+
+    Note:
+        This validation provides defense-in-depth for test automation code.
+        Robot Framework's DatabaseLibrary should be configured with
+        appropriate database user permissions as primary security control.
+    """
+    # Dangerous SQL patterns that could indicate injection attempts
+    dangerous_patterns = [
+        (
+            r";.*(?:DROP|DELETE|UPDATE|INSERT|CREATE|ALTER|TRUNCATE)",
+            "Chained SQL commands",
+        ),
+        (r"--", "SQL line comments"),
+        (r"/\*.*\*/", "SQL block comments"),
+        (r"UNION\s+SELECT", "UNION-based injection"),
+        (r"exec\s*\(", "Stored procedure execution"),
+        (r"xp_", "Extended stored procedures"),
+        (r"sp_", "System stored procedures"),
+        (r";.*shutdown", "Shutdown commands"),
+    ]
+
+    for pattern, description in dangerous_patterns:
+        if re.search(pattern, sql, re.IGNORECASE):
+            message = (
+                "Potentially dangerous SQL pattern detected: "
+                f"{description}. Pattern: {pattern}."
+            )
+            raise exceptions.ValidationError(message)
+
+    return sql
 
 
 class DatabaseKeywordGenerator(BaseKeywordGenerator):
@@ -59,6 +109,7 @@ class DatabaseKeywordGenerator(BaseKeywordGenerator):
         sql_match = _SQL_QUERY_PATTERN.search(test_data)
         if sql_match:
             sql = sql_match.group(1).strip()
+            sql = _validate_sql_query(sql)  # Security validation
             return f"Execute Sql String    {sql}"
 
         # Try to extract just the SQL part using compiled patterns
@@ -71,6 +122,7 @@ class DatabaseKeywordGenerator(BaseKeywordGenerator):
             sql_match = pattern.search(test_data)
             if sql_match:
                 sql = sql_match.group(1).strip()
+                sql = _validate_sql_query(sql)  # Security validation
                 return f"Execute Sql String    {sql}"
 
         # Execute Sql String requires at least one argument
@@ -82,6 +134,7 @@ class DatabaseKeywordGenerator(BaseKeywordGenerator):
         sql_match = _SQL_QUERY_PATTERN.search(test_data)
         if sql_match:
             sql = sql_match.group(1).strip()
+            sql = _validate_sql_query(sql)  # Security validation
             return f"Execute Sql String    {sql}"
         # Execute Sql String requires at least one argument
         return "Execute Sql String    SELECT 1"
@@ -96,8 +149,10 @@ class DatabaseKeywordGenerator(BaseKeywordGenerator):
         if not table_name:
             table_name = "users"  # Default table name
 
+        safe_table = _sanitize_identifier(table_name, "users")
+
         # Query returns results, so we use SELECT COUNT(*) for row count
-        select_statement = f"SELECT COUNT(*) FROM {table_name}"
+        select_statement = f"SELECT COUNT(*) FROM {safe_table}"  # nosec B608
 
         return f"Query    {select_statement}"
 
