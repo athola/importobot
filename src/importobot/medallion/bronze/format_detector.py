@@ -161,16 +161,20 @@ class FormatDetector:
             return result
 
     def _quick_format_detection(self, data: Dict[str, Any]) -> SupportedFormat:
-        """
-        Quick format detection for complex data using Bayesian relative scoring.
+        """Quickly compare format candidates using Bayesian relative scoring.
 
-        For complex data, use relative comparison rather than absolute thresholds
-        since Bayesian penalties may reduce all absolute scores.
+        Notes:
+            The Bayesian penalty model can drive every individual score below
+            zero for noisy inputs. Initializing the running maximum to
+            ``-inf`` ensures that we still track the highest *relative* score,
+            while the final guard below returns ``UNKNOWN`` unless we saw either
+            positive evidence or a clear separation between candidates.
         """
         data_str = self.detection_cache.get_data_string_efficient(data)
         format_patterns = self._build_format_patterns()
 
-        best_score = float("-inf")  # Allow negative scores for Bayesian comparison
+        # Allow negative scores so we can still spot the best relative candidate.
+        best_score = float("-inf")
         second_best_score = float("-inf")
         best_format = SupportedFormat.UNKNOWN
 

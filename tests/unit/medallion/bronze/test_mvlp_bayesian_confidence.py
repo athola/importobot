@@ -50,6 +50,44 @@ class TestConfidenceParameters:
 
         assert params.validate() is False
 
+    def test_weight_sum_lower_boundary_passes(self):
+        """Weights that sum to the lower tolerance boundary are accepted."""
+        params = ConfidenceParameters(
+            completeness_weight=0.49,
+            quality_weight=0.25,
+            uniqueness_weight=0.25,
+        )
+
+        assert (
+            pytest.approx(
+                params.completeness_weight
+                + params.quality_weight
+                + params.uniqueness_weight,
+                rel=1e-9,
+            )
+            == 0.99
+        )
+        assert params.validate() is True
+
+    def test_weight_sum_upper_boundary_passes(self):
+        """Weights that sum to the upper tolerance boundary are accepted."""
+        params = ConfidenceParameters(
+            completeness_weight=0.5,
+            quality_weight=0.26,
+            uniqueness_weight=0.25,
+        )
+
+        assert (
+            pytest.approx(
+                params.completeness_weight
+                + params.quality_weight
+                + params.uniqueness_weight,
+                rel=1e-9,
+            )
+            == 1.01
+        )
+        assert params.validate() is True
+
     def test_power_constraints_within_bounds(self):
         """Test that power parameters are within valid range."""
         params = ConfidenceParameters()

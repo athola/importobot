@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import time
 from collections import OrderedDict
 from typing import Any, Dict, Optional, Tuple
@@ -21,9 +22,36 @@ class DetectionCache:
     MAX_COLLISION_CHAIN_LENGTH = 3  # Prevent DoS via collision chains
     MAX_CONTENT_SIZE = 50000  # Prevent memory exhaustion attacks
 
-    def __init__(self, max_cache_size: int = 1000):
+    def __init__(
+        self,
+        max_cache_size: int = 1000,
+        *,
+        collision_chain_limit: Optional[int] = None,
+    ):
         """Initialize detection cache."""
         self.max_cache_size = max_cache_size
+        env_limit = os.getenv("IMPORTOBOT_DETECTION_CACHE_COLLISION_LIMIT")
+        configured_limit = collision_chain_limit
+        if configured_limit is None and env_limit is not None:
+            try:
+                configured_limit = int(env_limit)
+            except ValueError:
+                logger.warning(
+                    "Invalid IMPORTOBOT_DETECTION_CACHE_COLLISION_LIMIT=%s; "
+                    "falling back to default %d",
+                    env_limit,
+                    self.MAX_COLLISION_CHAIN_LENGTH,
+                )
+        if configured_limit is not None and configured_limit < 1:
+            logger.warning(
+                "Collision chain limit %d must be >= 1; using default %d",
+                configured_limit,
+                self.MAX_COLLISION_CHAIN_LENGTH,
+            )
+            configured_limit = None
+        self._max_collision_chain_length = (
+            configured_limit or self.MAX_COLLISION_CHAIN_LENGTH
+        )
         # Use string hash as key, store only the computed result
         self._data_string_cache: OrderedDict[str, str] = OrderedDict()
         self._normalized_key_cache: OrderedDict[str, set[str]] = OrderedDict()
@@ -65,13 +93,13 @@ class DetectionCache:
         if content_hash in self._collision_chains:
             collision_list = self._collision_chains[content_hash]
             # Security: Limit collision chain length
-            if len(collision_list) >= self.MAX_COLLISION_CHAIN_LENGTH:
+            if len(collision_list) >= self._max_collision_chain_length:
                 self._collision_count += 1
                 logger.warning(
                     "Cache rejected data due to collision chain limit: %d (limit: %d). "
                     "Potential hash collision attack detected.",
                     len(collision_list),
-                    self.MAX_COLLISION_CHAIN_LENGTH,
+                    self._max_collision_chain_length,
                 )
                 return data_str  # Don't cache, return directly
             collision_list.append(cache_key)

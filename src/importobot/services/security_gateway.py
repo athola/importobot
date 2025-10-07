@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Pattern, Tuple, TypedDict, Union
 
 from importobot.services.security_types import SecurityLevel
 from importobot.services.validation_service import ValidationService
@@ -44,6 +44,29 @@ INLINE_EVENT_HANDLER_PATTERN = (
 logger = setup_logger(__name__)
 
 
+class SanitizationResult(TypedDict, total=False):
+    """Structured result returned from sanitize_api_input."""
+
+    is_safe: bool
+    sanitized_data: Any
+    security_issues: List[str]
+    validation_issues: List[str]
+    security_level: str
+    input_type: str
+    correlation_id: Optional[str]
+
+
+class FileOperationResult(TypedDict, total=False):
+    """Structured result returned from validate_file_operation."""
+
+    is_safe: bool
+    file_path: str
+    operation: str
+    security_issues: List[str]
+    normalized_path: str
+    correlation_id: Optional[str]
+
+
 class SecurityGateway:
     """Centralized security gateway for API input validation and sanitization."""
 
@@ -69,6 +92,8 @@ class SecurityGateway:
         self._dangerous_pattern_strings = [
             pattern.pattern for pattern, _ in self._dangerous_patterns
         ]
+        self._suspicious_patterns = self._build_suspicious_patterns()
+        self._path_traversal_patterns = self._build_traversal_patterns()
         logger.info(
             "Initialized SecurityGateway with level=%s", self.security_level.value
         )
@@ -132,12 +157,37 @@ class SecurityGateway:
             ),
         ]
 
+    @staticmethod
+    def _build_suspicious_patterns() -> List[Tuple[Pattern[str], str]]:
+        """Compile universal security checks once for reuse."""
+        return [
+            (re.compile(r"eval\s*\(", re.IGNORECASE), "JavaScript eval detected"),
+            (re.compile(r"exec\s*\(", re.IGNORECASE), "Python exec detected"),
+            (re.compile(r"system\s*\(", re.IGNORECASE), "System command detected"),
+            (re.compile(r"subprocess", re.IGNORECASE), "Subprocess usage detected"),
+            (re.compile(r"__import__", re.IGNORECASE), "Dynamic import detected"),
+            (
+                re.compile(r"rm\s+-rf", re.IGNORECASE),
+                "Dangerous file deletion detected",
+            ),
+        ]
+
+    @staticmethod
+    def _build_traversal_patterns() -> List[Pattern[str]]:
+        """Compile common path traversal expressions."""
+        return [
+            re.compile(r"\.\.[\\/]"),
+            re.compile(r"[\\/]\.\.[\\/]"),
+            re.compile(r"[\\/]\.\.$"),
+            re.compile(r"^\.\.[\\/]"),
+        ]
+
     def sanitize_api_input(
         self,
         data: Any,
         input_type: str = "json",
-        context: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        context: Optional[Mapping[str, Any]] = None,
+    ) -> SanitizationResult:
         """Sanitize and validate API input data.
 
         Args:
@@ -149,7 +199,9 @@ class SecurityGateway:
         Raises:
             SecurityError: If input fails security validation
         """
-        context = context or {}
+        context_dict: Dict[str, Any] = dict(context or {})
+        correlation_id = self._extract_correlation_id(context_dict)
+        log_extra = self._build_log_extra(correlation_id)
         sanitized_data = data
         security_issues = []
         validation_issues = []
@@ -172,13 +224,13 @@ class SecurityGateway:
             # Skip validation for plain strings (they're validated by sanitization)
             if input_type == "file_path":
                 validation_result = self.validation_service.validate(
-                    sanitized_data, strategy_name="file", context=context
+                    sanitized_data, strategy_name="file", context=context_dict
                 )
                 if not validation_result.is_valid:
                     validation_issues = validation_result.messages
             elif input_type == "json":
                 validation_result = self.validation_service.validate(
-                    sanitized_data, strategy_name="json", context=context
+                    sanitized_data, strategy_name="json", context=context_dict
                 )
                 if not validation_result.is_valid:
                     validation_issues = validation_result.messages
@@ -192,14 +244,19 @@ class SecurityGateway:
                 "validation_issues": validation_issues,
                 "security_level": self.security_level.value,
                 "input_type": input_type,
+                "correlation_id": correlation_id,
             }
         except Exception as e:
-            logger.error("Security gateway error: %s", e)
+            logger.error("Security gateway error: %s", e, extra=log_extra)
             raise SecurityError(f"Security validation failed: {e}") from e
 
     def validate_file_operation(
-        self, file_path: Union[str, Path], operation: str = "read"
-    ) -> Dict[str, Any]:
+        self,
+        file_path: Union[str, Path],
+        operation: str = "read",
+        *,
+        correlation_id: Optional[str] = None,
+    ) -> FileOperationResult:
         """Validate file operations with comprehensive security checks.
 
         Args:
@@ -210,6 +267,7 @@ class SecurityGateway:
             Validation result with security assessment
         """
         path_str = str(file_path)
+        log_extra = self._build_log_extra(correlation_id)
         try:
             # Basic path validation
             validate_file_path(path_str)
@@ -227,15 +285,17 @@ class SecurityGateway:
                 "operation": operation,
                 "security_issues": all_issues,
                 "normalized_path": str(Path(path_str).resolve()),
+                "correlation_id": correlation_id,
             }
         except Exception as e:
-            logger.error("File operation validation failed: %s", e)
+            logger.error("File operation validation failed: %s", e, extra=log_extra)
             return {
                 "is_safe": False,
                 "file_path": path_str,
                 "operation": operation,
                 "security_issues": [f"Validation error: {e}"],
-                "normalized_path": None,
+                "normalized_path": path_str,
+                "correlation_id": correlation_id,
             }
 
     def create_secure_json_parser(self, max_size_mb: int = 10) -> Dict[str, Any]:
@@ -381,34 +441,35 @@ class SecurityGateway:
         issues = []
         # Convert to string for pattern matching
         data_str = str(data)
-        # Check for suspicious patterns
-        suspicious_patterns = [
-            (r"eval\s*\(", "JavaScript eval detected"),
-            (r"exec\s*\(", "Python exec detected"),
-            (r"system\s*\(", "System command detected"),
-            (r"subprocess", "Subprocess usage detected"),
-            (r"__import__", "Dynamic import detected"),
-            (r"rm\s+-rf", "Dangerous file deletion detected"),
-        ]
-        for pattern, message in suspicious_patterns:
-            if re.search(pattern, data_str, re.IGNORECASE):
+        # Check for suspicious patterns using precompiled regex
+        for pattern, message in self._suspicious_patterns:
+            if pattern.search(data_str):
                 issues.append(message)
         return issues
 
     def _check_path_traversal(self, path: str) -> List[str]:
         """Check for path traversal attempts."""
         issues = []
-        traversal_patterns = [
-            r"\.\.[\\/]",  # ../ or ..\
-            r"[\\/]\.\.[\\/]",  # /../ or \..\
-            r"[\\/]\.\.$",  # /.. or \..
-            r"^\.\.[\\/]",  # ../ or ..\ at start
-        ]
-        for pattern in traversal_patterns:
-            if re.search(pattern, path):
+        for pattern in self._path_traversal_patterns:
+            if pattern.search(path):
                 issues.append("Path traversal attempt detected")
                 break
         return issues
+
+    @staticmethod
+    def _extract_correlation_id(context: Mapping[str, Any]) -> Optional[str]:
+        """Return correlation identifier from context if present."""
+        value = context.get("correlation_id")
+        if value is None:
+            return None
+        return str(value)
+
+    @staticmethod
+    def _build_log_extra(correlation_id: Optional[str]) -> Dict[str, str]:
+        """Prepare structured logging extras with correlation metadata."""
+        if correlation_id:
+            return {"correlation_id": correlation_id}
+        return {}
 
 
 class SecurityError(Exception):

@@ -393,7 +393,10 @@ class TestSSHComprehensiveCoverage:
                 ("Directory Creation", ["Create Directory"]),
                 ("File Verification", ["File Should Exist"]),
                 ("Shell Interaction", ["Write"]),
-                ("SSH Logging", ["Enable Ssh Logging"]),
+                (
+                    "SSH Logging",
+                    ["Enable Ssh Logging", "Enable SSH session logging"],
+                ),
             ]
 
             missing_functionality = []
