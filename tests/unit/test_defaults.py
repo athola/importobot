@@ -1,5 +1,7 @@
 """Tests for default values and configuration constants."""
 
+import os
+
 from importobot.utils.defaults import (
     KEYWORD_PATTERNS,
     LIBRARY_MAPPING,
@@ -48,7 +50,12 @@ class TestDataDefaults:
         assert defaults.api.session == "default_session"
 
         # File defaults
-        assert defaults.file.path == "/tmp/test_file.txt"
+        expected_path = os.path.join(
+            os.path.expanduser("~"),
+            "importobot",
+            "test_file.txt",
+        )
+        assert defaults.file.path == expected_path
         assert defaults.file.content == "test content"
 
     def test_custom_values_with_dot_notation(self):

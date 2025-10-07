@@ -3,6 +3,14 @@
 import re
 from typing import Any
 
+from importobot.core.constants import STEPS_FIELD_NAME
+from importobot.core.field_definitions import (
+    STEP_ACTION_FIELDS,
+    STEP_DATA_FIELDS,
+    STEP_EXPECTED_FIELDS,
+    TEST_SCRIPT_FIELDS,
+    get_field_value,
+)
 from importobot.utils.string_cache import data_to_lower_cached
 
 
@@ -25,10 +33,10 @@ class BuiltInKeywordAnalyzer:
         for i, step in enumerate(steps):
             # Handle different field name formats (camelCase vs snake_case)
             step_description = data_to_lower_cached(
-                step.get("step", step.get("description", ""))
+                get_field_value(step, STEP_ACTION_FIELDS)
             )
-            test_data = str(step.get("test_data", step.get("testData", "")))
-            expected = str(step.get("expected", step.get("expectedResult", "")))
+            test_data = get_field_value(step, STEP_DATA_FIELDS)
+            expected = get_field_value(step, STEP_EXPECTED_FIELDS)
 
             # Check for missing parameter issues first
             self._check_missing_parameters(
@@ -97,7 +105,11 @@ class BuiltInKeywordAnalyzer:
         changes_made: list[dict[str, Any]],
     ) -> None:
         """Suggest specific BuiltIn keyword improvements for test case."""
-        steps = test_case.get("steps", [])
+        script_field, script_data = TEST_SCRIPT_FIELDS.find_first(test_case)
+        if not script_field or not isinstance(script_data, dict):
+            return
+
+        steps = script_data.get(STEPS_FIELD_NAME, [])
         if not isinstance(steps, list):
             return
 

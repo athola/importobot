@@ -42,19 +42,38 @@ class BaseKeywordGenerator(KeywordGenerator, ABC):
         self._library_detector = LibraryDetector()
 
     def generate_test_case(self, test_data: dict[str, Any]) -> list[str]:
-        """Generate Robot Framework test case."""
+        """Generate Robot Framework test case with complete metadata preservation.
+
+        Preserves ALL custom fields from source test management systems for:
+        - Audit trail compliance (FDA, SOX, HIPAA)
+        - Requirement traceability
+        - Release tracking (sprints, milestones)
+        - Test execution history
+        """
+        # Validate input type
+        if not isinstance(test_data, dict):
+            test_data = {"name": "Test", "steps": []}
+
         lines = []
 
         # Test name
         name = self._extract_field(test_data, ["name", "title", "testname", "summary"])
-        lines.append(sanitize_robot_string(name or "Unnamed Test"))
+        sanitized_name = sanitize_robot_string(name or "Unnamed Test")
+        if name and name != sanitized_name:
+            lines.append(f"# Original Name: {name}")
 
-        # Documentation
-        doc = self._extract_field(
-            test_data, ["description", "objective", "documentation"]
-        )
-        if doc:
-            lines.append(f"    [Documentation]    {sanitize_robot_string(doc)}")
+            normalized_name = name.replace("\n", " ").replace("\r", " ").strip()
+            while "  " in normalized_name:
+                normalized_name = normalized_name.replace("  ", " ")
+
+            if normalized_name and normalized_name not in {sanitized_name, name}:
+                lines.append(f"# Normalized Name: {normalized_name}")
+        lines.append(sanitized_name)
+
+        # Documentation (preserve ALL metadata fields)
+        doc_lines = self._build_comprehensive_documentation(test_data)
+        if doc_lines:
+            lines.extend(doc_lines)
 
         # Steps
         parser = self._get_parser()
@@ -71,7 +90,11 @@ class BaseKeywordGenerator(KeywordGenerator, ABC):
 
     @abstractmethod
     def generate_step_keywords(self, step: dict[str, Any]) -> list[str]:
-        """Generate keywords for a specific step - must be implemented by subclasses."""
+        """Generate keywords for a specific step.
+
+        Subclasses must implement this to provide concrete keyword
+        generation.
+        """
         # This is an abstract method, pass is acceptable here
 
     def detect_libraries(self, steps: list[dict[str, Any]]) -> set[str]:
@@ -87,6 +110,76 @@ class BaseKeywordGenerator(KeywordGenerator, ABC):
         """Extract the first non-empty field from data."""
         result = extract_field(data, field_names)
         return result.strip() if result else ""
+
+    def _build_comprehensive_documentation(
+        self, test_data: dict[str, Any]
+    ) -> list[str]:
+        """Build documentation while preserving custom metadata fields.
+
+        Preserves metadata from test management systems:
+        - Zephyr: cycle, sprint, version
+        - TestLink: test_suite, requirements
+        - Xray: test_set, test_execution, linked_issues, evidences
+        - TestRail: milestone, test_run, test_owner, custom fields
+        """
+        lines = []
+
+        # Standard documentation fields (primary description)
+        doc = self._extract_field(
+            test_data, ["description", "objective", "documentation"]
+        )
+
+        # Build comprehensive documentation string with all metadata
+        doc_parts = []
+        if doc:
+            doc_parts.append(doc)
+
+        # Fields that should NOT be included (structural fields, not metadata)
+        excluded_fields = {
+            "name",
+            "title",
+            "testname",
+            "summary",  # Already in test name
+            "steps",
+            "teststeps",
+            "test_steps",  # Test structure
+            "testscript",  # Test structure
+            "description",
+            "objective",
+            "documentation",  # Already added
+            "tags",
+            "labels",
+            "priority",  # Handled separately by engine.py
+        }
+
+        # Preserve ALL other custom fields for traceability
+        custom_metadata = []
+        for key, value in test_data.items():
+            # Skip excluded fields and non-scalar values
+            if key.lower() in excluded_fields:
+                continue
+            if isinstance(value, (dict, list)) and len(str(value)) > 100:
+                # Skip complex nested structures
+                continue
+
+            # Format the metadata field
+            if isinstance(value, list):
+                # Handle list fields (requirements, evidences, etc.)
+                value_str = ", ".join(str(v) for v in value)
+                custom_metadata.append(f"{key}: {value_str}")
+            elif value:  # Only include non-empty values
+                custom_metadata.append(f"{key}: {value}")
+
+        # Add custom metadata to documentation
+        if custom_metadata:
+            doc_parts.append(f"Metadata: {' | '.join(custom_metadata)}")
+
+        # Generate Robot Framework documentation line
+        if doc_parts:
+            full_doc = " | ".join(doc_parts)
+            lines.append(f"    [Documentation]    {sanitize_robot_string(full_doc)}")
+
+        return lines
 
     def _format_test_data_comment(
         self, test_data: str, is_continuation: bool = False

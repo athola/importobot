@@ -1,64 +1,38 @@
 # Mathematical Foundations
 
-This document provides a comprehensive overview of the mathematical principles, algorithms, and computational complexity that power Importobot's test framework conversion system.
+This is a review of the mathematical techniques behind Importobot’s format detection and optimization pieces. Most readers only require context around the Bayesian confidence scoring; the rest supports the Medallion optimization work.
 
 ## Overview
 
-Importobot's mathematical foundation combines **Bayesian statistics**, **information theory**, **optimization algorithms**, and **numerical analysis** to provide reliable, efficient, and accurate test framework conversion at scale.
-
-### Key Mathematical Areas
-
-- 🎯 **Bayesian Statistics** - Format detection and confidence scoring
-- 📊 **Information Theory** - Pattern analysis and entropy calculations  
-- ⚡ **Optimization Algorithms** - Parameter tuning and system optimization
-- 🔢 **Numerical Analysis** - Stability guarantees and error bounds
-- 📈 **Statistical Methods** - Validation and confidence intervals
-
-### Document Structure
-
-This consolidated guide combines mathematical content from multiple sources to provide a complete reference for Importobot's mathematical underpinnings, including:
-
-- **Core Mathematical Framework** - Bayesian statistics and information theory foundations
-- **Advanced Mathematical Approaches** - Sophisticated algorithms and techniques
-- **Optimization Algorithms** - Parameter optimization methods
-- **Algorithmic Complexity Analysis** - Computational complexity and performance
-- **Statistical Methods & Validation** - Statistical validation frameworks
-- **Numerical Stability Considerations** - Robust numerical computations
-- **Performance Characteristics** - Scalability and efficiency analysis
-- **Mathematical Proofs & Theorems** - Theoretical foundations
-- **Performance Results** - Quantitative improvements and validation
+The system leans on a few well-worn tools:
+- Bayesian inference for format confidence scoring.
+- Information-theoretic metrics to spot structural patterns in exports.
+- Gradient-style and heuristic optimizers to tune conversion parameters.
+- Lightweight statistical checks to confirm outputs look sane.
 
 ## Core Mathematical Framework
 
-### Bayesian Statistics & Format Detection
+### Bayesian statistics & format detection
 
 #### Fundamental Equation
 ```
 P(Format|Evidence) = P(Evidence|Format) × P(Format) / P(Evidence)
 ```
 
-This Bayesian posterior probability drives Importobot's confidence scoring system:
+This Bayesian posterior probability underpins Importobot's confidence scoring system:
 
 - **P(Format|Evidence)**: Our confidence score (posterior probability)
 - **P(Evidence|Format)**: Evidence strength given format (likelihood)
 - **P(Format)**: Format prevalence (prior probability)
 - **P(Evidence)**: Normalization factor (marginal probability)
 
-#### Advanced Bayesian Methods
-
-**Bayesian Model Averaging (BMA)**
+With a blend of structural, semantic, and statistical evidence, execute a simple Bayesian model averaging sequence:
 ```
 P(Format|Evidence) = Σ P(Format|Evidence,Model_i) × P(Model_i|Evidence)
 ```
+The weights (40% structural, 35% semantic, 25% statistical) were derived from calibration runs and increased the “generic” format confidence by approximately 10%.
 
-**Evidence Models**:
-- **Structural Model** (40%): Hierarchical patterns and object structure
-- **Semantic Model** (35%): Domain-specific content analysis
-- **Statistical Model** (25%): Complexity metrics and type diversity
-
-**Results**: Generic format confidence improved from 0.4996 → 0.5997 (+10.0%)
-
-### Information Theory & Pattern Analysis
+### Information theory & pattern analysis
 
 #### Mutual Information
 ```
@@ -67,7 +41,7 @@ I(Format; Pattern) = H(Format) - H(Format|Pattern)
 
 Measures how much information patterns provide about format detection.
 
-#### Entropy Calculations
+#### Entropy calculations
 ```
 H(X) = -Σ p(x) × log₂(p(x))
 H_total = 0.4 × H_keys + 0.4 × H_types + 0.2 × H_volume
@@ -78,7 +52,7 @@ H_total = 0.4 × H_keys + 0.4 × H_types + 0.2 × H_volume
 - **Type Entropy**: Distribution of value types
 - **Volume Entropy**: Data volume complexity (`log₂(total_values)`)
 
-#### Dynamic Pattern Coverage
+#### Dynamic pattern coverage
 ```
 coverage_ratio = sigmoid(entropy - entropy_threshold)
 W_adjusted = W_base × coverage_ratio
@@ -168,7 +142,7 @@ program built around three pillars:
 
 Each benchmark run captures wall-clock timings, iteration counts, and conversion
 metrics through the `conversion_optimization` metadata channel exposed in
-`GoldLayer.ingest`. Results flow back into placeholder previews so future MRs
+`GoldLayer.ingest`. Results flow back into placeholder previews so future maintainers
 can activate production-grade optimization without re-plumbing the math layer.
 
 ## Advanced Mathematical Approaches

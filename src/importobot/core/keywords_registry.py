@@ -7,7 +7,7 @@ and intent recognition patterns used throughout the conversion system.
 import re
 from typing import Any, Dict, List, Tuple
 
-from importobot.core.pattern_matcher import PatternMatcher
+from importobot.core.pattern_matcher import IntentType, PatternMatcher
 from importobot.utils.security import SSH_SECURITY_GUIDELINES, extract_security_warnings
 
 
@@ -545,9 +545,9 @@ class RobotFrameworkKeywordRegistry:
             "keywords_by_library": keywords_by_library,
             "intents_by_library": intents_by_library,
             "security_warnings_count": security_warnings_count,
-            "coverage_ratio": total_intents / total_keywords
-            if total_keywords > 0
-            else 0,
+            "coverage_ratio": (
+                total_intents / total_keywords if total_keywords > 0 else 0
+            ),
         }
 
 
@@ -557,21 +557,27 @@ class IntentRecognitionEngine:
     _pattern_matcher = PatternMatcher()
 
     @classmethod
-    def recognize_intent(cls, text: str) -> str:
-        """Recognize intent from text description using PatternMatcher."""
+    def recognize_intent(cls, text: str) -> IntentType | None:
+        """Recognize intent from text description using PatternMatcher.
+
+        Returns:
+            IntentType enum if intent detected, None otherwise
+        """
         if not text:
-            return "unknown"
+            return None
 
         detected_intent = cls._pattern_matcher.detect_intent(text)
-        if detected_intent:
-            return detected_intent.value
-        return "unknown"
+        return detected_intent  # Return enum directly, not .value
 
     @classmethod
-    def detect_all_intents(cls, text: str) -> List[str]:
-        """Detect all matching intents from text using PatternMatcher."""
+    def detect_all_intents(cls, text: str) -> List[IntentType]:
+        """Detect all matching intents from text using PatternMatcher.
+
+        Returns:
+            List of IntentType enums for all detected intents
+        """
         detected_intents = cls._pattern_matcher.detect_all_intents(text)
-        return [intent.value for intent in detected_intents]
+        return detected_intents  # Return enums directly, not .value
 
     @classmethod
     def get_security_warnings_for_keyword(cls, library: str, keyword: str) -> List[str]:
@@ -611,7 +617,9 @@ class IntentRecognitionEngine:
         return {
             "is_safe": len(issues) == 0,
             "issues": issues,
-            "recommendation": "Review and sanitize command before execution"
-            if issues
-            else "Command appears safe",
+            "recommendation": (
+                "Review and sanitize command before execution"
+                if issues
+                else "Command appears safe"
+            ),
         }

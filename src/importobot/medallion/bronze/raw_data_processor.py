@@ -74,70 +74,13 @@ class BronzeRecordResponse(dict, BronzeRecord):
         )
 
 
-class RawDataProcessor(DataLayer):  # pylint: disable=too-many-public-methods
-    """Bronze layer processor using service composition.
+class IngestionFacade:
+    """Facade for data ingestion operations."""
 
-    Provides focused services for data processing with reduced complexity.
+    def __init__(self, ingestion_service: DataIngestionService):
+        """Initialize ingestion facade."""
+        self.ingestion_service = ingestion_service
 
-    Services:
-    - DataIngestionService: Handles data intake with optional security hardening
-    - FormatDetectionService: Provides format detection and confidence scoring
-    - QualityAssessmentService: Manages data quality metrics and validation
-    - MetadataService: Handles metadata creation and lineage tracking
-    - ValidationService: Centralized validation logic
-    """
-
-    def __init__(
-        self,
-        *,
-        bronze_layer: Optional[BronzeLayer] = None,
-        storage_backend: Optional[str] = None,
-        security_level: Union[SecurityLevel, str] = SecurityLevel.STANDARD,
-        enable_security_gateway: bool = False,
-        quality_thresholds: Optional[dict[str, float]] = None,
-    ):
-        """Initialize processor with service composition.
-
-        Args:
-            bronze_layer: Optional Bronze layer instance
-            storage_backend: Optional storage backend identifier
-            security_level: Security level enum or string
-            enable_security_gateway: Whether to enable security validation
-        """
-        super().__init__("bronze")
-
-        # Convert storage_backend to Path if provided, otherwise use default
-        if bronze_layer is None:
-            layer_storage_path = Path(storage_backend) if storage_backend else None
-            bronze_layer = BronzeLayer(storage_path=layer_storage_path)
-
-        self.bronze_layer = bronze_layer
-
-        # Initialize focused services with optional security
-        self.format_service = FormatDetectionService()
-        self.ingestion_service = DataIngestionService(
-            self.bronze_layer,
-            security_level=security_level,
-            enable_security_gateway=enable_security_gateway,
-            format_service=self.format_service,
-        )
-        if quality_thresholds is None:
-            self.quality_service = QualityAssessmentService()
-        else:
-            self.quality_service = QualityAssessmentService(
-                high_threshold=quality_thresholds.get("high", 0.9),
-                medium_threshold=quality_thresholds.get("medium", 0.7),
-                min_quality_for_valid=quality_thresholds.get("min_valid", 0.5),
-            )
-        self.metadata_service = MetadataService()
-        self.validation_service = ValidationService(security_level=str(security_level))
-
-        logger.info(
-            "Initialized RawDataProcessor with service composition (security=%s)",
-            "enabled" if enable_security_gateway else "disabled",
-        )
-
-    # Data Ingestion Methods (delegated to DataIngestionService)
     def ingest_file(self, file_path: Union[str, Path]) -> ProcessingResult:
         """Delegate to ingestion service."""
         return self.ingestion_service.ingest_file(file_path)
@@ -154,7 +97,14 @@ class RawDataProcessor(DataLayer):  # pylint: disable=too-many-public-methods
         """Delegate to ingestion service."""
         return self.ingestion_service.ingest_data_dict(data, source_name)
 
-    # Format Detection Methods (delegated to FormatDetectionService)
+
+class FormatDetectionFacade:
+    """Facade for format detection operations."""
+
+    def __init__(self, format_service: FormatDetectionService):
+        """Initialize format detection facade."""
+        self.format_service = format_service
+
     def detect_format(self, data: dict[str, Any]) -> SupportedFormat:
         """Delegate to format service."""
         return self.format_service.detect_format(data)
@@ -165,7 +115,14 @@ class RawDataProcessor(DataLayer):  # pylint: disable=too-many-public-methods
         """Delegate to format service."""
         return self.format_service.get_format_confidence(data, target_format)
 
-    # Quality Assessment Methods (delegated to QualityAssessmentService)
+
+class QualityAssessmentFacade:
+    """Facade for quality assessment operations."""
+
+    def __init__(self, quality_service: QualityAssessmentService):
+        """Initialize quality assessment facade."""
+        self.quality_service = quality_service
+
     def validate_before_ingestion(self, data: dict[str, Any]) -> ValidationResult:
         """Delegate to quality service."""
         return self.quality_service.validate_before_ingestion(data)
@@ -178,7 +135,28 @@ class RawDataProcessor(DataLayer):  # pylint: disable=too-many-public-methods
         """Delegate to quality service."""
         return self.quality_service.validate_bronze_data(data)
 
-    # Metadata Methods (delegated to MetadataService)
+    def configure_thresholds(
+        self,
+        *,
+        high: Optional[float] = None,
+        medium: Optional[float] = None,
+        min_valid: Optional[float] = None,
+    ) -> None:
+        """Configure quality thresholds."""
+        self.quality_service.configure_thresholds(
+            high_threshold=high,
+            medium_threshold=medium,
+            min_quality_for_valid=min_valid,
+        )
+
+
+class MetadataFacade:
+    """Facade for metadata operations."""
+
+    def __init__(self, metadata_service: MetadataService):
+        """Initialize metadata facade."""
+        self.metadata_service = metadata_service
+
     def get_record_metadata(self, record_id: str) -> Optional[RecordMetadata]:
         """Delegate to metadata service."""
         return self.metadata_service.get_record_metadata(record_id)
@@ -191,7 +169,21 @@ class RawDataProcessor(DataLayer):  # pylint: disable=too-many-public-methods
         """Delegate to metadata service."""
         return self.metadata_service.create_lineage_info(data_id)
 
-    # Preview Methods (combination of services)
+
+class PreviewOperations:
+    """Handles preview operations combining format detection and quality metrics."""
+
+    def __init__(
+        self,
+        format_service: FormatDetectionService,
+        quality_service: QualityAssessmentService,
+        metadata_service: MetadataService,
+    ):
+        """Initialize preview operations."""
+        self.format_service = format_service
+        self.quality_service = quality_service
+        self.metadata_service = metadata_service
+
     def preview_ingestion(self, file_path: Union[str, Path]) -> dict[str, Any]:
         """Preview data ingestion without actually ingesting."""
         file_path = Path(file_path)
@@ -234,7 +226,19 @@ class RawDataProcessor(DataLayer):  # pylint: disable=too-many-public-methods
             "validation_ready": quality_metrics.overall_score >= 0.7,
         }
 
-    # DataLayer Interface Methods
+
+class DataLayerOperations:
+    """Handles DataLayer interface operations."""
+
+    def __init__(
+        self,
+        bronze_layer: BronzeLayer,
+        validation_service: ValidationService,
+    ):
+        """Initialize data layer operations."""
+        self.bronze_layer = bronze_layer
+        self.validation_service = validation_service
+
     def ingest(self, data: Any, metadata: LayerMetadata) -> ProcessingResult:
         """Implement DataLayer abstract method for ingestion."""
         return self.bronze_layer.ingest(data, metadata)
@@ -293,7 +297,23 @@ class RawDataProcessor(DataLayer):  # pylint: disable=too-many-public-methods
             issues=service_result.messages,
         )
 
-    # Service Integration Methods
+
+class IntegrationOperations:
+    """Handles integrated operations requiring multiple services."""
+
+    def __init__(
+        self,
+        format_service: FormatDetectionService,
+        quality_service: QualityAssessmentService,
+        metadata_service: MetadataService,
+        layer_name: str,
+    ):
+        """Initialize integration operations."""
+        self.format_service = format_service
+        self.quality_service = quality_service
+        self.metadata_service = metadata_service
+        self.layer_name = layer_name
+
     def ingest_with_detection(
         self,
         data: dict[str, Any],
@@ -438,14 +458,18 @@ class RawDataProcessor(DataLayer):  # pylint: disable=too-many-public-methods
         )
         return []
 
+
+class SecurityOperations:
+    """Handles security-related operations."""
+
+    def __init__(self, ingestion_service: DataIngestionService):
+        """Initialize security operations."""
+        self.ingestion_service = ingestion_service
+
     def enable_security(
         self, security_level: Union[SecurityLevel, str] = SecurityLevel.STANDARD
     ) -> None:
-        """Enable security gateway for data processing.
-
-        Args:
-            security_level: Security level enum or string
-        """
+        """Enable security gateway for data processing."""
         self.ingestion_service.enable_security(security_level)
         logger.info("Security gateway enabled for RawDataProcessor")
 
@@ -454,10 +478,218 @@ class RawDataProcessor(DataLayer):  # pylint: disable=too-many-public-methods
         self.ingestion_service.disable_security()
         logger.info("Security gateway disabled for RawDataProcessor")
 
-    def _get_security_configuration(self) -> dict[str, Any]:
+    def get_security_configuration(self) -> dict[str, Any]:
         """Get current security configuration."""
         return self.ingestion_service.get_security_configuration()
 
+
+class RawDataProcessor(DataLayer):
+    """Bronze layer processor using service composition.
+
+    Provides focused services for data processing with reduced complexity.
+
+    Services:
+    - DataIngestionService: Handles data intake with optional security hardening
+    - FormatDetectionService: Provides format detection and confidence scoring
+    - QualityAssessmentService: Manages data quality metrics and validation
+    - MetadataService: Handles metadata creation and lineage tracking
+    - ValidationService: Centralized validation logic
+
+    The processor acts as a facade, delegating to specialized helper classes
+    that organize related operations.
+    """
+
+    def __init__(
+        self,
+        *,
+        bronze_layer: Optional[BronzeLayer] = None,
+        storage_backend: Optional[str] = None,
+        security_level: Union[SecurityLevel, str] = SecurityLevel.STANDARD,
+        enable_security_gateway: bool = False,
+        quality_thresholds: Optional[dict[str, float]] = None,
+    ):
+        """Initialize processor with service composition.
+
+        Args:
+            bronze_layer: Optional Bronze layer instance
+            storage_backend: Optional storage backend identifier
+            security_level: Security level enum or string
+            enable_security_gateway: Whether to enable security validation
+            quality_thresholds: Optional quality threshold configuration
+        """
+        super().__init__("bronze")
+
+        # Convert storage_backend to Path if provided, otherwise use default
+        if bronze_layer is None:
+            layer_storage_path = Path(storage_backend) if storage_backend else None
+            bronze_layer = BronzeLayer(storage_path=layer_storage_path)
+
+        self.bronze_layer = bronze_layer
+
+        # Initialize focused services with optional security
+        self.format_service = FormatDetectionService()
+        self.ingestion_service = DataIngestionService(
+            self.bronze_layer,
+            security_level=security_level,
+            enable_security_gateway=enable_security_gateway,
+            format_service=self.format_service,
+        )
+        if quality_thresholds is None:
+            self.quality_service = QualityAssessmentService()
+        else:
+            self.quality_service = QualityAssessmentService(
+                high_threshold=quality_thresholds.get("high", 0.9),
+                medium_threshold=quality_thresholds.get("medium", 0.7),
+                min_quality_for_valid=quality_thresholds.get("min_valid", 0.5),
+            )
+        self.metadata_service = MetadataService()
+        self.validation_service = ValidationService(security_level=str(security_level))
+
+        # Initialize focused helper classes
+        self._ingestion_ops = IngestionFacade(self.ingestion_service)
+        self._format_ops = FormatDetectionFacade(self.format_service)
+        self._quality_ops = QualityAssessmentFacade(self.quality_service)
+        self._metadata_ops = MetadataFacade(self.metadata_service)
+        self._preview_ops = PreviewOperations(
+            self.format_service, self.quality_service, self.metadata_service
+        )
+        self._layer_ops = DataLayerOperations(
+            self.bronze_layer, self.validation_service
+        )
+        self._integration_ops = IntegrationOperations(
+            self.format_service,
+            self.quality_service,
+            self.metadata_service,
+            self.layer_name,
+        )
+        self._security_ops = SecurityOperations(self.ingestion_service)
+
+        logger.info(
+            "Initialized RawDataProcessor with service composition (security=%s)",
+            "enabled" if enable_security_gateway else "disabled",
+        )
+
+    # Data Ingestion Methods
+    def ingest_file(self, file_path: Union[str, Path]) -> ProcessingResult:
+        """Delegate to ingestion operations."""
+        return self._ingestion_ops.ingest_file(file_path)
+
+    def ingest_json_string(
+        self, json_string: str, source_name: str = "string_input"
+    ) -> ProcessingResult:
+        """Delegate to ingestion operations."""
+        return self._ingestion_ops.ingest_json_string(json_string, source_name)
+
+    def ingest_data_dict(
+        self, data: dict[str, Any], source_name: str = "dict_input"
+    ) -> ProcessingResult:
+        """Delegate to ingestion operations."""
+        return self._ingestion_ops.ingest_data_dict(data, source_name)
+
+    # Format Detection Methods
+    def detect_format(self, data: dict[str, Any]) -> SupportedFormat:
+        """Delegate to format detection operations."""
+        return self._format_ops.detect_format(data)
+
+    def get_format_confidence(
+        self, data: dict[str, Any], target_format: SupportedFormat
+    ) -> float:
+        """Delegate to format detection operations."""
+        return self._format_ops.get_format_confidence(data, target_format)
+
+    # Quality Assessment Methods
+    def validate_before_ingestion(self, data: dict[str, Any]) -> ValidationResult:
+        """Delegate to quality assessment operations."""
+        return self._quality_ops.validate_before_ingestion(data)
+
+    def calculate_quality_metrics(self, data: Any) -> DataQualityMetrics:
+        """Delegate to quality assessment operations."""
+        return self._quality_ops.calculate_quality_metrics(data)
+
+    def validate_bronze_data(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Delegate to quality assessment operations."""
+        return self._quality_ops.validate_bronze_data(data)
+
+    # Metadata Methods
+    def get_record_metadata(self, record_id: str) -> Optional[RecordMetadata]:
+        """Delegate to metadata operations."""
+        return self._metadata_ops.get_record_metadata(record_id)
+
+    def get_record_lineage(self, record_id: str) -> Optional[DataLineage]:
+        """Delegate to metadata operations."""
+        return self._metadata_ops.get_record_lineage(record_id)
+
+    def get_lineage(self, data_id: str) -> LineageInfo:
+        """Delegate to metadata operations."""
+        return self._metadata_ops.get_lineage(data_id)
+
+    # Preview Methods
+    def preview_ingestion(self, file_path: Union[str, Path]) -> dict[str, Any]:
+        """Delegate to preview operations."""
+        return self._preview_ops.preview_ingestion(file_path)
+
+    def preview_ingestion_dict(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Delegate to preview operations."""
+        return self._preview_ops.preview_ingestion_dict(data)
+
+    # DataLayer Interface Methods
+    def ingest(self, data: Any, metadata: LayerMetadata) -> ProcessingResult:
+        """Delegate to data layer operations."""
+        return self._layer_ops.ingest(data, metadata)
+
+    def retrieve(self, query: LayerQuery) -> LayerData:
+        """Delegate to data layer operations."""
+        return self._layer_ops.retrieve(query)
+
+    def validate(self, data: Any) -> ValidationResult:
+        """Delegate to data layer operations."""
+        return self._layer_ops.validate(data)
+
+    def ingest_to_layer(self, data: Any, metadata: LayerMetadata) -> ProcessingResult:
+        """Delegate to data layer operations."""
+        return self._layer_ops.ingest_to_layer(data, metadata)
+
+    def retrieve_from_layer(self, query: LayerQuery) -> LayerData:
+        """Delegate to data layer operations."""
+        return self._layer_ops.retrieve_from_layer(query)
+
+    def validate_layer_data(self, data: Any) -> ValidationResult:
+        """Delegate to data layer operations."""
+        return self._layer_ops.validate_layer_data(data)
+
+    # Service Integration Methods
+    def ingest_with_detection(
+        self,
+        data: dict[str, Any],
+        source_info: dict[str, Any],
+    ) -> BronzeRecord:
+        """Delegate to integration operations."""
+        return self._integration_ops.ingest_with_detection(data, source_info)
+
+    def get_bronze_records(
+        self,
+        filter_criteria: Optional[dict[str, Any]] = None,
+        limit: Optional[int] = None,
+    ) -> list[BronzeRecord]:
+        """Delegate to integration operations."""
+        return self._integration_ops.get_bronze_records(filter_criteria, limit)
+
+    # Security Management Methods
+    def enable_security(
+        self, security_level: Union[SecurityLevel, str] = SecurityLevel.STANDARD
+    ) -> None:
+        """Delegate to security operations."""
+        self._security_ops.enable_security(security_level)
+
+    def disable_security(self) -> None:
+        """Delegate to security operations."""
+        self._security_ops.disable_security()
+
+    def _get_security_configuration(self) -> dict[str, Any]:
+        """Delegate to security operations."""
+        return self._security_ops.get_security_configuration()
+
+    # Configuration Methods
     def configure_quality_thresholds(
         self,
         *,
@@ -465,9 +697,7 @@ class RawDataProcessor(DataLayer):  # pylint: disable=too-many-public-methods
         medium: Optional[float] = None,
         min_valid: Optional[float] = None,
     ) -> None:
-        """Configure quality thresholds used by the quality service."""
-        self.quality_service.configure_thresholds(
-            high_threshold=high,
-            medium_threshold=medium,
-            min_quality_for_valid=min_valid,
+        """Delegate to quality assessment operations."""
+        self._quality_ops.configure_thresholds(
+            high=high, medium=medium, min_valid=min_valid
         )

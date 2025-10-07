@@ -1,3 +1,5 @@
+# pydocstyle: ignore=D107
+
 """Unified data ingestion service with optional security hardening.
 
 Handles core data ingestion responsibilities with configurable security validation.
@@ -8,9 +10,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
+from collections import OrderedDict
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, List, Optional, Union, cast
 
 from importobot.medallion.bronze_layer import BronzeLayer
 from importobot.medallion.interfaces.data_models import (
@@ -22,9 +27,86 @@ from importobot.medallion.interfaces.enums import ProcessingStatus, SupportedFor
 from importobot.services.security_gateway import SecurityGateway
 from importobot.services.security_types import SecurityLevel
 from importobot.utils.logging import setup_logger
-from importobot.utils.validation import validate_file_path, validate_json_dict
+from importobot.utils.validation import (
+    validate_file_path,
+    validate_json_dict,
+    validate_json_size,
+)
 
 logger = setup_logger(__name__)
+
+
+class FileContentCache:
+    """Simple LRU cache for file contents keyed by path + mtime."""
+
+    def __init__(self, max_size_mb: int = 100) -> None:
+        """Initialize cache with an LRU budget expressed in megabytes."""
+        self._cache: OrderedDict[str, dict[str, Any]] = OrderedDict()
+        self._max_size_bytes = max_size_mb * 1024 * 1024
+        self._current_size_bytes = 0
+
+    def get_cached_content(self, file_path: Path) -> Optional[str]:
+        """Return cached content if file unchanged, else evict entry."""
+        cache_key = str(file_path.resolve())
+        entry = self._cache.get(cache_key)
+        if not entry:
+            return None
+
+        try:
+            current_mtime = file_path.stat().st_mtime
+        except OSError:
+            # File no longer accessible; remove cache entry
+            self._evict_key(cache_key)
+            return None
+
+        if entry["mtime"] != current_mtime:
+            self._evict_key(cache_key)
+            return None
+
+        entry["accessed"] = time.time()
+        self._cache.move_to_end(cache_key)
+        return cast(str, entry["content"])
+
+    def cache_content(self, file_path: Path, content: str) -> None:
+        """Cache file content, evicting least-recently used as needed."""
+        cache_key = str(file_path.resolve())
+        content_bytes = content.encode("utf-8")
+        content_size = len(content_bytes)
+
+        if content_size > self._max_size_bytes:
+            # Too large to cache; skip silently
+            return
+
+        try:
+            mtime = file_path.stat().st_mtime
+        except OSError:
+            return
+
+        if cache_key in self._cache:
+            self._current_size_bytes -= self._cache[cache_key]["size"]
+
+        while self._current_size_bytes + content_size > self._max_size_bytes:
+            self._evict_oldest()
+
+        self._cache[cache_key] = {
+            "content": content,
+            "mtime": mtime,
+            "size": content_size,
+            "accessed": time.time(),
+        }
+        self._cache.move_to_end(cache_key)
+        self._current_size_bytes += content_size
+
+    def _evict_oldest(self) -> None:
+        if not self._cache:
+            return
+        _, entry = self._cache.popitem(last=False)
+        self._current_size_bytes -= entry["size"]
+
+    def _evict_key(self, cache_key: str) -> None:
+        entry = self._cache.pop(cache_key, None)
+        if entry:
+            self._current_size_bytes -= entry["size"]
 
 
 class DataIngestionService:
@@ -33,18 +115,13 @@ class DataIngestionService:
     def __init__(
         self,
         bronze_layer: BronzeLayer,
+        *,
         security_level: Union[SecurityLevel, str] = SecurityLevel.STANDARD,
         enable_security_gateway: bool = False,
         format_service: Optional[Any] = None,
+        content_cache: Optional[FileContentCache] = None,
     ):
-        """Initialize ingestion service.
-
-        Args:
-            bronze_layer: Bronze layer instance for data storage
-            security_level: Security level enum or string
-            enable_security_gateway: Whether to enable security gateway validation
-            format_service: Optional format detection service
-        """
+        """Initialize ingestion service."""  # noqa: D107
         self.bronze_layer = bronze_layer
 
         if isinstance(security_level, str):
@@ -54,6 +131,7 @@ class DataIngestionService:
 
         self.enable_security_gateway = enable_security_gateway
         self.format_service = format_service
+        self._content_cache = content_cache or FileContentCache()
 
         # Lazy-load security gateway to avoid circular imports
         self._security_gateway: Optional[SecurityGateway] = None
@@ -102,9 +180,8 @@ class DataIngestionService:
             # Standard file validation
             validate_file_path(str(file_path))
 
-            # Read file content
-            with open(file_path, "r", encoding="utf-8") as f:
-                content = f.read()
+            # Read file content (with caching)
+            content = self._read_file_content(file_path)
 
             # Process content (with optional security validation)
             if self.enable_security_gateway and self.security_gateway is not None:
@@ -122,7 +199,8 @@ class DataIngestionService:
                     )
                 data = json_validation["sanitized_data"]
             else:
-                # Standard JSON validation
+                # Standard JSON validation with size check
+                validate_json_size(content, max_size_mb=10)
                 data = json.loads(content)
                 validate_json_dict(data)
 
@@ -197,7 +275,8 @@ class DataIngestionService:
                     )
                 data = json_validation["sanitized_data"]
             else:
-                # Standard JSON validation
+                # Standard JSON validation with size check
+                validate_json_size(json_string, max_size_mb=10)
                 data = json.loads(json_string)
                 validate_json_dict(data)
 
@@ -234,6 +313,17 @@ class DataIngestionService:
             error_msg = f"Failed to ingest JSON string '{source_name}': {str(e)}"
             logger.error(error_msg)
             return self._create_error_result(start_time, error_msg, Path(source_name))
+
+    def ingest_batch(
+        self, file_paths: List[Union[str, Path]], max_workers: int = 4
+    ) -> List[ProcessingResult]:
+        """Ingest multiple JSON files in parallel."""
+        normalized_paths = [Path(path) for path in file_paths]
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            results = list(executor.map(self.ingest_file, normalized_paths))
+
+        return results
 
     def ingest_data_dict(
         self, data: dict[str, Any], source_name: str = "dict_input"
@@ -350,7 +440,7 @@ class DataIngestionService:
 
         # Calculate data hash
         data_str = json.dumps(data, sort_keys=True, separators=(",", ":"))
-        data_hash = hashlib.md5(data_str.encode("utf-8")).hexdigest()
+        data_hash = hashlib.blake2b(data_str.encode("utf-8")).hexdigest()
 
         # Detect format (if format detection service is available)
         format_type = SupportedFormat.UNKNOWN
@@ -420,3 +510,15 @@ class DataIngestionService:
             }
 
         return result
+
+    def _read_file_content(self, file_path: Path) -> str:
+        """Return file contents, leveraging the shared cache."""
+        cached = self._content_cache.get_cached_content(file_path)
+        if cached is not None:
+            return cached
+
+        with open(file_path, "r", encoding="utf-8") as handle:
+            content = handle.read()
+
+        self._content_cache.cache_content(file_path, content)
+        return content

@@ -77,7 +77,7 @@ class TestGradientDescentOptimizer:
         """Test initialization with default config."""
         optimizer = GradientDescentOptimizer()
         assert optimizer.config.learning_rate == 0.01
-        assert optimizer.velocity is None
+        assert not optimizer.velocity  # Empty dict is falsey
         assert optimizer.iteration_count == 0
         assert not optimizer.convergence_history
 

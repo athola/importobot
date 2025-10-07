@@ -20,72 +20,108 @@ from importobot.medallion.bronze.validation import BronzeValidator
 from importobot.utils.validation_models import QualitySeverity
 
 
-class TestBronzeValidationBusinessLogic(  # pylint: disable=too-many-public-methods
-    unittest.TestCase
-):
-    """Business logic tests for Bronze layer validation and quality scoring."""
+# Module-level fixtures for shared test data
+def create_high_quality_data() -> dict[str, Any]:
+    """Create high-quality test data."""
+    return {
+        "testCase": {
+            "name": "Complete Test Case",
+            "description": "A well-formed test case with all required fields",
+            "priority": "High",
+            "category": "Functional",
+            "steps": [
+                {
+                    "stepDescription": "Navigate to login page",
+                    "expectedResult": "Login page displays correctly",
+                    "stepNumber": 1,
+                },
+                {
+                    "stepDescription": "Enter valid credentials",
+                    "expectedResult": "User successfully logs in",
+                    "stepNumber": 2,
+                },
+            ],
+            "preconditions": "User has valid account",
+            "postconditions": "User is logged in",
+        },
+        "metadata": {
+            "createdBy": "test.author@company.com",
+            "createdDate": "2024-01-15T10:30:00Z",
+            "lastModified": "2024-01-16T14:22:00Z",
+            "version": "1.0",
+        },
+    }
+
+
+def create_medium_quality_data() -> dict[str, Any]:
+    """Create medium-quality test data."""
+    return {
+        "testCase": {
+            "name": "Partial Test Case",
+            "description": "",  # Missing description
+            "steps": [
+                {
+                    "stepDescription": "Do something",
+                    "expectedResult": "",  # Missing expected result
+                }
+            ],
+        },
+        "execution": {"status": "TODO"},
+        # Missing metadata
+    }
+
+
+def create_poor_quality_data() -> dict[str, Any]:
+    """Create poor-quality test data."""
+    return {
+        "testCase": {
+            "name": "",  # Empty name
+            "description": None,  # Null description
+            "steps": [],  # No steps
+        },
+        "": "empty_key",  # Empty key
+        "null_value": None,
+        "very_long_field": "x" * 50000,  # Extremely long field
+        "duplicate_info": "same",
+        "duplicate_info_2": "same",  # Potential duplicate
+    }
+
+
+def create_large_data() -> dict[str, Any]:
+    """Create large test data for performance testing."""
+    return {
+        "testSuite": {
+            "name": "Large Test Suite",
+            "tests": [
+                {
+                    "name": f"Test Case {i}",
+                    "description": f"Description for test case {i}" * 50,
+                    "steps": [
+                        {
+                            "stepDescription": f"Step {j} for test {i}",
+                            "expectedResult": f"Expected result {j} for test {i}",
+                        }
+                        for j in range(20)
+                    ],
+                }
+                for i in range(100)
+            ],
+        }
+    }
+
+
+class TestBronzeValidationQualityScoring(unittest.TestCase):
+    """Quality scoring and structure validation tests for Bronze layer."""
 
     def setUp(self):
         """Set up test environment with validator."""
         self.validator = BronzeValidator()
 
         # Test data examples with known quality characteristics
-        self.high_quality_data = {
-            "testCase": {
-                "name": "Complete Test Case",
-                "description": "A well-formed test case with all required fields",
-                "priority": "High",
-                "category": "Functional",
-                "steps": [
-                    {
-                        "stepDescription": "Navigate to login page",
-                        "expectedResult": "Login page displays correctly",
-                        "stepNumber": 1,
-                    },
-                    {
-                        "stepDescription": "Enter valid credentials",
-                        "expectedResult": "User successfully logs in",
-                        "stepNumber": 2,
-                    },
-                ],
-                "preconditions": "User has valid account",
-                "postconditions": "User is logged in",
-            },
-            "metadata": {
-                "createdBy": "test.author@company.com",
-                "createdDate": "2024-01-15T10:30:00Z",
-                "lastModified": "2024-01-16T14:22:00Z",
-                "version": "1.0",
-            },
-        }
-
-        self.medium_quality_data = {
-            "testCase": {
-                "name": "Partial Test Case",
-                "description": "",  # Missing description
-                "steps": [
-                    {
-                        "stepDescription": "Do something",
-                        "expectedResult": "",  # Missing expected result
-                    }
-                ],
-            },
-            "execution": {"status": "TODO"},
-            # Missing metadata
-        }
-
-        self.poor_quality_data: dict[str, Any] = {
-            "testCase": {
-                "name": "",  # Empty name
-                "description": None,  # Null description
-                "steps": [],  # No steps
-            },
-            "": "empty_key",  # Empty key
-            "null_value": None,
-            "very_long_field": "x" * 50000,  # Extremely long field
-            "duplicate_info": "same",
-            "duplicate_info_2": "same",  # Potential duplicate
-        }
+        self.high_quality_data = create_high_quality_data()
+        self.medium_quality_data = create_medium_quality_data()
+        self.poor_quality_data = create_poor_quality_data()
+        self.large_data = create_large_data()
 
         self.malformed_data_examples: list[Any] = [
             None,  # Not a dictionary
@@ -107,26 +143,6 @@ class TestBronzeValidationBusinessLogic(  # pylint: disable=too-many-public-meth
                 }
             },
         ]
-
-        self.large_data = {
-            "testSuite": {
-                "name": "Large Test Suite",
-                "tests": [
-                    {
-                        "name": f"Test Case {i}",
-                        "description": f"Description for test case {i}" * 50,
-                        "steps": [
-                            {
-                                "stepDescription": f"Step {j} for test {i}",
-                                "expectedResult": f"Expected result {j} for test {i}",
-                            }
-                            for j in range(20)
-                        ],
-                    }
-                    for i in range(100)
-                ],
-            }
-        }
 
     # Test 1: Quality scoring accuracy and consistency
     def test_high_quality_data_scores_appropriately(self):
@@ -305,7 +321,67 @@ class TestBronzeValidationBusinessLogic(  # pylint: disable=too-many-public-meth
                 large_fields = size_details["large_fields"]
                 self.assertGreater(len(large_fields), 0)
 
-    # Test 4: Content validation business logic
+    # Test 4: Error severity classification
+    def test_severity_classification_critical_errors(self):
+        """Test that critical errors are classified correctly."""
+        critical_data_examples: list[Any] = [
+            None,  # Not a dict
+            [],  # Wrong type
+            "string",  # Wrong type
+        ]
+
+        for critical_data in critical_data_examples:
+            with self.subTest(data=critical_data):
+                validation_result = self.validator.validate_raw_data(critical_data)
+
+                self.assertFalse(validation_result.is_valid)
+                self.assertEqual(validation_result.severity, QualitySeverity.CRITICAL)
+                self.assertGreater(validation_result.error_count, 0)
+
+    def test_severity_classification_warning_levels(self):
+        """Test that different warning levels are classified correctly."""
+        # High warning scenario
+        high_warning_data = {f"empty_field_{i}": "" for i in range(10)}
+        for i in range(10):
+            high_warning_data[f"null_field_{i}"] = ""
+
+        validation_result = self.validator.validate_raw_data(high_warning_data)
+
+        if validation_result.warning_count > 5:
+            self.assertIn(
+                validation_result.severity,
+                [QualitySeverity.HIGH, QualitySeverity.MEDIUM],
+            )
+
+        # Low warning scenario
+        low_warning_data = {
+            "test": "value",
+            "empty_field": "",  # One minor issue
+            "normal_field": "normal value",
+        }
+
+        validation_result = self.validator.validate_raw_data(low_warning_data)
+
+        if validation_result.warning_count > 0:
+            self.assertIn(
+                validation_result.severity,
+                [QualitySeverity.LOW, QualitySeverity.MEDIUM],
+            )
+
+
+class TestBronzeValidationContentAndPerformance(unittest.TestCase):
+    """Content validation and performance tests for Bronze layer."""
+
+    def setUp(self):
+        """Set up test environment with validator."""
+        self.validator = BronzeValidator()
+
+        # Test data examples
+        self.high_quality_data = create_high_quality_data()
+        self.medium_quality_data = create_medium_quality_data()
+        self.large_data = create_large_data()
+
+    # Test 1: Content validation business logic
     def test_content_validation_encoding_issues(self):
         """Test detection of encoding and character issues."""
         data_with_encoding_issues = {
@@ -370,53 +446,7 @@ class TestBronzeValidationBusinessLogic(  # pylint: disable=too-many-public-meth
         if validation_result.warning_count > 0:
             self.assertGreaterEqual(len(suspicious_patterns), 1)
 
-    # Test 5: Error severity classification
-    def test_severity_classification_critical_errors(self):
-        """Test that critical errors are classified correctly."""
-        critical_data_examples: list[Any] = [
-            None,  # Not a dict
-            [],  # Wrong type
-            "string",  # Wrong type
-        ]
-
-        for critical_data in critical_data_examples:
-            with self.subTest(data=critical_data):
-                validation_result = self.validator.validate_raw_data(critical_data)
-
-                self.assertFalse(validation_result.is_valid)
-                self.assertEqual(validation_result.severity, QualitySeverity.CRITICAL)
-                self.assertGreater(validation_result.error_count, 0)
-
-    def test_severity_classification_warning_levels(self):
-        """Test that different warning levels are classified correctly."""
-        # High warning scenario
-        high_warning_data = {f"empty_field_{i}": "" for i in range(10)}
-        for i in range(10):
-            high_warning_data[f"null_field_{i}"] = ""
-
-        validation_result = self.validator.validate_raw_data(high_warning_data)
-
-        if validation_result.warning_count > 5:
-            self.assertIn(
-                validation_result.severity,
-                [QualitySeverity.HIGH, QualitySeverity.MEDIUM],
-            )
-
-        # Low warning scenario
-        low_warning_data = {
-            "test": "value",
-            "empty_field": "",  # One minor issue
-            "normal_field": "normal value",
-        }
-
-        validation_result = self.validator.validate_raw_data(low_warning_data)
-
-        if validation_result.warning_count > 0:
-            self.assertIn(
-                validation_result.severity,
-                [QualitySeverity.LOW, QualitySeverity.MEDIUM],
-            )
-
+    # Test 2: Performance validation
     def test_validation_performance_large_datasets(self):
         """Test that validation performs well on large datasets."""
 
@@ -444,7 +474,7 @@ class TestBronzeValidationBusinessLogic(  # pylint: disable=too-many-public-meth
         peak_mb = peak / 1024 / 1024
         self.assertLess(peak_mb, 100, f"Validation used too much memory: {peak_mb}MB")
 
-    # Test 7: Configuration and customization
+    # Test 3: Configuration and customization
     def test_configurable_size_limits(self):
         """Test that size limits can be configured."""
         # Create validator with custom limits
@@ -482,7 +512,7 @@ class TestBronzeValidationBusinessLogic(  # pylint: disable=too-many-public-meth
                 # Correctly identified nesting issue
                 pass
 
-    # Test 8: Integration validation
+    # Test 4: Integration validation
     def test_validation_result_structure_completeness(self):
         """Test that validation results provide complete information."""
         validation_result = self.validator.validate_raw_data(self.medium_quality_data)

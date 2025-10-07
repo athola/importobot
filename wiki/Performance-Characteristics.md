@@ -1,15 +1,15 @@
 # Performance Characteristics
 
-This document summarises Importobot’s performance profile so teams know what to
-expect under load and have a place to stash benchmark deltas.
+This note records the current performance profile so teams know what to expect
+under load and can spot regressions quickly.
 
 ## Baseline Metrics (2025-09)
 
-- **Single-file conversion**: 0.4s avg, 0.5s p95 (medium complexity)
-- **Bulk conversion (25 files)**: 2.8s total (~0.11s per file)
-- **Parallel conversion (10 workers)**: 6.1s total
-- **Memory footprint**: RSS Δ 1–3 MB for single conversion, <40 MB during bulk
-- **Cache stats** (`PerformanceCache`): 85% hit rate in medallion preview runs
+- Single-file conversion: 0.4s avg, 0.5s p95 (medium complexity)
+- Bulk conversion (25 files): 2.8s total (~0.11s per file)
+- Parallel conversion (10 workers): 6.1s total
+- Memory footprint: RSS Δ 1–3 MB for single conversion, <40 MB during bulk
+- Cache stats (`PerformanceCache`): 85% hit rate in medallion preview runs
 
 Source: `uv run python scripts/src/importobot_scripts/performance_benchmark.py` on
 the reference CI runner (Ubuntu 22.04, Python 3.12).

@@ -8,22 +8,24 @@
 
 ## What is Importobot?
 
-**Importobot** converts test cases from test management frameworks (like Zephyr, JIRA/Xray, and TestLink) into executable Robot Framework format. It automates migration of legacy test suites to modern automation frameworks.
+Importobot addresses the massive waste of time that is manually copying Zephyr or TestLink cases into Robot Framework. It reads structured exports (such as JSON) and writes runnable Robot suites without touching the browser or a spreadsheet.
 
-Organizations often have thousands of test cases in legacy systems. Manual migration is slow, error-prone, and expensive. Importobot automates this conversion, saving time and resources while preserving test knowledge and business logic.
+If there is a backlog of legacy tests and a deadline, Importobot keeps step order, migrates metadata, and flags the parts that still need a human decision.
 
 ## Main Features
 
-- **Automated Conversion**: Convert entire test suites with a single command
-- **Bulk Processing**: Recursively find and convert test cases in a directory
-- **Intelligent Field Mapping**: Automatically map test steps, expected results, tags, and priorities
-- **Extensible**: Modular architecture supports adding new input formats and conversion strategies
-- **API Integration**: Python API for CI/CD pipelines and enterprise workflows
-- **Validation and Suggestions**: Input data validation with suggestions for ambiguous test cases
-- **Quality Standards**: Maintains code quality with complete test coverage
-- **Production Ready**: Over 1150 tests validate enterprise-scale performance
-- **Medallion Architecture**: Data processing with Bronze/Silver/Gold layer quality gates
-- **Code Quality**: Maintains 10.00/10 pylint score with complete linting compliance
+- Convert Zephyr JSON exports into Robot Framework files with a single command
+- Walk a directory tree and process discovered supported files
+- Preserve descriptions, steps, tags, and priorities instead of flattening them away
+- Raise validation errors when inputs look suspicious rather than imposing its own assumptions
+- Expose the same functionality as a Python API for CI pipelines and custom tooling
+- Ship with a test suite (~1150 checks) that protects the relied-upon conversions 
+
+## Latest updates
+
+- Comment lines now keep their literal placeholders and control characters; executable lines still gain `${param}` replacements, which satisfies the property-based step preservation checks.
+- Generated suites annotate both the raw and normalized test names, improving traceability when inputs contain non-printable characters.
+- A startup shim preloads deprecated `robot.utils` helpers so SeleniumLibrary tests run quietly, and the Selenium integration path now executes in dry-run mode with explicit cleanup to avoid ResourceWarnings.
 
 ## Installation
 
@@ -58,7 +60,7 @@ uv sync --dev
 
 ## Quick Start
 
-Example of converting a Zephyr JSON export to a Robot Framework file:
+Here’s the minimal workflow used to test conversions:
 
 **Input (Zephyr JSON):**
 ```json
@@ -83,7 +85,6 @@ Example of converting a Zephyr JSON export to a Robot Framework file:
 **Conversion Command:**
 
 ```sh
-# Convert a single file
 uv run importobot zephyr_export.json converted_tests.robot
 ```
 
@@ -105,65 +106,26 @@ User Login Functionality
 
 ## API Usage
 
-Importobot provides a Python API for integration:
+Hooking the converter into another project is straightforward:
 
-### Simple Usage
 ```python
 import importobot
 
-# Core bulk conversion
 converter = importobot.JsonToRobotConverter()
-result = converter.convert_file("input.json", "output.robot")
+summary = converter.convert_file("input.json", "output.robot")
+print(summary)
 ```
 
-### Enterprise Integration
-```python
-from importobot.api import validation, converters, suggestions
-
-# CI/CD pipeline validation
-try:
-    validation.validate_json_dict(test_data)
-    converter = converters.JsonToRobotConverter()
-    result = converter.convert_directory("/input", "/output")
-except importobot.exceptions.ValidationError as e:
-    print(f"Validation failed: {e}")
-
-# QA suggestion engine
-engine = suggestions.GenericSuggestionEngine()
-improvements = engine.suggest_improvements(problematic_tests)
-```
-
-### Configuration
-```python
-import importobot
-
-# Configure for enterprise security
-importobot.config.security_level = "strict"
-importobot.config.max_batch_size = 1000
-
-# Bulk processing with error handling
-converter = importobot.JsonToRobotConverter()
-results = converter.convert_directory(
-    input_dir="/test/exports",
-    output_dir="/robot/tests",
-    recursive=True
-)
-
-print(f"Converted: {results['success_count']} files")
-print(f"Failed: {results['error_count']} files")
-```
+For bulk jobs, run this inside CI, validate the payload first, and let the converter walk nested directories.
 
 ## Documentation
 
-The official documentation, including a full API reference, lives in the [project wiki](https://github.com/athola/importobot/wiki). Highlights:
+Docs live in the [project wiki](https://github.com/athola/importobot/wiki). Start with:
 
 - [Medallion workflow walkthrough](https://github.com/athola/importobot/wiki/User-Guide#medallion-workflow-example)
-- [Migration guide for existing users](https://github.com/athola/importobot/wiki/Migration-Guide)
-- [Optimization and performance benchmark plans](https://github.com/athola/importobot/wiki/Mathematical-Foundations#gold-layer-optimization-benchmark-plan)
-- [Performance benchmark harness](https://github.com/athola/importobot/wiki/Performance-Benchmarks)
-  - Includes guidance for interpreting memory deltas and cache hit/miss metrics
+- [Migration guide](https://github.com/athola/importobot/wiki/Migration-Guide)
+- [Performance benchmarks](https://github.com/athola/importobot/wiki/Performance-Benchmarks)
 - [Architecture decision records](https://github.com/athola/importobot/wiki/architecture/ADR-0001-medallion-architecture)
-- [Performance characteristics](https://github.com/athola/importobot/wiki/Performance-Characteristics)
 - [Deployment guide](https://github.com/athola/importobot/wiki/Deployment-Guide)
 
 ## Contributing

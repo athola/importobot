@@ -1,5 +1,6 @@
 """TDD Performance tests for format detection at enterprise scale.
-# pylint: disable=line-too-long  # Test data contains long strings
+
+# Test data contains long strings
 
 Tests the performance characteristics of format detection when processing
 large datasets typical of Bronze layer ingestion in Medallion Architecture.

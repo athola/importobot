@@ -1,5 +1,5 @@
 """Core system-wide invariant tests using Hypothesis.
-# pylint: disable=line-too-long,missing-function-docstring,no-member  # Invariant tests
+# pylint: disable=missing-function-docstring,no-member  # Invariant tests
 
 Tests fundamental properties that should always hold true across the system:
 - JSON parsing is safe and reversible

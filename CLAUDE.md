@@ -4,156 +4,60 @@ This guide explains how to work with Importobot, a Python project built with Tes
 
 ## Project Philosophy
 
-**Importobot** converts test cases from various test management frameworks (Atlassian Zephyr, JIRA/Xray, TestLink, etc.) into Robot Framework format. It automates what would otherwise be a manual migration process.
+Importobot exists to turn structured test cases (Zephyr, Xray, TestLink and friends) into Robot Framework suites without wasting time on manual conversion. Utilize tooling for automation and loop in humans when judgment is required.
 
-### Core Mission
-- **Automation**: Convert entire test suites with single commands, no manual steps
-- **Bulk Processing**: Handle hundreds or thousands of test cases at once
-- **Preserve Business Logic**: Keep all test structure, metadata, and verification points
-- **Production-Ready Output**: Generate Robot Framework files that run immediately
-- **Compatibility**: Support multiple input formats with consistent quality
+Our goals are simple:
+- One command should convert a directory of tests without hand-editing.
+- The converted suite should keep the intent of the original artifacts—names, steps, metadata, priorities.
+- Generated files must run immediately in Robot Framework; otherwise we treat the bug as a blocker.
 
-We use TDD and XP to ensure the conversion process is reliable and maintainable.
+TDD and XP practices enforce quality. Every new parser feature arrives with tests, which informs how to write the code in order to get to a pass. Across multiple services and modules this lays a tight standard to which the system must adhere.
 
-### Why Automation Matters
-For test framework conversion, automation means:
-1. **No Manual Steps**: Skip the copy-paste and field-by-field mapping
-2. **Batch Processing**: Convert hundreds or thousands of tests in one go
-3. **Consistent Quality**: Every conversion follows the same patterns
-4. **Immediate Executability**: Generated files run without changes
-5. **Preserve Traceability**: Keep original test metadata for audits
-
-This focus on automation shapes our architectural decisions and features.
+Automation matters because the legacy alternative is tedious and error-prone. Teams typically bring hundreds of cases at a time, and consistency matters more than self-sacrifice. By surfacing validation failures early and preserving traceability, a lot of time can be saved from having to hunt through spreadsheets of test results.
 
 ## TDD/XP in This Project
 
 ### Test-Driven Development (TDD)
-1. **Red-Green-Refactor**: Write failing tests first, then code to pass them, then refactor
-2. **Test Coverage**: Every feature has unit and integration tests
-3. **Test Organization**: Unit tests for components, integration tests for workflows
+- Start with the failing test, make it pass, then refactor to work towards a green state.
+- Keep both unit and integration coverage in step; the converter touches many layers at once.
+- Prefer fixtures and helpers to copy/pasting setup blocks.
 
 ### Extreme Programming (XP)
-1. **Continuous Integration**: Test every change automatically
-2. **Refactoring**: Improve code confidently with full test coverage
-3. **Simple Design**: Use the simplest approach that works
-4. **Collective Code Ownership**: Consistent standards make code accessible to everyone
+- Run the full test suite in CI on every change; red builds block merges.
+- Reach for the simplest design first and refactor aggressively once tests protect the behaviour.
+- Treat the codebase as shared turf—nobody “owns” a module, so leave it tidier than you found it.
 
-### Fail-Fast Principles
-We catch and report errors immediately:
-
-1. **Early Detection**: Find problems as soon as they occur
-2. **Input Validation**: Check all inputs, configs, and dependencies upfront
-3. **Clear Errors**: Report failures visibly and right away
-4. **Prevent Cascades**: Fail fast to stop problems from spreading
-5. **Save Time**: Early error detection reduces debugging costs
-
-We implement fail-fast throughout the codebase:
-- JSON parsing with validation (`load_and_parse_json` in `parser.py`)
-- Command-line argument validation with immediate exit on invalid inputs
-- Configuration validation at startup
-- Type checking and data structure validation
-- Specific exception types for different error cases
+### Fail-fast principles in practice
+- Validate JSON on load (see `load_and_parse_json`) and fail immediately when fields are missing.
+- Reject bad CLI input before spinning up long-running conversions.
+- Keep configuration validation and type hints in sync so errors surface during startup, not mid-run.
 
 ## Recent Improvements
 
-### Artifact Management
-- Updated `.gitignore` to exclude generated artifacts and test output files
-- Added `clean` and `deep-clean` Makefile targets to remove temporary files
-- Removed accidentally committed artifacts and cleaned up the repository
+- Parameter conversion now skips comment lines, so literal `{placeholders}` and control characters survive in traceability comments while executable statements still become Robot variables.
+- Test generation captures both the original and normalized test names, letting invariant/property suites confirm identity even when inputs contain form feeds or backspaces.
+- A lightweight `robot.utils` compatibility shim preloads deprecated helpers so SeleniumLibrary stops emitting deprecation warnings during lint/typecheck runs.
+- Selenium integration tests run in dry-run mode with deterministic resource cleanup, eliminating the flaky WebDriver startup and the socket/file ResourceWarnings it caused.
 
-### Code Quality
-- Fixed linting issues with `ruff` and other tools
-- Removed unused imports and variables
-- Standardized code formatting
-- Improved error handling and validation patterns
-
-### Test Reliability
-- Fixed failing tests related to missing test data files
-- Improved test data management and file organization
-- Enhanced test suite reliability
-
-### Makefile Updates
-- Added missing targets to help menu for better discoverability
-- Documented all Makefile targets in the help section
-
-### Recent Work (September 2025)
-
-#### Interactive Demo System
-- Added `scripts/` directory with demo infrastructure for business benefits and conversion capabilities
-- Built modular demo architecture with separate components for configuration, logging, validation, scenarios, and visualization
-- Created `interactive_demo.py` with:
-  - Business case analysis with cost/time comparisons and ROI calculations
-  - Performance testing at enterprise scale with real-time visualization
-  - Eight demo scenarios covering conversion, user registration, SSH operations, database/API integration, and suggestions
-  - Executive dashboard with KPI cards, performance curves, competitive positioning, and risk/return analysis
-  - Portfolio analysis across different business scenarios and scales
-
-#### Test Coverage & TDD
-- Expanded unit test suite for business domains, error handling, field definitions, JSON conversion, keywords, security, suggestions, and SSH operations
-- Added new components: suggestions engine, validation framework, enhanced keywords system, and generative testing
-- Improved test reliability with validation patterns and fail-fast principles
-
-#### Performance & Quality
-- Enterprise-scale performance benchmarks with linear scalability validation
-- Interactive business case modeling with configurable scenarios and real-time cost analysis
-- Enhanced security validation for SSH parameter extraction and compliance
-
-#### Code Quality (September 2025)
-- Achieved 10.00/10 lint score through systematic improvements
-- Fixed all failing tests, reaching 1153 passing tests with comprehensive coverage
-- Created shared utilities for pattern extraction and step comment generation
-- Eliminated duplicate code across keyword generators
-- Enhanced SSH test infrastructure with coverage for all 42 SSH keywords
-- Standardized imports and improved dependency management
-- Added security-focused parameter extraction for SSH authentication
-- Improved modular keyword architecture with shared base functionality
-
-#### Quality Improvements (September 2025)
-- Maintained 10.00/10 pylint score across entire codebase
-- Fixed all pycodestyle (PEP 8) and pydocstyle (PEP 257) violations
-- Resolved all mypy type checking errors
-- All 1153 tests passing with fixed import errors, fixture issues, and test data consistency
-- Improved Robot Framework library detection
-- Centralized test data management to eliminate duplication
-- Updated docstrings to comply with Python PEP 257 conventions
-
-#### Codebase Cleanup (January 2025)
-- Removed 200+ lines of legacy support code across utils/defaults.py, core/converter.py, and medallion architecture
-- Created shared utilities (data_analysis.py) to eliminate duplicate data processing patterns
-- Added proper `__all__` declarations to core and utils modules for clean public/private separation
-- Streamlined validation utilities by removing redundant wrapper functions
-- Organized imports and removed unused backwards compatibility aliases
-- Optimized performance by reducing function call overhead and memory footprint
+### 2025 highlights worth remembering
+- September’s cleanup retired roughly 200 lines of legacy compatibility hacks and replaced them with a shared `data_analysis` helper; `__all__` exports now mark the public API explicitly.
+- An additional push added `scripts/interactive_demo.py`, which we use in customer demos to show conversion throughput, cost savings, and where manual review still matters.
+- The same cycle produced utilities for pattern extraction/step comments and beefed up SSH validation so the interactive demo and the CLI share logic instead of diverging.
 
 ## CI/CD
 
 Importobot works in CI/CD pipelines and supports headless environments with headless Chrome.
 
-## MCP Agent Usage Guidelines
+## MCP agent usage
 
-When using MCP agents (like qwen-code) for task delegation, consider token efficiency:
+MCP agents (like qwen-code) are only utilized when their context window increases our efficiency while simultaneously reducing token cost.
+Every call still flows through the main session, so simple file edits cost extra tokens without saving time.
 
-### Current MCP approach likely wastes tokens because:
+Good fits:
+- Broad explorations, codebase surveys, or brainstorming where parallel thinking helps.
+- Analyses that would otherwise require opening dozens of files manually.
 
-1. **Context flows through me**: When I use `mcp__qwen-code__ask-qwen`, file contents and analysis still get processed through my context window first
-2. **Double processing**: Content gets analyzed by both me (for coordination) and qwen-code (for detailed analysis)
-3. **Overhead**: Each MCP call adds metadata and formatting overhead
-
-### The approach would save tokens if:
-- Qwen-code could directly access files without me reading them first
-- I could delegate entire complex tasks without coordinating results
-- Analysis stayed entirely within qwen-code's context
-
-### Traditional approach works better for:
-1. I read failing files directly
-2. Analyze import structure myself
-3. Apply fixes directly
-
-### MCP approach is better for:
-- Complex brainstorming and ideation tasks
-- Large-scale code analysis across many files
-- Tasks requiring specialized domain knowledge
-- When I need to focus on high-level coordination while qwen-code handles implementation details
+Stick with the built-in tools when the failure is easily understood, a small collection of files need to be edited, or the results/output can be easily determined.
 
 ## Public API Design Principles
 
@@ -201,11 +105,9 @@ api = _api
 del _config, _exceptions, _api
 ```
 
-**Pattern Analysis**: ✅ **Acceptable Industry Practice**
-- Pandas uses `del` cleanup for temporary variables
-- Requests cleans up warning configurations similarly
-- Pattern is explicit, readable, and functionally safe
-- Only removes namespace pollution, not functionality
+**Pattern notes**
+- Pandas and requests both clean up temporary imports this way, so the approach is familiar to most contributors.
+- The pattern keeps the public namespace tidy without hiding functionality.
 
 #### 3. Business-Focused API Surface
 
@@ -260,7 +162,7 @@ Following pandas model:
 3. Format code: `make format`
 4. Clean artifacts: `make clean` or `make deep-clean`
 5. Verify no regressions were introduced
-6. Test public API: `uv run python -c "import importobot; print('✅ API works')"`
+6. Smoke-test the public API: `uv run python -c "import importobot; print('api ok')"`
 7. Validate API boundaries: Ensure new utilities have proper `__all__` declarations
 8. Check backwards compatibility: Avoid adding legacy support patterns
 9. Push changes will trigger GitHub Actions workflows for automated testing and linting

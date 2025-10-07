@@ -1,9 +1,8 @@
 # Performance Benchmarks
 
 Importobot ships a benchmark harness that measures conversion throughput,
-latency, and memory usage across representative workloads. Use this guide to run
-the benchmarks and interpret the results, especially when validating medallion
-and optimizer changes.
+latency, and memory usage across representative workloads. Use this guide when
+requiring evidence before merging medallion or optimizer changes.
 
 ## When to Run Benchmarks
 
@@ -13,7 +12,7 @@ and optimizer changes.
 
 ## Benchmark Script
 
-The entrypoint lives at `scripts/src/importobot_scripts/performance_benchmark.py`.
+The entrypoint is in `scripts/src/importobot_scripts/performance_benchmark.py`.
 
 ```bash
 # Show available options
@@ -27,24 +26,20 @@ uv run python scripts/src/importobot_scripts/performance_benchmark.py --iteratio
 ```
 
 Key flags:
-- `--iterations` – Number of single-file conversion iterations per level (default 10).
-- `--api-iterations` – Iterations for API helper benchmarks (default 5).
-- `--bulk-files` – File counts used for bulk directory benchmarks (default `5 10 25 50`).
-- `--warmup` – Warm-up iterations excluded from timing stats (default 3).
-- `--parallel` – Enable the parallel conversion scenario.
-- `--complexity` – Choose the generated test complexity (`simple`, `medium`, `complex`, `enterprise`).
+- `--iterations` – Single-file conversion iterations per level (default 10).
+- `--api-iterations` – API helper iterations (default 5).
+- `--bulk-files` – File counts for bulk runs (default `5 10 25 50`).
+- `--warmup` – Warm-up iterations ignored in stats (default 3).
+- `--parallel` – Enable the parallel scenario.
+- `--complexity` – Generated test mix (`simple`, `medium`, `complex`, `enterprise`).
 
 ## Metrics Captured
 
-Each benchmark run produces a human-readable summary and writes
-`performance_benchmark_results.json` in the project root containing:
-- Wall-clock timings (mean/median/min/max, percentiles with NumPy installed).
-- Conversion throughput (files per second) per scenario.
-- Memory deltas for each run when `psutil` is available.
-- Iteration-level timings for single conversion, bulk, API method calls, and
-  optional parallel runs.
-- Cache hit/miss rates when you call `PerformanceCache().get_cache_stats()` or
-  the `LazyEvaluator` helpers as part of custom harness extensions.
+Each run prints a summary and writes
+`performance_benchmark_results.json` in the project root. The file records
+timings, throughput, optional memory deltas (when `psutil` is installed), and
+per-scenario iteration data. Call `PerformanceCache().get_cache_stats()` during
+custom runs if you also want cache metrics.
 
 Sample JSON structure:
 
@@ -64,33 +59,16 @@ Sample JSON structure:
 
 ## Using Benchmark Data
 
-1. **Baseline** – Store a baseline JSON result and check it into your internal
-   benchmarking repo.
-2. **Compare** – Run the suite after code changes and diff against the baseline.
-3. **Alert** – Flag regressions beyond your acceptable thresholds (e.g., >10%
-   slowdown) and investigate before releasing.
-4. **Report** – Attach the JSON artifacts to MR documentation or release notes.
+1. **Baseline** – Keep a known-good JSON result under version control.
+2. **Compare** – Diff each new run against the baseline.
+3. **Alert** – Flag regressions beyond the SLA (e.g., >10% slowdown) before release.
+4. **Report** – Attach the JSON when raising MRs or publishing release notes.
 
-### Memory Profiling & Cache Observability
+### Memory profiling & cache observability
 
-- Every section of the benchmark JSON includes an optional `memory_usage`
-  dictionary with `mean`, `median`, and `max` RSS deltas. When printing the
-  summary, the CLI highlights the average memory footprint for each scenario.
-- Example snippet:
-
-  ```json
-  {
-    "single_conversion": {
-      "timings": {"mean": 0.41},
-      "memory_usage": {"mean": 1048576, "max": 3145728}
-    }
-  }
-  ```
-
-  Combine this with `PerformanceCache().get_cache_stats()` during runs to watch
-  cache population, hit rates, and eviction behaviour.
-- To drill deeper, wrap any conversion call with `tracemalloc` or `psutil`
-  sampling while the benchmark is running:
+- When `psutil` is present the JSON adds a `memory_usage` block per scenario.
+- Pair it with `PerformanceCache().get_cache_stats()` to monitor cache fill and eviction.
+- For deeper dives, wrap the benchmark with `tracemalloc`:
 
   ```python
   import tracemalloc
@@ -98,21 +76,11 @@ Sample JSON structure:
 
   tracemalloc.start()
   benchmark.run_comprehensive_benchmark()
-  snapshot = tracemalloc.take_snapshot()
-  top_stats = snapshot.statistics("lineno")[:10]
-  cache_stats = get_performance_cache().get_cache_stats()
+  hits = get_performance_cache().get_cache_stats()
   ```
 
-  This surfaces hot spots and validates that eviction policies keep memory
-  bounded.
+## Integration with optimization benchmarks
 
-## Integration with Optimization Benchmarks
-
-Pair the performance script with the optimization benchmark plan from the
-[Mathematical Foundations](Mathematical-Foundations) doc:
-
-- Use the same small/medium/large suite definitions when feeding the optimizer.
-- Record the optimization preview latency alongside conversion timing to keep
-  overall pipeline SLAs visible.
-- Archive both outputs when making go/no-go decisions for the OptimizedConverter
-  release.
+Align the scenarios here with the optimizer plan from
+[Mathematical Foundations](Mathematical-Foundations): reuse the same
+small/medium/large suites, track optimization preview latency alongside conversion timing, and store both JSON outputs when making decisions related to the OptimizedConverter.

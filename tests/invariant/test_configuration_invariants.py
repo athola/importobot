@@ -1,5 +1,5 @@
 """Configuration validation invariant tests using Hypothesis.
-# pylint: disable=line-too-long,no-value-for-parameter,not-an-iterable
+# pylint: disable=no-value-for-parameter,not-an-iterable
 # pylint: disable=unsupported-membership-test
 # Test issues
 
@@ -20,7 +20,7 @@ from importobot.config import (
     update_medallion_config,
     validate_medallion_config,
 )
-from importobot.medallion.storage.config import StorageConfig
+from importobot.medallion.storage.config import VALID_BACKEND_TYPES, StorageConfig
 
 
 class TestConfigurationInvariants:
@@ -201,8 +201,7 @@ class TestConfigurationInvariants:
             issues = config.validate()
 
             # Valid backend types should have no issues (or unrelated issues)
-            valid_backends = ["local", "s3", "azure", "gcp"]
-            if backend_type in valid_backends:
+            if backend_type in VALID_BACKEND_TYPES:
                 backend_issues = [
                     issue for issue in issues if "backend_type" in issue.lower()
                 ]
@@ -215,7 +214,7 @@ class TestConfigurationInvariants:
                     ]
                     # Should have at least one backend-related issue
                     # for clearly invalid types
-                    if backend_type not in valid_backends and isinstance(
+                    if backend_type not in VALID_BACKEND_TYPES and isinstance(
                         backend_type, str
                     ):
                         assert len(backend_issues) > 0

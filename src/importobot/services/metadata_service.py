@@ -44,7 +44,7 @@ class MetadataService:
             source_path=source_path,
             layer_name="bronze",
             ingestion_timestamp=datetime.now(),
-            record_count=self._count_records(data),
+            record_count=count_data_elements(data),
         )
 
     def get_record_metadata(self, record_id: str) -> Optional[RecordMetadata]:
@@ -122,19 +122,7 @@ class MetadataService:
         """
         return {
             "total_keys": len(data) if isinstance(data, dict) else 0,
-            "data_types": self._get_data_types(data),
-            "max_depth": self._calculate_depth(data),
+            "data_types": get_data_types(data),
+            "max_depth": calculate_nesting_depth(data, 0, 20),
             "sample_keys": list(data.keys())[:10] if isinstance(data, dict) else [],
         }
-
-    def _count_records(self, data: Any) -> int:
-        """Count the number of records in the data."""
-        return count_data_elements(data)
-
-    def _get_data_types(self, data: Any) -> dict[str, int]:
-        """Get count of different data types in the data."""
-        return get_data_types(data)
-
-    def _calculate_depth(self, obj: Any, current_depth: int = 0) -> int:
-        """Calculate the maximum depth of nested data structures."""
-        return calculate_nesting_depth(obj, current_depth, 20)

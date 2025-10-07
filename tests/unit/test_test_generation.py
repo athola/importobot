@@ -559,7 +559,7 @@ class TestConvenienceWrapperFunctions:
 
         libraries = get_required_libraries_for_keywords(keywords)
 
-        assert isinstance(libraries, list)
+        assert isinstance(libraries, set)
         # Should detect SeleniumLibrary and RequestsLibrary
         assert any("Selenium" in lib for lib in libraries)
 
@@ -659,7 +659,7 @@ class TestConvenienceWrapperFunctions:
         """Test library detection with various keyword configurations."""
         libraries = get_required_libraries_for_keywords(keywords_config)
 
-        assert isinstance(libraries, list)
+        assert isinstance(libraries, set)
 
         if keywords_config:
             # Should detect libraries from keywords
@@ -670,52 +670,122 @@ class TestConvenienceWrapperFunctions:
                 if expected_lib:
                     assert any(expected_lib in lib for lib in libraries)
         else:
-            # Empty keywords should return empty or default libraries
-            assert len(libraries) >= 0
+            # Empty keywords should return empty or minimal libraries
+            assert isinstance(libraries, set)
+            # For empty keywords, should either be empty or have only default libraries
+            assert len(libraries) <= 2  # At most BuiltIn and possibly one more
 
 
-class ErrorHandlingAndEdgeCases:
+class TestErrorHandlingAndEdgeCases:
     """Test error handling and edge cases."""
 
-    def __init__(self):
-        """Initialize test fixtures."""
-        self.generator = EnterpriseTestGenerator()
+    @pytest.fixture
+    def generator(self):
+        """Get test generator instance."""
+        return EnterpriseTestGenerator()
 
     def test_invalid_category_in_generate_test_suite(self):
-        """Test that invalid categories are handled properly."""
-        with tempfile.TemporaryDirectory():
-            # This should work because string validation happens
-            # in _get_test_distribution
-            # and we already tested that in the weights tests
-            pass
+        """Ensure invalid categories are rejected and valid ones succeed."""
 
-    def test_empty_weights_dict(self):
+        def assert_message_contains(exc: BaseException, terms: list[str]) -> None:
+            message = str(exc)
+
+            def term_found(term: str) -> bool:
+                if term == "":
+                    return "''" in message
+                return term in message
+
+            assert any(term_found(term) for term in terms), message
+
+        invalid_distributions = [
+            (
+                {"invalid_category": 50, "another_invalid": 50},
+                ["invalid_category", "another_invalid"],
+            ),
+            ({"regression": 30, "invalid_category": 70}, ["invalid_category"]),
+            ({"": 50, "regression": 50}, [""]),
+            ({"REGRESSION": 50, "smoke": 50}, ["REGRESSION"]),
+        ]
+        invalid_weights = [
+            (
+                {"not_a_valid_category": 0.5, "also_invalid": 0.5},
+                ["not_a_valid_category", "also_invalid"],
+            ),
+        ]
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+
+            for distribution, terms in invalid_distributions:
+                with pytest.raises(
+                    ValueError,
+                    match="Invalid category.*not in CategoryEnum",
+                ) as exc:
+                    generate_test_suite(
+                        output_dir=temp_dir,
+                        total_tests=100,
+                        distribution=distribution,
+                    )
+                assert_message_contains(exc.value, terms)
+                assert not list(temp_path.rglob("*.json"))
+
+            for weights, terms in invalid_weights:
+                with pytest.raises(
+                    ValueError,
+                    match="Invalid category.*not in CategoryEnum",
+                ) as exc:
+                    generate_test_suite(
+                        output_dir=temp_dir,
+                        total_tests=100,
+                        weights=weights,
+                    )
+                assert_message_contains(exc.value, terms)
+                assert not list(temp_path.rglob("*.json"))
+
+            valid_distribution = {"regression": 50, "smoke": 50}
+            counts = generate_test_suite(
+                output_dir=temp_dir,
+                total_tests=100,
+                distribution=valid_distribution,
+            )
+
+            assert counts == valid_distribution
+
+            generated_files = list(temp_path.rglob("*.json"))
+            assert len(generated_files) == 100
+
+            categories = {path.parent.name for path in generated_files}
+            assert categories == {"regression", "smoke"}
+
+            for sample in generated_files[:5]:
+                with open(sample, "r", encoding="utf-8") as handle:
+                    json.load(handle)
+
+    def test_empty_weights_dict(self, generator):
         """Test handling of empty weights dictionary."""
         with pytest.raises(ValueError, match="Total weight cannot be zero"):
-            # pylint: disable=protected-access,no-member
-            self.generator._get_test_distribution(100, None, {})
+            # pylint: disable=protected-access
+            generator._get_test_distribution(100, None, {})
 
-    def test_generate_test_case_with_minimal_params(self):
+    def test_generate_test_case_with_minimal_params(self, generator):
         """Test test case generation with minimal parameters."""
-        test_case = self.generator.generate_enterprise_test_case(
+        test_case = generator.generate_enterprise_test_case(
             "web_automation", "user_authentication", 1
         )
 
-        # Should still generate a valid test case
         assert isinstance(test_case, dict)
         assert "testScript" in test_case
         assert "steps" in test_case["testScript"]
         assert len(test_case["testScript"]["steps"]) > 0
 
-    def test_keyword_specific_data_edge_cases(self):
+    def test_keyword_specific_data_edge_cases(self, generator):
         """Test keyword specific data generation with edge cases."""
-        # Test with unknown intent
         unknown_keyword = {
             "intent": "unknown_intent",
             "description": "Unknown operation",
         }
 
-        data = self.generator.generate_keyword_specific_data(unknown_keyword, {})
+        data = generator.generate_keyword_specific_data(unknown_keyword, {})
         assert isinstance(data, str)
         assert "Unknown operation" in data
 

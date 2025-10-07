@@ -61,9 +61,11 @@ def create_placeholder_format(name: str, description: str = "") -> FormatDefinit
     return FormatDefinition(
         name=f"Placeholder: {name}",
         format_type=SupportedFormat.UNKNOWN,  # Will need updating when
-        description=f"Placeholder for future format: {description}"
-        if description
-        else f"Placeholder for {name}",
+        description=(
+            f"Placeholder for future format: {description}"
+            if description
+            else f"Placeholder for {name}"
+        ),
         # Minimal structure - to be filled in when implementing
         unique_indicators=[
             FieldDefinition(

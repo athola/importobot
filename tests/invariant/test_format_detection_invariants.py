@@ -1,5 +1,5 @@
 """Format detection invariant tests using Hypothesis.
-# pylint: disable=line-too-long,superfluous-parens,comparison-with-itself
+# pylint: disable=superfluous-parens,comparison-with-itself
 # Invariant test issues
 
 Tests properties that should always hold true for format detection:

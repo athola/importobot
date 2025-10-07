@@ -1,12 +1,5 @@
 """Centralized validation service consolidating scattered validation logic.
 
-This service addresses the architectural issue identified in the staff review
-where validation logic was fragmented across 19+ modules, causing:
-- Inconsistent validation behavior
-- Security gaps
-- Maintenance overhead
-- Testing complexity
-
 The ValidationService provides:
 - Unified validation patterns
 - Centralized error handling
@@ -39,8 +32,7 @@ class ValidationStrategy(Protocol):
 class ValidationService:
     """Centralized validation service for all Importobot operations.
 
-    This service consolidates validation logic previously scattered across
-    19+ modules, providing:
+    Provides:
     - Consistent validation patterns
     - Centralized error handling
     - Performance optimization through strategy caching

@@ -77,9 +77,11 @@ class BronzeLayer(BaseMedallionLayer):
             processing_time = (end_time - start_time).total_seconds() * 1000
 
             return ProcessingResult(
-                status=ProcessingStatus.COMPLETED
-                if validation_result.is_valid
-                else ProcessingStatus.FAILED,
+                status=(
+                    ProcessingStatus.COMPLETED
+                    if validation_result.is_valid
+                    else ProcessingStatus.FAILED
+                ),
                 processed_count=1,
                 success_count=1 if validation_result.is_valid else 0,
                 error_count=0 if validation_result.is_valid else 1,
@@ -91,9 +93,9 @@ class BronzeLayer(BaseMedallionLayer):
                 metadata=metadata,
                 quality_metrics=quality_metrics,
                 lineage=[lineage],
-                errors=validation_result.issues
-                if not validation_result.is_valid
-                else [],
+                errors=(
+                    validation_result.issues if not validation_result.is_valid else []
+                ),
             )
 
         except Exception as e:

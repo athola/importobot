@@ -15,11 +15,10 @@ uv run importobot --batch ./exports ./robot-output
 from importobot.api import converters
 
 converter = converters.JsonToRobotConverter()
-result = converter.convert_file("input.json", "output.robot")
-print(result.summary())
+summary = converter.convert_file("input.json", "output.robot")
+print(summary)
 ```
 
-## Medallion Workflow
+## Medallion workflow preview
 
-See [User Guide](User-Guide#medallion-workflow-example) for a Bronze→Gold preview
-example with optimization metadata.
+The medallion optimization example lives in the [User Guide](User-Guide#medallion-workflow-example).
