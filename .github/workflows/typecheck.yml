@@ -57,8 +57,8 @@ jobs:
       run: |
         uv run mypy -p importobot
         uv run mypy tests
-        cd scripts && uv run mypy -p importobot_scripts
-        cd scripts && uv run mypy tests
+        (cd scripts && uv run mypy -p importobot_scripts)
+        (cd scripts && uv run mypy tests)
     
     - name: Minimize uv cache
       run: uv cache prune --ci
