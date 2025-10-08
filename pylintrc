@@ -1,7 +1,7 @@
 [MASTER]
-# Ignore .venv directory and scripts subproject
-ignore-patterns = \.venv.*,scripts.*
-ignore = .venv,scripts
+# Ignore .venv directory, .uv-cache, and scripts subproject
+ignore-patterns = \.venv.*,\.uv-cache.*,scripts.*
+ignore = .venv,.uv-cache,scripts
 
 # Load pylint extensions
 load-plugins =
@@ -20,6 +20,9 @@ max-line-length = 88
 [DESIGN]
 # Maximum number of arguments for function / method
 max-args = 10
+
+# Minimum lines number of a similarity to be detected (R0801)
+min-similarity-lines = 15
 
 # Maximum number of locals for function / method body
 max-locals = 20

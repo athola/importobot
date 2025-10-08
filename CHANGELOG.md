@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Integrated mutation testing support via `mutmut` (Makefile target `mutation`
+  and `pyproject.toml` configuration) to spot gaps in the test suite.
+- Added automated performance regression execution (`make perf-test` and a
+  dedicated GitHub Actions job) covering the MVLP confidence scorer hot path.
+- Runtime telemetry for cache hit/miss rates (opt-in via
+  `IMPORTOBOT_ENABLE_TELEMETRY`) with rate-limited emissions for performance,
+  detection, and file content caches.
+- Async wrappers (`ingest_file_async`, `ingest_json_string_async`, etc.) for
+  `DataIngestionService`, simplifying integration with event-loop driven
+  ingestion pipelines.
+- `make benchmark-dashboard` command and `benchmark_dashboard.py` script for
+  compiling JSON benchmark runs into a shareable HTML report.
+
+### Changed
+- Made SciPy an optional dependency available via the `confidence` extra; the
+  MVLP Bayesian scorer now falls back to heuristic tuning with a warning when
+  SciPy is unavailable.
+- Added configurable TTL eviction to optimization scenarios/results via
+  `IMPORTOBOT_OPTIMIZATION_CACHE_TTL_SECONDS` to prevent unbounded growth in
+  long-running processes.
+
 ## [0.1.1] - 2025-09-29
 
 ### Added

@@ -8,6 +8,7 @@ Consolidates both basic and secure ingestion capabilities into a single service.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import time
@@ -18,6 +19,10 @@ from pathlib import Path
 from typing import Any, List, Mapping, Optional, Union, cast
 from uuid import uuid4
 
+from importobot.config import (
+    FILE_CONTENT_CACHE_MAX_MB,
+    FILE_CONTENT_CACHE_TTL_SECONDS,
+)
 from importobot.medallion.bronze_layer import BronzeLayer
 from importobot.medallion.interfaces.data_models import (
     DataQualityMetrics,
@@ -27,6 +32,7 @@ from importobot.medallion.interfaces.data_models import (
 from importobot.medallion.interfaces.enums import ProcessingStatus, SupportedFormat
 from importobot.services.security_gateway import SecurityGateway
 from importobot.services.security_types import SecurityLevel
+from importobot.telemetry import TelemetryClient, get_telemetry_client
 from importobot.utils.logging import setup_logger
 from importobot.utils.validation import (
     validate_file_path,
@@ -40,17 +46,44 @@ logger = setup_logger(__name__)
 class FileContentCache:
     """Simple LRU cache for file contents keyed by path + mtime."""
 
-    def __init__(self, max_size_mb: int = 100) -> None:
+    def __init__(
+        self,
+        max_size_mb: Optional[int] = None,
+        ttl_seconds: Optional[int] = None,
+        *,
+        telemetry_client: Optional[TelemetryClient] = None,
+    ) -> None:
         """Initialize cache with an LRU budget expressed in megabytes."""
+        resolved_mb = (
+            max_size_mb if max_size_mb is not None else FILE_CONTENT_CACHE_MAX_MB
+        )
         self._cache: OrderedDict[str, dict[str, Any]] = OrderedDict()
-        self._max_size_bytes = max_size_mb * 1024 * 1024
+        self._max_size_bytes = resolved_mb * 1024 * 1024
         self._current_size_bytes = 0
+        resolved_ttl = (
+            ttl_seconds if ttl_seconds is not None else FILE_CONTENT_CACHE_TTL_SECONDS
+        )
+        self._ttl_seconds: Optional[int] = resolved_ttl if resolved_ttl > 0 else None
+        self._cache_hits = 0
+        self._cache_misses = 0
+        self._telemetry = telemetry_client or get_telemetry_client()
 
     def get_cached_content(self, file_path: Path) -> Optional[str]:
         """Return cached content if file unchanged, else evict entry."""
         cache_key = str(file_path.resolve())
         entry = self._cache.get(cache_key)
         if not entry:
+            self._cache_misses += 1
+            self._emit_cache_metrics()
+            return None
+
+        if (
+            self._ttl_seconds is not None
+            and (time.time() - entry["accessed"]) > self._ttl_seconds
+        ):
+            self._evict_key(cache_key)
+            self._cache_misses += 1
+            self._emit_cache_metrics()
             return None
 
         try:
@@ -58,6 +91,8 @@ class FileContentCache:
         except OSError:
             # File no longer accessible; remove cache entry
             self._evict_key(cache_key)
+            self._cache_misses += 1
+            self._emit_cache_metrics()
             return None
 
         if entry["mtime"] != current_mtime:
@@ -66,6 +101,8 @@ class FileContentCache:
 
         entry["accessed"] = time.time()
         self._cache.move_to_end(cache_key)
+        self._cache_hits += 1
+        self._emit_cache_metrics()
         return cast(str, entry["content"])
 
     def cache_content(self, file_path: Path, content: str) -> None:
@@ -97,17 +134,49 @@ class FileContentCache:
         }
         self._cache.move_to_end(cache_key)
         self._current_size_bytes += content_size
+        self._emit_cache_metrics()
 
     def _evict_oldest(self) -> None:
         if not self._cache:
             return
         _, entry = self._cache.popitem(last=False)
         self._current_size_bytes -= entry["size"]
+        self._emit_cache_metrics()
 
     def _evict_key(self, cache_key: str) -> None:
         entry = self._cache.pop(cache_key, None)
         if entry:
             self._current_size_bytes -= entry["size"]
+        self._emit_cache_metrics()
+
+    def get_cache_stats(self) -> dict[str, int | float]:
+        """Return hit/miss statistics for the file content cache."""
+        total_requests = self._cache_hits + self._cache_misses
+        hit_rate = (
+            self._cache_hits / total_requests * 100 if total_requests > 0 else 0.0
+        )
+        return {
+            "cache_hits": self._cache_hits,
+            "cache_misses": self._cache_misses,
+            "hit_rate_percent": round(hit_rate, 2),
+            "entries": len(self._cache),
+            "current_bytes": self._current_size_bytes,
+            "max_bytes": self._max_size_bytes,
+            "ttl_seconds": self._ttl_seconds or 0,
+        }
+
+    def _emit_cache_metrics(self) -> None:
+        self._telemetry.record_cache_metrics(
+            "file_content_cache",
+            hits=self._cache_hits,
+            misses=self._cache_misses,
+            extras={
+                "entries": len(self._cache),
+                "current_bytes": self._current_size_bytes,
+                "max_bytes": self._max_size_bytes,
+                "ttl_seconds": self._ttl_seconds or 0,
+            },
+        )
 
 
 class DataIngestionService:
@@ -264,6 +333,10 @@ class DataIngestionService:
                 start_time, error_msg, file_path, correlation_id=correlation_id
             )
 
+    async def ingest_file_async(self, file_path: Union[str, Path]) -> ProcessingResult:
+        """Asynchronous wrapper for :meth:`ingest_file`."""
+        return await asyncio.to_thread(self.ingest_file, file_path)
+
     def ingest_json_string(
         self, json_string: str, source_name: str = "string_input"
     ) -> ProcessingResult:
@@ -350,6 +423,14 @@ class DataIngestionService:
                 start_time, error_msg, Path(source_name), correlation_id=correlation_id
             )
 
+    async def ingest_json_string_async(
+        self, json_string: str, source_name: str = "string_input"
+    ) -> ProcessingResult:
+        """Asynchronous wrapper for :meth:`ingest_json_string`."""
+        return await asyncio.to_thread(
+            self.ingest_json_string, json_string, source_name
+        )
+
     def ingest_batch(
         self, file_paths: List[Union[str, Path]], max_workers: int = 4
     ) -> List[ProcessingResult]:
@@ -360,6 +441,12 @@ class DataIngestionService:
             results = list(executor.map(self.ingest_file, normalized_paths))
 
         return results
+
+    async def ingest_batch_async(
+        self, file_paths: List[Union[str, Path]], max_workers: int = 4
+    ) -> List[ProcessingResult]:
+        """Asynchronous wrapper for :meth:`ingest_batch`."""
+        return await asyncio.to_thread(self.ingest_batch, file_paths, max_workers)
 
     def ingest_data_dict(
         self, data: dict[str, Any], source_name: str = "dict_input"
@@ -439,6 +526,12 @@ class DataIngestionService:
                 Path(source_name),
                 correlation_id=correlation_id,
             )
+
+    async def ingest_data_dict_async(
+        self, data: dict[str, Any], source_name: str = "dict_input"
+    ) -> ProcessingResult:
+        """Asynchronous wrapper for :meth:`ingest_data_dict`."""
+        return await asyncio.to_thread(self.ingest_data_dict, data, source_name)
 
     def get_security_configuration(self) -> dict[str, Any]:
         """Get current security configuration."""

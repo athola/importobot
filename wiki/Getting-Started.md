@@ -87,6 +87,18 @@ Common environment overrides:
 - `IMPORTOBOT_TEST_SERVER_URL` (default `http://localhost:8000`)
 - `IMPORTOBOT_TEST_SERVER_PORT` (default `8000`)
 - `IMPORTOBOT_HEADLESS_BROWSER` (`True`/`False`)
+- `IMPORTOBOT_DETECTION_CACHE_MAX_SIZE` (default `1000`)
+- `IMPORTOBOT_DETECTION_CACHE_COLLISION_LIMIT` (default `3`)
+- `IMPORTOBOT_FILE_CACHE_MAX_MB` (default `100`)
+- `IMPORTOBOT_PERFORMANCE_CACHE_MAX_SIZE` (default `1000`)
+- `IMPORTOBOT_DETECTION_CACHE_TTL_SECONDS` (default `0`, disabled)
+- `IMPORTOBOT_FILE_CACHE_TTL_SECONDS` (default `0`, disabled)
+- `IMPORTOBOT_PERFORMANCE_CACHE_TTL_SECONDS` (default `0`, disabled)
+- `IMPORTOBOT_OPTIMIZATION_CACHE_TTL_SECONDS` (default `0`, disabled)
+- `IMPORTOBOT_ENABLE_TELEMETRY` (default `false`, enable cache hit-rate telemetry)
+- `IMPORTOBOT_TELEMETRY_MIN_INTERVAL_SECONDS` (default `60`, throttle telemetry cadence)
+- `IMPORTOBOT_TELEMETRY_MIN_SAMPLE_DELTA` (default `100`, minimum operations between emissions)
+- `IMPORTOBOT_OPTIMIZATION_CACHE_TTL_SECONDS` (default `0`, disabled)
 
 ### Example
 ```bash

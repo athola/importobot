@@ -56,6 +56,13 @@ notes = engine.suggest_improvements(problematic_tests)
 - Test cases include both the original and normalized names, which keeps the Hypothesis invariants honest even when source data contains `\f` or `\b` characters.
 - A tiny `robot.utils` shim preloads deprecated helpers, eliminating the SeleniumLibrary warnings that used to clutter validation runs.
 - Selenium integration tests switched to a deterministic dry-run path with explicit resource cleanup, removing the flaky WebDriver dependency and lingering socket warnings.
+- Cache sizing is now configurable through environment variables (`IMPORTOBOT_DETECTION_CACHE_MAX_SIZE`, `IMPORTOBOT_FILE_CACHE_MAX_MB`, etc.) so CI and production environments can tune memory usage.
+
+## Public API vs. internal modules
+
+- **Stable:** `importobot.JsonToRobotConverter`, the CLI entry point, and submodules exported via `importobot.api.*`.
+- **Support utilities:** The typed `SecurityGateway` results (`SanitizationResult`, `FileOperationResult`) surface structured metadata such as correlation ids for tracing.
+- **Internal:** Modules under `importobot.medallion.*`, `importobot.core.*`, and `importobot.utils.test_generation.*` are implementation details. Consume them only through the public API or helper functions documented above.
 
 ## Project Status
 

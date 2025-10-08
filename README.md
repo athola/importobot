@@ -26,6 +26,20 @@ If there is a backlog of legacy tests and a deadline, Importobot keeps step orde
 - Comment lines now keep their literal placeholders and control characters; executable lines still gain `${param}` replacements, which satisfies the property-based step preservation checks.
 - Generated suites annotate both the raw and normalized test names, improving traceability when inputs contain non-printable characters.
 - A startup shim preloads deprecated `robot.utils` helpers so SeleniumLibrary tests run quietly, and the Selenium integration path now executes in dry-run mode with explicit cleanup to avoid ResourceWarnings.
+- Cache limits and TTLs are now configurable via environment variables such as `IMPORTOBOT_DETECTION_CACHE_MAX_SIZE`, `IMPORTOBOT_DETECTION_CACHE_COLLISION_LIMIT`, `IMPORTOBOT_DETECTION_CACHE_TTL_SECONDS`, `IMPORTOBOT_FILE_CACHE_MAX_MB`, `IMPORTOBOT_FILE_CACHE_TTL_SECONDS`, and `IMPORTOBOT_OPTIMIZATION_CACHE_TTL_SECONDS`, making prod/dev tuning easier.
+- SciPy is now optional; when absent, the MVLP scorer logs a warning and runs in heuristic mode while optimization/training remain disabled until SciPy is installed.
+- CI now runs the performance regression suite (`tests/performance`) via a
+  dedicated workflow job so hot paths stay within expected bounds.
+- Cache hit-rate telemetry can be enabled in production via `IMPORTOBOT_ENABLE_TELEMETRY`, with rate-limited emissions exposed through the central logging channel.
+- Asynchronous ingestion helpers (`ingest_file_async`, `ingest_json_string_async`, etc.) allow I/O-bound pipelines to integrate Importobot with event loops using `await` rather than dedicated worker threads.
+- Generate shareable performance dashboards with `make benchmark-dashboard`, which compiles the latest JSON benchmark output into a self-contained HTML report.
+
+## API surface & stability
+
+- **Supported:** `importobot.JsonToRobotConverter`, the CLI (`uv run importobot ...`), and modules exposed under `importobot.api.*`.
+- **Typed helpers:** `SecurityGateway` now returns structured results (`SanitizationResult` / `FileOperationResult`) with optional `correlation_id` metadata for tracing.
+- **Internal:** Packages under `importobot.medallion.*`, `importobot.core.*`, and `importobot.utils.test_generation.*` remain implementation details and may change without notice. Consume them only through the public API above.
+- **Configuration:** Tune cache behaviour with environment variables documented in the Configuration section (`IMPORTOBOT_*`), or explicitly pass cache instances to services when tighter control is required.
 
 ## Installation
 
@@ -33,6 +47,13 @@ If there is a backlog of legacy tests and a deadline, Importobot keeps step orde
 
 ```sh
 pip install importobot
+```
+
+To enable SciPy-backed MVLP training and uncertainty intervals, install the
+confidence extra:
+
+```sh
+pip install "importobot[confidence]"
 ```
 
 
@@ -133,6 +154,29 @@ Docs live in the [project wiki](https://github.com/athola/importobot/wiki). Star
 All contributions, bug reports, bug fixes, documentation improvements, enhancements, and ideas are welcome.
 
 Please feel free to open an issue on the [GitHub issue tracker](https://github.com/athola/importobot/issues).
+
+### Mutation testing
+
+Run `make mutation` (or `uv run mutmut run`) to execute mutation tests. The
+configuration in `pyproject.toml` targets the high-risk MVLP scorer, detection
+cache, and optimization service modules plus their focused unit suites, and uses pytest as
+the runner; pass additional flags directly to `mutmut` when profiling a
+narrower subset locally.
+
+### Telemetry
+
+Set `IMPORTOBOT_ENABLE_TELEMETRY=1` in production environments to publish cache
+hit/miss metrics. Optional tuning knobs `IMPORTOBOT_TELEMETRY_MIN_INTERVAL_SECONDS`
+and `IMPORTOBOT_TELEMETRY_MIN_SAMPLE_DELTA` control how frequently events are
+emitted (defaults: 60s and 100 operations). Telemetry is disabled by default to
+avoid noisy logs in local development.
+
+### Benchmarks dashboard
+
+Run `make bench` to capture the latest profiling output, then `make
+benchmark-dashboard` to generate `performance_benchmark_dashboard.html`. The
+dashboard summarises single-file, bulk, API, and lazy-loading performance
+profiles, and embeds the raw JSON for further analysis or sharing.
 
 ## License
 

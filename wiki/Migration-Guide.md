@@ -2,6 +2,49 @@
 
 This guide covers the switch to the medallion architecture introduced in v0.1.1.
 
+## Additional breaking changes in v0.1.1
+
+| Area | Change | Action |
+| --- | --- | --- |
+| Security Gateway | `sanitize_api_input` / `validate_file_operation` now return typed dictionaries that include an optional `correlation_id`. | Update call sites to read from `result["sanitized_data"]` and propagate `result["correlation_id"]` into logs/metadata where you need request tracing. |
+| Data ingestion | `DataIngestionService` automatically generates a correlation id per ingest and stores it in `metadata.custom_metadata` and error details. | If you previously injected your own `correlation_id`, pass it via the new `context={"correlation_id": "..."}` argument on security gateway calls. |
+| Caching | Detection/cache limits are now driven by environment variables (`IMPORTOBOT_DETECTION_CACHE_MAX_SIZE`, `IMPORTOBOT_DETECTION_CACHE_COLLISION_LIMIT`, `IMPORTOBOT_FILE_CACHE_MAX_MB`, `IMPORTOBOT_PERFORMANCE_CACHE_MAX_SIZE`). | Export the variables in CI/staging to tune cache pressure; omit them to use the previous defaults. |
+| Optimization | SciPy dependency downgraded to optional; MVLP optimization falls back to heuristic mode when SciPy is absent. | Install SciPy in environments that perform parameter training, or accept heuristic scoring when only runtime confidence is required. |
+
+### Updating security gateway call sites
+
+```python
+# v0.1.1 code
+result = gateway.sanitize_api_input(payload, "json")
+if not result["is_safe"]:
+    raise SecurityError(result["security_issues"])
+data = result["sanitized_data"]
+
+# Updated 0.1.1 code
+result = gateway.sanitize_api_input(
+    payload,
+    "json",
+    context={"source": "ci-job", "correlation_id": request_id},
+)
+if not result["is_safe"]:
+    logger.warning(
+        "security_failed",
+        extra={"correlation_id": result["correlation_id"]},
+    )
+    raise SecurityError(result["security_issues"])
+data = result["sanitized_data"]
+```
+
+### Configuring cache limits
+
+```bash
+export IMPORTOBOT_DETECTION_CACHE_MAX_SIZE="2000"
+export IMPORTOBOT_DETECTION_CACHE_COLLISION_LIMIT="5"
+export IMPORTOBOT_FILE_CACHE_MAX_MB="256"
+export IMPORTOBOT_PERFORMANCE_CACHE_MAX_SIZE="5000"
+uv run importobot input.json output.robot
+```
+
 ## Breaking changes in v0.1.1
 
 **Version 0.1.1 introduces a new medallion architecture (Bronze/Silver/Gold layers) that replaces previous internal implementations.**
@@ -22,7 +65,7 @@ This guide covers the switch to the medallion architecture introduced in v0.1.1.
 | --- | --- | --- |
 | **Format Detection** | Ad-hoc pattern matching | **Medallion Bronze layer** with MVLP Bayesian confidence scoring |
 | **Data Validation** | Basic validation | **Security Gateway** with strict validation levels |
-| **Confidence Scoring** | Simple heuristics | **MVLP Bayesian optimization** with scipy-based parameter tuning |
+| **Confidence Scoring** | Simple heuristics | **MVLP Bayesian optimization** with SciPy-based parameter tuning (optional via `importobot[confidence]`) |
 | **Internal APIs** | Mixed public/private | **Clear separation**: Public APIs stable, internal APIs private |
 
 ### No backwards compatibility for internals
