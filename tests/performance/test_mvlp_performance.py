@@ -11,7 +11,16 @@ from importobot.medallion.bronze.mvlp_bayesian_confidence import (
     MVLPBayesianConfidenceScorer,
 )
 
+# Check for scipy availability
+try:
+    import scipy  # noqa: F401  # pylint: disable=unused-import
 
+    HAS_SCIPY = True
+except ImportError:
+    HAS_SCIPY = False
+
+
+@pytest.mark.skipif(not HAS_SCIPY, reason="scipy required for uncertainty calculations")
 def test_mvlp_confidence_performance(monkeypatch: pytest.MonkeyPatch) -> None:
     """Disabling uncertainty sampling should deliver a clear speedup."""
     scorer = MVLPBayesianConfidenceScorer()
