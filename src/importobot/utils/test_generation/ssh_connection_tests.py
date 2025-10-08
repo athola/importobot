@@ -71,16 +71,27 @@ class SSHConnectionTestGenerator(BaseSSHTestGenerator):
 
     def generate_switch_connection_test(self) -> Dict[str, Any]:
         """Generate test for Switch Connection keyword."""
-        aliases = ["main", "backup", "secondary", "production"]
+        aliases = [
+            "main",
+            "backup",
+            "secondary",
+            "production",
+            "standby",
+            "failover",
+            "dr-site",
+            "regional",
+        ]
+        # Use single choice for consistency between name and test_data
+        selected_alias = random.choice(aliases)
 
         return {
             "test_case": {
-                "name": f"SSH Switch Connection Test - {random.choice(aliases)}",
+                "name": f"SSH Switch Connection Test - {selected_alias}",
                 "description": "Test switching between multiple SSH connections",
                 "steps": [
                     {
                         "step": "Switch to specific SSH connection",
-                        "test_data": f"alias: {random.choice(aliases)}",
+                        "test_data": f"alias: {selected_alias}",
                         "expected": "Connection switched successfully",
                     }
                 ],

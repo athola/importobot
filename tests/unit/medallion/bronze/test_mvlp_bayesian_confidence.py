@@ -9,6 +9,7 @@ from typing import List, Tuple
 import numpy as np
 import pytest
 
+from importobot.medallion.bronze import mvlp_bayesian_confidence as mvlp_module
 from importobot.medallion.bronze.mvlp_bayesian_confidence import (
     ConfidenceParameters,
     EvidenceMetrics,
@@ -437,6 +438,10 @@ class TestMVLPBayesianConfidenceScorer:
         # Results should differ due to interaction terms
         assert result_with_interaction != result_no_interaction
 
+
+class TestMVLPOptimizationAndHelpers:
+    """Test suite for MVLP optimization and helper methods."""
+
     def test_parameters_to_vector_conversion(self):
         """Test parameter to vector conversion."""
         scorer = MVLPBayesianConfidenceScorer()
@@ -560,6 +565,68 @@ class TestMVLPBayesianConfidenceScorer:
         assert optimized.validate() is True
         # Training data should be stored
         assert len(scorer.training_data) == 4
+        assert scorer.optimization_backend in {"scipy", "heuristic"}
+
+    def test_optimize_parameters_without_scipy_falls_back(self, monkeypatch):
+        """When SciPy is missing, heuristics should keep optimization usable."""
+        monkeypatch.setattr(mvlp_module, "optimize", None)
+        monkeypatch.setattr(mvlp_module, "norm", None)
+
+        scorer = mvlp_module.MVLPBayesianConfidenceScorer()
+
+        training_data: List[Tuple[EvidenceMetrics, float]] = [
+            (EvidenceMetrics(0.8, 0.9, 0.7, 10, 5), 0.82),
+            (EvidenceMetrics(0.6, 0.65, 0.5, 8, 4), 0.6),
+            (EvidenceMetrics(0.9, 0.95, 0.85, 15, 8), 0.9),
+        ]
+
+        optimized = scorer.optimize_parameters(training_data)
+
+        assert optimized.validate() is True
+        assert scorer.optimization_backend == "heuristic"
+        assert not scorer.parameter_confidence_intervals
+
+    def test_heuristic_optimization_normalizes_weights(self, monkeypatch):
+        """Heuristic optimizer should produce weight sums close to 1.0."""
+        monkeypatch.setattr(mvlp_module, "optimize", None)
+        monkeypatch.setattr(mvlp_module, "norm", None)
+
+        scorer = mvlp_module.MVLPBayesianConfidenceScorer()
+        training_data: List[Tuple[EvidenceMetrics, float]] = [
+            (EvidenceMetrics(0.4, 0.2, 0.1, 5, 2), 0.3),
+            (EvidenceMetrics(0.1, 0.8, 0.6, 7, 4), 0.65),
+            (EvidenceMetrics(0.9, 0.9, 0.9, 9, 5), 0.9),
+        ]
+
+        optimized = scorer.optimize_parameters(training_data)
+
+        weight_sum = (
+            optimized.completeness_weight
+            + optimized.quality_weight
+            + optimized.uniqueness_weight
+        )
+
+        assert pytest.approx(weight_sum, rel=1e-6) == 1.0
+        assert 0.1 <= optimized.completeness_power <= 2.0
+        assert optimized.min_confidence < optimized.max_confidence
+
+    def test_heuristic_optimization_handles_degenerate_data(self, monkeypatch):
+        """Degenerate training data should fall back to default parameters."""
+        monkeypatch.setattr(mvlp_module, "optimize", None)
+        monkeypatch.setattr(mvlp_module, "norm", None)
+
+        scorer = mvlp_module.MVLPBayesianConfidenceScorer()
+        training_data: List[Tuple[EvidenceMetrics, float]] = [
+            (EvidenceMetrics(0.0, 0.0, 0.0, 0, 0), 0.1),
+            (EvidenceMetrics(0.0, 0.0, 0.0, 0, 0), 0.1),
+        ]
+
+        optimized = scorer.optimize_parameters(training_data)
+
+        defaults = ConfidenceParameters()
+        assert optimized.completeness_weight == defaults.completeness_weight
+        assert optimized.quality_weight == defaults.quality_weight
+        assert optimized.uniqueness_weight == defaults.uniqueness_weight
 
     def test_sigmoid_normalize_symmetry(self):
         """Test sigmoid normalization has expected properties."""

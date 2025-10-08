@@ -35,6 +35,9 @@ help:
 	@echo "  mcp-query               - Query the Qwen model through MCP"
 	@echo "  mcp-review              - Request a code review through MCP"
 	@echo "  bench                   - Run performance benchmarks"
+	@echo "  mutation               - Run mutation tests (mutmut)"
+	@echo "  perf-test              - Run performance regression tests"
+	@echo "  benchmark-dashboard    - Generate benchmark dashboard HTML"
 	@echo ""
 	@echo "Scripts subproject commands:"
 	@echo "  scripts-test            - Run tests for scripts subproject"
@@ -100,7 +103,10 @@ format:
 typecheck:
 	$(info $(NEWLINE)==================== Running type checking ====================$(NEWLINE))
 	uv run ty check .
-	uv run mypy .
+	uv run mypy -p importobot
+	uv run mypy tests
+	cd scripts && uv run mypy -p importobot_scripts
+	cd scripts && uv run mypy tests
 
 # Validate PR readiness
 .PHONY: validate
@@ -243,6 +249,25 @@ mcp-review:
 bench:
 	$(info $(NEWLINE)==================== Running performance benchmarks ====================$(NEWLINE))
 	uv run python scripts/src/importobot_scripts/performance_benchmark.py
+
+# Mutation testing
+.PHONY: mutation
+mutation:
+	$(info $(NEWLINE)==================== Running mutation tests ====================$(NEWLINE))
+	uv run mutmut run
+	uv run mutmut results --all 1 || true
+
+# Performance regression tests
+.PHONY: perf-test
+perf-test:
+	$(info $(NEWLINE)==================== Running performance regression tests ====================$(NEWLINE))
+	uv run pytest tests/performance --maxfail=1 --durations=10
+
+# Benchmark dashboard
+.PHONY: benchmark-dashboard
+benchmark-dashboard:
+	$(info $(NEWLINE)==================== Building benchmark dashboard ====================$(NEWLINE))
+	uv run python scripts/src/importobot_scripts/benchmark_dashboard.py
 
 # Enterprise demo - bulk conversion test
 .PHONY: enterprise-demo

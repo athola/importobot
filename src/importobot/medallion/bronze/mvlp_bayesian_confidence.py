@@ -18,10 +18,18 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
-from scipy import optimize
-from scipy.stats import norm
 
+from importobot.utils.logging import setup_logger
+
+try:  # pragma: no cover - optional dependency handling
+    from scipy import optimize  # type: ignore[import-untyped]
+    from scipy.stats import norm  # type: ignore[import-untyped]
+except ImportError:  # pragma: no cover - fallback mode
+    optimize = None  # type: ignore[assignment]
+    norm = None  # type: ignore[assignment,misc]
 from .shared_config import DEFAULT_FORMAT_PRIORS
+
+logger = setup_logger(__name__)
 
 
 @dataclass
@@ -114,8 +122,18 @@ class MVLPBayesianConfidenceScorer:
         # Parameter confidence intervals (for uncertainty quantification)
         self.parameter_confidence_intervals: Dict[str, Tuple[float, float]] = {}
 
+        # Track optimization backend for graceful degradation without SciPy
+        self.optimization_backend = "scipy" if optimize is not None else "heuristic"
+        self._supports_uncertainty_bounds = optimize is not None and norm is not None
+
         # Training data for parameter optimization
         self.training_data: List[Tuple[EvidenceMetrics, float]] = []
+
+        if optimize is None:  # pragma: no cover - runtime warning path
+            logger.warning(
+                "SciPy is not installed; MVLP optimization will operate in"
+                " heuristic mode without uncertainty bounds."
+            )
 
     def calculate_confidence(
         self, metrics: EvidenceMetrics, format_name: str, use_uncertainty: bool = False
@@ -174,7 +192,11 @@ class MVLPBayesianConfidenceScorer:
         }
 
         # Add uncertainty bounds if requested
-        if use_uncertainty and self.parameter_confidence_intervals:
+        if (
+            use_uncertainty
+            and self.parameter_confidence_intervals
+            and self._supports_uncertainty_bounds
+        ):
             bounds = self._calculate_confidence_bounds(metrics, format_name)
             result.update(bounds)
 
@@ -271,6 +293,17 @@ class MVLPBayesianConfidenceScorer:
         }
 
         # Optimize using constrained optimization
+        if optimize is None:
+            logger.info(
+                "Falling back to heuristic MVLP parameter tuning; install SciPy for"
+                " constrained optimization and uncertainty intervals."
+            )
+            self.parameters = self._optimize_with_heuristics(training_data)
+            self.parameter_confidence_intervals.clear()
+            self.optimization_backend = "heuristic"
+            self._supports_uncertainty_bounds = False
+            return self.parameters
+
         result = optimize.minimize(  # type: ignore[call-overload]
             objective,
             x0,
@@ -279,9 +312,22 @@ class MVLPBayesianConfidenceScorer:
 
         if result.success:
             self.parameters = self._vector_to_parameters(result.x)
+            self.optimization_backend = "scipy"
+            self._supports_uncertainty_bounds = norm is not None
 
             # Calculate parameter confidence intervals using Hessian
             self._calculate_parameter_confidence_intervals(result)
+
+            return self.parameters
+
+        logger.warning(
+            "SciPy optimization failed (%s); reverting to heuristic tuning.",
+            result.message,
+        )
+        self.parameters = self._optimize_with_heuristics(training_data)
+        self.parameter_confidence_intervals.clear()
+        self.optimization_backend = "heuristic"
+        self._supports_uncertainty_bounds = False
 
         return self.parameters
 
@@ -328,6 +374,108 @@ class MVLPBayesianConfidenceScorer:
             (0.9, 1.0),  # max_confidence
         ]
 
+    def _compute_weights(
+        self, metrics_array: np.ndarray, expected_array: np.ndarray
+    ) -> Tuple[float, float, float]:
+        """Compute normalized weights via least squares."""
+        try:
+            weights, *_ = np.linalg.lstsq(metrics_array, expected_array, rcond=None)
+        except (np.linalg.LinAlgError, ValueError):
+            weights = np.array([0.3, 0.4, 0.3], dtype=float)
+
+        weights = np.maximum(weights, 0.0)
+        weight_sum = float(weights.sum())
+        if weight_sum <= 0.0:
+            return 0.3, 0.4, 0.3
+
+        normalized = weights / weight_sum
+        return float(normalized[0]), float(normalized[1]), float(normalized[2])
+
+    def _compute_powers(
+        self, mean_metrics: np.ndarray, avg_expected: float
+    ) -> Tuple[float, float, float]:
+        """Compute power parameters from mean metrics."""
+
+        def _derive_power(mean_metric: float) -> float:
+            if mean_metric <= 0.0:
+                return 1.0
+            ratio = avg_expected / max(mean_metric, 1e-6)
+            return float(np.clip(ratio, 0.5, 1.5))
+
+        return (
+            _derive_power(float(mean_metrics[0])),
+            _derive_power(float(mean_metrics[1])),
+            _derive_power(float(mean_metrics[2])),
+        )
+
+    def _compute_interactions(
+        self,
+        completeness_weight: float,
+        quality_weight: float,
+        uniqueness_weight: float,
+    ) -> Tuple[float, float]:
+        """Compute interaction parameters from weights."""
+        interaction_scale = min(completeness_weight, quality_weight, uniqueness_weight)
+        return (
+            float(max(interaction_scale * 0.2, 0.0)),
+            float(max(interaction_scale * 0.25, 0.0)),
+        )
+
+    def _compute_confidence_bounds(
+        self, expected_array: np.ndarray
+    ) -> Tuple[float, float]:
+        """Compute min/max confidence bounds."""
+        min_conf = float(np.clip(expected_array.min() - 0.05, 0.0, 0.9))
+        max_conf = float(np.clip(expected_array.max() + 0.05, 0.1, 1.0))
+        if min_conf >= max_conf:
+            min_conf = max(0.0, max_conf - 0.1)
+        return min_conf, max_conf
+
+    def _optimize_with_heuristics(
+        self, training_data: List[Tuple[EvidenceMetrics, float]]
+    ) -> ConfidenceParameters:
+        """Derive parameters using a lightweight heuristic fallback.
+
+        This keeps optimization functional when SciPy is unavailable by using
+        least-squares weight estimation combined with bounded smoothing for the
+        remaining parameters. The heuristic intentionally favors stability over
+        aggressive fitting so downstream calculations remain well-behaved.
+        """
+        metrics_array = np.array(
+            [[m.completeness, m.quality, m.uniqueness] for m, _ in training_data],
+            dtype=float,
+        )
+        expected_array = np.array([e for _, e in training_data], dtype=float)
+
+        comp_w, qual_w, uniq_w = self._compute_weights(metrics_array, expected_array)
+        comp_p, qual_p, uniq_p = self._compute_powers(
+            metrics_array.mean(axis=0), float(expected_array.mean())
+        )
+        cq_int, qu_int = self._compute_interactions(comp_w, qual_w, uniq_w)
+        min_conf, max_conf = self._compute_confidence_bounds(expected_array)
+
+        parameters = ConfidenceParameters(
+            completeness_weight=comp_w,
+            quality_weight=qual_w,
+            uniqueness_weight=uniq_w,
+            completeness_power=comp_p,
+            quality_power=qual_p,
+            uniqueness_power=uniq_p,
+            completeness_quality_interaction=cq_int,
+            quality_uniqueness_interaction=qu_int,
+            min_confidence=min_conf,
+            max_confidence=max_conf,
+        )
+
+        if not parameters.validate():
+            logger.debug(
+                "Heuristic optimization produced invalid parameters; "
+                "reverting to defaults."
+            )
+            return ConfidenceParameters()
+
+        return parameters
+
     def _parameters_to_vector(self, params: ConfidenceParameters) -> np.ndarray:
         """Convert parameters to optimization vector."""
         return np.array(
@@ -364,6 +512,8 @@ class MVLPBayesianConfidenceScorer:
         self, optimization_result: optimize.OptimizeResult
     ) -> None:
         """Calculate confidence intervals for optimized parameters."""
+        if optimize is None or norm is None:
+            return
         if (
             not hasattr(optimization_result, "hess_inv")
             or optimization_result.hess_inv is None
@@ -460,6 +610,7 @@ class MVLPBayesianConfidenceScorer:
         summary = {
             "parameters": self.parameters.__dict__,
             "parameter_valid": self.parameters.validate(),
+            "optimization_backend": self.optimization_backend,
         }
 
         if self.parameter_confidence_intervals:

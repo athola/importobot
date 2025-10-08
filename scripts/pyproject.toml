@@ -112,3 +112,8 @@ where = ["src"]
 
 [tool.setuptools.package-dir]
 "" = "src"
+
+[tool.mypy]
+mypy_path = "src"
+explicit_package_bases = true
+namespace_packages = true
