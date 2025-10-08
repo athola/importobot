@@ -1,5 +1,6 @@
 """SSH keyword test case generator for comprehensive testing coverage."""
 
+import os
 import random
 from typing import Any, Dict, List
 
@@ -7,6 +8,19 @@ from importobot.core.keywords.generators.ssh_keywords import SSHKeywordGenerator
 
 from .ssh_authentication_tests import SSHAuthenticationTestGenerator
 from .ssh_connection_tests import SSHConnectionTestGenerator
+
+_SAFE_LOCAL_ROOT = os.path.join(os.path.expanduser("~"), "importobot", "local")
+_SAFE_REMOTE_ROOT = os.path.join(os.path.expanduser("~"), "importobot", "remote")
+
+
+def _local_path(name: str) -> str:
+    cleaned = name.lstrip("/\\")
+    return os.path.join(_SAFE_LOCAL_ROOT, cleaned) if cleaned else _SAFE_LOCAL_ROOT
+
+
+def _remote_path(name: str) -> str:
+    cleaned = name.lstrip("/\\")
+    return os.path.join(_SAFE_REMOTE_ROOT, cleaned) if cleaned else _SAFE_REMOTE_ROOT
 
 
 class SSHKeywordTestGenerator:
@@ -173,15 +187,15 @@ class SSHKeywordTestGenerator:
         """Generate test for Put File keyword."""
         # Generate varied file names and paths
         source_files = [
-            "/local/file.txt",
-            "/tmp/data.csv",
+            _local_path("file.txt"),
+            _local_path("data.csv"),
             "/home/user/config.json",
             "/var/log/app.log",
             "/opt/scripts/deploy.sh",
         ]
         dest_files = [
-            "/remote/file.txt",
-            "/tmp/data.csv",
+            _remote_path("file.txt"),
+            _remote_path("data.csv"),
             "/home/user/config.json",
             "/var/log/app.log",
             "/opt/scripts/deploy.sh",
@@ -215,7 +229,7 @@ class SSHKeywordTestGenerator:
             name="SSH Create File Test",
             description="Test creating file on SSH server",
             step="Create file on SSH server",
-            test_data="path: /tmp/test.txt content: test content",
+            test_data=f"path: {_remote_path('test.txt')} content: test content",
             expected="File created successfully",
         )
 
@@ -225,7 +239,7 @@ class SSHKeywordTestGenerator:
             name="SSH Remove File Test",
             description="Test removing file from SSH server",
             step="Remove file from SSH server",
-            test_data="path: /tmp/test.txt",
+            test_data=f"path: {_remote_path('test.txt')}",
             expected="File removed successfully",
         )
 
@@ -235,7 +249,10 @@ class SSHKeywordTestGenerator:
             name="SSH Move File Test",
             description="Test moving file on SSH server",
             step="Move file on SSH server",
-            test_data="source: /tmp/old.txt destination: /tmp/new.txt",
+            test_data=(
+                f"source: {_remote_path('old.txt')} "
+                f"destination: {_remote_path('new.txt')}"
+            ),
             expected="File moved successfully",
         )
 
@@ -255,7 +272,7 @@ class SSHKeywordTestGenerator:
             name="SSH File Should Not Exist Test",
             description="Test verifying file does not exist on SSH server",
             step="Verify file does not exist on SSH server",
-            test_data="path: /tmp/nonexistent.txt",
+            test_data=f"path: {_remote_path('nonexistent.txt')}",
             expected="File non-existence verification passed",
         )
 
@@ -265,7 +282,7 @@ class SSHKeywordTestGenerator:
             name="SSH Change File Permissions Test",
             description="Test changing file permissions on SSH server",
             step="Change file permissions on SSH server",
-            test_data="path: /tmp/test.txt permissions: 755",
+            test_data=f"path: {_remote_path('test.txt')} permissions: 755",
             expected="File permissions changed successfully",
         )
 
@@ -275,7 +292,7 @@ class SSHKeywordTestGenerator:
             name="SSH Get File Size Test",
             description="Test getting file size on SSH server",
             step="Get file size on SSH server",
-            test_data="path: /tmp/test.txt",
+            test_data=f"path: {_remote_path('test.txt')}",
             expected="File size retrieved successfully",
         )
 
@@ -285,7 +302,7 @@ class SSHKeywordTestGenerator:
             name="SSH Get File Permissions Test",
             description="Test getting file permissions on SSH server",
             step="Get file permissions on SSH server",
-            test_data="path: /tmp/test.txt",
+            test_data=f"path: {_remote_path('test.txt')}",
             expected="File permissions retrieved successfully",
         )
 
@@ -295,7 +312,7 @@ class SSHKeywordTestGenerator:
             name="SSH Set File Permissions Test",
             description="Test setting file permissions on SSH server",
             step="Set file permissions on SSH server",
-            test_data="path: /tmp/test.txt permissions: 644",
+            test_data=f"path: {_remote_path('test.txt')} permissions: 644",
             expected="File permissions set successfully",
         )
 
@@ -303,7 +320,7 @@ class SSHKeywordTestGenerator:
         """Generate test for Create Directory keyword."""
         # Generate varied directory paths
         directory_paths = [
-            "/tmp/testdir",
+            _remote_path("testdir"),
             "/var/log/app",
             "/home/user/data",
             "/opt/backups",
@@ -324,7 +341,7 @@ class SSHKeywordTestGenerator:
             name="SSH List Directory Test",
             description="Test listing directory contents on SSH server",
             step="List directory contents on SSH server",
-            test_data="path: /tmp",
+            test_data=f"path: {_remote_path('')}",
             expected="Directory contents listed successfully",
         )
 
@@ -344,7 +361,7 @@ class SSHKeywordTestGenerator:
             name="SSH Directory Should Not Exist Test",
             description="Test verifying directory does not exist on SSH server",
             step="Verify directory does not exist on SSH server",
-            test_data="path: /tmp/nonexistent",
+            test_data=f"path: {_remote_path('nonexistent')}",
             expected="Directory non-existence verification passed",
         )
 
@@ -354,7 +371,7 @@ class SSHKeywordTestGenerator:
             name="SSH Remove Directory Test",
             description="Test removing directory from SSH server",
             step="Remove directory from SSH server",
-            test_data="path: /tmp/testdir",
+            test_data=f"path: {_remote_path('testdir')}",
             expected="Directory removed successfully",
         )
 
@@ -364,7 +381,10 @@ class SSHKeywordTestGenerator:
             name="SSH Move Directory Test",
             description="Test moving directory on SSH server",
             step="Move directory on SSH server",
-            test_data="source: /tmp/olddir destination: /tmp/newdir",
+            test_data=(
+                f"source: {_remote_path('olddir')} "
+                f"destination: {_remote_path('newdir')}"
+            ),
             expected="Directory moved successfully",
         )
 
@@ -374,7 +394,7 @@ class SSHKeywordTestGenerator:
             name="SSH List Files In Directory Test",
             description="Test listing files in directory on SSH server",
             step="List files in directory on SSH server",
-            test_data="path: /tmp",
+            test_data=f"path: {_remote_path('')}",
             expected="Files in directory listed successfully",
         )
 
@@ -384,7 +404,7 @@ class SSHKeywordTestGenerator:
             name="SSH List Directories In Directory Test",
             description="Test listing directories in directory on SSH server",
             step="List directories in directory on SSH server",
-            test_data="path: /tmp",
+            test_data=f"path: {_remote_path('')}",
             expected="Directories in directory listed successfully",
         )
 
@@ -474,7 +494,7 @@ class SSHKeywordTestGenerator:
             name="SSH Enable Logging Test",
             description="Test enabling SSH session logging",
             step="Enable SSH session logging",
-            test_data="logfile: /tmp/ssh.log",
+            test_data=f"logfile: {_remote_path('logs/ssh.log')}",
             expected="SSH logging enabled successfully",
         )
 

@@ -3,6 +3,10 @@
 from typing import Any
 
 from importobot import exceptions
+from importobot.core.field_definitions import (
+    TEST_DESCRIPTION_FIELDS,
+    TEST_TAG_FIELDS,
+)
 from importobot.core.interfaces import ConversionEngine
 from importobot.core.keyword_generator import GenericKeywordGenerator
 from importobot.core.parsers import GenericTestFileParser
@@ -24,13 +28,14 @@ class GenericConversionEngine(ConversionEngine):
         self.parser = GenericTestFileParser()
         self.keyword_generator = GenericKeywordGenerator()
 
-    def convert(self, json_data: dict[str, Any], *, strict: bool = True) -> str:
+    def convert(
+        self,
+        json_data: dict[str, Any],
+    ) -> str:  # pylint: disable=unused-argument
         """Convert JSON test data to Robot Framework format.
 
         Args:
             json_data: The JSON data to convert
-            strict: If True, raise errors for no tests found. If False,
-                generate placeholder.
         """
         # Extract test cases from the JSON structure
         tests = self.parser.find_tests(json_data)
@@ -56,21 +61,16 @@ class GenericConversionEngine(ConversionEngine):
         # Generate test cases
         test_cases_content = []
         if not tests:
-            if strict:
-                # Raise clear error when no tests found (new API behavior)
-                available_keys = (
-                    list(json_data.keys()) if isinstance(json_data, dict) else []
-                )
-                raise exceptions.ValidationError(
-                    f"No test cases found in input data. "
-                    f"Expected structures like {{'testCase': {{...}}}}, "
-                    f"{{'tests': [...]}}, "
-                    f"or test cases with 'name' and 'steps' fields. "
-                    f"Found top-level keys: {available_keys}"
-                )
-            # Create placeholder test case (backward compatibility)
-            test_cases_content.extend(
-                ["Empty Test Case", "    Log    No test cases found in input", ""]
+            # Raise clear error when no tests found
+            available_keys = (
+                list(json_data.keys()) if isinstance(json_data, dict) else []
+            )
+            raise exceptions.ValidationError(
+                f"No test cases found in input data. "
+                f"Expected structures like {{'testCase': {{...}}}}, "
+                f"{{'tests': [...]}}, "
+                f"or test cases with 'name' and 'steps' fields. "
+                f"Found top-level keys: {available_keys}"
             )
 
         if tests:
@@ -105,11 +105,13 @@ class GenericConversionEngine(ConversionEngine):
 
     def _extract_documentation(self, data: dict[str, Any]) -> str:
         """Extract documentation from common fields."""
-        doc_fields = ["description", "objective", "summary", "documentation"]
+        field_name, value = TEST_DESCRIPTION_FIELDS.find_first(data)
+        if field_name and value:
+            return f"Documentation    {sanitize_robot_string(value)}"
 
-        for field in doc_fields:
-            if field in data and data[field]:
-                return f"Documentation    {sanitize_robot_string(data[field])}"
+        # Check summary field as well
+        if "summary" in data and data["summary"]:
+            return f"Documentation    {sanitize_robot_string(data['summary'])}"
 
         # Default documentation when none found
         return "Documentation    Converted test case"
@@ -121,7 +123,7 @@ class GenericConversionEngine(ConversionEngine):
         def find_tags(obj: Any) -> None:
             if isinstance(obj, dict):
                 for key, value in obj.items():
-                    if key.lower() in ["tags", "labels", "categories", "priority"]:
+                    if key in TEST_TAG_FIELDS:
                         if isinstance(value, list):
                             tags.extend([str(t) for t in value])
                         elif value:
@@ -134,3 +136,8 @@ class GenericConversionEngine(ConversionEngine):
 
         find_tags(data)
         return tags
+
+
+__all__ = [
+    "GenericConversionEngine",
+]

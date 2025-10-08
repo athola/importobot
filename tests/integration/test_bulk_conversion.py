@@ -112,7 +112,19 @@ class TestBulkConversionIntegration:
 
     def test_convert_directory_with_subdirectories(self) -> None:
         """Tests directory conversion ignores subdirectories."""
-        sample_json_data: dict[str, Any] = {"tests": []}
+        sample_json_data: dict[str, Any] = {
+            "tests": [
+                {
+                    "name": "Sample Test",
+                    "steps": [
+                        {
+                            "step": "Sample step",
+                            "expectedResult": "Sample result",
+                        }
+                    ],
+                }
+            ]
+        }
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -178,7 +190,19 @@ class TestBulkConversionIntegration:
 
     def test_convert_multiple_files_creates_nested_output_structure(self) -> None:
         """Tests that output directory structure is created as needed."""
-        sample_json_data: dict[str, Any] = {"tests": []}
+        sample_json_data: dict[str, Any] = {
+            "tests": [
+                {
+                    "name": "Structure Test",
+                    "steps": [
+                        {
+                            "step": "Test step",
+                            "expectedResult": "Test result",
+                        }
+                    ],
+                }
+            ]
+        }
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -197,7 +221,19 @@ class TestBulkConversionIntegration:
 
     def test_convert_directory_case_insensitive_json_extension(self) -> None:
         """Tests that JSON files with different case extensions are handled."""
-        sample_json_data: dict[str, Any] = {"tests": []}
+        sample_json_data: dict[str, Any] = {
+            "tests": [
+                {
+                    "name": "Extension Test",
+                    "steps": [
+                        {
+                            "step": "Case insensitive step",
+                            "expectedResult": "Extension result",
+                        }
+                    ],
+                }
+            ]
+        }
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)

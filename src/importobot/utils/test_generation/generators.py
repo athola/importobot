@@ -3,6 +3,7 @@
 import json
 import logging
 import random
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -16,7 +17,7 @@ from importobot.utils.defaults import (
 )
 from importobot.utils.progress_reporter import BatchProgressReporter, ProgressReporter
 from importobot.utils.resource_manager import get_resource_manager
-from importobot.utils.test_generation.categories import CategoryInfo
+from importobot.utils.test_generation.categories import CategoryEnum, CategoryInfo
 from importobot.utils.test_generation.distributions import (
     DistributionDict,
     DistributionManager,
@@ -28,6 +29,40 @@ from importobot.utils.test_generation.templates import TemplateManager
 MAX_TOTAL_TESTS = 50000  # Maximum number of tests in a single generation
 MAX_FILE_SIZE_MB = 100  # Maximum size per generated file in MB
 MAX_MEMORY_USAGE_MB = 500  # Maximum memory usage for generation process
+
+
+@dataclass
+class CategoryTestParams:
+    """Parameters for category test generation."""
+
+    category: str
+    count: int
+    scenarios: dict[str, list[str]]
+    category_info: CategoryInfo
+    start_test_id: int
+
+    def validate(self) -> None:
+        """Validate parameters before test generation."""
+        if not self.scenarios:
+            available = list(self.scenarios.keys()) if self.scenarios else "None"
+            raise ValueError(
+                f"No scenarios found for category: '{self.category}'. "
+                f"Available: {available}"
+            )
+
+        if self.count <= 0:
+            raise ValueError(
+                f"Invalid count {self.count} for category '{self.category}'"
+            )
+
+    def get_valid_scenarios(self) -> dict[str, list[str]]:
+        """Filter out empty scenario lists."""
+        valid_scenarios = {k: v for k, v in self.scenarios.items() if v}
+        if not valid_scenarios:
+            raise ValueError(
+                f"No valid scenarios with content found for category: '{self.category}'"
+            )
+        return valid_scenarios
 
 
 class EnterpriseTestGenerator:
@@ -427,6 +462,19 @@ class EnterpriseTestGenerator:
             )
             category_scenarios = self.template_manager.get_available_scenarios()
 
+            available_categories = set(category_scenarios.keys())
+            invalid_categories = [
+                category
+                for category in distribution
+                if category not in available_categories
+            ]
+            if invalid_categories:
+                valid_list = ", ".join(sorted(CategoryEnum.get_all_values()))
+                raise ValueError(
+                    "Invalid category "
+                    f"'{invalid_categories[0]}' not in CategoryEnum: {valid_list}"
+                )
+
             generated_counts: dict[str, int] = {}
             test_id = 1
 
@@ -443,9 +491,15 @@ class EnterpriseTestGenerator:
 
                 # Get scenarios for this category
                 scenarios = category_scenarios.get(category, {})
-                self._generate_category_tests(
-                    category, count, scenarios, category_info, generated_counts, test_id
+
+                params = CategoryTestParams(
+                    category=category,
+                    count=count,
+                    scenarios=scenarios,
+                    category_info=category_info,
+                    start_test_id=test_id,
                 )
+                self._generate_category_tests(params)
 
                 generated_counts[category] = category_info["count"]
                 test_id += count
@@ -456,82 +510,86 @@ class EnterpriseTestGenerator:
             # Always finish operation tracking
             self.resource_manager.finish_operation(operation_id)
 
-    def _generate_category_tests(
-        # pylint: disable=too-many-positional-arguments,too-many-locals
-        self,
-        category: str,
-        count: int,
-        scenarios: dict[str, list[str]],
-        category_info: CategoryInfo,
-        generated_counts: dict[str, int],
-        start_test_id: int,
-    ) -> None:
+    def _calculate_test_distribution(
+        self, total_count: int, scenario_count: int
+    ) -> dict[str, int]:
+        """Calculate how to distribute tests across scenarios."""
+        if scenario_count == 0:
+            return {"per_type": 0, "remainder": 0}
+
+        per_type = total_count // scenario_count
+        remainder = total_count % scenario_count
+
+        return {"per_type": per_type, "remainder": remainder}
+
+    def _generate_category_tests(self, params: Any) -> None:
         """Generate tests for a specific category."""
-        # Mark unused parameter to avoid lint warning
-        _ = generated_counts
-        # Comprehensive validation to prevent division by zero and other issues
-        if not scenarios:
-            raise ValueError(
-                f"No scenarios found for category: '{category}'. "
-                f"Available: {list(scenarios.keys()) if scenarios else 'None'}"
-            )
+        # Convert to typed params for better organization
+        test_params = CategoryTestParams(
+            category=params.category,
+            count=params.count,
+            scenarios=params.scenarios,
+            category_info=params.category_info,
+            start_test_id=params.start_test_id,
+        )
 
-        if count <= 0:
-            self.logger.warning(
-                "Invalid count %d for category '%s'. Skipping.", count, category
-            )
-            return
+        # Validate parameters
+        try:
+            test_params.validate()
+        except ValueError as e:
+            if "Invalid count" in str(e):
+                self.logger.warning(
+                    "Invalid count %d for category '%s'. Skipping.",
+                    test_params.count,
+                    test_params.category,
+                )
+                return
+            raise
 
-        # Additional validation for scenario content
-        valid_scenarios = {
-            k: v for k, v in scenarios.items() if v
-        }  # Filter out empty scenario lists
-        if not valid_scenarios:
-            raise ValueError(
-                f"No valid scenarios with content found for category: '{category}'"
-            )
+        valid_scenarios = test_params.get_valid_scenarios()
 
-        num_scenario_types = len(valid_scenarios)
-        tests_per_scenario_type = count // num_scenario_types
-        remainder = count % num_scenario_types
-        test_id = start_test_id
+        # Calculate distribution
+        distribution = self._calculate_test_distribution(
+            test_params.count, len(valid_scenarios)
+        )
+        test_id = test_params.start_test_id
 
         self.logger.info(
             "Generating %d tests for category '%s': "
             "%d per scenario type, %d remainder, "
             "%d scenario types",
-            count,
-            category,
-            tests_per_scenario_type,
-            remainder,
-            num_scenario_types,
+            test_params.count,
+            test_params.category,
+            distribution["per_type"],
+            distribution["remainder"],
+            len(valid_scenarios),
         )
 
         # Initialize progress reporting
         progress_reporter = ProgressReporter(
-            self.logger, f"category '{category}' test generation"
+            self.logger, f"category '{test_params.category}' test generation"
         )
-        progress_reporter.initialize(count)
+        progress_reporter.initialize(test_params.count)
 
         for _business_category, scenario_list in valid_scenarios.items():
-            scenario_count = tests_per_scenario_type
-            if remainder > 0:
+            scenario_count = distribution["per_type"]
+            if distribution["remainder"] > 0:
                 scenario_count += 1
-                remainder -= 1
+                distribution["remainder"] -= 1
 
             for _scenario_index in range(scenario_count):
                 scenario = random.choice(scenario_list)
                 test_case = self.generate_enterprise_test_case(
-                    category, scenario, test_id
+                    test_params.category, scenario, test_id
                 )
 
                 # Queue test case for optimized writing
-                filename = f"test_{category}_{test_id:04d}.json"
-                filepath = Path(category_info["dir"]) / filename
+                filename = f"test_{test_params.category}_{test_id:04d}.json"
+                filepath = Path(test_params.category_info["dir"]) / filename
 
                 self._queue_file_write(filepath, test_case)
 
-                category_info["count"] += 1
+                test_params.category_info["count"] += 1
                 test_id += 1
 
                 # Update progress reporting
@@ -833,8 +891,14 @@ class EnterpriseTestGenerator:
                     else str(result)
                 )
 
-        # Default case - return a generic test data string
-        return f"test_data_for_{keyword.lower().replace(' ', '_')}  # {library.lower()}"
+        # Default case - return a generic test data string enriched with description
+        description = keyword_info.get("description", "") or ""
+        fallback_description = description.strip() or "Unknown operation"
+        keyword_slug = keyword.lower().replace(" ", "_") if keyword else "keyword"
+        library_slug = library.lower() if library else "unknown_library"
+        return (
+            f"{fallback_description} :: test_data_for_{keyword_slug}  # {library_slug}"
+        )
 
     def _get_test_distribution(
         self,

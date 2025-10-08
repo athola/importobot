@@ -171,7 +171,8 @@ class PerformanceBenchmark:
 
         # Add some metadata for enterprise complexity
         if complexity_enum == ComplexityLevel.ENTERPRISE:
-            base_case["testCase"]["metadata"] = {  # type: ignore[attr-defined,assignment]
+            base_case["testCase"]["metadata"] = {  # type: ignore[attr-defined]
+                # type: ignore[assignment]
                 "business_domain": "enterprise",
                 "compliance_level": "high",
                 "security_classification": "confidential",
@@ -338,7 +339,7 @@ class PerformanceBenchmark:
         # Warmup iterations for lenient mode
         for _ in range(warmup_iterations):
             try:
-                converter.convert_json_data_lenient(test_data)
+                converter.convert_json_data(test_data)
             except Exception:
                 pass  # Should not happen in lenient mode
 
@@ -367,7 +368,7 @@ class PerformanceBenchmark:
             start_time = time.perf_counter()
             try:
                 _, memory_diff = self._measure_with_memory(
-                    converter.convert_json_data_lenient, test_data
+                    converter.convert_json_data, test_data
                 )
             except Exception as e:
                 # Unexpected error in lenient mode

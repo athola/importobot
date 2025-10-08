@@ -61,7 +61,7 @@ def get_available_structures() -> list[str]:
     return ["zephyr", "jira", "testlink", "generic"]
 
 
-def get_required_libraries_for_keywords(keywords: list[dict[str, Any]]) -> list[str]:
+def get_required_libraries_for_keywords(keywords: list[dict[str, Any]]) -> set[str]:
     """Get required Robot Framework libraries for given keywords."""
     # Create steps using the same process as the actual test conversion
     generator = EnterpriseTestGenerator()
@@ -80,7 +80,7 @@ def get_required_libraries_for_keywords(keywords: list[dict[str, Any]]) -> list[
 
     # Detect libraries from the generated steps (same as conversion process)
     detected_libs = LibraryDetector.detect_libraries_from_steps(steps)
-    return list(detected_libs)
+    return set(detected_libs)
 
 
 def generate_keyword_list(num_keywords: int) -> list[dict[str, Any]]:

@@ -14,9 +14,9 @@ from importobot.core.converter import (
 )
 from importobot.utils.file_operations import (
     display_suggestion_changes,
-    load_json_file,
     process_single_file_with_suggestions,
 )
+from importobot.utils.json_utils import load_json_file
 from importobot.utils.logging import setup_logger
 
 logger = setup_logger("importobot-cli")
@@ -128,7 +128,7 @@ def print_suggestions(filtered_suggestions: list[str]) -> None:
         print("No suggestions for improvement.")
         return
 
-    print("\n💡 Conversion Suggestions:")
+    print("\nConversion Suggestions:")
     print("=" * 50)
     for i, suggestion in enumerate(filtered_suggestions, 1):
         print(f"  {i}. {suggestion}")
@@ -185,7 +185,8 @@ def convert_wildcard_files(args: argparse.Namespace, detected_files: list[str]) 
 def apply_suggestions_single_file(args: argparse.Namespace) -> None:
     """Apply suggestions and convert for a single file."""
     process_single_file_with_suggestions(
-        args,
+        args=args,
+        convert_file_func=convert_file,
         display_changes_func=display_suggestion_changes,
         use_stem_for_basename=False,
     )
@@ -196,7 +197,7 @@ def handle_bulk_conversion_with_suggestions(
     args: argparse.Namespace, input_type: str, detected_files: list
 ) -> None:
     """Handle conversion for directories or multiple files with suggestions warning."""
-    print("Warning: --apply-suggestions is only supported for single file conversion.")
+    print("Warning: --apply-suggestions only supported for single files.")
     print("Performing normal conversion instead...")
 
     if input_type == "directory":
@@ -250,7 +251,8 @@ def handle_files_conversion(
         args.output_file = args.output
 
         process_single_file_with_suggestions(
-            args,
+            args=args,
+            convert_file_func=convert_file,
             display_changes_func=display_suggestion_changes,
             use_stem_for_basename=False,
         )

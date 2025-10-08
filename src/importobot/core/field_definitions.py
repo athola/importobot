@@ -45,6 +45,18 @@ TEST_STEP_FIELDS = FieldGroup(
     fields=("steps", "teststeps", "actions"), description="Test execution steps"
 )
 
+# Test script structure field group
+TEST_SCRIPT_FIELDS = FieldGroup(
+    fields=("testScript", "test_script", "script"),
+    description="Test script structure containing steps",
+)
+
+# Parameters field group
+PARAMETERS_FIELDS = FieldGroup(
+    fields=("parameters", "params", "variables"),
+    description="Test case parameters and variables",
+)
+
 # Step field groups
 STEP_ACTION_FIELDS = FieldGroup(
     fields=("step", "description", "action", "instruction"),

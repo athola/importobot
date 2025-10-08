@@ -16,6 +16,9 @@ from importobot import api as _api
 from importobot import config as _config
 from importobot import exceptions as _exceptions
 from importobot.core.converter import JsonToRobotConverter
+from importobot.utils.robot_compat import (
+    patch_robot_legacy_utils as _patch_robot_legacy_utils,
+)
 
 
 # Dependency validation following pandas pattern
@@ -43,6 +46,7 @@ def _check_dependencies() -> None:
 
 
 _check_dependencies()
+_patch_robot_legacy_utils()
 
 # Type checking imports
 if TYPE_CHECKING:
@@ -68,5 +72,5 @@ __version__ = "1.0.0"
 
 # Clean up namespace - remove internal imports from dir()
 del _config, _exceptions, _api
-del sys, TYPE_CHECKING
+del _patch_robot_legacy_utils, sys, TYPE_CHECKING
 del annotations  # from __future__ import

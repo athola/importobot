@@ -11,6 +11,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from importobot.utils.file_operations import (
+    ConversionContext,
     convert_with_temp_file,
     display_suggestion_changes,
     load_json_file,
@@ -122,7 +123,7 @@ class TestLoadJsonFile:
             os.unlink(temp_filename)
 
 
-@patch("importobot.utils.file_operations.convert_file")
+@patch("importobot.core.converter.convert_file")
 class TestConvertWithTempFile:
     """Tests for convert_with_temp_file function."""
 
@@ -133,7 +134,7 @@ class TestConvertWithTempFile:
         test_data: dict[str, Any] = {"testScript": {"steps": []}}
         robot_filename = "test.robot"
 
-        convert_with_temp_file(test_data, robot_filename)
+        convert_with_temp_file(test_data, robot_filename, mock_convert_file)
 
         # Verify convert_file was called with a temporary JSON file
         mock_convert_file.assert_called_once()
@@ -152,14 +153,12 @@ class TestConvertWithTempFile:
 
         mock_display_func = Mock()
         mock_args = Mock()
-
-        convert_with_temp_file(
-            test_data,
-            robot_filename,
+        context = ConversionContext(
             changes_made=changes_made,
             display_changes_func=mock_display_func,
             args=mock_args,
         )
+        convert_with_temp_file(test_data, robot_filename, mock_convert_file, context)
 
         mock_display_func.assert_called_once_with(changes_made, mock_args)
         mock_convert_file.assert_called_once()
@@ -173,13 +172,10 @@ class TestConvertWithTempFile:
 
         mock_display_func = Mock()
         mock_args = Mock()
-
-        convert_with_temp_file(
-            test_data,
-            robot_filename,
-            display_changes_func=mock_display_func,
-            args=mock_args,
+        context = ConversionContext(
+            changes_made=None, display_changes_func=mock_display_func, args=mock_args
         )
+        convert_with_temp_file(test_data, robot_filename, mock_convert_file, context)
 
         mock_display_func.assert_not_called()
         mock_convert_file.assert_called_once()
@@ -195,12 +191,17 @@ class TestSaveImprovedJsonAndConvert:
 
         mock_args = Mock()
         mock_args.output_file = None
+        mock_convert_file = Mock()
 
         with tempfile.TemporaryDirectory() as temp_dir:
             base_path = os.path.join(temp_dir, "test")
 
+            context = ConversionContext(args=mock_args)
             save_improved_json_and_convert(
-                improved_data=improved_data, base_name=base_path, args=mock_args
+                improved_data=improved_data,
+                base_name=base_path,
+                convert_file_func=mock_convert_file,
+                context=context,
             )
 
             # Check that JSON file was created
@@ -228,12 +229,16 @@ class TestSaveImprovedJsonAndConvert:
 
         mock_args = Mock()
         mock_args.output_file = custom_output
+        mock_convert_file = Mock()
 
         with tempfile.TemporaryDirectory() as temp_dir:
             base_path = os.path.join(temp_dir, "test")
-
+            context = ConversionContext(args=mock_args)
             save_improved_json_and_convert(
-                improved_data=improved_data, base_name=base_path, args=mock_args
+                improved_data=improved_data,
+                base_name=base_path,
+                convert_file_func=mock_convert_file,
+                context=context,
             )
 
             # Verify custom output file name was used
@@ -309,7 +314,7 @@ class TestProcessSingleFileWithSuggestions:
     """Tests for process_single_file_with_suggestions function."""
 
     @patch("importobot.utils.file_operations.save_improved_json_and_convert")
-    @patch("importobot.utils.file_operations.apply_conversion_suggestions")
+    @patch("importobot.core.converter.apply_conversion_suggestions")
     @patch("importobot.utils.file_operations.load_json_file")
     def test_processes_file_with_os_splitext(
         self,
@@ -330,6 +335,7 @@ class TestProcessSingleFileWithSuggestions:
 
         mock_args = Mock()
         mock_args.input = "/path/to/test.json"
+        mock_args.no_suggestions = False
 
         mock_display_func = Mock()
 
@@ -344,16 +350,17 @@ class TestProcessSingleFileWithSuggestions:
         mock_apply_suggestions.assert_called_once_with(json_data)
 
         # Check save_improved_json_and_convert was called with correct basename
-        mock_save_convert.assert_called_once_with(
-            improved_data=improved_data,
-            base_name="/path/to/test",  # os.path.splitext result
-            args=mock_args,
-            changes_made=changes_made,
-            display_changes_func=mock_display_func,
-        )
+        mock_save_convert.assert_called_once()
+        kwargs = mock_save_convert.call_args.kwargs
+        assert kwargs["improved_data"] == improved_data
+        assert kwargs["base_name"] == "/path/to/test"  # os.path.splitext result
+        context: ConversionContext = kwargs["context"]
+        assert context.args is mock_args
+        assert context.changes_made == changes_made
+        assert context.display_changes_func is mock_display_func
 
     @patch("importobot.utils.file_operations.save_improved_json_and_convert")
-    @patch("importobot.utils.file_operations.apply_conversion_suggestions")
+    @patch("importobot.core.converter.apply_conversion_suggestions")
     @patch("importobot.utils.file_operations.load_json_file")
     def test_processes_file_with_path_stem(
         self,
@@ -372,6 +379,7 @@ class TestProcessSingleFileWithSuggestions:
 
         mock_args = Mock()
         mock_args.input = "/path/to/test.json"
+        mock_args.no_suggestions = False
 
         process_single_file_with_suggestions(args=mock_args, use_stem_for_basename=True)
 
@@ -380,16 +388,17 @@ class TestProcessSingleFileWithSuggestions:
         mock_apply_suggestions.assert_called_once_with(json_data)
 
         # Check save_improved_json_and_convert was called with correct basename
-        mock_save_convert.assert_called_once_with(
-            improved_data=improved_data,
-            base_name="test",  # Path.stem result
-            args=mock_args,
-            changes_made=changes_made,
-            display_changes_func=None,
-        )
+        mock_save_convert.assert_called_once()
+        kwargs = mock_save_convert.call_args.kwargs
+        assert kwargs["improved_data"] == improved_data
+        assert kwargs["base_name"] == "test"  # Path.stem result
+        context: ConversionContext = kwargs["context"]
+        assert context.args is mock_args
+        assert context.changes_made == changes_made
+        assert context.display_changes_func is None
 
     @patch("importobot.utils.file_operations.save_improved_json_and_convert")
-    @patch("importobot.utils.file_operations.apply_conversion_suggestions")
+    @patch("importobot.core.converter.apply_conversion_suggestions")
     @patch("importobot.utils.file_operations.load_json_file")
     def test_handles_empty_json_data(
         self, mock_load_json, mock_apply_suggestions, mock_save_convert
@@ -400,6 +409,7 @@ class TestProcessSingleFileWithSuggestions:
 
         mock_args = Mock()
         mock_args.input = "/path/to/empty.json"
+        mock_args.no_suggestions = False
 
         process_single_file_with_suggestions(
             args=mock_args, use_stem_for_basename=False

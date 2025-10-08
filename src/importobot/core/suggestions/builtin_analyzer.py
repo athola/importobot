@@ -3,6 +3,16 @@
 import re
 from typing import Any
 
+from importobot.core.constants import STEPS_FIELD_NAME
+from importobot.core.field_definitions import (
+    STEP_ACTION_FIELDS,
+    STEP_DATA_FIELDS,
+    STEP_EXPECTED_FIELDS,
+    TEST_SCRIPT_FIELDS,
+    get_field_value,
+)
+from importobot.utils.string_cache import data_to_lower_cached
+
 
 class BuiltInKeywordAnalyzer:
     """Analyzer for Robot Framework BuiltIn keyword mapping ambiguities."""
@@ -22,11 +32,11 @@ class BuiltInKeywordAnalyzer:
         """Check for BuiltIn keyword mapping ambiguities in test steps."""
         for i, step in enumerate(steps):
             # Handle different field name formats (camelCase vs snake_case)
-            step_description = str(
-                step.get("step", step.get("description", ""))
-            ).lower()
-            test_data = str(step.get("test_data", step.get("testData", "")))
-            expected = str(step.get("expected", step.get("expectedResult", "")))
+            step_description = data_to_lower_cached(
+                get_field_value(step, STEP_ACTION_FIELDS)
+            )
+            test_data = get_field_value(step, STEP_DATA_FIELDS)
+            expected = get_field_value(step, STEP_EXPECTED_FIELDS)
 
             # Check for missing parameter issues first
             self._check_missing_parameters(
@@ -95,7 +105,11 @@ class BuiltInKeywordAnalyzer:
         changes_made: list[dict[str, Any]],
     ) -> None:
         """Suggest specific BuiltIn keyword improvements for test case."""
-        steps = test_case.get("steps", [])
+        script_field, script_data = TEST_SCRIPT_FIELDS.find_first(test_case)
+        if not script_field or not isinstance(script_data, dict):
+            return
+
+        steps = script_data.get(STEPS_FIELD_NAME, [])
         if not isinstance(steps, list):
             return
 
@@ -256,7 +270,7 @@ class BuiltInKeywordAnalyzer:
         # expected parameter is kept for interface consistency but
         # not used in this implementation
         _ = expected  # Mark as intentionally unused
-        combined = f"{description} {test_data} {expected}".lower()
+        combined = data_to_lower_cached(f"{description} {test_data} {expected}")
 
         for pattern in self._ambiguous_patterns["log_vs_assertion"]:
             if re.search(pattern, combined):
@@ -288,7 +302,7 @@ class BuiltInKeywordAnalyzer:
         # expected parameter is kept for interface consistency but
         # not used in this implementation
         _ = expected  # Mark as intentionally unused
-        combined = f"{description} {test_data} {expected}".lower()
+        combined = data_to_lower_cached(f"{description} {test_data} {expected}")
 
         for pattern in self._ambiguous_patterns["conversion_vs_assertion"]:
             if re.search(pattern, combined):
@@ -316,7 +330,7 @@ class BuiltInKeywordAnalyzer:
         # test_case_index and step_index parameters are kept for interface
         # consistency but not used in this implementation
         _ = test_case_index, step_index  # Mark as intentionally unused
-        combined = f"{description} {test_data} {expected}".lower()
+        combined = data_to_lower_cached(f"{description} {test_data} {expected}")
 
         for pattern in self._ambiguous_patterns["length_operations"]:
             if re.search(pattern, combined):
@@ -343,7 +357,7 @@ class BuiltInKeywordAnalyzer:
         # test_case_index and step_index parameters are kept for interface
         # consistency but not used in this implementation
         _ = test_case_index, step_index  # Mark as intentionally unused
-        combined = f"{description} {test_data} {expected}".lower()
+        combined = data_to_lower_cached(f"{description} {test_data} {expected}")
 
         for pattern in self._ambiguous_patterns["string_operations"]:
             if re.search(pattern, combined):
@@ -380,7 +394,7 @@ class BuiltInKeywordAnalyzer:
         # test_case_index and step_index parameters are kept for interface
         # consistency but not used in this implementation
         _ = test_case_index, step_index  # Mark as intentionally unused
-        combined = f"{description} {test_data} {expected}".lower()
+        combined = data_to_lower_cached(f"{description} {test_data} {expected}")
 
         for pattern in self._ambiguous_patterns["conditional_operations"]:
             if re.search(pattern, combined):
@@ -404,7 +418,7 @@ class BuiltInKeywordAnalyzer:
         suggestions: list[str],
     ) -> None:
         """Check for ambiguity in variable operations."""
-        combined = f"{description} {test_data} {expected}".lower()
+        combined = data_to_lower_cached(f"{description} {test_data} {expected}")
 
         for pattern in self._ambiguous_patterns["variable_operations"]:
             if re.search(pattern, combined):
@@ -425,7 +439,9 @@ class BuiltInKeywordAnalyzer:
         changes_made: list[dict[str, Any]],
     ) -> None:
         """Improve conversion keyword usage in step."""
-        description = str(step.get("step", step.get("description", ""))).lower()
+        description = data_to_lower_cached(
+            step.get("step", step.get("description", ""))
+        )
         test_data = str(step.get("test_data", step.get("testData", "")))
 
         # Pattern for conversion operations
@@ -470,7 +486,9 @@ class BuiltInKeywordAnalyzer:
         changes_made: list[dict[str, Any]],
     ) -> None:
         """Improve assertion keyword usage in step."""
-        description = str(step.get("step", step.get("description", ""))).lower()
+        description = data_to_lower_cached(
+            step.get("step", step.get("description", ""))
+        )
         test_data = str(step.get("test_data", step.get("testData", "")))
         expected = str(step.get("expected", step.get("expectedResult", "")))
 
@@ -527,7 +545,9 @@ class BuiltInKeywordAnalyzer:
         changes_made: list[dict[str, Any]],
     ) -> None:
         """Improve logging keyword usage in step."""
-        description = str(step.get("step", step.get("description", ""))).lower()
+        description = data_to_lower_cached(
+            step.get("step", step.get("description", ""))
+        )
         test_data = str(step.get("test_data", step.get("testData", "")))
 
         # Pattern for logging improvements

@@ -1,6 +1,6 @@
 # Contributing
 
-We welcome contributions to Importobot! This document provides guidelines for contributing to the project.
+We welcome contributions. Follow the steps below to get set up and keep changes aligned with the project style.
 
 ## Development Setup
 
@@ -19,13 +19,13 @@ cd importobot
 # Install project dependencies (including dev dependencies)
 uv sync --dev
 
-# Install the project in editable mode
+# Install in editable mode (optional for local tooling)
 uv pip install -e .
 ```
 
 ## Development Workflow
 
-This project follows Test-Driven Development (TDD) and Extreme Programming (XP) principles.
+Importobot follows Test-Driven Development (TDD) and Extreme Programming (XP) principles.
 
 ### Red-Green-Refactor Cycle
 
@@ -35,11 +35,11 @@ This project follows Test-Driven Development (TDD) and Extreme Programming (XP) 
 
 ### Code Quality
 
-All code must pass these quality gates:
-- All tests must pass.
-- Code coverage requirements must be maintained.
-- Linting must pass with zero warnings.
-- Documentation must be updated for new features.
+All code must:
+- Keep the test suite green.
+- Maintain coverage targets.
+- Pass linting (ruff/pylint/pycodestyle/pydocstyle).
+- Update docs when behaviour changes.
 
 ### Running Tests
 
@@ -77,24 +77,7 @@ make clean
 make deep-clean  # For more thorough cleanup
 ```
 
-## Recent Improvements
-
-### Artifact Management
-Contributors should be aware of the enhanced artifact management:
-- Enhanced `.gitignore` to properly exclude generated artifacts and test output files
-- Added comprehensive `clean` and `deep-clean` Makefile targets to remove temporary files
-- Removed accidentally committed artifacts and ensured repository cleanliness
-
-### Code Quality Standards
-- Fixed linting issues throughout the codebase using `ruff` and other tools
-- Removed unused imports and variables to reduce code clutter
-- Standardized code formatting with automated tools
-- Improved error handling and validation patterns
-
-### Test Reliability
-- Fixed failing tests related to missing test data files
-- Improved test data management and file organization
-- Enhanced test suite reliability and consistency
+## Repository structure
 
 ## Project Structure
 
@@ -178,13 +161,10 @@ def convert_test_case(test_data: dict) -> str:
 7. Create a pull request.
 8. Address any feedback from reviewers.
 
-## Artifact Management for Contributors
+## Artifact management
 
-When working on Importobot, please be aware of the artifact management practices:
-- Use `make clean` regularly during development to remove temporary files
-- Use `make deep-clean` for more thorough cleanup when needed
-- Check that no artifacts are accidentally committed by reviewing your changes
-- Run tests after cleaning to ensure nothing was broken
+- Run `make clean` during development; use `make deep-clean` before publishing branches.
+- Review `git status` to ensure generated files are not committed.
 
 ## Reporting Issues
 
@@ -197,8 +177,8 @@ When reporting issues, please include:
 
 ## Feature Requests
 
-We welcome feature requests! Please:
+New feature requests are welcomed! Please:
 - Explain the problem the feature would solve.
 - Provide use cases.
 - If possible, suggest implementation approaches.
-- Consider how the feature fits with the project's goals.
+- Consider how the feature fits within the project's goals.

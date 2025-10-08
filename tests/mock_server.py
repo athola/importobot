@@ -5,45 +5,49 @@ import socketserver
 
 from importobot.config import TEST_SERVER_PORT
 
+LOGIN_PAGE_HTML = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Login Page</title>
+</head>
+<body>
+    <h1>Login Page</h1>
+    <form id="loginForm">
+        <input type="text" id="username" name="username" placeholder="Username">
+        <input type="password" id="password" name="password" placeholder="Password">
+        <button type="submit" id="loginButton">Login</button>
+    </form>
+    <div id="message" style="display:none;">Login Successful</div>
+</body>
+<script>
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        document.getElementById('message').style.display = 'block';
+    });
+</script>
+</html>
+"""
+
 
 class MyHandler(http.server.SimpleHTTPRequestHandler):
     """A simple handler for the mock server."""
 
     def do_GET(self):
         """Handle GET requests for the mock server."""
-        if self.path == "/login.html":
+        if self.path in {"/login.html", "/"}:
             self.send_response(200)
             self.send_header("Content-type", "text/html")
             self.end_headers()
-            html_content = """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Login Page</title>
-            </head>
-            <body>
-                <h1>Login</h1>
-                <form>
-                    <label for="username">Username:</label><br>
-                    <input type="text" id="username" name="username"><br>
-                    <label for="password_field">Password:</label><br>
-                    <input type="password" id="password_field" name="password"><br><br>
-                    <button type="button" id="login_button">Login</button>
-                </form>
-                <p id="status_message"></p>
-                <script>
-                    document.getElementById('login_button').onclick = function() {
-                        document.getElementById('status_message').innerText = (
-                            'Login successful!'
-                        );
-                    };
-                </script>
-            </body>
-            </html>
-            """
-            self.wfile.write(html_content.encode("utf-8"))
+            self.wfile.write(LOGIN_PAGE_HTML.encode("utf-8"))
         else:
             super().do_GET()
+
+    def log_message(  # type: ignore[override]
+        self, format, *args
+    ):  # pylint: disable=redefined-builtin,unused-argument
+        """Suppress default logging to keep test output clean."""
+        return
 
 
 def start_mock_server(server_port=None):

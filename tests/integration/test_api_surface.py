@@ -6,64 +6,96 @@ import json
 import tempfile
 from pathlib import Path
 
+import pytest
+
 # Test the public API surface as it would be used by external users
 import importobot
 from importobot.api import converters, suggestions, validation
+from tests.test_helpers import EXPECTED_PUBLIC_EXPORTS, assert_module_exports
+
+
+def _make_test_payload() -> dict:
+    """Create a representative test case for conversion assertions."""
+    return {
+        "tests": [
+            {
+                "name": "Login Test",
+                "description": "Test user login functionality",
+                "testScript": {
+                    "steps": [
+                        {
+                            "action": "Navigate to login page",
+                            "expectedResult": "Login page displays",
+                            "testData": "url=/login",
+                        },
+                        {
+                            "action": "Enter valid credentials",
+                            "expectedResult": "User logged in successfully",
+                            "testData": "username=demo, password=secret",
+                        },
+                    ]
+                },
+            }
+        ]
+    }
 
 
 class TestPublicAPIIntegration:
     """Test complete API workflows as external users would use them."""
 
     def test_core_conversion_workflow(self):
-        """Test the primary bulk conversion workflow."""
-        # Test that the main converter is accessible
+        """Exercise the primary conversion workflow end to end."""
         converter = importobot.JsonToRobotConverter()
-        assert converter is not None
-        assert hasattr(converter, "convert_file")
-        assert hasattr(converter, "convert_directory")
+
+        robot_output = converter.convert_json_data(_make_test_payload())
+
+        assert "*** Test Cases ***" in robot_output
+        assert "Login Test" in robot_output
+        assert "Navigate to login page" in robot_output
 
     def test_enterprise_validation_workflow(self):
-        """Test enterprise validation features."""
-        # Test validation functions are accessible
-        assert hasattr(validation, "validate_json_dict")
-        assert hasattr(validation, "validate_safe_path")
-        assert hasattr(validation, "ValidationError")
-
-        # Test basic validation
+        """Validation helpers return data and reject unsafe inputs."""
         valid_data = {"testCase": {"name": "Test", "steps": []}}
         dict_result = validation.validate_json_dict(valid_data)
-        assert dict_result == valid_data  # Returns the validated data
+        assert dict_result is valid_data
 
-        # Test path validation
-        safe_path = "/tmp/test.json"
-        path_result = validation.validate_safe_path(safe_path)
-        assert path_result == safe_path  # Returns the validated path
+        with pytest.raises(validation.ValidationError):
+            validation.validate_json_dict(["not", "a", "dict"])
+
+        safe_path = validation.validate_safe_path("/tmp/test.json")
+        assert safe_path.endswith("test.json")
+
+        with pytest.raises(validation.ValidationError):
+            validation.validate_safe_path("../etc/passwd")
 
     def test_converter_api_workflow(self):
-        """Test converter API functionality."""
-        # Test converters module is accessible
-        assert hasattr(converters, "JsonToRobotConverter")
-
-        # Test converter instantiation
+        """Public converters expose behaviourally equivalent classes."""
         converter = converters.JsonToRobotConverter()
-        assert converter is not None
+
+        output = converter.convert_json_data(_make_test_payload())
+
+        assert "Force Tags" in output or "*** Test Cases ***" in output
+        assert "Login Test" in output
 
     def test_suggestions_api_workflow(self):
-        """Test suggestions API functionality."""
-        # Test suggestions module is accessible
-        assert hasattr(suggestions, "GenericSuggestionEngine")
-
-        # Test suggestion engine instantiation
+        """Suggestion engine surfaces actionable improvements."""
         engine = suggestions.GenericSuggestionEngine()
-        assert engine is not None
-        assert hasattr(engine, "suggest_improvements")
+
+        incomplete_payload = {"name": "Broken", "testScript": {"steps": [{}]}}
+
+        suggestions_list = engine.get_suggestions(incomplete_payload)
+
+        assert any("Add action description" in item for item in suggestions_list)
 
     def test_api_error_handling(self):
-        """Test API error handling and exceptions."""
-        # Test that exceptions are accessible
-        assert hasattr(importobot.exceptions, "ValidationError")
-        assert hasattr(importobot.exceptions, "ConversionError")
-        assert hasattr(importobot.exceptions, "ParseError")
+        """API surfaces raise documented exceptions for bad input."""
+        converter = importobot.JsonToRobotConverter()
+
+        with pytest.raises(importobot.exceptions.ValidationError):
+            converter.convert_json_string("")
+
+        with pytest.raises(importobot.exceptions.ParseError):
+            converter.convert_json_string("not json")
 
     def test_full_conversion_pipeline(self):
         """Test a complete conversion pipeline using public API."""
@@ -103,19 +135,21 @@ class TestPublicAPIIntegration:
             assert result is not None
             assert output_file.exists()
 
-            # Verify output content
-            content = output_file.read_text()
+            content = output_file.read_text(encoding="utf-8")
+            assert "*** Test Cases ***" in content
             assert "Login Test" in content
-            assert "Test Cases" in content
+            assert "# Expected Result: Login page displays" in content
 
     def test_api_configuration_access(self):
         """Test configuration access through public API."""
         # Test config is accessible
         assert hasattr(importobot, "config")
 
-        # Test basic config functionality
         config = importobot.config
-        assert config is not None
+        assert config.DEFAULT_TEST_SERVER_URL.startswith("http")
+        assert isinstance(config.TEST_SERVER_PORT, int)
+        assert config.TEST_SERVER_PORT > 0
+        assert "--headless" in config.CHROME_OPTIONS
 
     def test_version_stability(self):
         """Test that version information is accessible."""
@@ -125,36 +159,29 @@ class TestPublicAPIIntegration:
 
     def test_api_namespace_cleanliness(self):
         """Test that internal modules are not exposed in public namespace."""
-        # Test that internal modules are not directly accessible
-        # Note: These may be accessible but shouldn't be in __all__
-        public_attrs = dir(importobot)
-        assert "core" not in importobot.__all__
-        assert "utils" not in importobot.__all__
+        # __all__ should match documented exports
+        assert_module_exports(importobot, EXPECTED_PUBLIC_EXPORTS)
 
-        # Test that public API is clean
-        public_attrs = dir(importobot)
-        expected_public = ["JsonToRobotConverter", "api", "config", "exceptions"]
-
-        for attr in expected_public:
-            assert attr in public_attrs
+        # Internal modules must not leak via __all__
+        for internal_name in ("core", "utils"):
+            assert internal_name not in importobot.__all__
 
     def test_enterprise_ci_cd_workflow(self):
         """Test typical CI/CD integration workflow."""
         # Simulate CI/CD validation workflow
-        test_data = {"testCase": {"name": "CI Test", "steps": []}}
+        test_data = {
+            "testCase": {
+                "name": "CI Test",
+                "testScript": {"steps": [{}]},
+            }
+        }
 
-        # Step 1: Validate input
-        is_valid = validation.validate_json_dict(test_data)
-        assert is_valid
+        validation.validate_json_dict(test_data)
 
-        # Step 2: Create converter (not used in this test)
-        # converter = importobot.JsonToRobotConverter()
-
-        # Step 3: Get suggestions for improvements
         engine = suggestions.GenericSuggestionEngine()
-        # pylint: disable=no-member
         improvements = engine.suggest_improvements([test_data])
-        assert isinstance(improvements, list)
+
+        assert any("Add test case description" in item for item in improvements)
 
     def test_pandas_style_api_patterns(self):
         """Test that API follows pandas-style patterns."""
@@ -165,9 +192,13 @@ class TestPublicAPIIntegration:
         assert hasattr(importobot.api, "suggestions")
 
         # Test that submodules have clean interfaces
-        assert hasattr(importobot.api.validation, "__all__")
-        assert hasattr(importobot.api.converters, "__all__")
-        assert hasattr(importobot.api.suggestions, "__all__")
+        assert set(importobot.api.validation.__all__) == {
+            "validate_json_dict",
+            "validate_safe_path",
+            "ValidationError",
+        }
+        assert "JsonToRobotConverter" in importobot.api.converters.__all__
+        assert "GenericSuggestionEngine" in importobot.api.suggestions.__all__
 
 
 class TestAPIBackwardCompatibility:
@@ -178,21 +209,15 @@ class TestAPIBackwardCompatibility:
         # Test JsonToRobotConverter interface
         converter = importobot.JsonToRobotConverter()
 
-        # Core methods must exist
-        assert hasattr(converter, "convert_file")
-        assert hasattr(converter, "convert_directory")
+        output = converter.convert_json_data(_make_test_payload())
 
-        # Methods should be callable
-        assert callable(converter.convert_file)  # pylint: disable=no-member
-        assert callable(converter.convert_directory)  # pylint: disable=no-member
+        assert "*** Test Cases ***" in output
+        assert "Login Test" in output
 
     def test_exception_interface_stability(self):
         """Test that exception interfaces remain stable."""
-        # Test exception classes exist
-        assert hasattr(importobot.exceptions, "ValidationError")
-        assert hasattr(importobot.exceptions, "ConversionError")
-        assert hasattr(importobot.exceptions, "ParseError")
+        with pytest.raises(importobot.exceptions.ValidationError):
+            raise importobot.exceptions.ValidationError("Test validation error")
 
-        # Test exceptions are proper exception classes
-        ValidationError = importobot.exceptions.ValidationError
-        assert issubclass(ValidationError, Exception)
+        with pytest.raises(importobot.exceptions.ImportobotError):
+            raise importobot.exceptions.ConversionError("Test conversion error")

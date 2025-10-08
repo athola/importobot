@@ -2,9 +2,9 @@
 
 import json
 import re
-import subprocess
 
 import pytest
+from robot.api import get_model
 
 from importobot.core.converter import convert_file, get_conversion_suggestions
 from tests.utils import validate_test_script_structure  # type: ignore[import-untyped]
@@ -34,8 +34,8 @@ def hash_test_data():
                         "description": (
                             "In target machine's terminal, get the sha of new file"
                         ),
-                        "testData": "sha256sum testfile.txt",
-                        "expectedResult": "The sha256sum is shown",
+                        "testData": "blake2bsum testfile.txt",
+                        "expectedResult": "The blake2bsum is shown",
                     },
                     {
                         "description": "Use the hash command on the CLI",
@@ -97,8 +97,8 @@ def hash_file_fixture(tmp_path):
                         "description": (
                             "In target machine's terminal, get the sha of new file"
                         ),
-                        "testData": "sha256sum testfile.txt",
-                        "expectedResult": "The sha256sum is shown",
+                        "testData": "blake2bsum testfile.txt",
+                        "expectedResult": "The blake2bsum is shown",
                     },
                     {
                         "description": "Use the hash command on the CLI",
@@ -258,34 +258,11 @@ class TestHashFileExample:
         # Verify the Robot Framework file was created
         assert output_robot_file.exists(), "Output robot file was not created"
 
-        # Run Robot Framework dry run to check syntax
-        try:
-            result = subprocess.run(
-                [
-                    "robot",
-                    "--dryrun",
-                    "--outputdir",
-                    str(tmp_path),
-                    str(output_robot_file),
-                ],
-                capture_output=True,
-                text=True,
-                timeout=30,
-                check=False,  # We check return code explicitly below
-            )
-
-            # Check that Robot Framework executed successfully (exit code 0)
-            # Note: We're checking for syntax validity, not test execution success
-            assert result.returncode == 0, (
-                f"Robot Framework dry run failed with exit code "
-                f"{result.returncode}. "
-                f"STDOUT: {result.stdout} STDERR: {result.stderr}"
-            )
-
-        except subprocess.TimeoutExpired:
-            pytest.fail("Robot Framework execution timed out")
-        except FileNotFoundError:
-            pytest.skip("Robot Framework not found, skipping execution test")
+        # Parse the generated suite to ensure it is syntactically valid Robot code
+        model = get_model(str(output_robot_file))
+        assert not model.errors, (
+            f"Robot Framework reported parse errors: {model.errors}"
+        )
 
     # pylint: disable=redefined-outer-name
     def test_hash_file_robot_content_contains_expected_keywords(
@@ -323,13 +300,13 @@ class TestHashFileExample:
 
         # Should contain test data from the steps
         assert "echo" in content
-        assert "sha256sum" in content
+        assert "blake2bsum" in content
         assert "hash" in content
 
         # Should contain expected results as comments
         assert "File created" in content
         assert "Hash matches that from step 2" in content
-        assert "The sha256sum is shown" in content
+        assert "The blake2bsum is shown" in content
 
     # pylint: disable=redefined-outer-name
     def test_hash_file_conversion_provides_helpful_suggestions(self, hash_test_data):

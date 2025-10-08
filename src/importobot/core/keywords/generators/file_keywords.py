@@ -1,6 +1,7 @@
 """File operation keyword generation for Robot Framework."""
 
 import json
+import os
 import re
 from typing import Any
 
@@ -8,6 +9,14 @@ from importobot.core.keywords.base_generator import BaseKeywordGenerator
 from importobot.utils.pattern_extraction import extract_pattern
 from importobot.utils.step_processing import extract_step_information
 from importobot.utils.validation import format_robot_framework_arguments
+
+_SAFE_FILE_ROOT = os.path.join(os.path.expanduser("~"), "importobot", "files")
+
+
+def _safe_file_path(name: str) -> str:
+    """Return a predictable fallback path outside world-writable temp locations."""
+    cleaned = name.lstrip("/\\")
+    return os.path.join(_SAFE_FILE_ROOT, cleaned) if cleaned else _SAFE_FILE_ROOT
 
 
 class FileKeywordGenerator(BaseKeywordGenerator):
@@ -35,7 +44,10 @@ class FileKeywordGenerator(BaseKeywordGenerator):
         # Get File requires at least a remote path
         if args:
             return format_robot_framework_arguments("Get File", *args)
-        return "Get File    /tmp/remote.txt    /tmp/local.txt"
+        return (
+            "Get File    "
+            f"{_safe_file_path('remote.txt')}    {_safe_file_path('local.txt')}"
+        )
 
     def generate_exists_keyword(self, test_data: str) -> str:
         """Generate file exists verification keyword."""
@@ -56,7 +68,7 @@ class FileKeywordGenerator(BaseKeywordGenerator):
         # File Should Exist requires a path argument
         if path:
             return f"File Should Exist    {path}"
-        return "File Should Exist    /tmp/test.txt"
+        return f"File Should Exist    {_safe_file_path('test.txt')}"
 
     def generate_remove_keyword(self, test_data: str) -> str:
         """Generate file removal keyword."""
@@ -66,7 +78,11 @@ class FileKeywordGenerator(BaseKeywordGenerator):
             # Try generic file path extraction
             path = extract_pattern(test_data, r"/[^\s,]+|[a-zA-Z]:\\[^\s,]+")
         # Remove File requires a path argument
-        return f"Remove File    {path}" if path else "Remove File    /tmp/test.txt"
+        return (
+            f"Remove File    {path}"
+            if path
+            else f"Remove File    {_safe_file_path('test.txt')}"
+        )
 
     def generate_create_keyword(self, description: str, test_data: str) -> str:
         """Generate file creation keyword."""

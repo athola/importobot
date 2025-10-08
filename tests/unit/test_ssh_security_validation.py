@@ -528,16 +528,24 @@ class TestSSHSecurityValidation:
             ]
         }
 
-        dev_warnings = security_validator.validate_test_security(dev_context)
-        prod_warnings = security_validator.validate_test_security(prod_context)
+        dev_result = security_validator.validate_test_security(dev_context)
+        prod_result = security_validator.validate_test_security(prod_context)
+
+        dev_warnings = dev_result.get("warnings", [])
+        prod_warnings = prod_result.get("warnings", [])
 
         # Production should generally have more/stronger warnings
         # At minimum, both should have some warnings about password usage
         assert len(dev_warnings) > 0, "Should have warnings for dev environment"
         assert len(prod_warnings) > 0, "Should have warnings for prod environment"
 
-        # Production warnings should be more serious or numerous
+        # Production warnings should mention production context
         prod_warning_text = " ".join(prod_warnings).lower()
-        assert "production" in prod_warning_text or len(prod_warnings) >= len(
-            dev_warnings
-        ), "Production context should have appropriate security emphasis"
+        assert "production" in prod_warning_text, (
+            "Production warnings should explicitly mention production context"
+        )
+
+        # Production should have at least as many warnings as dev
+        assert len(prod_warnings) >= len(dev_warnings), (
+            "Production should have equal or more warnings than dev"
+        )

@@ -38,6 +38,7 @@ class IntentType(Enum):
     BROWSER_NAVIGATE = "browser_navigate"
     INPUT_USERNAME = "input_username"
     INPUT_PASSWORD = "input_password"
+    CREDENTIAL_INPUT = "credential_input"  # Composite: username + password
     CLICK_ACTION = "click"
     VERIFY_CONTENT = "web_verify_text"
     ELEMENT_VERIFICATION = "element_verification"
@@ -128,7 +129,9 @@ class PatternMatcher:
                 priority=10,
             ),
             IntentPattern(
-                IntentType.COMMAND_EXECUTION, r"\b(?:echo|hash|sha256sum)\b", priority=9
+                IntentType.COMMAND_EXECUTION,
+                r"\b(?:echo|hash|blake2bsum)\b",
+                priority=9,
             ),
             # File operations (most specific patterns first)
             IntentPattern(
@@ -303,6 +306,12 @@ class PatternMatcher:
                 priority=5,
             ),
             IntentPattern(
+                IntentType.CREDENTIAL_INPUT,
+                r"\b(?:enter|input|type|fill|provide).*"
+                r"(?:credentials?|login\s+(?:details|info))\b",
+                priority=6,  # Higher priority than individual username/password
+            ),
+            IntentPattern(
                 IntentType.CLICK_ACTION,
                 r"\b(?:click|press|tap).*(?:button|element)\b",
                 priority=4,
@@ -321,8 +330,17 @@ class PatternMatcher:
             # Content verification
             IntentPattern(
                 IntentType.CONTENT_VERIFICATION,
-                r"\b(?:verify|check|ensure|assert).*(?:content|contains|displays)\b",
+                (
+                    r"\b(?:verify|check|ensure|assert|validate)"
+                    r".*(?:content|contains|displays)\b"
+                ),
                 priority=3,
+            ),
+            # General validation pattern (audit trails, compliance checks, etc.)
+            IntentPattern(
+                IntentType.CONTENT_VERIFICATION,
+                r"\b(?:validate|verify|check|ensure|assert)\b",
+                priority=2,
             ),
             # Specific verification format
             IntentPattern(

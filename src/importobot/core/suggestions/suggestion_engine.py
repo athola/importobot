@@ -4,6 +4,7 @@ import copy
 from typing import Any, Union
 
 from importobot import exceptions
+from importobot.core.constants import TEST_CONTAINER_FIELD_NAMES
 from importobot.core.interfaces import SuggestionEngine
 from importobot.core.parsers import GenericTestFileParser
 from importobot.utils.logging import setup_logger
@@ -137,10 +138,15 @@ class GenericSuggestionEngine(SuggestionEngine):
         if isinstance(json_data, list):
             return json_data
         if isinstance(json_data, dict):
-            if "tests" in json_data:
-                return json_data["tests"]
-            if "testCases" in json_data:
-                return json_data["testCases"]
+            for key, value in json_data.items():
+                if (
+                    isinstance(value, list)
+                    and key.lower() in TEST_CONTAINER_FIELD_NAMES
+                ):
+                    return value
+            for key, value in json_data.items():
+                if key.lower() in TEST_CONTAINER_FIELD_NAMES:
+                    return value
             return [json_data]  # Single test case
         return "Invalid JSON structure: expected object or array"
 
@@ -149,9 +155,14 @@ class GenericSuggestionEngine(SuggestionEngine):
         if isinstance(data, list):
             return data
         if isinstance(data, dict):
-            if "tests" in data:
-                return data["tests"]
-            if "testCases" in data:
-                return data["testCases"]
+            for key, value in data.items():
+                if (
+                    isinstance(value, list)
+                    and key.lower() in TEST_CONTAINER_FIELD_NAMES
+                ):
+                    return value
+            for key, value in data.items():
+                if key.lower() in TEST_CONTAINER_FIELD_NAMES:
+                    return value
             return [data]  # Single test case
         return "Invalid JSON structure: expected object or array"

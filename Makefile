@@ -18,7 +18,7 @@ help:
 	@echo "  typecheck    - Run type checking"
 	@echo "  validate     - Validate PR readiness (lint + typecheck + test)"
 	@echo "  clean        - Clean temp files"
-	@echo "  examples     - Run all example conversions"
+	@echo "  examples     - Run all example conversions and usage examples"
 	@echo "  example-basic           - Basic login example"
 	@echo "  example-login           - Browser login example"
 	@echo "  example-suggestions     - Hash file example with suggestions"
@@ -26,12 +26,18 @@ help:
 	@echo "  example-user-registration   - Web form automation example"
 	@echo "  example-file-transfer       - SSH file transfer example"
 	@echo "  example-database-api        - Database and API testing example"
+	@echo "  example-usage-basic         - Basic API usage examples"
+	@echo "  example-usage-advanced      - Advanced features examples"
+	@echo "  example-usage-cli           - CLI usage examples"
 	@echo "  enterprise-demo         - Bulk conversion test"
 	@echo "  interactive-demo        - Run interactive business benefits demo"
 	@echo "  interactive-demo-test   - Run interactive demo in non-interactive mode"
 	@echo "  mcp-query               - Query the Qwen model through MCP"
 	@echo "  mcp-review              - Request a code review through MCP"
 	@echo "  bench                   - Run performance benchmarks"
+	@echo "  mutation               - Run mutation tests (mutmut)"
+	@echo "  perf-test              - Run performance regression tests"
+	@echo "  benchmark-dashboard    - Generate benchmark dashboard HTML"
 	@echo ""
 	@echo "Scripts subproject commands:"
 	@echo "  scripts-test            - Run tests for scripts subproject"
@@ -97,22 +103,25 @@ format:
 typecheck:
 	$(info $(NEWLINE)==================== Running type checking ====================$(NEWLINE))
 	uv run ty check .
-	uv run mypy .
+	uv run mypy -p importobot
+	uv run mypy tests
+	cd scripts && uv run mypy -p importobot_scripts
+	cd scripts && uv run mypy tests
 
 # Validate PR readiness
 .PHONY: validate
 validate: lint typecheck test
 	$(info $(NEWLINE)==================== Validating PR readiness ====================$(NEWLINE))
 	$(info $(NEWLINE)Checking for exposed secrets...$(NEWLINE))
-	@command -v detect-secrets >/dev/null 2>&1 || { echo "⚠️  detect-secrets not found. Install with: pip install detect-secrets"; exit 1; }
-	@detect-secrets scan --all-files . || { echo "⚠️  Secrets detected! Run 'detect-secrets scan --all-files .' to see details"; exit 1; }
+	@uv run detect-secrets --version >/dev/null 2>&1 || { echo "⚠️  detect-secrets unavailable. Run 'uv sync' to install dev dependencies"; exit 1; }
+	@uv run detect-secrets scan --all-files . || { echo "⚠️  Secrets detected! Run 'uv run detect-secrets scan --all-files .' to see details"; exit 1; }
 	$(info $(NEWLINE)Checking dependency updates...$(NEWLINE))
 	@uv pip list --outdated || true
 	$(info $(NEWLINE)Checking for uncommitted changes...$(NEWLINE))
 	@git status --porcelain | head -5 || true
 	$(info $(NEWLINE)Checking for security vulnerabilities...$(NEWLINE))
-	@command -v bandit >/dev/null 2>&1 || { echo "⚠️  bandit not found. Install with: pip install bandit"; exit 1; }
-	@bandit -r src/ -f json -o bandit-report.json || { echo "⚠️  Security issues found! Check bandit-report.json"; exit 1; }
+	@uv run bandit --version >/dev/null 2>&1 || { echo "⚠️  bandit unavailable. Run 'uv sync' to install dev dependencies"; exit 1; }
+	@uv run bandit -r src/ -ll -f json -o bandit-report.json || { echo "⚠️  Security issues found! Check bandit-report.json"; exit 1; }
 	@rm -f bandit-report.json
 	$(info $(NEWLINE)✅ All validation checks passed! Ready for PR review.$(NEWLINE))
 
@@ -137,7 +146,7 @@ clean:
 
 # Examples
 .PHONY: examples
-examples: example-basic example-login example-suggestions example-user-registration example-file-transfer example-database-api
+examples: example-basic example-login example-suggestions example-user-registration example-file-transfer example-database-api example-usage-basic example-usage-advanced example-usage-cli
 
 .PHONY: example-basic
 example-basic:
@@ -197,6 +206,21 @@ example-parameters:
 	@cat examples/robot/cat_file.robot
 	uv run robot --dryrun examples/robot/cat_file.robot
 
+.PHONY: example-usage-basic
+example-usage-basic:
+	$(info $(NEWLINE)==================== Running basic API usage examples ====================$(NEWLINE))
+	uv run python scripts/src/importobot_scripts/example_basic_usage.py
+
+.PHONY: example-usage-advanced
+example-usage-advanced:
+	$(info $(NEWLINE)==================== Running advanced features examples ====================$(NEWLINE))
+	uv run python scripts/src/importobot_scripts/example_advanced_features.py
+
+.PHONY: example-usage-cli
+example-usage-cli:
+	$(info $(NEWLINE)==================== Running CLI usage examples ====================$(NEWLINE))
+	uv run python scripts/src/importobot_scripts/example_cli_usage.py
+
 
 # Interactive demo
 .PHONY: interactive-demo
@@ -225,6 +249,25 @@ mcp-review:
 bench:
 	$(info $(NEWLINE)==================== Running performance benchmarks ====================$(NEWLINE))
 	uv run python scripts/src/importobot_scripts/performance_benchmark.py
+
+# Mutation testing
+.PHONY: mutation
+mutation:
+	$(info $(NEWLINE)==================== Running mutation tests ====================$(NEWLINE))
+	uv run mutmut run
+	uv run mutmut results --all 1 || true
+
+# Performance regression tests
+.PHONY: perf-test
+perf-test:
+	$(info $(NEWLINE)==================== Running performance regression tests ====================$(NEWLINE))
+	uv run pytest tests/performance --maxfail=1 --durations=10
+
+# Benchmark dashboard
+.PHONY: benchmark-dashboard
+benchmark-dashboard:
+	$(info $(NEWLINE)==================== Building benchmark dashboard ====================$(NEWLINE))
+	uv run python scripts/src/importobot_scripts/benchmark_dashboard.py
 
 # Enterprise demo - bulk conversion test
 .PHONY: enterprise-demo

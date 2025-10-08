@@ -1,6 +1,6 @@
 # User Guide
 
-This guide provides instructions for using Importobot to convert your test cases.
+Use this guide to refer to CLI flags, input formats, and supporting tools for Importobot.
 
 ## Supported Input Formats
 
@@ -27,24 +27,17 @@ uv run importobot --batch input_folder/ output_folder/
 ```
 
 ### Options
-- `--help`: Display help message.
-- `--batch`: Enable batch processing mode.
-- `--verbose`: Enable verbose output.
-- Argument validation with comprehensive error handling.
-- Enterprise test generation capabilities.
+- `--help` – show CLI help
+- `--batch` – enable directory mode
+- `--verbose` – print extra diagnostics
 
-### Enterprise Test Generation
-Importobot supports enterprise-scale test generation with up to 1,050 test cases for comprehensive coverage. Use the provided scripts for generating large test suites:
+### Enterprise test generators
+Helper scripts under `scripts/` can emit large sample suites for demos or benchmarking:
 
 ```bash
-# Generate enterprise-scale tests
 python scripts/generate_enterprise_tests.py
-
-# Generate Zephyr-specific tests
 python scripts/generate_zephyr_tests.py
 ```
-
-This feature includes business domain templates for realistic test scenarios and conversion strategies for flexible file handling.
 
 ## How It Works
 
@@ -100,60 +93,25 @@ User Login Functionality
 
 ## Library Detection
 
-Importobot automatically detects which Robot Framework libraries are needed based on the test steps, including:
-
-- SeleniumLibrary (web automation)
-- SSHLibrary (SSH connections and file transfers)
-- RequestsLibrary (API testing)
-- DatabaseLibrary (database operations)
-- OperatingSystem (file system operations)
-- Process (external process execution)
-- Additional enterprise libraries for comprehensive automation coverage
+Importobot infers required Robot libraries from step text, including SeleniumLibrary, SSHLibrary, RequestsLibrary, DatabaseLibrary, OperatingSystem, and Process.
 
 ## Intent-Based Conversion
 
-Importobot uses an intent-driven approach to convert test cases. It analyzes test step descriptions to identify the intended action, rather than relying on a specific format.
+Step text is parsed for intent (e.g., “navigate”, “assert”), which drives keyword selection instead of rigid templates.
 
 ## Suggestion Engine
 
-Importobot includes an intelligent suggestion engine that provides automatic test improvement suggestions. This feature analyzes generated tests and offers recommendations for:
-
-- Enhanced test coverage
-- Better assertion strategies
-- Improved error handling
-- Security control implementations
+The suggestion engine reviews generated tests and flags gaps (missing assertions, weak error handling, security red flags) using `importobot.api.suggestions`.
 
 ## Validation Framework
 
-The comprehensive validation framework ensures security and reliability:
-
-- Input validation with fail-fast principles
-- Security controls for safe test execution
-- Data structure validation
-- Configuration validation at startup
-- Descriptive error reporting for immediate issue detection
+Validation checks inputs, configuration, and security rules before a conversion completes. Failures raise `ValidationError`/`SecurityError` with actionable messages.
 
 ## Artifact Management
 
-Importobot generates various artifacts during the conversion process. To keep your workspace clean:
+### Cleaning artifacts
 
-### Cleaning Artifacts
-```bash
-# Clean common temporary files and directories
-make clean
-
-# Perform thorough cleanup including all generated artifacts
-make deep-clean
-```
-
-### What Gets Cleaned
-- Python cache files (`.pyc`, `__pycache__/`)
-- Test cache directories (`.pytest_cache/`, `.coverage`, `htmlcov/`)
-- Package info directories (`*.egg-info/`)
-- Generated Robot Framework files (`examples/robot/*.robot`)
-- Robot Framework output files (`output.xml`, `log.html`, `report.html`, `selenium-screenshot-*.png`)
-- Common artifact files (`compile.log`, `coverage.xml`, `test-results.xml`, `texput.log`)
-- Generated test directories (`robot-tests/`, `zephyr-tests/`)
+Run `make clean` for common temp files or `make deep-clean` to remove generated Robot outputs and coverage artifacts. The targets cover caches (`__pycache__`, `.pytest_cache`), coverage reports, and generated example suites.
 
 ## Configuration
 
@@ -171,12 +129,49 @@ export IMPORTOBOT_HEADLESS_BROWSER="True"
 uv run importobot input.json output.robot
 ```
 
-## Best Practices
+## Best practices
 
-1. **Validate Input**: Ensure your JSON files are valid before conversion.
-2. **Review Output**: Review the generated Robot Framework files before execution.
-3. **Test Generated Code**: Run the converted tests in a test environment before production use.
-4. **Use Examples**: Refer to the provided examples to understand the expected input formats.
-5. **Use Batch Processing**: For large test suites, use batch processing for efficiency.
-6. **Clean Artifacts**: Regularly clean generated artifacts using `make clean` or `make deep-clean`.
-7. **Maintain Repository Cleanliness**: Ensure no artifacts are accidentally committed to the repository.
+1. Validate JSON exports before conversion.
+2. Review and dry-run the generated Robot files.
+3. Use batch mode for large suites.
+4. Clean artifacts (`make clean`) before committing.
+
+## Advanced Features
+
+Internally, Importobot follows a Bronze/Silver/Gold pipeline to keep data quality high, but those modules stay private. Use the public API shown below.
+
+### Using the Public API
+
+```python
+import importobot
+
+# Primary conversion interface
+converter = importobot.JsonToRobotConverter()
+
+# Convert a test case
+test_data = {
+    "testCase": {
+        "name": "Checkout Smoke",
+        "steps": [
+            {"stepDescription": "Open checkout", "expectedResult": "Checkout loads"},
+            {"stepDescription": "Submit order", "expectedResult": "Order created"},
+        ],
+    }
+}
+
+# Convert to Robot Framework format
+robot_content = converter.convert_json_data(test_data)
+print(robot_content)
+
+# For validation features
+from importobot.api import validation
+
+# Validate test data structure
+validation_result = validation.validate_test_structure(test_data)
+if validation_result.is_valid:
+    print("Test structure is valid")
+else:
+    print(f"Validation errors: {validation_result.errors}")
+```
+
+**Internal layers (FYI only):** Bronze handles schema checks, Silver standardises data (in development), Gold prepares the Robot output. Stick to `importobot.*` and `importobot.api.*`; internal modules (`importobot.medallion.*`, `importobot.core.*`) are unsupported.

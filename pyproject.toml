@@ -7,7 +7,7 @@ members = [".", "scripts"]
 
 [project]
 name = "importobot"
-version = "0.1.0"
+version = "0.1.1"
 description = "Automated test framework converter for migrating test cases from Zephyr, JIRA/Xray, and TestLink to Robot Framework format with bulk processing capabilities"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -43,6 +43,7 @@ dependencies = [
     "robotframework-requests>=0.9.4",
     "robotframework-databaselibrary>=1.2.4",
     "psutil>=7.0.0",
+    "bleach>=6.1.0",
 ]
 
 [project.urls]
@@ -51,7 +52,6 @@ dependencies = [
 "Bug Tracker" = "https://github.com/athola/importobot/issues"
 "Documentation" = "https://github.com/athola/importobot/wiki"
 "Changelog" = "https://github.com/athola/importobot/blob/main/CHANGELOG.md"
-"Packages" = "https://github.com/athola/importobot/packages"
 
 [project.optional-dependencies]
 viz = [
@@ -68,18 +68,42 @@ demo = [
     "numpy>=2.2.6",
     "pandas>=2.0.0",
 ]
+confidence = [
+    "scipy>=1.15.3",
+]
+medallion = [
+    # Core medallion architecture dependencies
+    # Note: All dependencies use standard library or existing requirements
+    # Storage backends (for future cloud integration)
+    # "boto3>=1.26.0",  # For AWS S3 backend (commented out for now)
+    # "azure-storage-blob>=12.14.0",  # For Azure backend (commented out for now)
+    # "google-cloud-storage>=2.7.0",  # For GCP backend (commented out for now)
+]
+enterprise = [
+    # Enterprise features
+    "pandas>=2.0.0",  # For advanced analytics
+    "numpy>=2.2.6",   # For statistical analysis
+    # Cloud storage backends
+    # "boto3>=1.26.0",  # AWS integration
+    # "azure-storage-blob>=12.14.0",  # Azure integration
+    # "google-cloud-storage>=2.7.0",  # GCP integration
+]
 all = [
     "matplotlib>=3.10.6",
     "numpy>=2.2.6",
     "pandas>=2.0.0",
+    "scipy>=1.15.3",
+    # Medallion architecture included in 'all'
 ]
 
 [project.scripts]
 importobot = "importobot.__main__:main"
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
+    "scipy-stubs>=1.15.3.0",
     "pytest>=7.0.0",
+    "pytest-asyncio>=0.23.5",
     "coverage>=7.0.0",
     "ruff>=0.1.0",
     "pylint>=2.17.0",
@@ -96,6 +120,8 @@ dev-dependencies = [
     "matplotlib",
     "detect-secrets>=1.5.0",
     "bandit>=1.7.0",
+    "hypothesis>=6.140.2",
+    "mutmut>=2.4.4",
 ]
 
 [tool.setuptools.packages.find]
@@ -105,9 +131,12 @@ exclude = ["scripts*", "importobot_scripts*"]
 [tool.setuptools.package-dir]
 "" = "src"
 
+[tool.setuptools.package-data]
+importobot = ["py.typed"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = [".", "tests"]
+pythonpath = [".", "tests", "src"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -123,6 +152,7 @@ source = ["src"]
 [tool.ruff]
 line-length = 88
 target-version = "py310"
+exclude = [".venv", ".uv-cache"]
 
 [tool.ruff.lint]
 select = [
@@ -137,6 +167,10 @@ extend-ignore = [
     "E501", # Line too long (handled by ruff format)
 ]
 
+[tool.ruff.lint.per-file-ignores]
+# Mathematical algorithms in format detector are inherently complex
+"src/importobot/medallion/bronze/format_detector.py" = ["C901"]
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
@@ -145,22 +179,21 @@ line-ending = "auto"
 
 [tool.pylint]
 rcfile = "pylintrc"
-ignore = [".venv"]
+ignore = [".venv", ".uv-cache"]
 
 [tool.black]
 exclude = '''
 /(?:
     \.venv
+  | \.uv-cache
 )/
 '''
 
 
 
-[tool.pycodestyle]
-max-line-length = 88
 
 [tool.pydocstyle]
-match-dir = "^(?!.venv).*"
+match-dir = '^(?!\.venv|\.uv-cache|scripts).*'
 
 [tool.mypy]
 python_version = "3.10"
@@ -171,8 +204,29 @@ disallow_incomplete_defs = true
 check_untyped_defs = true
 disallow_untyped_decorators = true
 no_implicit_optional = true
+mypy_path = "src:scripts/src"
 explicit_package_bases = true
 namespace_packages = true
+exclude = ['^\.venv', '^\.uv-cache', '^scripts']
+
+[tool.mutmut]
+paths_to_mutate = [
+    "src/importobot/medallion/bronze/mvlp_bayesian_confidence.py",
+    "src/importobot/medallion/bronze/detection_cache.py",
+    "src/importobot/services/optimization_service.py",
+    "src/importobot/services/performance_cache.py",
+    "src/importobot/services/data_ingestion_service.py",
+    "src/importobot/telemetry.py",
+]
+tests_dir = [
+    "tests/unit/medallion/bronze/test_mvlp_bayesian_confidence.py",
+    "tests/unit/medallion/bronze/test_detection_cache.py",
+    "tests/unit/services/test_optimization_service.py",
+    "tests/unit/services/test_performance_cache.py",
+    "tests/unit/services/test_data_ingestion_async.py",
+]
+runner = "python scripts/src/importobot_scripts/mutmut_pytest_runner.py"
+backup = false
 mypy_path = "./src:./scripts/src"
 files = ["./src", "./tests"]
 

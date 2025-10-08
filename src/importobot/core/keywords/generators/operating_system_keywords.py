@@ -1,11 +1,20 @@
 """Operating System keyword generation for Robot Framework."""
 
+import os
 import re
 from typing import Any
 
 from importobot.core.keywords.base_generator import BaseKeywordGenerator
 from importobot.utils.pattern_extraction import extract_pattern
 from importobot.utils.step_processing import extract_step_information
+
+_SAFE_DEFAULT_ROOT = os.path.join(os.path.expanduser("~"), "importobot")
+
+
+def _safe_home_path(name: str) -> str:
+    """Return a predictable, non-world-writable fallback path."""
+    cleaned = name.lstrip("/\\")
+    return os.path.join(_SAFE_DEFAULT_ROOT, cleaned) if cleaned else _SAFE_DEFAULT_ROOT
 
 
 class OperatingSystemKeywordGenerator(BaseKeywordGenerator):
@@ -76,7 +85,7 @@ class OperatingSystemKeywordGenerator(BaseKeywordGenerator):
             "hash",
             "md5sum",
             "sha1sum",
-            "sha256sum",
+            "blake2bsum",
             "sha512sum",
             "grep",
             "awk",
@@ -171,7 +180,7 @@ class OperatingSystemKeywordGenerator(BaseKeywordGenerator):
         content = extract_pattern(test_data, r"(?:content|text|data):\s*(.+)")
 
         if not path:
-            path = "/tmp/test_file.txt"
+            path = _safe_home_path("test_file.txt")
         if not content:
             content = "Default content"
 
@@ -189,7 +198,7 @@ class OperatingSystemKeywordGenerator(BaseKeywordGenerator):
             if path_match:
                 path = path_match.group(1)
             else:
-                path = "/tmp/test_file.txt"
+                path = _safe_home_path("test_file.txt")
 
         return f"Get File    {path}"
 
@@ -199,9 +208,9 @@ class OperatingSystemKeywordGenerator(BaseKeywordGenerator):
         dest = extract_pattern(test_data, r"(?:dest|destination|to):\s*([^\s,]+)")
 
         if not source:
-            source = "/tmp/source.txt"
+            source = _safe_home_path("source.txt")
         if not dest:
-            dest = "/tmp/destination.txt"
+            dest = _safe_home_path("destination.txt")
 
         return f"Copy File    {source}    {dest}"
 
@@ -217,7 +226,7 @@ class OperatingSystemKeywordGenerator(BaseKeywordGenerator):
             if path_match:
                 path = path_match.group(1)
             else:
-                path = "/tmp/test_file.txt"
+                path = _safe_home_path("test_file.txt")
 
         return f"Remove File    {path}"
 
@@ -233,14 +242,14 @@ class OperatingSystemKeywordGenerator(BaseKeywordGenerator):
         ):
             path = extract_pattern(test_data, r"(?:dir|directory|path):\s*([^\s,]+)")
             if not path:
-                path = "/tmp/test_dir"
+                path = _safe_home_path("test_dir")
             return f"Create Directory    {path}"
 
         # Directory listing
         if "list" in desc_lower and ("directory" in desc_lower or "dir" in desc_lower):
             path = extract_pattern(test_data, r"(?:dir|directory|path):\s*([^\s,]+)")
             if not path:
-                path = "/tmp"
+                path = _SAFE_DEFAULT_ROOT
             return f"List Directory    {path}"
 
         # Directory removal
@@ -249,7 +258,7 @@ class OperatingSystemKeywordGenerator(BaseKeywordGenerator):
         ):
             path = extract_pattern(test_data, r"(?:dir|directory|path):\s*([^\s,]+)")
             if not path:
-                path = "/tmp/test_dir"
+                path = _safe_home_path("test_dir")
             return f"Remove Directory    {path}"
 
         # Default

@@ -8,20 +8,38 @@
 
 ## What is Importobot?
 
-**Importobot** is a Python automation tool that converts test cases from test management frameworks (like Zephyr, JIRA/Xray, and TestLink) into executable Robot Framework format. It is a powerful and flexible open-source tool for migrating legacy test suites to modern automation frameworks.
+Importobot addresses the massive waste of time that is manually copying Zephyr or TestLink cases into Robot Framework. It reads structured exports (such as JSON) and writes runnable Robot suites without touching the browser or a spreadsheet.
 
-Organizations often have thousands of test cases in legacy systems. Migrating them manually is a slow, error-prone, and expensive process. Importobot automates this conversion process, saving time and resources while preserving test knowledge and business logic.
+If there is a backlog of legacy tests and a deadline, Importobot keeps step order, migrates metadata, and flags the parts that still need a human decision.
 
 ## Main Features
 
-- **Automated Conversion**: Convert entire test suites with a single command.
-- **Bulk Processing**: Recursively find and convert test cases in a directory.
-- **Intelligent Field Mapping**: Automatically map test steps, expected results, tags, and priorities.
-- **Extensible**: A modular architecture allows for adding new input formats and conversion strategies.
-- **Pandas-inspired API**: A `pandas`-inspired API for seamless integration into CI/CD pipelines and enterprise workflows.
-- **Validation and Suggestions**: Proactively validate input data and provide suggestions for ambiguous or poorly-defined test cases.
-- **High-Quality Output**: Maintains a high code quality standard with comprehensive test coverage.
-- **Production Ready**: The project has over 1150 tests and has been validated for enterprise-scale performance.
+- Convert Zephyr JSON exports into Robot Framework files with a single command
+- Walk a directory tree and process discovered supported files
+- Preserve descriptions, steps, tags, and priorities instead of flattening them away
+- Raise validation errors when inputs look suspicious rather than imposing its own assumptions
+- Expose the same functionality as a Python API for CI pipelines and custom tooling
+- Ship with a test suite (~1150 checks) that protects the relied-upon conversions 
+
+## Latest updates
+
+- Comment lines now keep their literal placeholders and control characters; executable lines still gain `${param}` replacements, which satisfies the property-based step preservation checks.
+- Generated suites annotate both the raw and normalized test names, improving traceability when inputs contain non-printable characters.
+- A startup shim preloads deprecated `robot.utils` helpers so SeleniumLibrary tests run quietly, and the Selenium integration path now executes in dry-run mode with explicit cleanup to avoid ResourceWarnings.
+- Cache limits and TTLs are now configurable via environment variables such as `IMPORTOBOT_DETECTION_CACHE_MAX_SIZE`, `IMPORTOBOT_DETECTION_CACHE_COLLISION_LIMIT`, `IMPORTOBOT_DETECTION_CACHE_TTL_SECONDS`, `IMPORTOBOT_FILE_CACHE_MAX_MB`, `IMPORTOBOT_FILE_CACHE_TTL_SECONDS`, and `IMPORTOBOT_OPTIMIZATION_CACHE_TTL_SECONDS`, making prod/dev tuning easier.
+- SciPy is now optional; when absent, the MVLP scorer logs a warning and runs in heuristic mode while optimization/training remain disabled until SciPy is installed.
+- CI now runs the performance regression suite (`tests/performance`) via a
+  dedicated workflow job so hot paths stay within expected bounds.
+- Cache hit-rate telemetry can be enabled in production via `IMPORTOBOT_ENABLE_TELEMETRY`, with rate-limited emissions exposed through the central logging channel.
+- Asynchronous ingestion helpers (`ingest_file_async`, `ingest_json_string_async`, etc.) allow I/O-bound pipelines to integrate Importobot with event loops using `await` rather than dedicated worker threads.
+- Generate shareable performance dashboards with `make benchmark-dashboard`, which compiles the latest JSON benchmark output into a self-contained HTML report.
+
+## API surface & stability
+
+- **Supported:** `importobot.JsonToRobotConverter`, the CLI (`uv run importobot ...`), and modules exposed under `importobot.api.*`.
+- **Typed helpers:** `SecurityGateway` now returns structured results (`SanitizationResult` / `FileOperationResult`) with optional `correlation_id` metadata for tracing.
+- **Internal:** Packages under `importobot.medallion.*`, `importobot.core.*`, and `importobot.utils.test_generation.*` remain implementation details and may change without notice. Consume them only through the public API above.
+- **Configuration:** Tune cache behaviour with environment variables documented in the Configuration section (`IMPORTOBOT_*`), or explicitly pass cache instances to services when tighter control is required.
 
 ## Installation
 
@@ -31,11 +49,13 @@ Organizations often have thousands of test cases in legacy systems. Migrating th
 pip install importobot
 ```
 
-### From GitHub Packages
+To enable SciPy-backed MVLP training and uncertainty intervals, install the
+confidence extra:
 
 ```sh
-pip install --index-url https://pypi.org/simple/ --extra-index-url https://pip.fury.io/athola/ importobot
+pip install "importobot[confidence]"
 ```
+
 
 ### From Source
 
@@ -61,7 +81,7 @@ uv sync --dev
 
 ## Quick Start
 
-Here's a simple example of converting a Zephyr JSON export to a Robot Framework file.
+Here’s the minimal workflow used to test conversions:
 
 **Input (Zephyr JSON):**
 ```json
@@ -86,7 +106,6 @@ Here's a simple example of converting a Zephyr JSON export to a Robot Framework 
 **Conversion Command:**
 
 ```sh
-# Convert a single file
 uv run importobot zephyr_export.json converted_tests.robot
 ```
 
@@ -108,63 +127,56 @@ User Login Functionality
 
 ## API Usage
 
-Importobot provides a pandas-inspired API for easy integration:
+Hooking the converter into another project is straightforward:
 
-### Simple Usage
 ```python
 import importobot
 
-# Core bulk conversion
 converter = importobot.JsonToRobotConverter()
-result = converter.convert_file("input.json", "output.robot")
+summary = converter.convert_file("input.json", "output.robot")
+print(summary)
 ```
 
-### Enterprise Integration
-```python
-from importobot.api import validation, converters, suggestions
-
-# CI/CD pipeline validation
-try:
-    validation.validate_json_dict(test_data)
-    converter = converters.JsonToRobotConverter()
-    result = converter.convert_directory("/input", "/output")
-except importobot.exceptions.ValidationError as e:
-    print(f"Validation failed: {e}")
-
-# QA suggestion engine
-engine = suggestions.GenericSuggestionEngine()
-improvements = engine.suggest_improvements(problematic_tests)
-```
-
-### Advanced Configuration
-```python
-import importobot
-
-# Configure for enterprise security
-importobot.config.security_level = "strict"
-importobot.config.max_batch_size = 1000
-
-# Bulk processing with error handling
-converter = importobot.JsonToRobotConverter()
-results = converter.convert_directory(
-    input_dir="/test/exports",
-    output_dir="/robot/tests",
-    recursive=True
-)
-
-print(f"Converted: {results['success_count']} files")
-print(f"Failed: {results['error_count']} files")
-```
+For bulk jobs, run this inside CI, validate the payload first, and let the converter walk nested directories.
 
 ## Documentation
 
-The official documentation, including a full API reference, is available in the [project wiki](https://github.com/athola/importobot/wiki).
+Docs live in the [project wiki](https://github.com/athola/importobot/wiki). Start with:
+
+- [Medallion workflow walkthrough](https://github.com/athola/importobot/wiki/User-Guide#medallion-workflow-example)
+- [Migration guide](https://github.com/athola/importobot/wiki/Migration-Guide)
+- [Performance benchmarks](https://github.com/athola/importobot/wiki/Performance-Benchmarks)
+- [Architecture decision records](https://github.com/athola/importobot/wiki/architecture/ADR-0001-medallion-architecture)
+- [Deployment guide](https://github.com/athola/importobot/wiki/Deployment-Guide)
 
 ## Contributing
 
 All contributions, bug reports, bug fixes, documentation improvements, enhancements, and ideas are welcome.
 
 Please feel free to open an issue on the [GitHub issue tracker](https://github.com/athola/importobot/issues).
+
+### Mutation testing
+
+Run `make mutation` (or `uv run mutmut run`) to execute mutation tests. The
+configuration in `pyproject.toml` targets the high-risk MVLP scorer, detection
+cache, and optimization service modules plus their focused unit suites, and uses pytest as
+the runner; pass additional flags directly to `mutmut` when profiling a
+narrower subset locally.
+
+### Telemetry
+
+Set `IMPORTOBOT_ENABLE_TELEMETRY=1` in production environments to publish cache
+hit/miss metrics. Optional tuning knobs `IMPORTOBOT_TELEMETRY_MIN_INTERVAL_SECONDS`
+and `IMPORTOBOT_TELEMETRY_MIN_SAMPLE_DELTA` control how frequently events are
+emitted (defaults: 60s and 100 operations). Telemetry is disabled by default to
+avoid noisy logs in local development.
+
+### Benchmarks dashboard
+
+Run `make bench` to capture the latest profiling output, then `make
+benchmark-dashboard` to generate `performance_benchmark_dashboard.html`. The
+dashboard summarises single-file, bulk, API, and lazy-loading performance
+profiles, and embeds the raw JSON for further analysis or sharing.
 
 ## License
 

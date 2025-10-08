@@ -3,9 +3,12 @@
 import re
 from typing import Any
 
-from importobot.core.constants import (
-    STEP_DESCRIPTION_FIELD_NAMES,
-    TEST_DATA_FIELD_NAMES,
+from importobot.core.constants import STEPS_FIELD_NAME
+from importobot.core.field_definitions import (
+    STEP_ACTION_FIELDS,
+    STEP_DATA_FIELDS,
+    TEST_SCRIPT_FIELDS,
+    get_field_value,
 )
 from importobot.utils.logging import setup_logger
 from importobot.utils.step_processing import collect_command_steps
@@ -41,20 +44,30 @@ class ComparisonAnalyzer:
         hash_commands = self._group_hash_commands(command_steps)
 
         # Add comparison step if we have multiple hash commands
-        if len(hash_commands) >= 2 and "testScript" in test_case:
-            # Find the last step index
+        if len(hash_commands) >= 2:
+            script_field, script_data = TEST_SCRIPT_FIELDS.find_first(test_case)
+            if not script_field or not isinstance(script_data, dict):
+                script_field = TEST_SCRIPT_FIELDS.fields[0]
+                script_data = {STEPS_FIELD_NAME: []}
+                test_case[script_field] = script_data
+
+            steps_container = script_data.get(STEPS_FIELD_NAME)
+            if not isinstance(steps_container, list):
+                steps_container = []
+                script_data[STEPS_FIELD_NAME] = steps_container
+
             last_step_index = 0
-            if "steps" in test_case["testScript"]:
-                for step in test_case["testScript"]["steps"]:
-                    if isinstance(step, dict) and "index" in step:
-                        try:
-                            last_step_index = max(last_step_index, int(step["index"]))
-                        except (ValueError, TypeError):
-                            pass
+            for existing_step in steps_container:
+                if isinstance(existing_step, dict) and "index" in existing_step:
+                    try:
+                        last_step_index = max(
+                            last_step_index, int(existing_step["index"])
+                        )
+                    except (ValueError, TypeError):
+                        continue
 
             next_index = last_step_index + 1
 
-            # Create and add comparison step
             comparison_step = self._create_comparison_step(test_index, next_index)
             change_info = {
                 "location": f"test_case_{test_index}_step_{next_index}",
@@ -82,17 +95,15 @@ class ComparisonAnalyzer:
         for step in command_steps:
             if not isinstance(step, dict):
                 continue
-            for field_name in TEST_DATA_FIELD_NAMES + STEP_DESCRIPTION_FIELD_NAMES:
-                if field_name in step and isinstance(step[field_name], str):
-                    content = step[field_name].lower()
-                    if any(
-                        hash_cmd in content
-                        for hash_cmd in ["hash", "sha", "md5", "checksum"]
-                    ):
-                        hash_commands.append(
-                            {"step": step, "command": step[field_name]}
-                        )
-                        break
+            command_text = get_field_value(step, STEP_DATA_FIELDS)
+            if not command_text:
+                command_text = get_field_value(step, STEP_ACTION_FIELDS)
+
+            if command_text:
+                content = command_text.lower()
+                hash_terms = ["hash", "sha", "md5", "checksum"]
+                if any(hash_cmd in content for hash_cmd in hash_terms):
+                    hash_commands.append({"step": step, "command": command_text})
         return hash_commands
 
     def _suggest_hash_comparison(
@@ -147,16 +158,25 @@ class ComparisonAnalyzer:
         changes_made: list[dict[str, Any]],
     ) -> None:
         """Add the comparison step to the test case and record the change."""
-        if "testScript" in test_case and "steps" in test_case["testScript"]:
-            test_case["testScript"]["steps"].append(comparison_step)
+        script_field, script_data = TEST_SCRIPT_FIELDS.find_first(test_case)
+        if not script_field or not isinstance(script_data, dict):
+            script_field = TEST_SCRIPT_FIELDS.fields[0]
+            script_data = {STEPS_FIELD_NAME: []}
+            test_case[script_field] = script_data
 
-            # Record the change
-            change_record = {
-                "type": "step_added",
-                "reason": "Added comparison step for hash/checksum commands",
-                "field": "step",
-                "original": None,
-                "improved": comparison_step["description"],
-                **change_info,
-            }
-            changes_made.append(change_record)
+        steps = script_data.get(STEPS_FIELD_NAME)
+        if not isinstance(steps, list):
+            steps = []
+            script_data[STEPS_FIELD_NAME] = steps
+
+        steps.append(comparison_step)
+
+        change_record = {
+            "type": "step_added",
+            "reason": "Added comparison step for hash/checksum commands",
+            "field": "step",
+            "original": None,
+            "improved": comparison_step["description"],
+            **change_info,
+        }
+        changes_made.append(change_record)

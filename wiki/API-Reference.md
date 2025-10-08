@@ -1,21 +1,17 @@
 # API Reference
 
-This document outlines Importobot's public API following pandas-inspired design patterns for enterprise integration.
+Reference for Importobot’s public API surface. Everything here is supported; anything under `importobot.core.*` or `importobot.medallion.*` is considered private.
 
 ## API Architecture Overview
 
-Importobot provides a **two-tier API structure** designed for both simple usage and enterprise integration:
+Importobot exposes two layers:
+1. `import importobot` — core converter, config, and exceptions.
+2. `importobot.api.*` — validation, suggestions, additional converters.
 
-1. **Primary Interface**: `import importobot` - Core bulk conversion functionality
-2. **Enterprise Toolkit**: `importobot.api.*` - Advanced features for CI/CD and QA teams
+### Design notes
 
-### Pandas-Inspired Design Principles
-
-- **Clean Public Interface**: Simple imports for core functionality
-- **Enterprise Toolkit**: Dedicated `api` module for advanced features
-- **Version Stability**: Public API contracts remain stable across versions
-- **Type Safety**: Full type hints and `TYPE_CHECKING` support
-- **Professional Standards**: Follows industry best practices
+- Public imports stay stable; internal modules can change without notice.
+- Type hints and `TYPE_CHECKING` guards keep IDE support strong.
 
 ## Public API Structure
 
@@ -43,30 +39,15 @@ src/importobot/
 
 ### JsonToRobotConverter
 
-The main class for bulk test case conversion.
-
 ```python
 import importobot
 
 converter = importobot.JsonToRobotConverter()
 ```
 
-#### Methods
-
-**`convert_json_string(json_string: str) -> str`**
-- Converts JSON string directly to Robot Framework format
-- Validates input JSON and handles parsing errors
-- Returns generated Robot Framework code
-
-**`convert_file(input_path: str, output_path: str) -> None`**
-- Converts single JSON file to Robot Framework
-- Handles file I/O and error reporting
-- Creates output directory if needed
-
-**`convert_directory(input_dir: str, output_dir: str) -> Dict[str, Any]`**
-- Bulk converts entire directories of test cases
-- Processes hundreds or thousands of files efficiently
-- Returns conversion statistics and error reports
+- `convert_json_string(json_string: str) -> str` — Convert JSON text to Robot code.
+- `convert_file(input_path: str, output_path: str) -> None` — Convert one file; creates the output directory when needed.
+- `convert_directory(input_dir: str, output_dir: str) -> Dict[str, Any]` — Bulk conversion with success/error counts.
 
 ### Configuration
 
@@ -90,31 +71,27 @@ chrome_options = importobot.config.CHROME_OPTIONS
 
 ### Exceptions
 
-Comprehensive error handling for enterprise pipelines:
+Example error handling:
 
 ```python
 import importobot
 
 try:
-    converter = importobot.JsonToRobotConverter()
-    result = converter.convert_file("test.json")
+    importobot.JsonToRobotConverter().convert_file("test.json", "out.robot")
 except importobot.exceptions.ValidationError:
-    # Input validation failed
+    ...  # bad input
 except importobot.exceptions.ConversionError:
-    # Conversion process failed
-except importobot.exceptions.ParseError:
-    # JSON parsing failed
+    ...  # failure during generation
 ```
 
-#### Exception Hierarchy
-
-- `ImportobotError`: Base exception for all errors
-- `ValidationError`: Input validation failures
-- `ConversionError`: Conversion process failures
-- `ParseError`: JSON parsing failures
-- `FileNotFound`: Missing file errors
-- `FileAccessError`: File permission errors
-- `SuggestionError`: Suggestion engine failures
+Key exceptions:
+- `ImportobotError`
+- `ValidationError`
+- `ConversionError`
+- `ParseError`
+- `FileNotFound`
+- `FileAccessError`
+- `SuggestionError`
 
 ## Enterprise Toolkit (importobot.api)
 
