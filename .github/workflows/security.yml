@@ -48,7 +48,8 @@ jobs:
 
       - name: Run Safety (Dependency Scanner)
         run: |
-          safety check --json --output safety-report.json
+          safety check --output json > safety-report.json || true
+          safety check
 
       - name: SQL Injection Pattern Check
         run: |
