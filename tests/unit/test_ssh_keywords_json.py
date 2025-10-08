@@ -16,23 +16,24 @@ from tests.shared_ssh_test_data import (
 )
 
 
-class TestSSHKeywordsJSON:  # pylint: disable=too-many-public-methods
-    """Tests for SSH keywords JSON data structure and coverage."""
+@pytest.fixture
+def ssh_keywords_data():
+    """Load SSH keywords JSON data."""
+    # Use direct path to ssh.json
+    ssh_json_path = (
+        Path(__file__).parent.parent.parent
+        / "src"
+        / "importobot"
+        / "data"
+        / "keywords"
+        / "ssh.json"
+    )
+    with open(ssh_json_path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
-    @pytest.fixture
-    def ssh_keywords_data(self):
-        """Load SSH keywords JSON data."""
-        # Use direct path to ssh.json
-        ssh_json_path = (
-            Path(__file__).parent.parent.parent
-            / "src"
-            / "importobot"
-            / "data"
-            / "keywords"
-            / "ssh.json"
-        )
-        with open(ssh_json_path, "r", encoding="utf-8") as f:
-            return json.load(f)
+
+class TestSSHKeywordsStructure:
+    """Tests for SSH keywords JSON basic structure and metadata."""
 
     def test_ssh_json_structure(self, ssh_keywords_data):
         """Test that SSH JSON has correct top-level structure."""
@@ -42,12 +43,57 @@ class TestSSHKeywordsJSON:  # pylint: disable=too-many-public-methods
         assert ssh_keywords_data["library_name"] == "SSHLibrary"
         assert isinstance(ssh_keywords_data["keywords"], dict)
 
+    def test_ssh_library_description(self, ssh_keywords_data):
+        """Test that SSH library has appropriate description."""
+        assert (
+            ssh_keywords_data["description"]
+            == "SSH operations and remote command execution"
+        )
+
     def test_ssh_keyword_count(self, ssh_keywords_data):
         """Test that SSH keywords JSON contains comprehensive keyword coverage."""
         keywords = ssh_keywords_data["keywords"]
         assert (
             len(keywords) >= 40
         )  # Should have at least 40 keywords from comprehensive coverage
+
+    def test_keyword_descriptions_non_empty(self, ssh_keywords_data):
+        """Test that all keywords have non-empty descriptions."""
+        keywords = ssh_keywords_data["keywords"]
+
+        for keyword_name, keyword_data in keywords.items():
+            assert "description" in keyword_data
+            assert keyword_data["description"], (
+                f"Empty description for keyword: {keyword_name}"
+            )
+            assert len(keyword_data["description"]) > 10, (
+                f"Description too short for keyword: {keyword_name}"
+            )
+
+    def test_keyword_args_structure(self, ssh_keywords_data):
+        """Test that keyword arguments follow consistent structure."""
+        keywords = ssh_keywords_data["keywords"]
+
+        for keyword_name, keyword_data in keywords.items():
+            assert "args" in keyword_data
+            assert isinstance(keyword_data["args"], list), (
+                f"Args should be a list for keyword: {keyword_name}"
+            )
+
+    def test_all_keywords_have_valid_json_structure(self, ssh_keywords_data):
+        """Test that all keywords have valid JSON structure without syntax errors."""
+        keywords = ssh_keywords_data["keywords"]
+
+        for keyword_name, keyword_data in keywords.items():
+            # Test that keyword data can be serialized back to JSON
+            try:
+                json.dumps(keyword_data)
+            except (TypeError, ValueError) as e:
+                pytest.fail(f"Keyword {keyword_name} has invalid JSON structure: {e}")
+
+
+class TestSSHKeywordsCoverage:
+    """Tests for SSH keyword coverage and presence."""
 
     def test_connection_management_keywords(self, ssh_keywords_data):
         """Test that all connection management keywords are present."""
@@ -155,60 +201,32 @@ class TestSSHKeywordsJSON:  # pylint: disable=too-many-public-methods
             assert "description" in keywords[keyword]
             assert "args" in keywords[keyword]
 
-    def test_security_warnings_present(self, ssh_keywords_data):
-        """Test that security warnings are present for appropriate keywords."""
+    def test_comprehensive_coverage_vs_documentation(self, ssh_keywords_data):
+        """Test that we have good coverage of documented SSHLibrary keywords."""
         keywords = ssh_keywords_data["keywords"]
 
-        # Keywords that should have security warnings
-        security_warning_keywords = get_basic_ssh_connection_keywords()
+        # Based on the comprehensive SSHLibrary documentation review
+        documented_keywords = ALL_SSH_KEYWORDS
 
-        for keyword in security_warning_keywords:
-            assert keyword in keywords
-            assert "security_warning" in keywords[keyword], (
-                f"Missing security warning for: {keyword}"
-            )
-            assert keywords[keyword]["security_warning"].startswith("⚠️"), (
-                f"Security warning should start with warning emoji for: {keyword}"
-            )
+        # Check that we have coverage for all documented keywords
+        missing_keywords = []
+        for doc_keyword in documented_keywords:
+            if doc_keyword not in keywords:
+                missing_keywords.append(doc_keyword)
 
-    def test_security_notes_present(self, ssh_keywords_data):
-        """Test that security notes are present for secure keywords."""
-        keywords = ssh_keywords_data["keywords"]
+        assert not missing_keywords, f"Missing documented keywords: {missing_keywords}"
 
-        # Keywords that should have security notes
-        security_note_keywords = ["Login With Public Key"]
+        # We should have at least 90% coverage of documented keywords
+        coverage_ratio = len([k for k in documented_keywords if k in keywords]) / len(
+            documented_keywords
+        )
+        assert coverage_ratio >= 0.9, (
+            f"Coverage ratio {coverage_ratio:.2%} is below 90%"
+        )
 
-        for keyword in security_note_keywords:
-            assert keyword in keywords
-            assert "security_note" in keywords[keyword], (
-                f"Missing security note for: {keyword}"
-            )
-            assert keywords[keyword]["security_note"].startswith("✅"), (
-                f"Security note should start with check emoji for: {keyword}"
-            )
 
-    def test_keyword_descriptions_non_empty(self, ssh_keywords_data):
-        """Test that all keywords have non-empty descriptions."""
-        keywords = ssh_keywords_data["keywords"]
-
-        for keyword_name, keyword_data in keywords.items():
-            assert "description" in keyword_data
-            assert keyword_data["description"], (
-                f"Empty description for keyword: {keyword_name}"
-            )
-            assert len(keyword_data["description"]) > 10, (
-                f"Description too short for keyword: {keyword_name}"
-            )
-
-    def test_keyword_args_structure(self, ssh_keywords_data):
-        """Test that keyword arguments follow consistent structure."""
-        keywords = ssh_keywords_data["keywords"]
-
-        for keyword_name, keyword_data in keywords.items():
-            assert "args" in keyword_data
-            assert isinstance(keyword_data["args"], list), (
-                f"Args should be a list for keyword: {keyword_name}"
-            )
+class TestSSHKeywordsValidation:
+    """Tests for SSH keyword validation and argument specification."""
 
     def test_open_connection_comprehensive_args(self, ssh_keywords_data):
         """Test that Open Connection keyword has comprehensive argument list."""
@@ -256,43 +274,38 @@ class TestSSHKeywordsJSON:  # pylint: disable=too-many-public-methods
         assert "keywords" in ssh_keywords
         assert len(ssh_keywords["keywords"]) >= 40
 
-    def test_all_keywords_have_valid_json_structure(self, ssh_keywords_data):
-        """Test that all keywords have valid JSON structure without syntax errors."""
+
+class TestSSHKeywordsSecurity:
+    """Tests for SSH keyword security warnings and notes."""
+
+    def test_security_warnings_present(self, ssh_keywords_data):
+        """Test that security warnings are present for appropriate keywords."""
         keywords = ssh_keywords_data["keywords"]
 
-        for keyword_name, keyword_data in keywords.items():
-            # Test that keyword data can be serialized back to JSON
-            try:
-                json.dumps(keyword_data)
-            except (TypeError, ValueError) as e:
-                pytest.fail(f"Keyword {keyword_name} has invalid JSON structure: {e}")
+        # Keywords that should have security warnings
+        security_warning_keywords = get_basic_ssh_connection_keywords()
 
-    def test_ssh_library_description(self, ssh_keywords_data):
-        """Test that SSH library has appropriate description."""
-        assert (
-            ssh_keywords_data["description"]
-            == "SSH operations and remote command execution"
-        )
+        for keyword in security_warning_keywords:
+            assert keyword in keywords
+            assert "security_warning" in keywords[keyword], (
+                f"Missing security warning for: {keyword}"
+            )
+            assert keywords[keyword]["security_warning"].startswith("⚠️"), (
+                f"Security warning should start with warning emoji for: {keyword}"
+            )
 
-    def test_comprehensive_coverage_vs_documentation(self, ssh_keywords_data):
-        """Test that we have good coverage of documented SSHLibrary keywords."""
+    def test_security_notes_present(self, ssh_keywords_data):
+        """Test that security notes are present for secure keywords."""
         keywords = ssh_keywords_data["keywords"]
 
-        # Based on the comprehensive SSHLibrary documentation review
-        documented_keywords = ALL_SSH_KEYWORDS
+        # Keywords that should have security notes
+        security_note_keywords = ["Login With Public Key"]
 
-        # Check that we have coverage for all documented keywords
-        missing_keywords = []
-        for doc_keyword in documented_keywords:
-            if doc_keyword not in keywords:
-                missing_keywords.append(doc_keyword)
-
-        assert not missing_keywords, f"Missing documented keywords: {missing_keywords}"
-
-        # We should have at least 90% coverage of documented keywords
-        coverage_ratio = len([k for k in documented_keywords if k in keywords]) / len(
-            documented_keywords
-        )
-        assert coverage_ratio >= 0.9, (
-            f"Coverage ratio {coverage_ratio:.2%} is below 90%"
-        )
+        for keyword in security_note_keywords:
+            assert keyword in keywords
+            assert "security_note" in keywords[keyword], (
+                f"Missing security note for: {keyword}"
+            )
+            assert keywords[keyword]["security_note"].startswith("✅"), (
+                f"Security note should start with check emoji for: {keyword}"
+            )

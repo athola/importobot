@@ -9,8 +9,8 @@ from importobot.utils.security import (
 from tests.shared_test_data import SSH_SECURITY_TOPICS
 
 
-class TestSecurityValidator:  # pylint: disable=too-many-public-methods
-    """Test SecurityValidator class."""
+class TestSSHParameterValidation:
+    """Test SecurityValidator SSH parameter validation methods."""
 
     def test_validate_ssh_parameters_no_warnings(self):
         """Test SSH parameter validation with no warnings."""
@@ -80,6 +80,10 @@ class TestSecurityValidator:  # pylint: disable=too-many-public-methods
         assert len(warnings) == 1
         assert "⚠️  Production environment detected" in warnings[0]
 
+
+class TestCommandSanitization:
+    """Test SecurityValidator command sanitization methods."""
+
     def test_sanitize_command_parameters_string_input(self):
         """Test command parameter sanitization with string input."""
         validator = SecurityValidator()
@@ -108,6 +112,10 @@ class TestSecurityValidator:  # pylint: disable=too-many-public-methods
         assert "\\;" in result
         assert "\\`" in result
         # Note: $( becomes \$( but the test assertion needs adjustment
+
+
+class TestFileOperationsValidation:
+    """Test SecurityValidator file operations validation methods."""
 
     def test_validate_file_operations_no_warnings(self):
         """Test file operations validation with no warnings."""
@@ -164,6 +172,10 @@ class TestSecurityValidator:  # pylint: disable=too-many-public-methods
         assert any("Sensitive file access" in w for w in warnings)
         assert any("Destructive operation" in w for w in warnings)
 
+
+class TestErrorMessageSanitization:
+    """Test SecurityValidator error message sanitization methods."""
+
     def test_sanitize_error_message_string_input(self):
         """Test error message sanitization with string input."""
         validator = SecurityValidator()
@@ -207,6 +219,10 @@ class TestSecurityValidator:  # pylint: disable=too-many-public-methods
         result = validator.sanitize_error_message(error_msg)
 
         assert "[PATH]" in result
+
+
+class TestSecurityRecommendations:
+    """Test SecurityValidator security recommendations generation methods."""
 
     def test_generate_security_recommendations_ssh_usage(self):
         """Test security recommendations generation for SSH usage."""

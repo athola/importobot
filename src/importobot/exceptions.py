@@ -31,3 +31,7 @@ class ParseError(ImportobotError):
 
 class SuggestionError(ImportobotError):
     """Raised when suggestion generation or application fails."""
+
+
+class SecurityError(ImportobotError):
+    """Raised when security validation fails."""

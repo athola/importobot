@@ -11,9 +11,9 @@ def generator():
     return GenericKeywordGenerator()
 
 
-class TestGenericKeywordGenerator:  # pylint: disable=too-many-public-methods
+class TestGenericKeywordGeneratorCore:
     # pylint: disable=redefined-outer-name,protected-access
-    """Tests for the GenericKeywordGenerator class."""
+    """Tests for core GenericKeywordGenerator functionality."""
 
     def test_format_test_data_comment_short(self, generator):
         """Test that a short test data comment is not split."""
@@ -49,6 +49,11 @@ class TestGenericKeywordGenerator:  # pylint: disable=too-many-public-methods
         result = generator._determine_robot_keyword(description, test_data, expected)
         assert result == "No Operation"
 
+
+class TestGenericKeywordGeneratorWeb:
+    # pylint: disable=redefined-outer-name
+    """Tests for web and browser keyword generation."""
+
     def test_browser_keyword(self, generator):
         """Test the browser keyword generation."""
         test_data = "url: https://example.com"
@@ -74,6 +79,11 @@ class TestGenericKeywordGenerator:  # pylint: disable=too-many-public-methods
         result = generator.web_generator.generate_password_keyword(test_data)
         assert result == "Input Password    id=password    test_password"
 
+
+class TestGenericKeywordGeneratorDatabase:
+    # pylint: disable=redefined-outer-name
+    """Tests for database keyword generation."""
+
     def test_database_connect_keyword(self, generator):
         """Test the database connect keyword generation."""
         test_data = "module: sqlite3, database: test.db"
@@ -86,6 +96,11 @@ class TestGenericKeywordGenerator:  # pylint: disable=too-many-public-methods
         result = generator.database_generator.generate_query_keyword(test_data)
         expected = "Execute Sql String    SELECT * FROM users"
         assert result == expected
+
+
+class TestGenericKeywordGeneratorCommands:
+    # pylint: disable=redefined-outer-name
+    """Tests for operating system and command keyword generation."""
 
     def test_command_keyword_preserves_robot_framework_keywords(self, generator):
         """Test Robot Framework keywords preserved instead of wrapped in Run Process."""
@@ -161,6 +176,11 @@ class TestGenericKeywordGenerator:  # pylint: disable=too-many-public-methods
             "wget http://example.com/file.txt"
         )
         assert result == "Run Process    wget    http://example.com/file.txt"
+
+
+class TestGenericKeywordGeneratorFiles:
+    # pylint: disable=redefined-outer-name
+    """Tests for file operation keyword generation."""
 
     def test_file_operation_copy_with_json_variables(self, generator):
         """Test Copy File keyword extracts source and destination from JSON."""
@@ -247,6 +267,11 @@ class TestGenericKeywordGenerator:  # pylint: disable=too-many-public-methods
         )
         expected = "Move File    ${source_file}    ${destination_file}"
         assert result == expected
+
+
+class TestGenericKeywordGeneratorVerification:
+    # pylint: disable=redefined-outer-name,protected-access
+    """Tests for verification keyword generation."""
 
     def test_verification_with_message_text(self, generator):
         """Test verification step with specific message text."""

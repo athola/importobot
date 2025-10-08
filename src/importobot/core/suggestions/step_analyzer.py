@@ -6,8 +6,10 @@ from typing import Any
 from importobot.core.constants import (
     EXPECTED_RESULT_FIELD_NAMES,
     STEP_DESCRIPTION_FIELD_NAMES,
+    STEPS_FIELD_NAME,
     TEST_DATA_FIELD_NAMES,
 )
+from importobot.core.field_definitions import TEST_SCRIPT_FIELDS
 from importobot.utils.logging import setup_logger
 from importobot.utils.step_processing import collect_command_steps
 
@@ -80,12 +82,20 @@ class StepAnalyzer:
         changes_made: list[dict[str, Any]],
     ) -> None:
         """Improve step definitions and structure."""
-        if "testScript" not in test_case:
-            test_case["testScript"] = {"steps": []}
-        elif "steps" not in test_case["testScript"]:
-            test_case["testScript"]["steps"] = []
+        # Get or create test script structure using field definitions
+        script_field, script_data = TEST_SCRIPT_FIELDS.find_first(test_case)
+        if not script_field:
+            script_field = "testScript"  # Use canonical name
+            test_case[script_field] = {STEPS_FIELD_NAME: []}
+            script_data = test_case[script_field]
+        elif not isinstance(script_data, dict):
+            script_data = {STEPS_FIELD_NAME: []}
+            test_case[script_field] = script_data
 
-        steps = test_case["testScript"]["steps"]
+        if STEPS_FIELD_NAME not in script_data:
+            script_data[STEPS_FIELD_NAME] = []
+
+        steps = script_data[STEPS_FIELD_NAME]
         if not steps:
             # Add a default step if none exist
             default_step = {

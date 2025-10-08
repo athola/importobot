@@ -19,7 +19,7 @@ from importobot.core.keywords.generators.web_keywords import WebKeywordGenerator
 from importobot.core.keywords_registry import IntentRecognitionEngine
 from importobot.core.multi_command_parser import MultiCommandParser
 from importobot.core.parsers import GenericTestFileParser
-from importobot.core.pattern_matcher import LibraryDetector
+from importobot.core.pattern_matcher import IntentType, LibraryDetector
 from importobot.utils.field_extraction import extract_field
 from importobot.utils.pattern_extraction import extract_pattern
 from importobot.utils.ssh_patterns import (
@@ -69,24 +69,33 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
             lines.append(f"{indent}# Expected Result: {expected}")
 
         # Check if test_data contains multiple fields that should generate multiple
-        # commands
+        # commands (prioritize MultiCommandParser for structured data)
         parsed_data = self.multi_command_parser.parse_test_data(test_data)
         if len(
             parsed_data
         ) > 1 and self.multi_command_parser.should_generate_multiple_commands(
             description, parsed_data
         ):
-            # Generate multiple Robot Framework commands
+            # Generate multiple Robot Framework commands from structured testData
             keyword_lines = self.multi_command_parser.generate_multiple_robot_keywords(
                 description, parsed_data, expected
             )
             lines.extend([f"    {line}" for line in keyword_lines])
         else:
-            # Generate single Robot keyword (existing behavior)
-            keyword_line = self._determine_robot_keyword(
-                description, test_data, expected
-            )
-            lines.append(f"    {keyword_line}")
+            # Check for composite credential input intent (when no structured data)
+            combined = f"{description} {test_data}".lower()
+            intent = IntentRecognitionEngine.recognize_intent(combined)
+
+            if intent == IntentType.CREDENTIAL_INPUT:
+                # Generate multiple keywords for credential composite intent
+                keyword_lines = self._generate_credential_input_keywords()
+                lines.extend([f"    {line}" for line in keyword_lines])
+            else:
+                # Generate single Robot keyword (existing behavior)
+                keyword_line = self._determine_robot_keyword(
+                    description, test_data, expected
+                )
+                lines.append(f"    {keyword_line}")
 
         return lines
 
@@ -116,225 +125,210 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
         if ambiguous_keywords:
             return self._format_suggestions(ambiguous_keywords)
 
-        # Delegate to specialized generators based on intent
+        # Delegate to specialized generators (using IntentType enums)
+        web = self.web_generator
+        database = self.database_generator
+        api_generator = self.api_generator
+        ssh_generator = self.ssh_generator
+        os_generator = self.operating_system_generator
+        builtin = self.builtin_generator
+
         intent_handlers = {
             # Web operations
-            "web_navigation": lambda: self.web_generator.generate_browser_keyword(
-                test_data
+            IntentType.BROWSER_OPEN: (lambda: web.generate_browser_keyword(test_data)),
+            IntentType.BROWSER_NAVIGATE: (
+                lambda: web.generate_navigation_keyword(test_data)
             ),
-            "browser_open": lambda: self.web_generator.generate_browser_keyword(
-                test_data
+            IntentType.INPUT_USERNAME: (
+                lambda: web.generate_input_keyword("username", test_data)
             ),
-            "browser_navigate": lambda: self.web_generator.generate_navigation_keyword(
-                test_data
+            IntentType.INPUT_PASSWORD: (
+                lambda: web.generate_password_keyword(test_data)
             ),
-            "web_input_username": lambda: self.web_generator.generate_input_keyword(
-                "username", test_data
+            IntentType.CLICK_ACTION: (
+                lambda: web.generate_click_keyword(description, test_data)
             ),
-            "input_username": lambda: self.web_generator.generate_input_keyword(
-                "username", test_data
-            ),
-            "web_input_password": lambda: self.web_generator.generate_password_keyword(
-                test_data
-            ),
-            "input_password": lambda: self.web_generator.generate_password_keyword(
-                test_data
-            ),
-            "web_click": lambda: self.web_generator.generate_click_keyword(
-                description, test_data
-            ),
-            "click": lambda: self.web_generator.generate_click_keyword(
-                description, test_data
-            ),
-            "web_verify_text": lambda: (
-                self.web_generator.generate_page_verification_keyword(
-                    test_data, expected
-                )
-            ),
-            # Page assertions (SeleniumLibrary)
-            "page_assertion_contains": lambda: (
-                self.web_generator.generate_page_verification_keyword(
-                    test_data, expected
-                )
+            IntentType.VERIFY_CONTENT: (
+                lambda: web.generate_page_verification_keyword(test_data, expected)
             ),
             # Database operations
-            "db_connect": lambda: self.database_generator.generate_connect_keyword(
-                test_data
+            IntentType.DATABASE_CONNECT: (
+                lambda: database.generate_connect_keyword(test_data)
             ),
-            "db_execute": lambda: self.database_generator.generate_query_keyword(
-                test_data
+            IntentType.DATABASE_EXECUTE: (
+                lambda: database.generate_query_keyword(test_data)
             ),
-            "db_disconnect": lambda: "Disconnect From Database",
-            "db_modify": lambda: self.database_generator.generate_modify_keyword(
-                test_data
+            IntentType.DATABASE_DISCONNECT: lambda: "Disconnect From Database",
+            IntentType.DATABASE_MODIFY: (
+                lambda: database.generate_modify_keyword(test_data)
             ),
-            "db_row_count": lambda: self.database_generator.generate_row_count_keyword(
-                test_data
+            IntentType.DATABASE_ROW_COUNT: (
+                lambda: database.generate_row_count_keyword(test_data)
             ),
             # API operations
-            "api_request": lambda: self.api_generator.generate_request_keyword(
-                test_data
+            IntentType.API_REQUEST: (
+                lambda: api_generator.generate_request_keyword(test_data)
             ),
-            "api_session": lambda: self.api_generator.generate_session_keyword(
-                test_data
+            IntentType.API_SESSION: (
+                lambda: api_generator.generate_session_keyword(test_data)
             ),
-            "api_response": lambda: self.api_generator.generate_response_keyword(
-                test_data
+            IntentType.API_RESPONSE: (
+                lambda: api_generator.generate_response_keyword(test_data)
             ),
             # File operations (check for SSH context first)
-            "file_exists": lambda: self._handle_file_verification(
+            IntentType.FILE_EXISTS: lambda: self._handle_file_verification(
                 description, test_data
             ),
-            "file_remove": lambda: self._handle_file_removal(description, test_data),
-            "file_verification": lambda: self._handle_file_verification(
+            IntentType.FILE_REMOVE: lambda: self._handle_file_removal(
                 description, test_data
             ),
-            "file_removal": lambda: self._handle_file_removal(description, test_data),
-            "file_transfer": lambda: self._handle_file_transfer(description, test_data),
-            "file_creation": lambda: self._handle_file_creation(description, test_data),
-            "file_operation": lambda: self._handle_file_operation(
+            IntentType.FILE_VERIFICATION: lambda: self._handle_file_verification(
+                description, test_data
+            ),
+            IntentType.FILE_REMOVAL: lambda: self._handle_file_removal(
+                description, test_data
+            ),
+            IntentType.FILE_TRANSFER: lambda: self._handle_file_transfer(
+                description, test_data
+            ),
+            IntentType.FILE_CREATION: lambda: self._handle_file_creation(
                 description, test_data
             ),
             # SSH operations
-            "ssh_connect": lambda: self.ssh_generator.generate_connect_keyword(
-                test_data
+            IntentType.SSH_CONNECT: (
+                lambda: ssh_generator.generate_connect_keyword(test_data)
             ),
-            "ssh_login": lambda: self._handle_ssh_authentication(
+            IntentType.SSH_LOGIN: lambda: self._handle_ssh_authentication(
                 description, test_data
             ),
-            "ssh_authenticate": lambda: self._handle_ssh_authentication(
+            IntentType.SSH_CONFIGURATION: lambda: self._handle_ssh_configuration(
                 description, test_data
             ),
-            "ssh_configuration": lambda: self._handle_ssh_configuration(
+            IntentType.SSH_DISCONNECT: lambda: self._handle_ssh_disconnect(
                 description, test_data
             ),
-            "ssh_logging": lambda: self._handle_ssh_logging(description, test_data),
-            "ssh_disconnect": lambda: self._handle_ssh_disconnect(
+            IntentType.SSH_EXECUTE: lambda: self._handle_ssh_command_execution(
                 description, test_data
             ),
-            "ssh_execute": lambda: self._handle_ssh_command_execution(
-                description, test_data
+            IntentType.SSH_FILE_UPLOAD: (
+                lambda: ssh_generator.generate_file_transfer_keyword(
+                    test_data, "upload"
+                )
             ),
-            "ssh_file_upload": lambda: (
-                self.ssh_generator.generate_file_transfer_keyword(test_data, "upload")
+            IntentType.SSH_FILE_DOWNLOAD: (
+                lambda: ssh_generator.generate_file_transfer_keyword(
+                    test_data, "download"
+                )
             ),
-            "ssh_file_download": lambda: (
-                self.ssh_generator.generate_file_transfer_keyword(test_data, "download")
-            ),
-            "ssh_read_until": lambda: (
-                self.ssh_generator.generate_interactive_shell_keyword(
+            IntentType.SSH_READ_UNTIL: (
+                lambda: ssh_generator.generate_interactive_shell_keyword(
                     test_data, "read_until"
                 )
             ),
-            "ssh_write": lambda: (
-                self.ssh_generator.generate_interactive_shell_keyword(
+            IntentType.SSH_WRITE: (
+                lambda: ssh_generator.generate_interactive_shell_keyword(
                     test_data, "write"
                 )
             ),
-            "ssh_directory_create": lambda: (
-                self.ssh_generator.generate_directory_operations_keyword(
+            IntentType.SSH_DIRECTORY_CREATE: (
+                lambda: ssh_generator.generate_directory_operations_keyword(
                     test_data, "create"
                 )
             ),
-            "ssh_directory_list": lambda: (
-                self.ssh_generator.generate_directory_operations_keyword(
+            IntentType.SSH_DIRECTORY_LIST: (
+                lambda: ssh_generator.generate_directory_operations_keyword(
                     test_data, "list"
                 )
             ),
-            "ssh_switch_connection": lambda: (
+            IntentType.SSH_SWITCH_CONNECTION: lambda: (
                 "Switch Connection    ${connection_alias}"
             ),
-            "ssh_enable_logging": lambda: (self._handle_ssh_enable_logging(test_data)),
+            IntentType.SSH_ENABLE_LOGGING: lambda: (
+                self._handle_ssh_enable_logging(test_data)
+            ),
             # Command execution
-            "command": lambda: (
-                self.operating_system_generator.generate_command_keyword(test_data)
+            IntentType.COMMAND_EXECUTION: (
+                lambda: os_generator.generate_command_keyword(test_data)
             ),
             # Verification operations
-            "assertion_contains": lambda: (
-                self.builtin_generator.generate_assert_contains_keyword(
-                    test_data, expected
-                )
+            IntentType.ASSERTION_CONTAINS: (
+                lambda: builtin.generate_assert_contains_keyword(test_data, expected)
             ),
-            "element_verification": lambda: (
-                self.builtin_generator.generate_verification_keyword(
+            IntentType.ELEMENT_VERIFICATION: (
+                lambda: builtin.generate_verification_keyword(
                     description, test_data, expected
                 )
             ),
-            "content_verification": lambda: (
-                self.builtin_generator.generate_verification_keyword(
+            IntentType.CONTENT_VERIFICATION: (
+                lambda: builtin.generate_verification_keyword(
                     description, test_data, expected
-                )
-            ),
-            "content_comparison": lambda: (
-                self.builtin_generator.generate_comparison_keyword(
-                    description, test_data
                 )
             ),
             # BuiltIn keywords
-            "convert_to_integer": lambda: (
+            IntentType.CONVERT_TO_INTEGER: lambda: (
                 self.builtin_generator.generate_convert_to_integer_keyword(test_data)
             ),
-            "convert_to_string": lambda: (
+            IntentType.CONVERT_TO_STRING: lambda: (
                 self.builtin_generator.generate_convert_to_string_keyword(test_data)
             ),
-            "convert_to_boolean": lambda: (
+            IntentType.CONVERT_TO_BOOLEAN: lambda: (
                 self.builtin_generator.generate_convert_to_boolean_keyword(test_data)
             ),
-            "convert_to_number": lambda: (
+            IntentType.CONVERT_TO_NUMBER: lambda: (
                 self.builtin_generator.generate_convert_to_number_keyword(test_data)
             ),
-            "log_message": lambda: (
+            IntentType.LOG_MESSAGE: lambda: (
                 self.builtin_generator.generate_log_keyword(test_data)
             ),
-            "set_variable": lambda: (
+            IntentType.SET_VARIABLE: lambda: (
                 self.builtin_generator.generate_set_variable_keyword(test_data)
             ),
-            "get_variable": lambda: (
+            IntentType.GET_VARIABLE: lambda: (
                 self.builtin_generator.generate_get_variable_keyword(test_data)
             ),
-            "create_list": lambda: self.builtin_generator.generate_create_list_keyword(
-                test_data
+            IntentType.CREATE_LIST: lambda: (
+                self.builtin_generator.generate_create_list_keyword(test_data)
             ),
-            "create_dictionary": lambda: (
+            IntentType.CREATE_DICTIONARY: lambda: (
                 self.builtin_generator.generate_create_dictionary_keyword(test_data)
             ),
-            "get_length": lambda: (
+            IntentType.GET_LENGTH: lambda: (
                 self.builtin_generator.generate_get_length_keyword(test_data)
             ),
-            "length_should_be": lambda: (
+            IntentType.LENGTH_SHOULD_BE: lambda: (
                 self.builtin_generator.generate_length_should_be_keyword(
                     test_data, expected
                 )
             ),
-            "should_start_with": lambda: (
+            IntentType.SHOULD_START_WITH: lambda: (
                 self.builtin_generator.generate_should_start_with_keyword(
                     test_data, expected
                 )
             ),
-            "should_end_with": lambda: (
+            IntentType.SHOULD_END_WITH: lambda: (
                 self.builtin_generator.generate_should_end_with_keyword(
                     test_data, expected
                 )
             ),
-            "should_match": lambda: (
+            IntentType.SHOULD_MATCH: lambda: (
                 self.builtin_generator.generate_should_match_keyword(
                     test_data, expected
                 )
             ),
-            "evaluate_expression": lambda: (
+            IntentType.EVALUATE_EXPRESSION: lambda: (
                 self.builtin_generator.generate_evaluate_keyword(test_data)
             ),
-            "run_keyword_if": lambda: (
+            IntentType.RUN_KEYWORD_IF: lambda: (
                 self.builtin_generator.generate_run_keyword_if_keyword(test_data)
             ),
-            "repeat_keyword": lambda: (
+            IntentType.REPEAT_KEYWORD: lambda: (
                 self.builtin_generator.generate_repeat_keyword_keyword(test_data)
             ),
-            "fail_test": lambda: (
+            IntentType.FAIL_TEST: lambda: (
                 self.builtin_generator.generate_fail_keyword(test_data)
             ),
-            "get_count": lambda: self.builtin_generator.generate_get_count_keyword(
-                test_data, expected
+            IntentType.GET_COUNT: lambda: (
+                self.builtin_generator.generate_get_count_keyword(test_data, expected)
             ),
         }
 
@@ -517,6 +511,21 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
         if "disable" in combined or "stop" in combined:
             return self.ssh_generator.generate_logging_keyword(test_data, "disable")
         return self.ssh_generator.generate_logging_keyword(test_data, "enable")
+
+    def _generate_credential_input_keywords(self) -> list[str]:
+        """Generate multiple keywords for credential composite intent.
+
+        When user says 'Enter credentials' without explicit testData,
+        intelligently decompose into username and password input steps
+        using Robot Framework variables for better test maintainability.
+
+        Returns:
+            List of Robot Framework keywords for credential input
+        """
+        return [
+            "Input Text    id=username    ${USERNAME}",
+            "Input Password    id=password    ${PASSWORD}",
+        ]
 
     def _detect_ambiguous_cases(
         self, description: str, test_data: str, expected: str

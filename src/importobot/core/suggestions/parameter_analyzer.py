@@ -6,8 +6,10 @@ from typing import Any
 from importobot.core.constants import (
     EXPECTED_RESULT_FIELD_NAMES,
     STEP_DESCRIPTION_FIELD_NAMES,
+    STEPS_FIELD_NAME,
     TEST_DATA_FIELD_NAMES,
 )
+from importobot.core.field_definitions import PARAMETERS_FIELDS, TEST_SCRIPT_FIELDS
 from importobot.utils.logging import setup_logger
 
 logger = setup_logger(__name__)
@@ -61,9 +63,11 @@ class ParameterAnalyzer:
         changes_made: list[dict[str, Any]],
     ) -> None:
         """Improve parameter definitions and usage in test case."""
-        # Initialize parameters field if not present
-        if "parameters" not in test_case:
-            test_case["parameters"] = []
+        # Initialize parameters field if not present using field definitions
+        param_field, _ = PARAMETERS_FIELDS.find_first(test_case)
+        if not param_field:
+            param_field = "parameters"  # Use canonical name
+            test_case[param_field] = []
 
         # Extract text sources from test steps
         text_sources = self._extract_text_sources(test_case)
@@ -100,8 +104,11 @@ class ParameterAnalyzer:
     def _extract_text_sources(self, test_case: dict[str, Any]) -> list[str]:
         """Extract text sources from test case steps."""
         text_sources = []
-        if "testScript" in test_case and "steps" in test_case["testScript"]:
-            for step in test_case["testScript"]["steps"]:
+        # Use field definitions to access test script
+        script_field, script_data = TEST_SCRIPT_FIELDS.find_first(test_case)
+        if script_field and isinstance(script_data, dict):
+            steps = script_data.get(STEPS_FIELD_NAME, [])
+            for step in steps:
                 if isinstance(step, dict):
                     field_names = TEST_DATA_FIELD_NAMES + STEP_DESCRIPTION_FIELD_NAMES
                     for field_name in field_names:

@@ -1,49 +1,43 @@
 """Conversion strategies for different input types."""
 
+import json
 from abc import ABC, abstractmethod
-from typing import Any, cast
+from typing import Any
 
 from importobot import exceptions
 from importobot.core.converter import (
+    apply_conversion_suggestions,
     convert_directory,
     convert_file,
     convert_multiple_files,
     get_conversion_suggestions,
 )
 from importobot.utils.file_operations import (
+    ConversionContext,
     convert_with_temp_file,
     display_suggestion_changes,
-    load_json_file,
     process_single_file_with_suggestions,
 )
+from importobot.utils.json_utils import load_json_file
 from importobot.utils.logging import setup_logger
-
-logger = setup_logger(__name__)
 
 
 class ConversionStrategy(ABC):
     """Abstract base class for conversion strategies."""
 
     @abstractmethod
-    def convert(self, args: Any) -> None:
-        """Execute the conversion strategy."""
+    def validate_args(self, args: Any) -> None:
+        """Validate conversion arguments."""
+        raise NotImplementedError("validate_args must be implemented")
 
     @abstractmethod
-    def validate_args(self, args: Any) -> None:
-        """Validate arguments for this strategy."""
-
-
-class SingleFileConversionStrategy(ConversionStrategy):
-    """Strategy for converting a single file."""
-
     def convert(self, args: Any) -> None:
-        """Convert a single file."""
-        if args.apply_suggestions:
-            self._convert_with_suggestions(args)
-        else:
-            convert_file(args.input, args.output_file)
-            print(f"Successfully converted {args.input} to {args.output_file}")
-            self._display_suggestions(args.input, args.no_suggestions)
+        """Perform the conversion."""
+        raise NotImplementedError("convert must be implemented")
+
+
+class SingleFileStrategy(ConversionStrategy):
+    """Strategy for converting a single file."""
 
     def validate_args(self, args: Any) -> None:
         """Validate single file conversion arguments."""
@@ -55,17 +49,164 @@ class SingleFileConversionStrategy(ConversionStrategy):
     def _convert_with_suggestions(self, args: Any) -> None:
         """Apply suggestions and convert a single file."""
         process_single_file_with_suggestions(
-            args,
+            args=args,
+            convert_file_func=convert_file,
             display_changes_func=display_suggestion_changes,
             use_stem_for_basename=True,
         )
         self._display_suggestions(args.input, args.no_suggestions)
 
-    def _prepare_conversion_data(self, improved_data: Any) -> dict[str, Any]:
-        """Prepare data for conversion."""
-        if isinstance(improved_data, list) and len(improved_data) > 0:
-            return cast(dict[str, Any], improved_data[0])
-        return cast(dict[str, Any], improved_data)
+    def _convert_directly(self, args: Any) -> None:
+        """Convert a single file directly without suggestions."""
+        convert_file(args.input, args.output_file)
+
+    def convert(self, args: Any) -> None:
+        """Convert a single file."""
+        apply_attr = getattr(args, "apply_suggestions", False)
+        should_apply = apply_attr if isinstance(apply_attr, bool) else False
+
+        if should_apply:
+            self._convert_with_suggestions(args)
+        else:
+            self._convert_directly(args)
+
+    def _display_suggestions(self, input_file: str, no_suggestions: bool) -> None:
+        """Display suggestions for the input file."""
+        if no_suggestions:
+            return
+
+        try:
+            json_data = load_json_file(input_file)
+            suggestions = get_conversion_suggestions(json_data)
+        except (FileNotFoundError, json.JSONDecodeError):
+            print("Cannot read input file for suggestions.")
+            return
+        except exceptions.ImportobotError as error:
+            print(f"Could not generate suggestions: {error}")
+            return
+        except Exception as error:  # pragma: no cover - defensive logging
+            print(f"Could not generate suggestions: {error}")
+            return
+
+        if suggestions:
+            print("💡 Conversion Suggestions:")
+            for index, suggestion in enumerate(suggestions, start=1):
+                print(f"{index}. {suggestion}")
+
+
+class MultipleFileStrategy(ConversionStrategy):
+    """Strategy for converting multiple files."""
+
+    def validate_args(self, args: Any) -> None:
+        """Validate multiple file conversion arguments."""
+        if not args.output_file:
+            raise exceptions.ValidationError(
+                "Output file required for multiple file input"
+            )
+
+    def convert(self, args: Any) -> None:
+        """Convert multiple files to a single output file."""
+        convert_multiple_files(args.files, args.output_file)
+
+
+class DirectoryStrategy(ConversionStrategy):
+    """Strategy for converting a directory of files."""
+
+    def validate_args(self, args: Any) -> None:
+        """Validate directory conversion arguments."""
+        output_dir = getattr(args, "output_dir", None)
+        if not isinstance(output_dir, str) or not output_dir:
+            output_dir = None
+
+        output_file = getattr(args, "output_file", None)
+        if not isinstance(output_file, str) or not output_file:
+            output_file = None
+
+        output_target = output_dir or output_file
+        if not output_target:
+            raise exceptions.ValidationError(
+                "Output directory required for directory input"
+            )
+
+    def convert(self, args: Any) -> None:
+        """Convert a directory of files."""
+        output_dir = getattr(args, "output_dir", None)
+        if not isinstance(output_dir, str) or not output_dir:
+            output_dir = None
+
+        output_file = getattr(args, "output_file", None)
+        if not isinstance(output_file, str) or not output_file:
+            output_file = None
+
+        output_target = output_dir or output_file
+
+        apply_attr = getattr(args, "apply_suggestions", False)
+        should_warn = apply_attr if isinstance(apply_attr, bool) else False
+
+        if should_warn:
+            print("Warning: --apply-suggestions only supported for single files.")
+
+        if output_target is None:
+            raise exceptions.ValidationError(
+                "Output directory required for directory input"
+            )
+
+        convert_directory(args.input, output_target)
+
+
+class SuggestionsOnlyStrategy(ConversionStrategy):
+    """Strategy for showing suggestions only."""
+
+    def validate_args(self, args: Any) -> None:
+        """Validate suggestions-only arguments.
+
+        No validation needed for suggestions-only mode.
+        """
+
+    def convert(self, args: Any) -> None:
+        """Show suggestions for input files."""
+        for input_file in args.files:
+            try:
+                json_data = load_json_file(input_file)
+                suggestions = get_conversion_suggestions(json_data)
+                if suggestions:
+                    print(f"Suggestions for {input_file}:")
+                    for suggestion in suggestions:
+                        print(f"  - {suggestion}")
+                else:
+                    print(f"No suggestions for {input_file}.")
+            except (FileNotFoundError, json.JSONDecodeError):
+                print(f"Cannot read {input_file} for suggestions.")
+
+
+class ImprovedConversionStrategy(ConversionStrategy):
+    """Strategy for converting with improvements applied."""
+
+    def validate_args(self, args: Any) -> None:
+        """Validate improved conversion arguments."""
+        if not args.output_file:
+            raise exceptions.ValidationError(
+                "Output file required for improved conversion"
+            )
+
+    def convert(self, args: Any) -> None:
+        """Convert with improvements applied."""
+        # Apply suggestions
+        json_data = load_json_file(args.input)
+        improved_data, changes = apply_conversion_suggestions(json_data)
+
+        # Convert using temporary file
+        context = ConversionContext(
+            changes_made=[{"description": str(c)} for c in changes],
+            display_changes_func=display_suggestion_changes,
+            args=args,
+        )
+        convert_with_temp_file(
+            conversion_data=improved_data,
+            robot_filename=args.output_file,
+            convert_file_func=convert_file,
+            context=context,
+        )
 
     def _convert_with_temp_file(
         self,
@@ -75,165 +216,60 @@ class SingleFileConversionStrategy(ConversionStrategy):
         args: Any,
     ) -> None:
         """Convert data using a temporary file."""
-        convert_with_temp_file(
-            conversion_data=conversion_data,
-            robot_filename=robot_filename,
+        context = ConversionContext(
             changes_made=changes_made,
             display_changes_func=display_suggestion_changes,
             args=args,
         )
-
-    def _display_suggestions(
-        self, json_file_path: str, no_suggestions: bool = False
-    ) -> None:
-        """Display conversion suggestions for a JSON file."""
-        if no_suggestions:
-            return
-
-        try:
-            json_data = load_json_file(json_file_path)
-
-            suggestions = get_conversion_suggestions(json_data)
-            self._print_suggestions(suggestions)
-
-        except exceptions.ImportobotError as e:
-            logger.warning("Could not generate suggestions: %s", str(e))
-        except Exception as e:
-            logger.warning("Could not generate suggestions: %s", str(e))
-
-    def _print_suggestions(self, suggestions: list[str]) -> None:
-        """Print suggestions if they are meaningful."""
-        if not suggestions:
-            return
-
-        # Filter out "No improvements needed" if there are other suggestions
-        filtered = [s for s in suggestions if "No improvements needed" not in s]
-        if not filtered and len(suggestions) == 1:
-            return
-
-        suggestions_to_print = filtered if filtered else suggestions
-
-        print("\n💡 Conversion Suggestions:")
-        print("=" * 50)
-        for i, suggestion in enumerate(suggestions_to_print, 1):
-            print(f"  {i}. {suggestion}")
-        print(
-            "\nThese suggestions can help improve the quality of the "
-            "generated Robot Framework code."
+        convert_with_temp_file(
+            conversion_data=conversion_data,
+            robot_filename=robot_filename,
+            convert_file_func=convert_file,
+            context=context,
         )
 
-
-class DirectoryConversionStrategy(ConversionStrategy):
-    """Strategy for converting all files in a directory."""
-
-    def convert(self, args: Any) -> None:
-        """Convert all files in a directory."""
-        if args.apply_suggestions:
-            print("Warning: --apply-suggestions only supported for single files.")
-            print("Performing normal directory conversion instead...")
-
-        convert_directory(args.input, args.output_file)
-        print(f"Successfully converted directory {args.input} to {args.output_file}")
-
-    def validate_args(self, args: Any) -> None:
-        """Validate directory conversion arguments."""
-        if not args.output_file:
-            raise exceptions.ValidationError(
-                "Output directory required for directory input"
-            )
+    def _display_suggestions(self, input_file: str, no_suggestions: bool) -> None:
+        """Display suggestions for the input file."""
+        if not no_suggestions:
+            try:
+                json_data = load_json_file(input_file)
+                suggestions = get_conversion_suggestions(json_data)
+                if suggestions:
+                    print("Suggestions for improvement:")
+                    for suggestion in suggestions:
+                        print(f"  - {suggestion}")
+                else:
+                    print("No suggestions for improvement.")
+            except (FileNotFoundError, json.JSONDecodeError):
+                print("Cannot read input file for suggestions.")
 
 
-class MultipleFilesConversionStrategy(ConversionStrategy):
-    """Strategy for converting multiple files."""
-
-    def __init__(self, files: list[str]):
-        """Initialize with list of files to convert."""
-        self.files = files
-
-    def convert(self, args: Any) -> None:
-        """Convert multiple files."""
-        if args.apply_suggestions and len(self.files) == 1:
-            # Special case: single file with suggestions
-            strategy = SingleFileConversionStrategy()
-            args.input = self.files[0]
-            strategy.convert(args)
-        elif len(self.files) == 1:
-            # Single file without suggestions
-            convert_file(self.files[0], args.output_file)
-            print(f"Successfully converted {self.files[0]} to {args.output_file}")
-            self._display_suggestions(self.files[0], args.no_suggestions)
-        else:
-            # Multiple files
-            if args.apply_suggestions:
-                print("Warning: --apply-suggestions only supported for single files.")
-                print("Performing normal conversion instead...")
-
-            convert_multiple_files(self.files, args.output_file)
-            print(
-                f"Successfully converted {len(self.files)} files to {args.output_file}"
-            )
-
-    def validate_args(self, args: Any) -> None:
-        """Validate multiple files conversion arguments."""
-        if not args.output_file:
-            if len(self.files) == 1:
-                raise exceptions.ValidationError(
-                    "Output file required for single file input"
-                )
-            raise exceptions.ValidationError(
-                "Output directory required for multiple files"
-            )
-
-    def _display_suggestions(
-        self, json_file_path: str, no_suggestions: bool = False
-    ) -> None:
-        """Display conversion suggestions for a JSON file."""
-        if no_suggestions:
-            return
-
-        try:
-            json_data = load_json_file(json_file_path)
-
-            suggestions = get_conversion_suggestions(json_data)
-            if suggestions and not (
-                len(suggestions) == 1 and "No improvements needed" in suggestions[0]
-            ):
-                print("\n💡 Conversion Suggestions:")
-                print("=" * 50)
-                for i, suggestion in enumerate(suggestions, 1):
-                    print(f"  {i}. {suggestion}")
-                print(
-                    "\nThese suggestions can help improve the quality of the "
-                    "generated Robot Framework code."
-                )
-
-        except Exception as e:
-            logger.warning("Could not generate suggestions: %s", str(e))
+def get_strategy(args: Any) -> ConversionStrategy:
+    """Get the appropriate conversion strategy based on arguments."""
+    if args.suggestions_only:
+        return SuggestionsOnlyStrategy()
+    if args.improved:
+        return ImprovedConversionStrategy()
+    if args.input and hasattr(args, "output_file") and args.output_file:
+        # Single file with output file specified
+        return SingleFileStrategy()
+    if len(args.files) > 1:
+        return MultipleFileStrategy()
+    if args.input and hasattr(args, "output_dir") and args.output_dir:
+        return DirectoryStrategy()
+    # Default to single file strategy
+    return SingleFileStrategy()
 
 
-class ConversionStrategyFactory:
-    """Factory for creating appropriate conversion strategies."""
+def convert_with_strategy(args: Any) -> None:
+    """Convert input using the appropriate strategy."""
+    logger = setup_logger(__name__)
+    strategy = get_strategy(args)
 
-    @staticmethod
-    def create_strategy(
-        input_type: str, detected_files: list[str]
-    ) -> ConversionStrategy:
-        """Create a conversion strategy based on input type.
-
-        Args:
-            input_type: Type of input (file, directory, wildcard)
-            detected_files: List of detected files
-
-        Returns:
-            Appropriate conversion strategy
-
-        Raises:
-            ValueError: If input type is unknown
-        """
-        if input_type == "file":
-            return SingleFileConversionStrategy()
-        if input_type == "directory":
-            return DirectoryConversionStrategy()
-        if input_type == "wildcard":
-            return MultipleFilesConversionStrategy(detected_files)
-        raise ValueError(f"Unknown input type: {input_type}")
+    try:
+        strategy.validate_args(args)
+        strategy.convert(args)
+        logger.info("Conversion completed successfully")
+    except Exception as e:
+        logger.error("Conversion failed: %s", e)
+        raise

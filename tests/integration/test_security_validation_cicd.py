@@ -10,8 +10,8 @@ import time
 
 import pytest
 
-from importobot.core.converter import load_json
 from importobot.core.engine import GenericConversionEngine
+from importobot.utils.file_operations import load_json_file as load_json
 from importobot.utils.security import (
     get_ssh_security_guidelines,
     validate_test_security,

@@ -1,17 +1,18 @@
 name: Wiki Sync
 
 on:
-  pull_request:
-    types: [closed]
+  push:
     branches:
       - main
+    paths:
+      - 'wiki/**'
   workflow_dispatch:
 
 jobs:
   sync-wiki:
     runs-on: ubuntu-latest
-    # Run on manual dispatch or merged PR to main
-    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true) }}
+    # Run on manual dispatch or direct pushes to main
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5

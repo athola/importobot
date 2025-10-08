@@ -1,0 +1,75 @@
+name: Security Scanning
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "src/**/*.py"
+      - "tests/**/*.py"
+      - "examples/json/**/*.json"
+      - "pyproject.toml"
+      - "Makefile"
+      - ".github/workflows/security.yml"
+  pull_request:
+    types: [opened, synchronize]
+    branches: [ main ]
+    paths:
+      - "src/**/*.py"
+      - "tests/**/*.py"
+      - "examples/json/**/*.json"
+      - "pyproject.toml"
+      - "Makefile"
+      - ".github/workflows/security.yml"
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit safety pylint
+
+      - name: Run Bandit (Security Linter)
+        run: |
+          bandit -r src/ -f json -o bandit-report.json --exit-zero
+          bandit -r src/ -ll --exit-zero
+
+      - name: Run Safety (Dependency Scanner)
+        run: |
+          safety check --output json > safety-report.json || true
+          safety check
+
+      - name: SQL Injection Pattern Check
+        run: |
+          if grep -rn "Execute Sql String.*\${" src/ --include="*.py"; then
+            echo "ERROR: Potential SQL injection vulnerability detected"
+            exit 1
+          fi
+
+      - name: Credential Leak Check
+        run: |
+          if grep -rEn "(password|secret|api_key)\s*=\s*['\"][^'\"]{8,}" src/ --include="*.py"; then
+            echo "WARNING: Potential hardcoded credential detected"
+            exit 1
+          fi
+
+      - name: Upload Security Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            safety-report.json

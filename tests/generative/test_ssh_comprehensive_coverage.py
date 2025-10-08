@@ -1,6 +1,7 @@
 """Comprehensive generative tests ensuring all 42 SSH keywords are covered."""
 
 import json
+import sys
 import tempfile
 import time
 from pathlib import Path
@@ -12,6 +13,8 @@ from importobot.core.converter import convert_file
 from importobot.utils.test_generation.ssh_generator import SSHKeywordTestGenerator
 from tests.shared_ssh_test_data import (
     ALL_SSH_KEYWORDS,
+    EXPECTED_SSH_KEYWORD_COUNT,
+    EXPECTED_TOTAL_SSH_TESTS,
     get_basic_ssh_connection_keywords,
 )
 
@@ -31,8 +34,9 @@ class TestSSHComprehensiveCoverage:
 
     def test_ssh_keyword_count_completeness(self, all_ssh_keywords):
         """Verify we have all 42 SSH keywords defined."""
-        assert len(all_ssh_keywords) == 42, (
-            f"Expected 42 SSH keywords, got {len(all_ssh_keywords)}"
+        assert len(all_ssh_keywords) == EXPECTED_SSH_KEYWORD_COUNT, (
+            f"Expected {EXPECTED_SSH_KEYWORD_COUNT} SSH keywords, "
+            f"got {len(all_ssh_keywords)}"
         )
 
     def test_ssh_generator_covers_all_keywords(self, ssh_generator, all_ssh_keywords):
@@ -45,8 +49,9 @@ class TestSSHComprehensiveCoverage:
 
         assert not missing_keywords, f"Missing keyword generators: {missing_keywords}"
         assert not extra_keywords, f"Extra keyword generators: {extra_keywords}"
-        assert len(covered_keywords) == 42, (
-            f"Expected 42 generators, got {len(covered_keywords)}"
+        assert len(covered_keywords) == EXPECTED_SSH_KEYWORD_COUNT, (
+            f"Expected {EXPECTED_SSH_KEYWORD_COUNT} generators, "
+            f"got {len(covered_keywords)}"
         )
 
     @pytest.mark.parametrize(
@@ -159,9 +164,9 @@ class TestSSHComprehensiveCoverage:
         """Test generation of all SSH keyword test cases in bulk."""
         all_tests = ssh_generator.generate_all_ssh_keyword_tests()
 
-        # Should have 3 variations per keyword (42 * 3 = 126)
-        assert len(all_tests) == 126, (
-            f"Expected 126 test variations, got {len(all_tests)}"
+        # Should have 3 variations per keyword
+        assert len(all_tests) == EXPECTED_TOTAL_SSH_TESTS, (
+            f"Expected {EXPECTED_TOTAL_SSH_TESTS} test variations, got {len(all_tests)}"
         )
 
         # Verify all keywords are represented
@@ -170,7 +175,7 @@ class TestSSHComprehensiveCoverage:
             assert "keyword_focus" in test
             keywords_covered.add(test["keyword_focus"])
 
-        assert len(keywords_covered) == 42, (
+        assert len(keywords_covered) == EXPECTED_SSH_KEYWORD_COUNT, (
             f"Expected 42 unique keywords, got {len(keywords_covered)}"
         )
 
@@ -388,7 +393,10 @@ class TestSSHComprehensiveCoverage:
                 ("Directory Creation", ["Create Directory"]),
                 ("File Verification", ["File Should Exist"]),
                 ("Shell Interaction", ["Write"]),
-                ("SSH Logging", ["Enable Ssh Logging"]),
+                (
+                    "SSH Logging",
+                    ["Enable Ssh Logging", "Enable SSH session logging"],
+                ),
             ]
 
             missing_functionality = []
@@ -488,16 +496,13 @@ class TestSSHComprehensiveCoverage:
         all_tests = ssh_generator.generate_all_ssh_keyword_tests()
         generation_time = time.time() - start_time
 
-        # Should generate 126 tests (42 keywords × 3 variations) in reasonable time
-        assert len(all_tests) == 126
+        # Should generate expected tests in reasonable time
+        assert len(all_tests) == EXPECTED_TOTAL_SSH_TESTS
         assert generation_time < 5.0, (
             f"Generation took too long: {generation_time:.2f}s"
         )
 
         # Test memory usage (rough check)
-        # pylint: disable=import-outside-toplevel
-        import sys
-
         total_size = sum(sys.getsizeof(test) for test in all_tests)
         assert total_size < 10 * 1024 * 1024, (
             f"Generated tests too large: {total_size} bytes"

@@ -2,7 +2,16 @@
 
 from typing import Any
 
-from importobot.core.field_definitions import TEST_STEP_FIELDS, is_test_case
+from importobot.core.constants import (
+    STEPS_FIELD_NAME,
+    TEST_CASE_WRAPPER_FIELD_NAMES,
+    TEST_CONTAINER_FIELD_NAMES,
+)
+from importobot.core.field_definitions import (
+    TEST_SCRIPT_FIELDS,
+    TEST_STEP_FIELDS,
+    is_test_case,
+)
 from importobot.core.interfaces import TestFileParser
 from importobot.utils.logging import setup_logger
 
@@ -29,13 +38,9 @@ class GenericTestFileParser(TestFileParser):
         # Strategy 1: Look for explicit test arrays
         for key, value in data.items():
             key_lower = key.lower()
-            if isinstance(value, list) and key_lower in [
-                "tests",
-                "testcases",
-                "test_cases",
-            ]:
+            if isinstance(value, list) and key_lower in TEST_CONTAINER_FIELD_NAMES:
                 tests.extend([t for t in value if isinstance(t, dict)])
-            elif key_lower in ["test_case", "testcase"] and isinstance(value, dict):
+            elif key_lower in TEST_CASE_WRAPPER_FIELD_NAMES and isinstance(value, dict):
                 # Strategy 3: Look inside test_case/testCase key
                 if is_test_case(value):
                     tests.append(value)
@@ -55,21 +60,18 @@ class GenericTestFileParser(TestFileParser):
         """Find step structures anywhere in test data."""
         steps = []
         step_field_names = self._get_step_field_names()
+        script_field_names = {name.lower() for name in TEST_SCRIPT_FIELDS.fields}
 
         def search_for_steps(obj: Any) -> None:
             if isinstance(obj, dict):
                 for key, value in obj.items():
                     if isinstance(value, list) and key.lower() in step_field_names:
                         steps.extend([s for s in value if isinstance(s, dict)])
-                    elif (
-                        key.lower() == "testscript"
-                        and isinstance(value, dict)
-                        and "steps" in value
-                    ):
-                        # Handle testScript.steps structure
-                        if isinstance(value["steps"], list):
+                    elif key.lower() in script_field_names and isinstance(value, dict):
+                        potential_steps = value.get(STEPS_FIELD_NAME)
+                        if isinstance(potential_steps, list):
                             steps.extend(
-                                [s for s in value["steps"] if isinstance(s, dict)]
+                                [s for s in potential_steps if isinstance(s, dict)]
                             )
                     elif isinstance(value, dict):
                         search_for_steps(value)

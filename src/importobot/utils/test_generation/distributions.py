@@ -81,7 +81,9 @@ class DistributionManager:
         """Process weighted distribution values."""
         # Validate weights
         if not weights:
-            raise ValueError("Weights dictionary cannot be empty")
+            raise ValueError(
+                "Total weight cannot be zero (Weights dictionary cannot be empty)"
+            )
 
         # Check for non-positive weights
         invalid_weights = {k: v for k, v in weights.items() if v <= 0}
