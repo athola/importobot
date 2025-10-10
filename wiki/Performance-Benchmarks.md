@@ -12,17 +12,17 @@ requiring evidence before merging medallion or optimizer changes.
 
 ## Benchmark Script
 
-The entrypoint is in `scripts/src/importobot_scripts/performance_benchmark.py`.
+The entrypoint is in the `importobot_scripts.benchmarks.performance_benchmark` module.
 
 ```bash
 # Show available options
-uv run python scripts/src/importobot_scripts/performance_benchmark.py --help
+uv run python -m importobot_scripts.benchmarks.performance_benchmark --help
 
 # Run the full suite with default settings plus the parallel scenario
-uv run python scripts/src/importobot_scripts/performance_benchmark.py --parallel
+uv run python -m importobot_scripts.benchmarks.performance_benchmark --parallel
 
 # Focus on complex single-file conversions with 20 iterations
-uv run python scripts/src/importobot_scripts/performance_benchmark.py --iterations 20 --complexity complex
+uv run python -m importobot_scripts.benchmarks.performance_benchmark --iterations 20 --complexity complex
 ```
 
 Key flags:

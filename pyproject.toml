@@ -7,7 +7,7 @@ members = [".", "scripts"]
 
 [project]
 name = "importobot"
-version = "0.1.1"
+version = "0.1.2"
 description = "Automated test framework converter for migrating test cases from Zephyr, JIRA/Xray, and TestLink to Robot Framework format with bulk processing capabilities"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -69,6 +69,9 @@ demo = [
     "pandas>=2.0.0",
 ]
 confidence = [
+    "scipy>=1.15.3",
+]
+advanced = [
     "scipy>=1.15.3",
 ]
 medallion = [
@@ -204,10 +207,10 @@ disallow_incomplete_defs = true
 check_untyped_defs = true
 disallow_untyped_decorators = true
 no_implicit_optional = true
-mypy_path = "src:scripts/src"
+mypy_path = "src"
 explicit_package_bases = true
 namespace_packages = true
-exclude = ['^\.venv', '^\.uv-cache', '^scripts']
+exclude = ['^\.venv', '^\.uv-cache', '^scripts', '^scripts/.*', 'tests/unit/scripts/.*']
 
 [tool.mutmut]
 paths_to_mutate = [

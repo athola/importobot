@@ -7,6 +7,7 @@ validation.
 
 from __future__ import annotations
 
+import warnings
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
@@ -46,6 +47,12 @@ class SilverLayer(BaseMedallionLayer):
     def __init__(self, storage_path: Optional[Path] = None) -> None:
         """Initialize the Silver layer."""
         super().__init__("silver", storage_path)
+        warnings.warn(
+            "SilverLayer is currently a placeholder implementation; "
+            "APIs may change without notice.",
+            UserWarning,
+            stacklevel=2,
+        )
 
     def ingest(self, data: Any, metadata: LayerMetadata) -> ProcessingResult:
         """Ingest and standardize data into the Silver layer.

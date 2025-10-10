@@ -4,7 +4,10 @@ import subprocess
 import time
 from typing import Any, Callable
 
-from robot.api import TestSuite
+try:  # pragma: no cover - optional dependency guard
+    from robot.api import TestSuite as RobotTestSuite  # type: ignore
+except ImportError:  # pragma: no cover
+    RobotTestSuite = None  # type: ignore
 
 
 def run_robot_command(command: list[str]) -> subprocess.CompletedProcess:
@@ -27,7 +30,10 @@ def run_robot_command(command: list[str]) -> subprocess.CompletedProcess:
 
 def parse_robot_file(file_path: str) -> list[dict[str, Any]]:
     """Parse a .robot file and extract test cases, keywords and their arguments."""
-    suite = TestSuite.from_file_system(file_path)
+    if RobotTestSuite is None:  # pragma: no cover - dependency guard
+        raise RuntimeError("Robot Framework is required to parse .robot files")
+
+    suite = RobotTestSuite.from_file_system(file_path)
     result = []
 
     def _extract_keywords(test_or_suite):

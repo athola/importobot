@@ -7,6 +7,7 @@ preparation.
 
 from __future__ import annotations
 
+import warnings
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Optional
@@ -56,6 +57,12 @@ class GoldLayer(BaseMedallionLayer):
         """Initialize the Gold layer."""
         super().__init__("gold", storage_path)
         self._optimization_service = optimization_service or OptimizationService()
+        warnings.warn(
+            "GoldLayer is currently a placeholder implementation; "
+            "APIs may change without notice.",
+            UserWarning,
+            stacklevel=2,
+        )
 
     def ingest(self, data: Any, metadata: LayerMetadata) -> ProcessingResult:
         """Ingest and optimize data into the Gold layer.

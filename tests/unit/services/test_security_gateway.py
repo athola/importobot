@@ -6,6 +6,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from importobot.services import security_gateway
 from importobot.services.security_gateway import SecurityError, SecurityGateway
 from importobot.services.security_types import SecurityLevel
 
@@ -73,6 +74,65 @@ class TestSecurityGatewayInitialization:
         assert strict_result["is_safe"] is True
         assert standard_result["is_safe"] is True
         assert lenient_result["is_safe"] is True
+
+
+class TestSecurityGatewayRateLimiting:
+    """Test rate limiting behaviour for security operations."""
+
+    def test_rate_limit_sanitize_api_input(self):
+        """Rate limiter should block sanitization after allowed calls."""
+        gateway = SecurityGateway(
+            SecurityLevel.STANDARD,
+            rate_limit_max_calls=2,
+            rate_limit_interval_seconds=60.0,
+        )
+
+        payload = {"test": "data"}
+        gateway.sanitize_api_input(payload, "json")
+        gateway.sanitize_api_input(payload, "json")
+
+        with pytest.raises(SecurityError):
+            gateway.sanitize_api_input(payload, "json")
+
+    def test_rate_limit_file_operations(self, tmp_path: Path) -> None:
+        """Rate limiter should block excessive file validation requests."""
+        gateway = SecurityGateway(
+            SecurityLevel.STANDARD,
+            rate_limit_max_calls=1,
+            rate_limit_interval_seconds=60.0,
+        )
+
+        test_file = tmp_path / "example.txt"
+        test_file.write_text("hello", encoding="utf-8")
+
+        gateway.validate_file_operation(test_file, "read")
+        with pytest.raises(SecurityError):
+            gateway.validate_file_operation(test_file, "read")
+
+
+class TestSecurityGatewayBleachFallback:
+    """Tests for bleach optional dependency handling."""
+
+    def test_string_sanitization_without_bleach(
+        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Fallback sanitizer should warn when bleach is unavailable."""
+        monkeypatch.setattr(security_gateway, "bleach", None, raising=False)
+        monkeypatch.setattr(
+            security_gateway._BleachState, "warned", False, raising=False
+        )
+
+        gateway = SecurityGateway(SecurityLevel.STANDARD)
+
+        with caplog.at_level("WARNING"):
+            # pylint: disable=protected-access
+            sanitized, issues = gateway._sanitize_string_input(
+                "<script>alert('hi')</script>"
+            )
+
+        assert sanitized == "alert('hi')"
+        assert issues
+        assert "Bleach dependency not available" in caplog.text
 
 
 class TestJSONSanitization:

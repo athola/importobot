@@ -1,4 +1,4 @@
-"""Performance-oriented tests for MVLP confidence calculations."""
+"""Performance-oriented tests for Weighted Evidence Bayesian confidence calculations."""
 
 from __future__ import annotations
 
@@ -6,9 +6,9 @@ import time
 
 import pytest
 
-from importobot.medallion.bronze.mvlp_bayesian_confidence import (
+from importobot.medallion.bronze.weighted_evidence_bayesian_confidence import (
     EvidenceMetrics,
-    MVLPBayesianConfidenceScorer,
+    WeightedEvidenceBayesianScorer,
 )
 
 # Check for scipy availability
@@ -21,9 +21,11 @@ except ImportError:
 
 
 @pytest.mark.skipif(not HAS_SCIPY, reason="scipy required for uncertainty calculations")
-def test_mvlp_confidence_performance(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_weighted_evidence_confidence_performance(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Disabling uncertainty sampling should deliver a clear speedup."""
-    scorer = MVLPBayesianConfidenceScorer()
+    scorer = WeightedEvidenceBayesianScorer()
     metrics = EvidenceMetrics(
         completeness=0.8,
         quality=0.75,

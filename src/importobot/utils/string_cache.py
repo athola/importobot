@@ -6,8 +6,10 @@ creating circular dependencies between modules.
 
 from __future__ import annotations
 
+import os
 from functools import lru_cache
-from typing import Any
+from threading import Lock
+from typing import Any, ClassVar
 
 
 @lru_cache(maxsize=1000)
@@ -39,12 +41,15 @@ def data_to_lower_cached(data: Any) -> str:
     Returns:
         Cached lowercase string representation
     """
-    return cached_string_lower(str(data))
+    result = cached_string_lower(str(data))
+    _increment_operation_counter()
+    return result
 
 
 def clear_string_cache() -> None:
     """Clear all string caches."""
     cached_string_lower.cache_clear()
+    _CacheState.reset()
 
 
 def get_cache_info() -> dict[str, Any]:
@@ -61,3 +66,29 @@ def get_cache_info() -> dict[str, Any]:
             "hit_rate_percent": round(hit_rate, 1),
         },
     }
+
+
+class _CacheState:
+    """Holds mutable state for the string cache to avoid module-level globals."""
+
+    lock: ClassVar[Lock] = Lock()
+    operation_count: ClassVar[int] = 0
+    clear_threshold: ClassVar[int] = int(
+        os.getenv("IMPORTOBOT_STRING_CACHE_CLEAR_THRESHOLD", "0")
+    )
+
+    @classmethod
+    def reset(cls) -> None:
+        """Reset the internal operation counter for the cache."""
+        cls.operation_count = 0
+
+
+def _increment_operation_counter() -> None:
+    """Increment the string-cache operation counter and evict when threshold is met."""
+    if _CacheState.clear_threshold <= 0:
+        return
+    with _CacheState.lock:
+        _CacheState.operation_count += 1
+        if _CacheState.operation_count >= _CacheState.clear_threshold:
+            cached_string_lower.cache_clear()
+            _CacheState.reset()

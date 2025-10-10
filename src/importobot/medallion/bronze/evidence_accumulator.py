@@ -17,11 +17,11 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Tuple
 
 from .format_models import EvidenceWeight
-from .mvlp_bayesian_confidence import (
-    EvidenceMetrics,
-    MVLPBayesianConfidenceScorer,
-)
 from .shared_config import DEFAULT_FORMAT_PRIORS
+from .weighted_evidence_bayesian_confidence import (
+    EvidenceMetrics,
+    WeightedEvidenceBayesianScorer,
+)
 
 
 @dataclass
@@ -97,8 +97,8 @@ class EvidenceAccumulator:
     def __init__(self) -> None:
         """Initialize the evidence accumulator with empty evidence profiles."""
         self.evidence_profiles: Dict[str, FormatEvidenceProfile] = {}
-        # Initialize MVLP Bayesian scorer
-        self.mvlp_scorer = MVLPBayesianConfidenceScorer(self.FORMAT_PRIORS)
+        # Initialize Weighted Evidence Bayesian scorer
+        self.bayesian_scorer = WeightedEvidenceBayesianScorer(self.FORMAT_PRIORS)
 
     def add_evidence(self, format_name: str, evidence: EvidenceItem) -> None:
         """Add a piece of evidence for a format."""
@@ -119,7 +119,7 @@ class EvidenceAccumulator:
             self.evidence_profiles[format_name].total_possible_weight = weight
 
     def calculate_bayesian_confidence(self, format_name: str) -> float:
-        """Calculate Bayesian confidence score using MVLP approach."""
+        """Calculate Bayesian confidence score using weighted evidence approach."""
         if format_name not in self.evidence_profiles:
             return 0.0
 
@@ -128,8 +128,8 @@ class EvidenceAccumulator:
         # Convert evidence profile to standardized metrics
         metrics = self._profile_to_metrics(profile)
 
-        # Calculate confidence using MVLP Bayesian scorer
-        result = self.mvlp_scorer.calculate_confidence(metrics, format_name)
+        # Calculate confidence using Weighted Evidence Bayesian scorer
+        result = self.bayesian_scorer.calculate_confidence(metrics, format_name)
 
         return result["confidence"]
 
@@ -175,30 +175,30 @@ class EvidenceAccumulator:
         )
 
     def optimize_parameters(self, training_data: List[Tuple[str, float]]) -> None:
-        """Optimize MVLP parameters using training data.
+        """Optimize weighted evidence parameters using training data.
 
         Args:
             training_data: List of (format_name, expected_confidence) pairs
         """
         # Convert training data to EvidenceMetrics format
-        mvlp_training_data = []
+        scorer_training_data = []
 
         for format_name, expected_confidence in training_data:
             if format_name in self.evidence_profiles:
                 profile = self.evidence_profiles[format_name]
                 metrics = self._profile_to_metrics(profile)
-                mvlp_training_data.append((metrics, expected_confidence))
+                scorer_training_data.append((metrics, expected_confidence))
 
-        if mvlp_training_data:
-            # Optimize parameters using MVLP approach
-            self.mvlp_scorer.optimize_parameters(mvlp_training_data)
+        if scorer_training_data:
+            # Optimize parameters using weighted evidence approach
+            self.bayesian_scorer.optimize_parameters(scorer_training_data)
 
     def get_parameter_summary(self) -> Dict[str, Any]:
-        """Get summary of optimized MVLP parameters."""
-        return self.mvlp_scorer.get_parameter_summary()
+        """Get summary of optimized weighted evidence parameters."""
+        return self.bayesian_scorer.get_parameter_summary()
 
     def get_detection_confidence(self, format_name: str) -> Dict[str, Any]:
-        """Get comprehensive confidence metrics using MVLP approach."""
+        """Get comprehensive confidence metrics using weighted evidence approach."""
         if format_name not in self.evidence_profiles:
             return {
                 "confidence": 0.0,
@@ -211,12 +211,12 @@ class EvidenceAccumulator:
         profile = self.evidence_profiles[format_name]
         metrics = self._profile_to_metrics(profile)
 
-        # Get detailed confidence analysis from MVLP scorer
-        mvlp_result = self.mvlp_scorer.calculate_confidence(
+        # Get detailed confidence analysis from Weighted Evidence scorer
+        scorer_result = self.bayesian_scorer.calculate_confidence(
             metrics, format_name, use_uncertainty=True
         )
 
-        confidence = mvlp_result["confidence"]
+        confidence = scorer_result["confidence"]
 
         # Determine confidence level
         if confidence >= self.HIGH_CONFIDENCE_THRESHOLD:
@@ -228,7 +228,7 @@ class EvidenceAccumulator:
         else:
             confidence_level = "INSUFFICIENT"
 
-        # Combine MVLP results with profile information
+        # Combine scorer results with profile information
         result = {
             "confidence": confidence,
             "evidence_quality": profile.evidence_quality,
@@ -237,17 +237,17 @@ class EvidenceAccumulator:
             "confidence_level": confidence_level,
             "unique_evidence_count": profile.unique_evidence_count,
             "strong_evidence_count": profile.strong_evidence_count,
-            "likelihood": mvlp_result.get("likelihood", 0.0),
-            "prior": mvlp_result.get("prior", 0.0),
+            "likelihood": scorer_result.get("likelihood", 0.0),
+            "prior": scorer_result.get("prior", 0.0),
         }
 
         # Add uncertainty bounds if available
-        if "confidence_lower_95" in mvlp_result:
+        if "confidence_lower_95" in scorer_result:
             result.update(
                 {
-                    "confidence_lower_95": mvlp_result["confidence_lower_95"],
-                    "confidence_upper_95": mvlp_result["confidence_upper_95"],
-                    "confidence_std": mvlp_result["confidence_std"],
+                    "confidence_lower_95": scorer_result["confidence_lower_95"],
+                    "confidence_upper_95": scorer_result["confidence_upper_95"],
+                    "confidence_std": scorer_result["confidence_std"],
                 }
             )
 
