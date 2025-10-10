@@ -769,7 +769,7 @@ wheels = [
 
 [[package]]
 name = "importobot"
-version = "0.1.1"
+version = "0.1.2"
 source = { editable = "." }
 dependencies = [
     { name = "bleach" },
@@ -782,6 +782,10 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+advanced = [
+    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "scipy", version = "1.16.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+]
 all = [
     { name = "matplotlib" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -863,10 +867,11 @@ requires-dist = [
     { name = "robotframework-requests", specifier = ">=0.9.4" },
     { name = "robotframework-seleniumlibrary", specifier = ">=6.0.0" },
     { name = "robotframework-sshlibrary", specifier = ">=3.8.0" },
+    { name = "scipy", marker = "extra == 'advanced'", specifier = ">=1.15.3" },
     { name = "scipy", marker = "extra == 'all'", specifier = ">=1.15.3" },
     { name = "scipy", marker = "extra == 'confidence'", specifier = ">=1.15.3" },
 ]
-provides-extras = ["viz", "analytics", "data", "demo", "confidence", "medallion", "enterprise", "all"]
+provides-extras = ["viz", "analytics", "data", "demo", "confidence", "advanced", "medallion", "enterprise", "all"]
 
 [package.metadata.requires-dev]
 dev = [

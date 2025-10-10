@@ -22,11 +22,23 @@ import time
 import unittest
 from typing import Any, Dict
 
-import psutil
-
 from importobot.medallion.bronze.format_detector import FormatDetector
 from importobot.medallion.interfaces.enums import SupportedFormat
 from tests.utils import measure_performance
+
+try:  # pragma: no cover - optional dependency guards
+    import psutil  # type: ignore
+except ImportError as exc:  # pragma: no cover
+    raise unittest.SkipTest("psutil dependency required for performance tests") from exc
+
+try:  # pragma: no cover
+    import numpy  # type: ignore
+
+    _ = numpy  # Mark as used to avoid F401
+except ImportError as exc:  # pragma: no cover
+    raise unittest.SkipTest(
+        "numpy dependency required for format detection tests"
+    ) from exc
 
 
 class TestFormatDetectionPerformance(unittest.TestCase):

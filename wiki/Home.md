@@ -7,6 +7,7 @@ If you are new, start with Getting Started. The other pages cover the conversion
 ## Quick Navigation
 
 - [Getting Started](Getting-Started) - Installation and basic usage
+- [How to Navigate this Codebase](How-to-Navigate-this-Codebase) - Architecture and code organization guide
 - [User Guide](User-Guide) - Usage instructions
 - [Migration Guide](Migration-Guide) - Incremental adoption plan
 - [Usage Examples](Usage-Examples) - Quick CLI and API snippets
@@ -18,6 +19,7 @@ If you are new, start with Getting Started. The other pages cover the conversion
 - [Deployment Guide](Deployment-Guide) - Local, container, and CI/CD steps
 - [Security Standards](Security-Standards) - Mandatory validation and hardening checklist
 - [Architecture Decision Records](architecture/ADR-0001-medallion-architecture) - Design history
+- [Layer Interactions Diagram](architecture/Layer-Interactions) - Medallion data flow
 - [Contributing](Contributing) - Guidelines for contributors
 - [FAQ](FAQ) - Common issues and solutions
 - [Roadmap](Roadmap) - Future development plans

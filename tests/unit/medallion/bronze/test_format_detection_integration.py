@@ -19,11 +19,18 @@ import unittest
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-from importobot.medallion.bronze.format_detector import (
-    FormatDetector,
-)
+from importobot.medallion.bronze.format_detector import FormatDetector
 from importobot.medallion.interfaces.enums import SupportedFormat
 from tests.utils import create_test_case_base
+
+try:  # pragma: no cover - optional dependency guard
+    import numpy  # type: ignore
+
+    _ = numpy  # Mark as used to avoid F401
+except ImportError as exc:  # pragma: no cover
+    raise unittest.SkipTest(
+        "numpy dependency required for format detection tests"
+    ) from exc
 
 
 class TestFormatDetectionIntegration(unittest.TestCase):
@@ -368,6 +375,7 @@ class TestFormatDetectionIntegration(unittest.TestCase):
         self.assertIsNotNone(result)
 
 
+@unittest.skipUnless(FormatDetector is not None, "numpy dependency required")
 class TestFormatDetectionBoundaryConditions(unittest.TestCase):
     """Test boundary conditions and stress scenarios for format detection."""
 

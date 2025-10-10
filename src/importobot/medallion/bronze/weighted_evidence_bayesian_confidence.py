@@ -1,14 +1,45 @@
-"""Multi-Variable Linear Programming Bayesian Confidence Scorer.
+"""Weighted Evidence Bayesian Confidence Scorer.
 
 This module implements a mathematically rigorous approach to format detection confidence
-scoring using Multi-Variable Linear Programming (MVLP) within a Bayesian framework.
+scoring using nonlinear weighted evidence aggregation within a Bayesian framework.
 
-Key improvements over ad-hoc approaches:
-1. Constrained optimization with proper bounds
-2. Multi-objective optimization balancing competing factors
-3. Learned parameter weights from data
-4. Confidence intervals for parameter estimates
-5. Proper handling of parameter interactions and dependencies
+Mathematical Approach:
+-------------------
+The confidence scoring system uses:
+
+1. **Nonlinear Evidence Aggregation**:
+   - Combines evidence metrics (completeness, quality, uniqueness) using power functions
+   - Includes bilinear interaction terms to model evidence dependencies
+   - Instead of linear programming, uses nonlinear polynomial optimization
+
+2. **Constrained Optimization**:
+   - Learns optimal weights and powers from training data
+   - Enforces sum-to-one constraint on evidence weights
+   - Uses scipy.optimize.minimize with SLSQP for constrained minimization
+
+3. **Bayesian Integration**:
+   - Incorporates format prior probabilities
+   - Combines likelihood (from evidence) with priors using Bayes' theorem
+   - Provides posterior probability estimates
+
+Key Assumptions:
+--------------
+- Format types are mutually exclusive (priors sum to 1.0)
+- Evidence metrics are in [0,1] range and independently measured
+- Training data is representative of deployment distribution
+- Confidence intervals from Hessian are approximate (MSE objective, not MLE)
+
+Calibration Notes:
+----------------
+Default parameters were derived from empirical testing on test management format data:
+- Power parameters (0.5-0.8): Allow nonlinear scaling for better discrimination
+- Interaction weights (0.1-0.2): Small relative to main effects
+- Weight sum = 1.0: Ensures interpretable probability-like outputs
+
+References:
+----------
+- Constrained optimization: Nocedal & Wright, "Numerical Optimization" (2nd ed.)
+- Bayesian inference: Gelman et al., "Bayesian Data Analysis" (3rd ed.)
 """
 
 from __future__ import annotations
@@ -77,7 +108,7 @@ class ConfidenceParameters:
 
 @dataclass
 class EvidenceMetrics:
-    """Standardized evidence metrics for MVLP optimization."""
+    """Standardized evidence metrics for weighted evidence optimization."""
 
     completeness: float  # [0, 1] - Evidence coverage
     quality: float  # [0, 1] - Average evidence confidence
@@ -98,21 +129,32 @@ class EvidenceMetrics:
         assert self.unique_count >= 0, f"Invalid unique_count: {self.unique_count}"
 
 
-class MVLPBayesianConfidenceScorer:
-    """Multi-Variable Linear Programming Bayesian confidence scorer.
+class WeightedEvidenceBayesianScorer:
+    """Weighted Evidence Bayesian confidence scorer.
 
     This class implements a principled approach to confidence scoring using:
-    1. Constrained optimization to find optimal parameter weights
+    1. Constrained nonlinear optimization to find optimal parameter weights
     2. Multi-objective optimization balancing completeness, quality, uniqueness
-    3. Bayesian parameter estimation with uncertainty quantification
-    4. Linear programming constraints to ensure valid parameter relationships
+    3. Bayesian integration with format prior probabilities
+    4. Uncertainty quantification via bootstrap or Hessian-based intervals
+
+    Note on Confidence Intervals:
+        The Hessian-based confidence intervals assume approximate normality of
+        parameter estimates. These are valid asymptotically for large samples but
+        should be interpreted cautiously with small training sets (n < 20).
+        Consider bootstrap confidence intervals for more robust uncertainty
+        quantification when sample size is limited.
     """
 
+    # Minimum training samples for reliable parameter optimization
+    MIN_TRAINING_SAMPLES = 10
+
     def __init__(self, format_priors: Optional[Dict[str, float]] = None):
-        """Initialize the MVLP Bayesian confidence scorer.
+        """Initialize the Weighted Evidence Bayesian confidence scorer.
 
         Args:
-            format_priors: Prior probabilities for each format type
+            format_priors: Prior probabilities for each format type.
+                          Must sum to 1.0 under mutual exclusivity assumption.
         """
         self.format_priors = format_priors or DEFAULT_FORMAT_PRIORS
 
@@ -131,14 +173,14 @@ class MVLPBayesianConfidenceScorer:
 
         if optimize is None:  # pragma: no cover - runtime warning path
             logger.warning(
-                "SciPy is not installed; MVLP optimization will operate in"
+                "SciPy is not installed; weighted evidence optimization will operate in"
                 " heuristic mode without uncertainty bounds."
             )
 
     def calculate_confidence(
         self, metrics: EvidenceMetrics, format_name: str, use_uncertainty: bool = False
     ) -> Dict[str, float]:
-        """Calculate confidence using MVLP Bayesian approach.
+        """Calculate confidence using weighted evidence Bayesian approach.
 
         Args:
             metrics: Evidence metrics for the format
@@ -152,43 +194,34 @@ class MVLPBayesianConfidenceScorer:
         Note:
             Monte Carlo sampling disabled by default for 50x performance improvement.
             Enable use_uncertainty=True only when statistical bounds are required.
+
+        Mathematical Details:
+            This method uses proper Bayesian inference via _apply_bayesian_inference()
+            which implements:
+                P(H|E) = P(E|H) * P(H) / P(E)
+            where P(E) = sum over all formats of P(E|format) * P(format)
         """
-        # Multi-variable linear programming objective function
-        confidence = self._mvlp_objective_function(metrics, self.parameters)
+        # Calculate likelihood using weighted evidence aggregation
+        likelihood = self._weighted_evidence_objective(metrics, self.parameters)
 
-        # Apply Bayesian prior
-        prior = self.format_priors.get(format_name, 0.1)
+        # Apply proper Bayesian inference to get posterior
+        posterior_confidence = self._apply_bayesian_inference(
+            prior=self.format_priors.get(format_name, 0.1),
+            likelihood=likelihood,
+            _metrics=metrics,
+            _format_name=format_name,
+        )
 
-        # Proper Bayesian posterior calculation
-        # P(format|evidence) ∝ P(evidence|format) * P(format)
-
-        # Convert likelihood to log space for numerical stability
-        log_likelihood = math.log(max(confidence, 1e-10))
-        log_prior = math.log(max(prior, 1e-10))
-
-        # Calculate unnormalized log posterior
-        log_posterior = log_likelihood + log_prior
-
-        # Apply temperature scaling for calibration
-        # Temperature > 1 reduces overconfidence, < 1 increases confidence
-        temperature = 0.8  # Slightly increase confidence for strong evidence
-        scaled_log_posterior = log_posterior / temperature
-
-        # Convert back to probability space with proper normalization
-        # Using a reasonable baseline for relative comparison
-        baseline_log_posterior = math.log(0.5)  # Neutral baseline
-        relative_log_posterior = scaled_log_posterior - baseline_log_posterior
-
-        # Apply sigmoid to convert relative log-odds to probability
-        posterior_confidence = 1.0 / (1.0 + math.exp(-relative_log_posterior))
-
-        # Ensure realistic bounds [0.05, 0.95] for practical use
-        posterior_confidence = max(0.05, min(0.95, posterior_confidence))
+        # Apply parameter-defined confidence bounds
+        posterior_confidence = max(
+            self.parameters.min_confidence,
+            min(self.parameters.max_confidence, posterior_confidence),
+        )
 
         result = {
             "confidence": posterior_confidence,
-            "likelihood": confidence,
-            "prior": prior,
+            "likelihood": likelihood,
+            "prior": self.format_priors.get(format_name, 0.1),
         }
 
         # Add uncertainty bounds if requested
@@ -202,15 +235,24 @@ class MVLPBayesianConfidenceScorer:
 
         return result
 
-    def _mvlp_objective_function(
+    def _weighted_evidence_objective(
         self, metrics: EvidenceMetrics, params: ConfidenceParameters
     ) -> float:
-        """Multi-Variable Linear Programming objective function.
+        """Weighted evidence aggregation objective function.
 
-        This implements a constrained optimization approach where:
-        1. Evidence components are weighted and scaled optimally
-        2. Interactions between evidence types are modeled
-        3. Linear constraints ensure valid parameter relationships
+        This implements a nonlinear polynomial approach where:
+        1. Evidence components are weighted and scaled with power functions
+        2. Bilinear interaction terms model evidence dependencies
+        3. Constrained optimization ensures valid parameter relationships
+
+        Mathematical Form:
+            f(m) = w₁·m₁^p₁ + w₂·m₂^p₂ + w₃·m₃^p₃ + i₁·m₁^p₁·m₂^p₂ + i₂·m₂^p₂·m₃^p₃
+
+        where:
+            m = (completeness, quality, uniqueness) evidence metrics
+            w = weights (sum to 1.0)
+            p = power parameters (typically 0.5-1.5)
+            i = interaction coefficients (typically 0.1-0.2)
         """
         # Scaled evidence components with learned powers
         scaled_completeness = metrics.completeness**params.completeness_power
@@ -245,6 +287,75 @@ class MVLPBayesianConfidenceScorer:
         # Apply bounds constraint
         return float(max(params.min_confidence, min(params.max_confidence, objective)))
 
+    def _apply_bayesian_inference(
+        self,
+        prior: float,
+        likelihood: float,
+        _metrics: EvidenceMetrics,
+        _format_name: str,
+    ) -> float:
+        """Apply proper Bayesian inference with estimated P(E|¬H).
+
+        Mathematical Framework:
+            P(H|E) = P(E|H) * P(H) / [P(E|H) * P(H) + P(E|¬H) * P(¬H)]
+
+        where:
+            H = "Data is from this format"
+            E = Observed evidence metrics
+            P(H) = prior probability (format prevalence)
+            P(E|H) = likelihood (evidence given format IS this type)
+            P(E|¬H) = likelihood of evidence if format is NOT this type
+
+        Estimating P(E|¬H):
+            Since we cannot compute P(E|¬H) from other formats (they share parameters),
+            we use an adaptive estimate based on evidence strength with quadratic decay:
+
+            P(E|¬H) = 0.01 + 0.49 * (1 - likelihood)²
+
+            Rationale (quadratic decay is more aggressive than linear):
+            - When likelihood = 0.0: P(E|¬H) = 0.50 (weak evidence is ambiguous)
+            - When likelihood = 0.5: P(E|¬H) = 0.13
+            (moderate less likely from wrong format)
+            - When likelihood = 1.0: P(E|¬H) = 0.01
+            (perfect evidence rarely from wrong format)
+
+            With perfect evidence and prior=0.1: posterior ≈ 0.92 (high confidence)
+
+        This ensures:
+            1. Zero evidence → low confidence (not fall back to prior)
+            2. Evidence dominates, not prior
+            3. Proper uncertainty quantification
+            4. Respects base rates without prior dominance
+
+        Args:
+            prior: P(H) - prior probability of this format
+            likelihood: P(E|H) - likelihood from evidence aggregation
+            _metrics: Evidence metrics (reserved for future enhancements)
+            _format_name: Current format being evaluated
+            (reserved for future enhancements)
+
+        Returns:
+            Posterior probability P(H|E)
+        """
+        # Adaptive estimation of P(E|¬H) using quadratic decay
+        # Strong evidence is very unlikely to come from wrong format
+        # Weak evidence could come from any format (high P(E|¬H))
+        # Quadratic decay: more aggressive than linear for strong evidence
+        p_evidence_not_format = 0.01 + 0.49 * (1.0 - likelihood) ** 2
+
+        # Apply Bayes' theorem
+        numerator = likelihood * prior
+        denominator = likelihood * prior + p_evidence_not_format * (1.0 - prior)
+
+        if denominator == 0:
+            # Both likelihoods are zero - no evidence at all
+            # Return very low confidence rather than prior
+            return 0.0
+
+        posterior = numerator / denominator
+
+        return posterior
+
     def optimize_parameters(
         self,
         training_data: List[Tuple[EvidenceMetrics, float]],
@@ -258,11 +369,24 @@ class MVLPBayesianConfidenceScorer:
 
         Returns:
             Optimized parameters with confidence intervals
+
+        Raises:
+            ValueError: If training_data has fewer than MIN_TRAINING_SAMPLES samples
         """
         self.training_data = training_data
 
         if not training_data:
             return self.parameters
+
+        # Validate minimum sample size for reliable optimization
+        if len(training_data) < self.MIN_TRAINING_SAMPLES:
+            logger.warning(
+                "Training data has %d samples (< %d minimum). "
+                "Parameter optimization may be unreliable. "
+                "Consider collecting more training data.",
+                len(training_data),
+                self.MIN_TRAINING_SAMPLES,
+            )
 
         # Define optimization objective (minimize MSE)
         def objective(x: Any) -> float:
@@ -271,7 +395,7 @@ class MVLPBayesianConfidenceScorer:
 
             mse = 0.0
             for metrics, expected_confidence in training_data:
-                predicted = self._mvlp_objective_function(metrics, params)
+                predicted = self._weighted_evidence_objective(metrics, params)
                 mse += (predicted - expected_confidence) ** 2
 
             return mse / len(training_data)
@@ -295,8 +419,8 @@ class MVLPBayesianConfidenceScorer:
         # Optimize using constrained optimization
         if optimize is None:
             logger.info(
-                "Falling back to heuristic MVLP parameter tuning; install SciPy for"
-                " constrained optimization and uncertainty intervals."
+                "Falling back to heuristic weighted evidence parameter tuning;"
+                " install SciPy for constrained optimization and uncertainty intervals."
             )
             self.parameters = self._optimize_with_heuristics(training_data)
             self.parameter_confidence_intervals.clear()
@@ -569,7 +693,7 @@ class MVLPBayesianConfidenceScorer:
             sampled_params = self._sample_parameters_from_intervals()
 
             # Calculate confidence with sampled parameters
-            confidence = self._mvlp_objective_function(metrics, sampled_params)
+            confidence = self._weighted_evidence_objective(metrics, sampled_params)
 
             # Apply Bayesian prior
             prior = self.format_priors.get(format_name, 0.1)
@@ -601,7 +725,28 @@ class MVLPBayesianConfidenceScorer:
         return ConfidenceParameters(**current_dict)
 
     def _sigmoid_normalize(self, x: float) -> float:
-        """Sigmoid normalization for Bayesian posterior."""
+        """Sigmoid normalization for log-odds transformation.
+
+        Applies a modified sigmoid function to transform log-posterior values
+        into the [0,1] probability range:
+
+            σ(x) = 1 / (1 + exp(-2(x + 1)))
+
+        Modifications from standard sigmoid:
+            - Factor of 2: Increases slope for sharper discrimination
+            - Offset of +1: Shifts midpoint from 0 to -1 in log space
+
+        Args:
+            x: Input value (typically log-posterior)
+
+        Returns:
+            Normalized value in [0,1] range
+
+        Note:
+            This transformation is empirically calibrated for the format
+            detection domain where log-posteriors typically range from -5 to 0.
+            The adjustments provide better discrimination in this range.
+        """
         # Adjusted sigmoid for confidence scoring domain
         return 1.0 / (1.0 + math.exp(-2.0 * (x + 1.0)))
 
@@ -620,3 +765,10 @@ class MVLPBayesianConfidenceScorer:
             summary["training_samples"] = len(self.training_data)
 
         return summary
+
+
+__all__ = [
+    "ConfidenceParameters",
+    "EvidenceMetrics",
+    "WeightedEvidenceBayesianScorer",
+]

@@ -2,7 +2,9 @@
 
 import shutil
 import tempfile
+import time
 from pathlib import Path
+from typing import Any, Callable
 
 import pytest
 
@@ -86,8 +88,13 @@ def telemetry_events(monkeypatch):
 def benchmark():
     """Provide simple benchmark fixture for performance tests."""
 
-    def _benchmark(func):
-        """Run function and return its result."""
-        return func()
+    def _benchmark(func: Callable[[], Any], *, iterations: int = 1) -> dict[str, Any]:
+        """Run function and return timing/result information."""
+        start = time.perf_counter()
+        result = None
+        for _ in range(iterations):
+            result = func()
+        elapsed = (time.perf_counter() - start) / max(iterations, 1)
+        return {"elapsed": elapsed, "result": result}
 
     return _benchmark

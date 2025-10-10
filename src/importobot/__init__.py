@@ -68,7 +68,7 @@ __all__ = [
     "api",
 ]
 
-__version__ = "1.0.0"
+__version__ = "0.1.2"
 
 # Clean up namespace - remove internal imports from dir()
 del _config, _exceptions, _api

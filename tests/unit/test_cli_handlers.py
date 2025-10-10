@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from importobot.cli.handlers import (
+    InputType,
     apply_suggestions_single_file,
     collect_suggestions,
     convert_directory_handler,
@@ -37,7 +38,7 @@ class TestInputTypeDetection:
         with patch("glob.glob") as mock_glob:
             mock_glob.return_value = ["test1.json", "test2.json"]
             input_type, files = detect_input_type("*.json")
-            assert input_type == "wildcard"
+            assert input_type == InputType.WILDCARD
             assert files == ["test1.json", "test2.json"]
 
     def test_detect_wildcard_no_matches(self):
@@ -45,7 +46,7 @@ class TestInputTypeDetection:
         with patch("glob.glob") as mock_glob:
             mock_glob.return_value = []
             input_type, files = detect_input_type("*.json")
-            assert input_type == "error"
+            assert input_type == InputType.ERROR
             assert not files
 
     def test_detect_wildcard_non_json_files(self):
@@ -53,14 +54,14 @@ class TestInputTypeDetection:
         with patch("glob.glob") as mock_glob:
             mock_glob.return_value = ["test1.txt", "test2.xml"]
             input_type, files = detect_input_type("*.*")
-            assert input_type == "error"
+            assert input_type == InputType.ERROR
             assert not files
 
     def test_detect_directory(self):
         """Should detect when input is a directory."""
         with tempfile.TemporaryDirectory() as temp_dir:
             input_type, files = detect_input_type(temp_dir)
-            assert input_type == "directory"
+            assert input_type == InputType.DIRECTORY
             assert files == [temp_dir]
 
     def test_detect_file(self):
@@ -68,7 +69,7 @@ class TestInputTypeDetection:
         with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as temp_file:
             try:
                 input_type, files = detect_input_type(temp_file.name)
-                assert input_type == "file"
+                assert input_type == InputType.FILE
                 assert files == [temp_file.name]
             finally:
                 os.unlink(temp_file.name)
@@ -76,7 +77,7 @@ class TestInputTypeDetection:
     def test_detect_nonexistent_path(self):
         """Should handle paths that don't exist."""
         input_type, files = detect_input_type("/nonexistent/path")
-        assert input_type == "error"
+        assert input_type == InputType.ERROR
         assert not files
 
 
@@ -85,19 +86,19 @@ class TestOutputDirectoryRequirements:
 
     def test_directory_requires_output_dir(self):
         """Test directory input requires output directory."""
-        assert requires_output_directory("directory", 1) is True
+        assert requires_output_directory(InputType.DIRECTORY, 1) is True
 
     def test_multiple_wildcards_require_output_dir(self):
         """Test multiple wildcard files require output directory."""
-        assert requires_output_directory("wildcard", 3) is True
+        assert requires_output_directory(InputType.WILDCARD, 3) is True
 
     def test_single_wildcard_no_output_dir(self):
         """Test single wildcard file doesn't require output directory."""
-        assert requires_output_directory("wildcard", 1) is False
+        assert requires_output_directory(InputType.WILDCARD, 1) is False
 
     def test_file_no_output_dir(self):
         """Test file input doesn't require output directory."""
-        assert requires_output_directory("file", 1) is False
+        assert requires_output_directory(InputType.FILE, 1) is False
 
 
 class TestSuggestionHandling:
@@ -199,7 +200,7 @@ class TestInputValidation:
         args = MagicMock()
         args.output_file = None
 
-        validate_input_and_output("directory", ["/some/dir"], args, parser)
+        validate_input_and_output(InputType.DIRECTORY, ["/some/dir"], args, parser)
 
         parser.error.assert_called_once_with(
             "Output directory required for multiple files or directory input"
@@ -212,7 +213,7 @@ class TestInputValidation:
         args.output_file = None
 
         test_file = tmp_path / "some_file.json"
-        validate_input_and_output("file", [str(test_file)], args, parser)
+        validate_input_and_output(InputType.FILE, [str(test_file)], args, parser)
 
         parser.error.assert_called_once_with(
             "Output file required for single file input"
@@ -228,7 +229,7 @@ class TestInputValidation:
             patch("importobot.cli.handlers.logger") as mock_logger,
             patch("sys.exit") as mock_exit,
         ):
-            validate_input_and_output("error", [], args, parser)
+            validate_input_and_output(InputType.ERROR, [], args, parser)
 
             mock_logger.error.assert_called_once_with(
                 "No matching files found for '%s'", "nonexistent"
@@ -477,7 +478,9 @@ class TestHandleBulkConversionWithSuggestions:
         args.no_suggestions = False
 
         with patch("importobot.cli.handlers.convert_directory") as mock_convert:
-            handle_bulk_conversion_with_suggestions(args, "directory", ["/input/dir"])
+            handle_bulk_conversion_with_suggestions(
+                args, InputType.DIRECTORY, ["/input/dir"]
+            )
 
             captured = capsys.readouterr()
             warning_msg = (
@@ -494,7 +497,9 @@ class TestHandleBulkConversionWithSuggestions:
         detected_files = ["file1.json", "file2.json"]
 
         with patch("importobot.cli.handlers.convert_multiple_files") as mock_convert:
-            handle_bulk_conversion_with_suggestions(args, "wildcard", detected_files)
+            handle_bulk_conversion_with_suggestions(
+                args, InputType.WILDCARD, detected_files
+            )
 
             mock_convert.assert_called_once_with(detected_files, "/output/dir")
             captured = capsys.readouterr()
@@ -515,7 +520,7 @@ class TestHandlePositionalArgs:
         with (
             patch(
                 "importobot.cli.handlers.detect_input_type",
-                return_value=("file", ["test.json"]),
+                return_value=(InputType.FILE, ["test.json"]),
             ),
             patch("importobot.cli.handlers.validate_input_and_output"),
             patch("importobot.cli.handlers.convert_single_file") as mock_convert,
@@ -535,7 +540,7 @@ class TestHandlePositionalArgs:
         with (
             patch(
                 "importobot.cli.handlers.detect_input_type",
-                return_value=("directory", ["/input/dir"]),
+                return_value=(InputType.DIRECTORY, ["/input/dir"]),
             ),
             patch("importobot.cli.handlers.validate_input_and_output"),
             patch("importobot.cli.handlers.convert_directory_handler") as mock_convert,
@@ -555,7 +560,7 @@ class TestHandlePositionalArgs:
         with (
             patch(
                 "importobot.cli.handlers.detect_input_type",
-                return_value=("file", ["test.json"]),
+                return_value=(InputType.FILE, ["test.json"]),
             ),
             patch("importobot.cli.handlers.validate_input_and_output"),
             patch(

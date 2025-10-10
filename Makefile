@@ -11,12 +11,13 @@ help:
 	@echo "Available targets:"
 	@echo "  help         - Show this help menu"
 	@echo "  init         - Install dependencies"
-	@echo "  test         - Run tests"
+	@echo "  test         - Run tests (~2 minutes)"
 	@echo "  coverage     - Run tests with coverage"
-	@echo "  lint         - Run linting"
+	@echo "  lint         - Run all linting checks (~2 minutes)"
+	@echo "  lint-fast    - Run fast linting (skip pylint, ~10 seconds)"
 	@echo "  format       - Format code"
-	@echo "  typecheck    - Run type checking"
-	@echo "  validate     - Validate PR readiness (lint + typecheck + test)"
+	@echo "  typecheck    - Run type checking (~5 seconds)"
+	@echo "  validate     - Validate PR readiness (~5 minutes total)"
 	@echo "  clean        - Clean temp files"
 	@echo "  examples     - Run all example conversions and usage examples"
 	@echo "  example-basic           - Basic login example"
@@ -83,14 +84,31 @@ coverage:
 	$(info $(NEWLINE)==================== Running tests with coverage ====================$(NEWLINE))
 	uv run coverage run -m pytest && uv run coverage report
 
-# Linting
+# Linting (full suite, ~2 minutes total)
+# Breakdown: ruff <1s, pylint ~95s, pycodestyle ~4s, pydocstyle ~3s
 .PHONY: lint
 lint:
 	$(info $(NEWLINE)==================== Running linting ====================$(NEWLINE))
-	uv run ruff check .
-	uv run pylint .
-	uv run pycodestyle .
-	uv run pydocstyle .
+	@echo "→ Running ruff (fast)..."
+	@uv run ruff check .
+	@echo "→ Running pylint (this may take 90-120 seconds)..."
+	@uv run pylint .
+	@echo "→ Running pycodestyle..."
+	@uv run pycodestyle .
+	@echo "→ Running pydocstyle..."
+	@uv run pydocstyle .
+
+# Fast linting (skips pylint, ~10 seconds total)
+# Use for quick checks before committing
+.PHONY: lint-fast
+lint-fast:
+	$(info $(NEWLINE)==================== Running fast linting (no pylint) ====================$(NEWLINE))
+	@echo "→ Running ruff..."
+	@uv run ruff check .
+	@echo "→ Running pycodestyle..."
+	@uv run pycodestyle .
+	@echo "→ Running pydocstyle..."
+	@uv run pydocstyle .
 
 # Format
 .PHONY: format
@@ -109,17 +127,24 @@ typecheck:
 	cd scripts && uv run mypy tests
 
 # Validate PR readiness
+# Expected timing breakdown (~5 minutes total):
+#   - lint: ~120s (pylint is 95% of this)
+#   - typecheck: ~5s
+#   - test: ~100s (1833 tests)
+#   - detect-secrets: ~10s
+#   - bandit: ~5s
+#   - Total: ~240s (4 minutes)
 .PHONY: validate
 validate: lint typecheck test
 	$(info $(NEWLINE)==================== Validating PR readiness ====================$(NEWLINE))
-	$(info $(NEWLINE)Checking for exposed secrets...$(NEWLINE))
+	@echo "→ [4/6] Checking for exposed secrets..."
 	@uv run detect-secrets --version >/dev/null 2>&1 || { echo "⚠️  detect-secrets unavailable. Run 'uv sync' to install dev dependencies"; exit 1; }
 	@uv run detect-secrets scan --all-files . || { echo "⚠️  Secrets detected! Run 'uv run detect-secrets scan --all-files .' to see details"; exit 1; }
-	$(info $(NEWLINE)Checking dependency updates...$(NEWLINE))
+	@echo "→ [5/6] Checking dependency updates..."
 	@uv pip list --outdated || true
-	$(info $(NEWLINE)Checking for uncommitted changes...$(NEWLINE))
+	@echo "→ Checking for uncommitted changes..."
 	@git status --porcelain | head -5 || true
-	$(info $(NEWLINE)Checking for security vulnerabilities...$(NEWLINE))
+	@echo "→ [6/6] Checking for security vulnerabilities..."
 	@uv run bandit --version >/dev/null 2>&1 || { echo "⚠️  bandit unavailable. Run 'uv sync' to install dev dependencies"; exit 1; }
 	@uv run bandit -r src/ -ll -f json -o bandit-report.json || { echo "⚠️  Security issues found! Check bandit-report.json"; exit 1; }
 	@rm -f bandit-report.json
@@ -248,7 +273,7 @@ mcp-review:
 .PHONY: bench
 bench:
 	$(info $(NEWLINE)==================== Running performance benchmarks ====================$(NEWLINE))
-	uv run python scripts/src/importobot_scripts/performance_benchmark.py
+	uv run python -m importobot_scripts.benchmarks.performance_benchmark
 
 # Mutation testing
 .PHONY: mutation
@@ -262,12 +287,13 @@ mutation:
 perf-test:
 	$(info $(NEWLINE)==================== Running performance regression tests ====================$(NEWLINE))
 	uv run pytest tests/performance --maxfail=1 --durations=10
+	uv run python -m importobot_scripts.benchmarks.performance_benchmark --ci-mode --ci-thresholds ci/performance_thresholds.json
 
 # Benchmark dashboard
 .PHONY: benchmark-dashboard
 benchmark-dashboard:
 	$(info $(NEWLINE)==================== Building benchmark dashboard ====================$(NEWLINE))
-	uv run python scripts/src/importobot_scripts/benchmark_dashboard.py
+	uv run python -m importobot_scripts.benchmarks.benchmark_dashboard
 
 # Enterprise demo - bulk conversion test
 .PHONY: enterprise-demo

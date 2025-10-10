@@ -197,7 +197,10 @@ def test_optimization_service_ttl_disabled_skips_expiry_tracking() -> None:
 
 def test_gold_layer_optimization_preview_included(tmp_path: Path) -> None:
     """Test that gold layer includes optimization preview in processing results."""
-    gold_layer = GoldLayer(optimization_service=OptimizationService())
+    with pytest.warns(
+        UserWarning, match="GoldLayer is currently a placeholder implementation"
+    ):
+        gold_layer = GoldLayer(optimization_service=OptimizationService())
     metadata = LayerMetadata(
         source_path=tmp_path / "source.json",
         layer_name="gold",

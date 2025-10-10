@@ -656,7 +656,7 @@ class TestLocalStorageInternals:
         ]
 
         query = LayerQuery(layer_name="bronze", filters={}, limit=2, offset=1)
-        result = storage_backend._build_layer_data(matching_items, query)
+        result = storage_backend._build_layer_data(matching_items, query, match_count=3)
 
         assert result.total_count == 3
         assert result.retrieved_count == 2
@@ -694,18 +694,21 @@ class TestLocalStorageInternals:
             with open(data_file, "w", encoding="utf-8") as f:
                 json.dump({**sample_data, "id": i}, f)
 
-            metadata_files.append(metadata_file)
+            # Append as (Path, mtime) tuple as expected by the method
+            mtime = metadata_file.stat().st_mtime
+            metadata_files.append((metadata_file, mtime))
 
         query = LayerQuery(layer_name="bronze", filters={})
 
         # Mock the _matches_query method to return True
         with patch.object(storage_backend, "_matches_query", return_value=True):
-            result = storage_backend._process_metadata_files(
+            matching_items, match_count = storage_backend._process_metadata_files(
                 metadata_files, temp_dir, query
             )
 
-        assert len(result) == 3
-        for i, (data, metadata) in enumerate(result):
+        assert match_count == 3
+        assert len(matching_items) == 3
+        for i, (data, metadata) in enumerate(matching_items):
             assert data["id"] == i
             assert metadata.data_hash == f"hash_{i}"
 

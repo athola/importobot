@@ -71,9 +71,26 @@ class TelemetryClient:
             self._exporters.append(exporter)
 
     def clear_exporters(self) -> None:
-        """Remove all custom exporters (used in testing)."""
+        """Remove all exporters except the default logger exporter."""
         with self._lock:
-            self._exporters = [self._default_logger_exporter] if self.enabled else []
+            # Keep only the default logger exporter
+            # (compare by function name and qualname)
+            self._exporters = [
+                exp
+                for exp in self._exporters
+                if hasattr(exp, "__func__")
+                and exp.__func__.__name__ == "_default_logger_exporter"
+                and hasattr(exp, "__self__")
+                and exp.__self__ is self
+            ]
+
+    def restore_default_exporter(self) -> None:
+        """Re-enable the built-in logger exporter if telemetry is enabled."""
+        if not self.enabled:
+            return
+        with self._lock:
+            if self._default_logger_exporter not in self._exporters:
+                self._exporters.insert(0, self._default_logger_exporter)
 
     def record_cache_metrics(
         self,
@@ -116,6 +133,8 @@ class TelemetryClient:
     # ---------------------------------------------------------------------
     # Internals
     def _emit(self, event_name: str, payload: TelemetryPayload) -> None:
+        if not self._exporters:
+            return
         for exporter in list(self._exporters):
             try:
                 exporter(event_name, payload)
@@ -125,7 +144,7 @@ class TelemetryClient:
     def _default_logger_exporter(
         self, event_name: str, payload: TelemetryPayload
     ) -> None:
-        logger.info("telemetry.%s %s", event_name, json.dumps(payload, default=str))
+        logger.warning("telemetry.%s %s", event_name, json.dumps(payload, default=str))
 
 
 class _TelemetryClientHolder:
@@ -181,3 +200,8 @@ def register_telemetry_exporter(exporter: TelemetryExporter) -> None:
 def clear_telemetry_exporters() -> None:
     """Remove all custom exporters from the global client."""
     get_telemetry_client().clear_exporters()
+
+
+def restore_default_telemetry_exporter() -> None:
+    """Re-enable the default logger exporter on the global client."""
+    get_telemetry_client().restore_default_exporter()

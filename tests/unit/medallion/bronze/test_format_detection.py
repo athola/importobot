@@ -23,6 +23,15 @@ from tests.shared_test_data_bronze import (
     COMMON_TEST_SUITE_STRUCTURE,
 )
 
+try:  # pragma: no cover - optional dependency guard
+    import numpy  # type: ignore
+
+    _ = numpy  # Mark as used to avoid F401
+except ImportError as exc:  # pragma: no cover
+    raise unittest.SkipTest(
+        "numpy dependency required for format detection tests"
+    ) from exc
+
 
 class TestFormatDetectionBusinessLogic(unittest.TestCase):
     """Business logic tests for format detection capabilities."""

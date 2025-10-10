@@ -1,6 +1,6 @@
-"""Unit tests for MVLP Bayesian Confidence Scorer.
+"""Unit tests for Weighted Evidence Bayesian Confidence Scorer.
 
-This module tests the Multi-Variable Linear Programming Bayesian confidence
+This module tests the nonlinear weighted evidence aggregation Bayesian confidence
 scoring implementation following TDD principles.
 """
 
@@ -9,11 +9,13 @@ from typing import List, Tuple
 import numpy as np
 import pytest
 
-from importobot.medallion.bronze import mvlp_bayesian_confidence as mvlp_module
-from importobot.medallion.bronze.mvlp_bayesian_confidence import (
+from importobot.medallion.bronze import (
+    weighted_evidence_bayesian_confidence as weighted_evidence_module,
+)
+from importobot.medallion.bronze.weighted_evidence_bayesian_confidence import (
     ConfidenceParameters,
     EvidenceMetrics,
-    MVLPBayesianConfidenceScorer,
+    WeightedEvidenceBayesianScorer,
 )
 
 
@@ -264,12 +266,12 @@ class TestEvidenceMetrics:
             )
 
 
-class TestMVLPBayesianConfidenceScorer:
-    """Test suite for MVLPBayesianConfidenceScorer."""
+class TestWeightedEvidenceBayesianScorer:
+    """Test suite for WeightedEvidenceBayesianScorer."""
 
     def test_initialization_with_default_priors(self):
         """Test scorer initializes with default priors."""
-        scorer = MVLPBayesianConfidenceScorer()
+        scorer = WeightedEvidenceBayesianScorer()
 
         assert scorer.parameters is not None
         assert scorer.parameters.validate() is True
@@ -285,14 +287,14 @@ class TestMVLPBayesianConfidenceScorer:
             "TestRail": 0.2,
         }
 
-        scorer = MVLPBayesianConfidenceScorer(format_priors=custom_priors)
+        scorer = WeightedEvidenceBayesianScorer(format_priors=custom_priors)
 
         assert scorer.format_priors == custom_priors
         assert scorer.format_priors["Zephyr"] == 0.5
 
     def test_calculate_confidence_basic(self):
         """Test basic confidence calculation."""
-        scorer = MVLPBayesianConfidenceScorer()
+        scorer = WeightedEvidenceBayesianScorer()
 
         metrics = EvidenceMetrics(
             completeness=0.8,
@@ -307,12 +309,18 @@ class TestMVLPBayesianConfidenceScorer:
         assert "confidence" in result
         assert "likelihood" in result
         assert "prior" in result
-        assert 0.05 <= result["confidence"] <= 0.95
+        # Confidence should be within parameter bounds [min_confidence, max_confidence]
+        assert (
+            scorer.parameters.min_confidence
+            <= result["confidence"]
+            <= scorer.parameters.max_confidence
+        )
         assert 0.0 <= result["likelihood"] <= 1.0
 
     def test_confidence_respects_bounds(self):
-        """Test that confidence is bounded to [0.05, 0.95]."""
-        scorer = MVLPBayesianConfidenceScorer()
+        """Test that confidence respects parameter bounds
+        [min_confidence, max_confidence]."""
+        scorer = WeightedEvidenceBayesianScorer()
 
         # Perfect evidence
         metrics = EvidenceMetrics(
@@ -324,7 +332,11 @@ class TestMVLPBayesianConfidenceScorer:
         )
 
         result = scorer.calculate_confidence(metrics, "Zephyr")
-        assert 0.05 <= result["confidence"] <= 0.95
+        assert (
+            scorer.parameters.min_confidence
+            <= result["confidence"]
+            <= scorer.parameters.max_confidence
+        )
 
         # No evidence
         metrics = EvidenceMetrics(
@@ -336,11 +348,15 @@ class TestMVLPBayesianConfidenceScorer:
         )
 
         result = scorer.calculate_confidence(metrics, "Zephyr")
-        assert 0.05 <= result["confidence"] <= 0.95
+        assert (
+            scorer.parameters.min_confidence
+            <= result["confidence"]
+            <= scorer.parameters.max_confidence
+        )
 
     def test_higher_quality_increases_confidence(self):
         """Test that higher quality metrics increase confidence."""
-        scorer = MVLPBayesianConfidenceScorer()
+        scorer = WeightedEvidenceBayesianScorer()
 
         low_quality = EvidenceMetrics(
             completeness=0.5,
@@ -367,9 +383,9 @@ class TestMVLPBayesianConfidenceScorer:
 
         assert result_high["likelihood"] > result_low["likelihood"]
 
-    def test_mvlp_objective_function_with_zero_metrics(self):
-        """Test MVLP objective function with zero metrics."""
-        scorer = MVLPBayesianConfidenceScorer()
+    def test_weighted_evidence_objective_with_zero_metrics(self):
+        """Test weighted evidence objective function with zero metrics."""
+        scorer = WeightedEvidenceBayesianScorer()
 
         metrics = EvidenceMetrics(
             completeness=0.0,
@@ -379,14 +395,14 @@ class TestMVLPBayesianConfidenceScorer:
             unique_count=0,
         )
 
-        result = scorer._mvlp_objective_function(metrics, scorer.parameters)
+        result = scorer._weighted_evidence_objective(metrics, scorer.parameters)
 
         assert result >= scorer.parameters.min_confidence
         assert result <= scorer.parameters.max_confidence
 
-    def test_mvlp_objective_function_with_perfect_metrics(self):
-        """Test MVLP objective function with perfect metrics."""
-        scorer = MVLPBayesianConfidenceScorer()
+    def test_weighted_evidence_objective_with_perfect_metrics(self):
+        """Test weighted evidence objective function with perfect metrics."""
+        scorer = WeightedEvidenceBayesianScorer()
 
         metrics = EvidenceMetrics(
             completeness=1.0,
@@ -396,15 +412,15 @@ class TestMVLPBayesianConfidenceScorer:
             unique_count=50,
         )
 
-        result = scorer._mvlp_objective_function(metrics, scorer.parameters)
+        result = scorer._weighted_evidence_objective(metrics, scorer.parameters)
 
         assert result >= scorer.parameters.min_confidence
         assert result <= scorer.parameters.max_confidence
         assert result > 0.5  # Should be high confidence
 
-    def test_mvlp_includes_interaction_terms(self):
+    def test_scorer_includes_interaction_terms(self):
         """Test that interaction terms affect the objective function."""
-        scorer = MVLPBayesianConfidenceScorer()
+        scorer = WeightedEvidenceBayesianScorer()
 
         metrics = EvidenceMetrics(
             completeness=0.8,
@@ -415,7 +431,7 @@ class TestMVLPBayesianConfidenceScorer:
         )
 
         # Calculate with default parameters (includes interactions)
-        result_with_interaction = scorer._mvlp_objective_function(
+        result_with_interaction = scorer._weighted_evidence_objective(
             metrics, scorer.parameters
         )
 
@@ -431,7 +447,7 @@ class TestMVLPBayesianConfidenceScorer:
             quality_uniqueness_interaction=0.0,
         )
 
-        result_no_interaction = scorer._mvlp_objective_function(
+        result_no_interaction = scorer._weighted_evidence_objective(
             metrics, no_interaction_params
         )
 
@@ -439,12 +455,12 @@ class TestMVLPBayesianConfidenceScorer:
         assert result_with_interaction != result_no_interaction
 
 
-class TestMVLPOptimizationAndHelpers:
-    """Test suite for MVLP optimization and helper methods."""
+class TestWeightedEvidenceOptimizationAndHelpers:
+    """Test suite for weighted evidence optimization and helper methods."""
 
     def test_parameters_to_vector_conversion(self):
         """Test parameter to vector conversion."""
-        scorer = MVLPBayesianConfidenceScorer()
+        scorer = WeightedEvidenceBayesianScorer()
 
         params = ConfidenceParameters()
         vector = scorer._parameters_to_vector(params)
@@ -457,7 +473,7 @@ class TestMVLPOptimizationAndHelpers:
 
     def test_vector_to_parameters_conversion(self):
         """Test vector to parameter conversion."""
-        scorer = MVLPBayesianConfidenceScorer()
+        scorer = WeightedEvidenceBayesianScorer()
 
         original_params = ConfidenceParameters(
             completeness_weight=0.35,
@@ -476,7 +492,7 @@ class TestMVLPOptimizationAndHelpers:
 
     def test_parameter_conversion_roundtrip(self):
         """Test that parameter conversion is reversible."""
-        scorer = MVLPBayesianConfidenceScorer()
+        scorer = WeightedEvidenceBayesianScorer()
 
         original = scorer.parameters
         vector = scorer._parameters_to_vector(original)
@@ -491,7 +507,7 @@ class TestMVLPOptimizationAndHelpers:
 
     def test_build_parameter_bounds(self):
         """Test parameter bounds generation."""
-        scorer = MVLPBayesianConfidenceScorer()
+        scorer = WeightedEvidenceBayesianScorer()
 
         bounds = scorer._build_parameter_bounds()
 
@@ -507,7 +523,7 @@ class TestMVLPOptimizationAndHelpers:
 
     def test_build_optimization_constraints(self):
         """Test optimization constraint generation."""
-        scorer = MVLPBayesianConfidenceScorer()
+        scorer = WeightedEvidenceBayesianScorer()
 
         constraints = scorer._build_optimization_constraints()
 
@@ -519,7 +535,7 @@ class TestMVLPOptimizationAndHelpers:
 
     def test_weight_sum_constraint_function(self):
         """Test that weight sum constraint enforces sum = 1."""
-        scorer = MVLPBayesianConfidenceScorer()
+        scorer = WeightedEvidenceBayesianScorer()
 
         # Valid parameters (sum = 1.0)
         valid_params = ConfidenceParameters(
@@ -538,7 +554,7 @@ class TestMVLPOptimizationAndHelpers:
 
     def test_optimize_parameters_with_empty_data(self):
         """Test parameter optimization with no training data."""
-        scorer = MVLPBayesianConfidenceScorer()
+        scorer = WeightedEvidenceBayesianScorer()
 
         original_params = scorer.parameters
         optimized = scorer.optimize_parameters([])
@@ -549,7 +565,7 @@ class TestMVLPOptimizationAndHelpers:
 
     def test_optimize_parameters_with_training_data(self):
         """Test parameter optimization with training data."""
-        scorer = MVLPBayesianConfidenceScorer()
+        scorer = WeightedEvidenceBayesianScorer()
 
         # Create synthetic training data
         training_data: List[Tuple[EvidenceMetrics, float]] = [
@@ -569,10 +585,10 @@ class TestMVLPOptimizationAndHelpers:
 
     def test_optimize_parameters_without_scipy_falls_back(self, monkeypatch):
         """When SciPy is missing, heuristics should keep optimization usable."""
-        monkeypatch.setattr(mvlp_module, "optimize", None)
-        monkeypatch.setattr(mvlp_module, "norm", None)
+        monkeypatch.setattr(weighted_evidence_module, "optimize", None)
+        monkeypatch.setattr(weighted_evidence_module, "norm", None)
 
-        scorer = mvlp_module.MVLPBayesianConfidenceScorer()
+        scorer = weighted_evidence_module.WeightedEvidenceBayesianScorer()
 
         training_data: List[Tuple[EvidenceMetrics, float]] = [
             (EvidenceMetrics(0.8, 0.9, 0.7, 10, 5), 0.82),
@@ -588,10 +604,10 @@ class TestMVLPOptimizationAndHelpers:
 
     def test_heuristic_optimization_normalizes_weights(self, monkeypatch):
         """Heuristic optimizer should produce weight sums close to 1.0."""
-        monkeypatch.setattr(mvlp_module, "optimize", None)
-        monkeypatch.setattr(mvlp_module, "norm", None)
+        monkeypatch.setattr(weighted_evidence_module, "optimize", None)
+        monkeypatch.setattr(weighted_evidence_module, "norm", None)
 
-        scorer = mvlp_module.MVLPBayesianConfidenceScorer()
+        scorer = weighted_evidence_module.WeightedEvidenceBayesianScorer()
         training_data: List[Tuple[EvidenceMetrics, float]] = [
             (EvidenceMetrics(0.4, 0.2, 0.1, 5, 2), 0.3),
             (EvidenceMetrics(0.1, 0.8, 0.6, 7, 4), 0.65),
@@ -612,10 +628,10 @@ class TestMVLPOptimizationAndHelpers:
 
     def test_heuristic_optimization_handles_degenerate_data(self, monkeypatch):
         """Degenerate training data should fall back to default parameters."""
-        monkeypatch.setattr(mvlp_module, "optimize", None)
-        monkeypatch.setattr(mvlp_module, "norm", None)
+        monkeypatch.setattr(weighted_evidence_module, "optimize", None)
+        monkeypatch.setattr(weighted_evidence_module, "norm", None)
 
-        scorer = mvlp_module.MVLPBayesianConfidenceScorer()
+        scorer = weighted_evidence_module.WeightedEvidenceBayesianScorer()
         training_data: List[Tuple[EvidenceMetrics, float]] = [
             (EvidenceMetrics(0.0, 0.0, 0.0, 0, 0), 0.1),
             (EvidenceMetrics(0.0, 0.0, 0.0, 0, 0), 0.1),
@@ -630,7 +646,7 @@ class TestMVLPOptimizationAndHelpers:
 
     def test_sigmoid_normalize_symmetry(self):
         """Test sigmoid normalization has expected properties."""
-        scorer = MVLPBayesianConfidenceScorer()
+        scorer = WeightedEvidenceBayesianScorer()
 
         # Sigmoid should be symmetric around origin
         pos_result = scorer._sigmoid_normalize(1.0)
@@ -643,7 +659,7 @@ class TestMVLPOptimizationAndHelpers:
 
     def test_sigmoid_normalize_bounds(self):
         """Test sigmoid normalization stays within bounds."""
-        scorer = MVLPBayesianConfidenceScorer()
+        scorer = WeightedEvidenceBayesianScorer()
 
         # Test extreme values
         very_negative = scorer._sigmoid_normalize(-100.0)
@@ -655,7 +671,7 @@ class TestMVLPOptimizationAndHelpers:
 
     def test_get_parameter_summary_default_state(self):
         """Test parameter summary in default state."""
-        scorer = MVLPBayesianConfidenceScorer()
+        scorer = WeightedEvidenceBayesianScorer()
 
         summary = scorer.get_parameter_summary()
 
@@ -669,7 +685,7 @@ class TestMVLPOptimizationAndHelpers:
 
     def test_get_parameter_summary_after_optimization(self):
         """Test parameter summary after optimization."""
-        scorer = MVLPBayesianConfidenceScorer()
+        scorer = WeightedEvidenceBayesianScorer()
 
         training_data: List[Tuple[EvidenceMetrics, float]] = [
             (EvidenceMetrics(0.8, 0.9, 0.7, 10, 5), 0.85),
@@ -683,14 +699,15 @@ class TestMVLPOptimizationAndHelpers:
         assert summary["training_samples"] == 2
 
     def test_prior_affects_confidence(self):
-        """Test that format prior affects confidence calculation."""
-        # High prior format
-        high_prior_scorer = MVLPBayesianConfidenceScorer(
-            format_priors={"HighPrior": 0.8}
-        )
+        """Test that format prior affects confidence calculation.
 
-        # Low prior format
-        low_prior_scorer = MVLPBayesianConfidenceScorer(format_priors={"LowPrior": 0.1})
+        With proper Bayesian inference, priors are normalized across all formats.
+        To see the effect of priors, we need multiple formats in the same scorer.
+        """
+        # Scorer with multiple formats where priors differ
+        scorer = WeightedEvidenceBayesianScorer(
+            format_priors={"HighPrior": 0.6, "LowPrior": 0.4}
+        )
 
         metrics = EvidenceMetrics(
             completeness=0.5,
@@ -700,19 +717,23 @@ class TestMVLPOptimizationAndHelpers:
             unique_count=2,
         )
 
-        high_result = high_prior_scorer.calculate_confidence(
+        high_result = scorer.calculate_confidence(
             metrics, "HighPrior", use_uncertainty=False
         )
-        low_result = low_prior_scorer.calculate_confidence(
+        low_result = scorer.calculate_confidence(
             metrics, "LowPrior", use_uncertainty=False
         )
 
-        # Higher prior should lead to higher confidence
+        # With proper Bayesian normalization, priors affect the posterior
+        # Higher prior should lead to higher confidence when evidence is equal
         assert high_result["confidence"] > low_result["confidence"]
+        # Both should still be bounded
+        assert 0.0 <= high_result["confidence"] <= 1.0
+        assert 0.0 <= low_result["confidence"] <= 1.0
 
     def test_confidence_with_uncertainty_includes_bounds(self):
         """Test that uncertainty calculation includes confidence bounds."""
-        scorer = MVLPBayesianConfidenceScorer()
+        scorer = WeightedEvidenceBayesianScorer()
 
         # First optimize to get confidence intervals
         training_data: List[Tuple[EvidenceMetrics, float]] = [
@@ -734,7 +755,7 @@ class TestMVLPOptimizationAndHelpers:
 
     def test_calculate_confidence_handles_unknown_format(self):
         """Test confidence calculation for unknown format uses default prior."""
-        scorer = MVLPBayesianConfidenceScorer(format_priors={"Known": 0.8})
+        scorer = WeightedEvidenceBayesianScorer(format_priors={"Known": 0.8})
 
         metrics = EvidenceMetrics(0.5, 0.5, 0.5, 5, 2)
 
@@ -743,9 +764,9 @@ class TestMVLPOptimizationAndHelpers:
         assert "prior" in result
         assert result["prior"] == 0.1  # Default prior
 
-    def test_mvlp_objective_respects_parameter_bounds(self):
-        """Test MVLP objective always returns value within bounds."""
-        scorer = MVLPBayesianConfidenceScorer()
+    def test_scorer_objective_respects_parameter_bounds(self):
+        """Test weighted evidence objective always returns value within bounds."""
+        scorer = WeightedEvidenceBayesianScorer()
 
         # Test with various metric combinations
         test_cases = [
@@ -756,16 +777,48 @@ class TestMVLPOptimizationAndHelpers:
         ]
 
         for metrics in test_cases:
-            result = scorer._mvlp_objective_function(metrics, scorer.parameters)
+            result = scorer._weighted_evidence_objective(metrics, scorer.parameters)
             assert (
                 scorer.parameters.min_confidence
                 <= result
                 <= scorer.parameters.max_confidence
             )
 
+    def test_confidence_with_zero_evidence_gives_zero(self):
+        """Zero-evidence inputs should give very low confidence via proper Bayesian
+        inference.
 
-class TestMVLPBayesianIntegration:
-    """Integration tests for MVLP Bayesian confidence scorer."""
+        With proper Bayes' theorem:
+        P(H|E) = P(E|H) * P(H) / [P(E|H) * P(H) + P(E|¬H) * P(¬H)]
+
+        When P(E|H) = 0 (likelihood = 0), numerator = 0, so P(H|E) = 0.
+        This correctly treats absence of evidence as evidence of absence.
+        """
+        scorer = WeightedEvidenceBayesianScorer()
+        metrics = EvidenceMetrics(0.0, 0.0, 0.0, 0, 0)
+
+        result = scorer.calculate_confidence(metrics, "Zephyr")
+
+        # With proper Bayesian inference, zero evidence gives very low confidence
+        # NOT prior (that would be incorrect - absence of evidence IS evidence against)
+        assert result["confidence"] == pytest.approx(0.0, abs=0.01)
+        assert result["confidence"] < 0.05  # Ensure very low confidence signal
+
+    def test_extreme_metrics_do_not_exceed_maximum_confidence(self):
+        """Extremely strong evidence should remain within maximum confidence bounds."""
+        scorer = WeightedEvidenceBayesianScorer(format_priors={"Zephyr": 0.9})
+        metrics = EvidenceMetrics(1.0, 1.0, 1.0, 100, 50)
+
+        result = scorer.calculate_confidence(metrics, "Zephyr")
+
+        assert result["confidence"] == pytest.approx(
+            min(scorer.parameters.max_confidence, result["confidence"]), rel=1e-6
+        )
+        assert result["confidence"] > 0.8  # Strong evidence should give high confidence
+
+
+class TestWeightedEvidenceBayesianIntegration:
+    """Integration tests for weighted evidence Bayesian confidence scorer."""
 
     def test_end_to_end_confidence_calculation_workflow(self):
         """Test complete workflow from initialization to confidence calculation."""
@@ -775,7 +828,7 @@ class TestMVLPBayesianIntegration:
             "Xray": 0.3,
             "TestRail": 0.3,
         }
-        scorer = MVLPBayesianConfidenceScorer(format_priors=priors)
+        scorer = WeightedEvidenceBayesianScorer(format_priors=priors)
 
         # Create training data
         training_data: List[Tuple[EvidenceMetrics, float]] = [
@@ -800,7 +853,7 @@ class TestMVLPBayesianIntegration:
 
     def test_optimization_improves_predictions(self):
         """Test that parameter optimization improves prediction accuracy."""
-        scorer = MVLPBayesianConfidenceScorer()
+        scorer = WeightedEvidenceBayesianScorer()
 
         # Create consistent training data
         training_data: List[Tuple[EvidenceMetrics, float]] = [
@@ -814,7 +867,7 @@ class TestMVLPBayesianIntegration:
         # Calculate error before optimization
         errors_before = []
         for metrics, expected in training_data:
-            result = scorer._mvlp_objective_function(metrics, scorer.parameters)
+            result = scorer._weighted_evidence_objective(metrics, scorer.parameters)
             errors_before.append(abs(result - expected))
 
         # Optimize
@@ -823,7 +876,7 @@ class TestMVLPBayesianIntegration:
         # Calculate error after optimization
         errors_after = []
         for metrics, expected in training_data:
-            result = scorer._mvlp_objective_function(metrics, scorer.parameters)
+            result = scorer._weighted_evidence_objective(metrics, scorer.parameters)
             errors_after.append(abs(result - expected))
 
         # Average error should decrease (or stay similar if already good)
@@ -840,7 +893,7 @@ class TestMVLPBayesianIntegration:
             "Xray": 0.3,
             "TestRail": 0.2,
         }
-        scorer = MVLPBayesianConfidenceScorer(format_priors=priors)
+        scorer = WeightedEvidenceBayesianScorer(format_priors=priors)
 
         # Same evidence for all formats
         metrics = EvidenceMetrics(0.7, 0.8, 0.6, 10, 5)
@@ -856,7 +909,7 @@ class TestMVLPBayesianIntegration:
 
     def test_consistency_across_repeated_calls(self):
         """Test that repeated calls with same input give same output."""
-        scorer = MVLPBayesianConfidenceScorer()
+        scorer = WeightedEvidenceBayesianScorer()
 
         metrics = EvidenceMetrics(0.75, 0.8, 0.65, 12, 6)
 
@@ -869,7 +922,7 @@ class TestMVLPBayesianIntegration:
 
     def test_parameter_validation_after_optimization(self):
         """Test that optimized parameters remain valid."""
-        scorer = MVLPBayesianConfidenceScorer()
+        scorer = WeightedEvidenceBayesianScorer()
 
         # Create diverse training data
         training_data: List[Tuple[EvidenceMetrics, float]] = [
@@ -894,18 +947,29 @@ class TestMVLPBayesianIntegration:
         assert 0.99 <= weight_sum <= 1.01
 
     def test_extreme_evidence_scenarios(self):
-        """Test scorer behavior with extreme evidence scenarios."""
-        scorer = MVLPBayesianConfidenceScorer()
+        """Test scorer behavior with extreme evidence scenarios using proper Bayesian
+        inference."""
+        scorer = WeightedEvidenceBayesianScorer()
 
-        # All zeros
+        # All zeros - proper Bayesian gives very low confidence (NOT prior)
         zero_metrics = EvidenceMetrics(0.0, 0.0, 0.0, 0, 0)
         result_zero = scorer.calculate_confidence(zero_metrics, "Zephyr")
-        assert 0.05 <= result_zero["confidence"] <= 0.95
+        # With proper Bayesian inference, zero evidence → zero confidence
+        # (absence of evidence IS evidence of absence)
+        assert result_zero["confidence"] == pytest.approx(0.0, abs=0.01)
 
-        # All ones
+        # All ones - should give high confidence in 0.9-1.0 range
         perfect_metrics = EvidenceMetrics(1.0, 1.0, 1.0, 100, 50)
         result_perfect = scorer.calculate_confidence(perfect_metrics, "Zephyr")
-        assert 0.05 <= result_perfect["confidence"] <= 0.95
+        # Perfect evidence should be within parameter bounds
+        # [min_confidence, max_confidence]
+        assert (
+            scorer.parameters.min_confidence
+            <= result_perfect["confidence"]
+            <= scorer.parameters.max_confidence
+        )
+        # With quadratic decay P(E|¬H), perfect evidence gives 0.9-1.0 confidence
+        assert 0.9 <= result_perfect["confidence"] <= 1.0
 
         # Perfect should have higher confidence than zero
         assert result_perfect["confidence"] > result_zero["confidence"]

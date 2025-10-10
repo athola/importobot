@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scripts.src.importobot_scripts import benchmark_dashboard
+from scripts.src.importobot_scripts.benchmarks import benchmark_dashboard
 
 
 def sample_benchmark_payload() -> dict[str, object]:
