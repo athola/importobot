@@ -21,6 +21,7 @@ from importobot.medallion.interfaces.data_models import (
 )
 from importobot.medallion.interfaces.enums import ProcessingStatus
 from importobot.medallion.interfaces.records import BronzeRecord, RecordMetadata
+from importobot.medallion.placeholder_base import PlaceholderMixin
 from importobot.services.optimization_service import (
     OptimizationOutcome,
     OptimizationService,
@@ -32,7 +33,7 @@ from importobot.utils.validation_models import (
 )
 
 
-class GoldLayer(BaseMedallionLayer):
+class GoldLayer(BaseMedallionLayer, PlaceholderMixin):
     """Gold layer for consumption-ready, optimized data.
 
     The Gold layer implements optimization, organization, and export-ready data
@@ -125,29 +126,19 @@ class GoldLayer(BaseMedallionLayer):
         self, data: dict[str, Any], source_info: dict[str, Any]
     ) -> BronzeRecord:
         """Process data with format detection (to be implemented in MR3)."""
-        raise NotImplementedError("Gold layer ingest_with_detection pending MR3")
+        raise self._not_implemented_error("ingest_with_detection", "MR3")
 
     def get_record_metadata(self, record_id: str) -> Optional[RecordMetadata]:
         """Retrieve record metadata (to be implemented in MR3)."""
-        return None
+        return self._placeholder_record_metadata(record_id)
 
     def get_record_lineage(self, record_id: str) -> Optional[DataLineage]:
         """Retrieve record lineage information (to be implemented in MR3)."""
-        return None
+        return self._placeholder_record_lineage(record_id)
 
     def validate_bronze_data(self, data: dict[str, Any]) -> dict[str, Any]:
         """Validate bronze data for gold layer processing (to be implemented in MR3)."""
-        # pylint: disable=duplicate-code
-        return {
-            "is_valid": False,
-            "error_count": 0,
-            "warning_count": 1,
-            "issues": ["Gold layer validation pending MR3"],
-            "quality_score": 0.0,
-            "completeness_score": 0.0,
-            "consistency_score": 0.0,
-            "validity_score": 0.0,
-        }
+        return self._placeholder_validate_bronze_data(data, "Gold", "MR3")
 
     def get_bronze_records(
         self,
@@ -155,8 +146,7 @@ class GoldLayer(BaseMedallionLayer):
         limit: Optional[int] = None,
     ) -> list[BronzeRecord]:
         """Retrieve bronze records for gold processing (to be implemented in MR3)."""
-        # pylint: disable=duplicate-code
-        return []
+        return self._placeholder_get_bronze_records(filter_criteria, limit)
 
     # Preview integration -------------------------------------------------
     def _run_optimization_preview(

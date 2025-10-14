@@ -8,10 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Bayesian confidence scoring with proper P(E|¬H) estimation using quadratic decay
+- `BayesianConfiguration` dataclass to organize mathematical constants with validation
+- Format-specific adjustments for XML (TestLink), JSON (TestRail), and JIRA formats
+- Evidence strength calculations using quality, completeness, uniqueness, and quantity metrics
+- Numerical stability improvements with configurable epsilon to prevent division by zero
+- Thread-safe rate limiting with automatic cleanup to prevent memory leaks
 - Integrated mutation testing support via `mutmut` (Makefile target `mutation`
   and `pyproject.toml` configuration) to spot gaps in the test suite.
 - Added automated performance regression execution (`make perf-test` and a
-  dedicated GitHub Actions job) covering the MVLP confidence scorer hot path.
+  dedicated GitHub Actions job) covering the weighted evidence Bayesian confidence scorer hot path.
 - Runtime telemetry for cache hit/miss rates (opt-in via
   `IMPORTOBOT_ENABLE_TELEMETRY`) with rate-limited emissions for performance,
   detection, and file content caches.

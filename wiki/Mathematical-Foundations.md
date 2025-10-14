@@ -14,9 +14,11 @@ The system leans on a few well-worn tools:
 
 ### Bayesian statistics & format detection
 
-#### ✅ **NEW: Proper Bayesian Implementation** (October 2025)
+#### Bayesian Implementation (October 2025)
 
-**Mathematical Achievement**: The MVLP confidence scorer now implements **proper Bayesian inference** with adaptive P(E|¬H) estimation using quadratic decay. This represents a fundamental improvement from heuristic approaches to mathematically rigorous probability theory.
+We replaced the previous heuristic confidence scoring with proper Bayesian inference. The old approach used a noisy-OR model that violated probability axioms - specifically, it would fall back to prior probabilities when evidence was weak, which doesn't make mathematical sense.
+
+The new implementation follows Bayes' theorem directly:
 
 #### Proper Bayesian Formula
 ```
@@ -30,63 +32,131 @@ Where:
 - **P(E|H)**: Likelihood (from weighted evidence objective)
 - **P(E|¬H)**: Adaptive estimate using quadratic decay
 
-#### ✅ **Adaptive P(E|¬H) Estimation**
-**Quadratic Decay Formula**:
+#### Adaptive P(E|¬H) Estimation
+
+The key challenge was estimating P(E|¬H) - the probability that observed evidence would come from the wrong format. We use quadratic decay:
+
 ```python
 P(E|¬H) = 0.01 + 0.49 × (1 - likelihood)²
 ```
 
-**Behavior**:
-| Likelihood | P(E|¬H) | Interpretation |
-|------------|----------|----------------|
-| 0.0 | 0.50 | Weak evidence is ambiguous |
-| 0.5 | 0.13 | Moderate evidence less likely from wrong format |
-| 1.0 | 0.01 | Perfect evidence very rarely from wrong format |
+This gives us:
+- Likelihood 0.0 → P(E|¬H) = 0.50 (weak evidence could be anything)
+- Likelihood 0.5 → P(E|¬H) = 0.13 (moderate evidence less likely from wrong format)
+- Likelihood 1.0 → P(E|¬H) = 0.01 (perfect evidence very rarely from wrong format)
 
-**Why Quadratic?**
-- More aggressive than linear decay
-- Strong evidence gets **very low** P(E|¬H) → higher confidence
-- Weak evidence stays high → appropriately low confidence
-- Perfect evidence (lik=1.0) with low prior (0.1) → **0.92 confidence** ✅
+We chose quadratic decay because linear decay didn't discriminate strongly enough. With the quadratic formula, perfect evidence (likelihood=1.0) and a low prior (0.1) gives us 0.92 confidence, which satisfies our requirement that strong evidence (>0.9 likelihood) produces confidence above 0.8.
 
-#### ✅ **Framework Requirement Satisfied**
-**Strong Evidence → High Confidence (>0.8)**:
-- Perfect evidence (likelihood=1.0, prior=0.1): **0.92 confidence**
-- Strong evidence (likelihood=0.9, prior=0.1): **0.87 confidence**
-- The implementation ensures that strong evidence (>0.9 likelihood) produces confidence **above 0.8** as required by the framework.
-
-#### ✅ **Zero Evidence Correctness**
-```
-Numerator: 0.0 × prior = 0.0
-Result: 0.0 confidence ✓
-
-Correct! Absence of evidence IS evidence of absence.
-```
+The implementation also handles zero evidence correctly - when likelihood is 0.0, the numerator becomes 0.0 and confidence is 0.0, which makes mathematical sense.
 
 #### Legacy Implementation (Noisy-OR) - DEPRECATED
 ```python
 confidence = likelihood + prior × (1 - likelihood)
 ```
 
-**Problems Fixed**:
-- ❌ Violated independence assumption
-- ❌ Zero evidence → falls back to prior (incorrect)
-- ❌ Prior can override weak evidence
-- ❌ Perfect evidence → absolute certainty (1.0)
+The noisy-OR approach had several issues:
+- Violated independence assumptions
+- Fell back to prior probabilities with zero evidence (mathematically incorrect)
+- Let priors override weak evidence
+- Produced absolute confidence (1.0) with perfect evidence
 
-#### ✅ **Mathematical Correctness Validation**
+The new Bayesian implementation fixes these problems and follows proper probability theory.
 
-| Criterion | Previous (Noisy-OR) | Current (Proper Bayesian) | Status |
-|-----------|---------------------|---------------------------|--------|
-| **Probability axioms** | ✅ Stays in [0,1] | ✅ Stays in [0,1] | Pass |
-| **Independence assumptions** | ❌ Violated | ✅ Valid | **PASS** |
-| **Semantic correctness** | ❌ Misinterprets zero evidence | ✅ Correct | **PASS** |
-| **Prior incorporation** | ❌ Dominates weak evidence | ✅ Balanced | **PASS** |
-| **Bayes' theorem** | ❌ Not proper Bayesian | ✅ Proper Bayesian | **PASS** |
-| **Evidence weighting** | ❌ Prior can override | ✅ Evidence dominates | **PASS** |
-| **Uncertainty quantification** | ❌ Overconfident | ✅ Maintains uncertainty | **PASS** |
+#### Configuration Dataclass & Metrics
 
-**Overall Grade**: ✅ **MEETS STRICT MATHEMATICAL STANDARDS**
+We used to have mathematical constants scattered throughout the code, which made them hard to track and justify. Now we use a `BayesianConfiguration` dataclass:
+
+```python
+@dataclass
+class BayesianConfiguration:
+    # P(E|¬H) Estimation Parameters
+    min_evidence_not_format: float = 0.01      # 1% chance perfect evidence is from wrong format
+    evidence_not_format_scale: float = 0.49    # Scale factor for quadratic decay
+    evidence_not_format_exponent: float = 2.0  # Quadratic decay exponent
+
+    # Numerical Stability Parameters
+    numerical_epsilon: float = 1e-15           # Division by zero prevention
+```
+
+Each parameter has a validation range:
+- `min_evidence_not_format`: 0.0 < value < 0.05 (even perfect evidence can be wrong)
+- `evidence_not_format_scale`: 0.0 < value < 1.0 (scale factor for quadratic decay)
+- `evidence_not_format_exponent`: 1.0 <= value <= 5.0 (convex decay shape)
+- `numerical_epsilon`: 1e-20 < value < 1e-10 (machine epsilon scaled for double precision)
+
+This approach prevents magic numbers and makes the mathematical assumptions explicit.
+
+Evidence now flows through a dedicated `EvidenceMetrics` dataclass (`completeness`, `quality`, `uniqueness`, `evidence_count`, `unique_count`, `complexity_score`, `penalty_factor`). Required-field misses and pattern mismatches feed the penalty factor, which prevents “generic” payloads from being misclassified as TestRail or Zephyr. The helper lives in `src/importobot/medallion/bronze/evidence_metrics.py`.
+
+#### Format-Specific Adjustments & Ratio Safeguards
+
+Different formats have different structural ambiguity profiles. We apply format-specific adjustments to P(E|¬H):
+
+- **TESTLINK (XML)**: 1.1 adjustment - XML can be ambiguous with nested structures
+- **TESTRAIL (JSON)**: 0.9 adjustment - JSON is more structured with stricter field matching
+- **JIRA_XRAY/ZEPHYR**: 1.0 adjustment - Standard JIRA patterns, moderate ambiguity
+- **GENERIC**: 1.2 adjustment - Generic formats are most ambiguous
+- **UNKNOWN**: 1.5 adjustment - Unknown formats get highest ambiguity
+
+We also calculate evidence strength using multiple metrics:
+
+```python
+def _calculate_evidence_strength(self, metrics):
+    # Base strength from quality and completeness
+    base_strength = (metrics.quality + metrics.completeness) / 2.0
+
+    # Uniqueness bonus: unique evidence is more valuable
+    uniqueness_bonus = metrics.uniqueness * 0.3
+
+    # Quantity consideration: more evidence increases confidence
+    if metrics.evidence_count >= 5:
+        quantity_factor = 1.0
+    elif metrics.evidence_count >= 2:
+        quantity_factor = 0.8 + (metrics.evidence_count - 2) * 0.1
+    else:
+        quantity_factor = 0.7
+
+    evidence_strength = (base_strength + uniqueness_bonus) * quantity_factor
+    return max(0.5, min(2.0, evidence_strength))
+```
+
+The evidence strength is bounded between 0.5 and 2.0 to prevent extreme values while still allowing strong evidence to significantly impact confidence. Ambiguous inputs are capped at a 1.5:1 likelihood ratio, while confident samples can reach 3:1. `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py` keeps these numbers honest with regression tests for ambiguous data, confident samples, and wrong-format penalties.
+
+#### Numerical Stability
+
+We had issues with division by zero in Bayesian calculations. The fix was straightforward - use a configurable epsilon instead of a hardcoded value:
+
+```python
+# Before: Hardcoded epsilon
+if denominator < 1e-15:
+    return 0.0
+
+# After: Configurable epsilon
+if denominator < self.bayesian_config.numerical_epsilon:
+    return 0.0
+```
+
+We chose 1e-15 as the epsilon value - it's between machine epsilon (~2.22e-16 for double precision) and a practical safety threshold. The validation range is 1e-20 < value < 1e-10 to ensure numerical safety without excessive precision.
+
+#### Thread Safety
+
+The rate limiter uses a token bucket algorithm with proper locking:
+
+```python
+class _SecurityRateLimiter:
+    def __init__(self, max_calls: int, interval: float) -> None:
+        self._events: Dict[str, Deque[float]] = {}
+        self._lock = threading.Lock()
+
+    def try_acquire(self, bucket: str) -> tuple[bool, float]:
+        with self._lock:
+            event_queue = self._events.setdefault(bucket, deque())
+            # Clean up old events to prevent memory leaks
+            while event_queue and now - event_queue[0] > self._interval:
+                event_queue.popleft()
+```
+
+The lock prevents race conditions, and the automatic cleanup prevents unbounded memory growth. The string cache uses `functools.lru_cache(maxsize=1000)` which is thread-safe for reads and bounded in memory.
 
 #### Historical Bayesian Implementation
 The previous Bayesian confidence scoring system (2025 Q2-Q3) used a simplified approach:

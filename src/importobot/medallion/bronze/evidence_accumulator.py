@@ -14,14 +14,18 @@ Key principles:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
+from importobot.medallion.interfaces.enums import SupportedFormat
+from importobot.utils.logging import setup_logger
+
+from .evidence_metrics import EvidenceMetrics
 from .format_models import EvidenceWeight
+from .independent_bayesian_scorer import IndependentBayesianScorer
 from .shared_config import DEFAULT_FORMAT_PRIORS
-from .weighted_evidence_bayesian_confidence import (
-    EvidenceMetrics,
-    WeightedEvidenceBayesianScorer,
-)
+from .test_case_complexity_analyzer import ComplexityMetrics, TestCaseComplexityAnalyzer
+
+logger = setup_logger(__name__)
 
 
 @dataclass
@@ -46,6 +50,12 @@ class FormatEvidenceProfile:
     format_name: str
     evidence_items: List[EvidenceItem]
     total_possible_weight: float
+    complexity_metrics: Optional[ComplexityMetrics] = (
+        None  # Complexity analysis results
+    )
+    original_data: Optional[Dict[str, Any]] = (
+        None  # Original test data for complexity analysis
+    )
 
     @property
     def total_evidence_weight(self) -> float:
@@ -65,7 +75,9 @@ class FormatEvidenceProfile:
     def unique_evidence_count(self) -> int:
         """Count of unique-level evidence items."""
         return sum(
-            1 for item in self.evidence_items if item.weight == EvidenceWeight.UNIQUE
+            1
+            for item in self.evidence_items
+            if item.weight == EvidenceWeight.UNIQUE and item.confidence > 0.0
         )
 
     @property
@@ -97,8 +109,14 @@ class EvidenceAccumulator:
     def __init__(self) -> None:
         """Initialize the evidence accumulator with empty evidence profiles."""
         self.evidence_profiles: Dict[str, FormatEvidenceProfile] = {}
-        # Initialize Weighted Evidence Bayesian scorer
-        self.bayesian_scorer = WeightedEvidenceBayesianScorer(self.FORMAT_PRIORS)
+        # Initialize Independent Bayesian scorer (mathematically rigorous approach)
+        self.bayesian_scorer = IndependentBayesianScorer(
+            format_priors=self.FORMAT_PRIORS
+        )
+        # Initialize complexity analyzer for enhanced evidence weighting
+        self.complexity_analyzer = TestCaseComplexityAnalyzer()
+        # Store original data for complexity analysis
+        self.original_test_data: Dict[str, Any] = {}
 
     def add_evidence(self, format_name: str, evidence: EvidenceItem) -> None:
         """Add a piece of evidence for a format."""
@@ -112,14 +130,70 @@ class EvidenceAccumulator:
     def set_total_possible_weight(self, format_name: str, weight: float) -> None:
         """Set the total possible weight for a format."""
         if format_name not in self.evidence_profiles:
+            original_data: Optional[Dict[str, Any]] = None
+            if self.original_test_data:
+                original_data = self.original_test_data.copy()
+
             self.evidence_profiles[format_name] = FormatEvidenceProfile(
-                format_name=format_name, evidence_items=[], total_possible_weight=weight
+                format_name=format_name,
+                evidence_items=[],
+                total_possible_weight=weight,
+                original_data=original_data,
             )
+            # Analyze complexity for this format
+            if self.original_test_data:
+                try:
+                    self.evidence_profiles[
+                        format_name
+                    ].complexity_metrics = self.complexity_analyzer.analyze_complexity(
+                        self.original_test_data
+                    )
+                except Exception as e:
+                    # Fallback to basic metrics if complexity analysis fails
+                    logger.warning(
+                        "Complexity analysis failed for %s: %s", format_name, e
+                    )
         else:
             self.evidence_profiles[format_name].total_possible_weight = weight
 
+    def set_test_data(self, test_data: Dict[str, Any]) -> None:
+        """Store original test data for complexity analysis."""
+        self.original_test_data = test_data.copy()
+
+    def analyze_complexity_for_all_formats(self) -> Dict[str, ComplexityMetrics]:
+        """Analyze complexity for all formats using stored test data."""
+        complexity_results: Dict[str, ComplexityMetrics] = {}
+
+        if not self.original_test_data:
+            return complexity_results
+
+        for format_name, profile in self.evidence_profiles.items():
+            if profile.complexity_metrics is None:
+                try:
+                    profile.complexity_metrics = (
+                        self.complexity_analyzer.analyze_complexity(
+                            self.original_test_data
+                        )
+                    )
+                    complexity_results[format_name] = profile.complexity_metrics
+                except Exception as e:
+                    logger.warning(
+                        "Complexity analysis failed for %s: %s", format_name, e
+                    )
+            else:
+                complexity_results[format_name] = profile.complexity_metrics
+
+        return complexity_results
+
     def calculate_bayesian_confidence(self, format_name: str) -> float:
-        """Calculate Bayesian confidence score using weighted evidence approach."""
+        """Calculate Bayesian likelihood using independent Bayesian approach.
+
+        Note: This method calculates likelihood for a single format in isolation.
+        For proper multi-class normalization, use calculate_multi_class_confidence().
+
+        Returns:
+            Unnormalized likelihood P(E|H) in (0, 1] range
+        """
         if format_name not in self.evidence_profiles:
             return 0.0
 
@@ -128,13 +202,83 @@ class EvidenceAccumulator:
         # Convert evidence profile to standardized metrics
         metrics = self._profile_to_metrics(profile)
 
-        # Calculate confidence using Weighted Evidence Bayesian scorer
-        result = self.bayesian_scorer.calculate_confidence(metrics, format_name)
+        # Calculate likelihood using Independent Bayesian scorer
+        likelihood = self.bayesian_scorer.calculate_likelihood(metrics)
 
-        return result["confidence"]
+        return likelihood
+
+    def calculate_all_format_likelihoods(self) -> Dict[str, float]:
+        """Calculate likelihoods for all formats with research-backed ratio capping.
+
+        This method implements the hybrid approach from research:
+        1. Calculate raw likelihoods for all formats using evidence metrics
+        2. Apply likelihood ratio capping (max 3:1) to prevent extreme discrimination
+        3. Maintain discriminative power while ensuring numerical stability
+
+        Returns:
+            Dictionary mapping format names to calibrated likelihoods
+        """
+        if not self.evidence_profiles:
+            return {}
+
+        # Collect metrics for all formats
+        all_metrics = {}
+        for format_name, profile in self.evidence_profiles.items():
+            all_metrics[format_name] = self._profile_to_metrics(profile)
+
+        # Use the Bayesian scorer's research-backed approach
+        calibrated_likelihoods = self.bayesian_scorer.calculate_all_format_likelihoods(
+            all_metrics
+        )
+
+        return calibrated_likelihoods
+
+    def calculate_multi_class_confidence(
+        self, format_likelihoods: dict[str, float]
+    ) -> dict[str, int | float]:
+        """Calculate properly normalized multi-class Bayesian confidence scores.
+
+        This implements the mathematically correct multi-class Bayesian formula:
+            P(H_i|E) = P(E|H_i) * P(H_i) / Σ_j[P(E|H_j) * P(H_j)]
+
+        where the denominator sums over ALL format hypotheses, not just
+        the binary "format vs not-format" case.
+
+        Args:
+            format_likelihoods: Dictionary mapping format names to their
+                evidence-derived likelihoods P(E|H_i)
+
+        Returns:
+            Dictionary mapping format names to normalized posterior probabilities
+        """
+        posteriors = {}
+
+        # Calculate denominator: sum of P(E|H_j) * P(H_j) for all formats
+        denominator = 0.0
+        for fmt, likelihood in format_likelihoods.items():
+            prior = self.FORMAT_PRIORS.get(fmt, 0.1)
+            denominator += likelihood * prior
+
+        # Avoid division by zero
+        if denominator < 1e-15:
+            # No format can explain the evidence - return uniform low confidence
+            # Note: dict comprehension for type checker compatibility
+            return {fmt: 0.0 for fmt in format_likelihoods}  # noqa: C420
+
+        # Calculate normalized posteriors
+        for fmt, likelihood in format_likelihoods.items():
+            prior = self.FORMAT_PRIORS.get(fmt, 0.1)
+            posteriors[fmt] = (likelihood * prior) / denominator
+
+        return posteriors
 
     def _profile_to_metrics(self, profile: FormatEvidenceProfile) -> EvidenceMetrics:
-        """Convert FormatEvidenceProfile to standardized EvidenceMetrics."""
+        """Convert FormatEvidenceProfile to standardized EvidenceMetrics.
+
+        Applies complexity enhancement to improve format detection accuracy.
+
+        Returns standardized evidence metrics for format detection.
+        """
         # Calculate completeness ratio
         if profile.total_possible_weight > 0:
             completeness = min(
@@ -146,32 +290,80 @@ class EvidenceAccumulator:
         # Calculate evidence quality (average confidence)
         quality = profile.evidence_quality
 
-        # Calculate normalized uniqueness strength
+        # Calculate normalized uniqueness strength with complexity enhancement
         unique_count = profile.unique_evidence_count
         total_count = len(profile.evidence_items)
 
+        # Base uniqueness calculation
+        base_uniqueness = 0.0
         if total_count > 0:
-            # Normalize uniqueness: ratio of unique evidence weighted by strength
             unique_weight_sum = sum(
-                item.weight.value
+                item.weight.value * item.confidence
                 for item in profile.evidence_items
                 if item.weight == EvidenceWeight.UNIQUE
             )
-            total_weight_sum = sum(item.weight.value for item in profile.evidence_items)
+            total_weight_sum = sum(
+                item.weight.value * item.confidence for item in profile.evidence_items
+            )
 
             if total_weight_sum > 0:
-                uniqueness = unique_weight_sum / total_weight_sum
-            else:
-                uniqueness = 0.0
-        else:
-            uniqueness = 0.0
+                base_uniqueness = unique_weight_sum / total_weight_sum
+
+        # Apply complexity enhancement to uniqueness
+        enhanced_uniqueness = base_uniqueness
+        complexity_score = 0.0
+
+        if profile.complexity_metrics:
+            complexity_score = profile.complexity_metrics.complexity_score
+            complexity_amplification = (
+                self.complexity_analyzer.calculate_complexity_amplification(
+                    profile.complexity_metrics
+                )
+            )
+            # Use the higher of base uniqueness and complexity-enhanced uniqueness
+            enhanced_uniqueness = max(
+                base_uniqueness,
+                base_uniqueness * (complexity_amplification - 1.0) + 0.0,
+            )
+            enhanced_uniqueness = min(enhanced_uniqueness, 1.0)
+
+        penalty_factor = 1.0
+        if any(
+            item.source == "field_pattern_mismatch" for item in profile.evidence_items
+        ):
+            penalty_factor = min(penalty_factor, 0.01)
+        elif (
+            profile.format_name != SupportedFormat.GENERIC.name
+            and unique_count == 0
+            and total_count <= 3
+        ):
+            # Penalize non-generic formats that only produced a couple of generic
+            # indicators. This keeps simple "tests" payloads from being misclassified
+            # as TestRail.
+            penalty_factor = min(
+                penalty_factor,
+                0.1
+                if profile.format_name
+                in {SupportedFormat.TESTRAIL.name, SupportedFormat.TESTLINK.name}
+                else 0.4,
+            )
+        elif profile.format_name in {
+            SupportedFormat.TESTRAIL.name,
+            SupportedFormat.TESTLINK.name,
+            SupportedFormat.ZEPHYR.name,
+        } and any(item.source.endswith("_missing") for item in profile.evidence_items):
+            # Missing required indicators should dramatically reduce confidence for
+            # specific formats.
+            penalty_factor = min(penalty_factor, 0.05)
 
         return EvidenceMetrics(
             completeness=completeness,
             quality=quality,
-            uniqueness=uniqueness,
+            uniqueness=enhanced_uniqueness,
             evidence_count=total_count,
             unique_count=unique_count,
+            complexity_score=complexity_score,
+            penalty_factor=penalty_factor,
         )
 
     def optimize_parameters(self, training_data: List[Tuple[str, float]]) -> None:
@@ -190,8 +382,12 @@ class EvidenceAccumulator:
                 scorer_training_data.append((metrics, expected_confidence))
 
         if scorer_training_data:
-            # Optimize parameters using weighted evidence approach
-            self.bayesian_scorer.optimize_parameters(scorer_training_data)
+            # Note: Parameter optimization not yet implemented
+            # for IndependentBayesianScorer
+            logger.info(
+                "Parameter optimization requested but not yet implemented "
+                "for IndependentBayesianScorer"
+            )
 
     def get_parameter_summary(self) -> Dict[str, Any]:
         """Get summary of optimized weighted evidence parameters."""
@@ -211,7 +407,7 @@ class EvidenceAccumulator:
         profile = self.evidence_profiles[format_name]
         metrics = self._profile_to_metrics(profile)
 
-        # Get detailed confidence analysis from Weighted Evidence scorer
+        # Get detailed confidence analysis from Independent Bayesian scorer
         scorer_result = self.bayesian_scorer.calculate_confidence(
             metrics, format_name, use_uncertainty=True
         )

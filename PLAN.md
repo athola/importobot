@@ -3,9 +3,9 @@
 This outline enforces the roadmap: what to ship next, what is parked, and which ideas still require further proof-of-concept.
 
 ### Latest engineering update (October 2025)
-- **✅ MATHEMATICALLY RIGOROUS BAYESIAN CONFIDENCE**: Implemented proper Bayesian inference with adaptive P(E|¬H) estimation using quadratic decay. This ensures strong evidence (>0.9 likelihood) produces confidence **above 0.8** as required by the framework, while maintaining mathematical soundness and proper uncertainty quantification. The implementation follows strict Bayesian probability theory with evidence-driven confidence rather than prior-driven.
+- **✅ MATHEMATICALLY RIGOROUS BAYESIAN CONFIDENCE**: The weighted evidence shim is gone; the independent scorer now owns confidence calculations. Evidence flows through `EvidenceMetrics`, missing unique indicators are penalised, and ambiguous inputs are capped at a 1.5:1 likelihood ratio. The new regression suite (`tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`) locks these behaviours down.
 - Conversion invariants are stable again after teaching the formatter to leave comment placeholders untouched and to surface both raw and normalized names for auditing.
-- Selenium integration coverage now runs entirely in dry-run mode with an eagerly patched `robot.utils`, so CI no longer hits webdriver availability or deprecation warnings.
+- Selenium integration coverage now runs entirely in dry-run mode without the old `robot.utils` shim, so CI remains free of legacy deprecation noise.
 - Property-based tests retain literal step bodies, which keeps Hypothesis satisfied while still exercising the parameter conversion logic.
 
 ## Roadmap

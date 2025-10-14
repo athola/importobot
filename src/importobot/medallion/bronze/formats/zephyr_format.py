@@ -58,6 +58,21 @@ def create_zephyr_format() -> FormatDefinition:
         # STRONG indicators - important Zephyr context
         strong_indicators=[
             FieldDefinition(
+                name="cycleId",
+                evidence_weight=EvidenceWeight.STRONG,
+                description="Zephyr cycle identifier - camelCase is Zephyr-specific",
+            ),
+            FieldDefinition(
+                name="executionId",
+                evidence_weight=EvidenceWeight.STRONG,
+                description="Zephyr execution identifier - camelCase pattern",
+            ),
+            FieldDefinition(
+                name="entityType",
+                evidence_weight=EvidenceWeight.STRONG,
+                description="Zephyr custom field entity type (EXECUTION/TESTSTEP)",
+            ),
+            FieldDefinition(
                 name="project",
                 evidence_weight=EvidenceWeight.STRONG,
                 description="Project context in Zephyr",
