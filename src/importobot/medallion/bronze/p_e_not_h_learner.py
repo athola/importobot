@@ -182,8 +182,29 @@ class PENotHLearner:
         else:
             b = self.parameters.b
 
-        # Keep quadratic decay for heuristic
-        c = 2.0
+        # Estimate decay exponent `c` from remaining points.
+        eps = 1e-8
+        denom = max(b, eps)
+        valid_mask = (
+            (likelihoods < 0.999)
+            & (likelihoods > eps)
+            & (observed_p > a + eps)
+            & (observed_p < a + b - eps)
+        )
+        if valid_mask.any():
+            ratios = np.clip((observed_p[valid_mask] - a) / denom, eps, 1.0 - eps)
+            bases = np.clip(1.0 - likelihoods[valid_mask], eps, 1.0 - eps)
+            c_samples = np.log(ratios) / np.log(bases)
+            finite_samples = c_samples[np.isfinite(c_samples)]
+            if finite_samples.size > 0:
+                c_est = float(np.mean(finite_samples))
+                c = float(np.clip(c_est, 0.5, 3.0))
+                if abs(c - self.parameters.c) < 0.1:
+                    c = self.parameters.c
+            else:
+                c = self.parameters.c
+        else:
+            c = self.parameters.c
 
         learned = PENotHParameters(a=a, b=b, c=c)
         if learned.validate():
