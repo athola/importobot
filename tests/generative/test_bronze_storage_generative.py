@@ -16,6 +16,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 try:
     from hypothesis import given, settings
     from hypothesis import strategies as st
@@ -26,6 +28,8 @@ from importobot.medallion.bronze_layer import BronzeLayer
 from importobot.medallion.interfaces.data_models import LayerMetadata
 from importobot.medallion.interfaces.enums import SupportedFormat
 from importobot.medallion.storage.local import LocalStorageBackend
+
+pytestmark = pytest.mark.slow
 
 
 class TestBronzeStorageGenerative(unittest.TestCase):

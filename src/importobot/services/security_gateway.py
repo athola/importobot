@@ -89,23 +89,49 @@ def _float_from_env(var_name: str, default: float) -> float:
 class _SecurityRateLimiter:
     """Simple token bucket rate limiter for security-sensitive operations."""
 
-    def __init__(self, max_calls: int, interval: float) -> None:
+    def __init__(
+        self,
+        max_calls: int,
+        interval: float,
+        *,
+        max_queue_size: Optional[int] = None,
+        backoff_base: float = 2.0,
+        max_backoff_multiplier: float = 8.0,
+    ) -> None:
         self._max_calls = max_calls
         self._interval = interval
+        self._max_queue_size = max_queue_size or max_calls
+        self._backoff_base = backoff_base
+        self._max_backoff_multiplier = max_backoff_multiplier
         self._events: Dict[str, Deque[float]] = {}
+        self._backoff_state: Dict[str, float] = {}
         self._lock = threading.Lock()
 
     def try_acquire(self, bucket: str) -> tuple[bool, float]:
         """Attempt to acquire a token for the given bucket."""
         now = time.time()
         with self._lock:
-            event_queue = self._events.setdefault(bucket, deque())
+            event_queue = self._events.get(bucket)
+            if event_queue is None:
+                event_queue = deque(maxlen=self._max_queue_size)
+                self._events[bucket] = event_queue
+
             while event_queue and now - event_queue[0] > self._interval:
                 event_queue.popleft()
+
             if len(event_queue) >= self._max_calls:
-                retry_after = self._interval - (now - event_queue[0])
-                return False, max(retry_after, 0.0)
+                base_retry = self._interval - (now - event_queue[0])
+                base_retry = max(base_retry, 0.0)
+                multiplier = self._backoff_state.get(bucket, 1.0)
+                retry_after = base_retry * multiplier if base_retry else self._interval
+                new_multiplier = min(
+                    multiplier * self._backoff_base, self._max_backoff_multiplier
+                )
+                self._backoff_state[bucket] = new_multiplier
+                return False, retry_after
+
             event_queue.append(now)
+            self._backoff_state[bucket] = 1.0
         return True, 0.0
 
 
@@ -175,8 +201,19 @@ class SecurityGateway:
             if rate_limit_interval_seconds is not None
             else _float_from_env("IMPORTOBOT_SECURITY_RATE_INTERVAL_SECONDS", 60.0)
         )
+        max_queue_size = _int_from_env("IMPORTOBOT_SECURITY_RATE_MAX_QUEUE", max_calls)
+        backoff_base = _float_from_env("IMPORTOBOT_SECURITY_RATE_BACKOFF_BASE", 2.0)
+        max_backoff_multiplier = _float_from_env(
+            "IMPORTOBOT_SECURITY_RATE_BACKOFF_MAX", 8.0
+        )
         if max_calls and max_calls > 0 and interval > 0:
-            self._rate_limiter = _SecurityRateLimiter(max_calls, interval)
+            self._rate_limiter = _SecurityRateLimiter(
+                max_calls,
+                interval,
+                max_queue_size=max_queue_size,
+                backoff_base=backoff_base,
+                max_backoff_multiplier=max_backoff_multiplier,
+            )
         else:
             self._rate_limiter = None
         logger.info(

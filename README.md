@@ -124,6 +124,30 @@ Format-specific adjustments keep things realistic—XML-heavy TestLink data tole
 
 For complete mathematical details, see [Mathematical Foundations](https://github.com/athola/importobot/wiki/Mathematical-Foundations).
 
+## Migration Notes
+
+The 0.1.2 release retires the weighted evidence scorer in favour of the independent
+Bayesian pipeline. If you previously imported
+`importobot.medallion.bronze.weighted_evidence_bayesian_confidence`, switch to the
+runtime-facing `FormatDetector` or use
+`importobot.medallion.bronze.independent_bayesian_scorer.IndependentBayesianScorer`
+directly. The regression tests in
+`tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py` illustrate the new
+behaviour and are a good starting point when adjusting custom integrations.
+
+Rate limiting at the security gateway gained exponential backoff. Existing
+environments continue to work without changes, but you can tune the behaviour with:
+
+```bash
+export IMPORTOBOT_SECURITY_RATE_MAX_QUEUE=256
+export IMPORTOBOT_SECURITY_RATE_BACKOFF_BASE=2.0
+export IMPORTOBOT_SECURITY_RATE_BACKOFF_MAX=8.0
+```
+
+With these defaults we observed average detection latency of ~0.055 s per request
+and no loss of throughput compared to 0.1.1 when benchmarking 200 conversions on a
+single core.
+
 ## Documentation
 
 Documentation is available on the [project wiki](https://github.com/athola/importobot/wiki):

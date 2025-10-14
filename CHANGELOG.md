@@ -8,32 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Bayesian confidence scoring with proper P(E|¬H) estimation using quadratic decay
-- `BayesianConfiguration` dataclass to organize mathematical constants with validation
-- Format-specific adjustments for XML (TestLink), JSON (TestRail), and JIRA formats
-- Evidence strength calculations using quality, completeness, uniqueness, and quantity metrics
-- Numerical stability improvements with configurable epsilon to prevent division by zero
-- Thread-safe rate limiting with automatic cleanup to prevent memory leaks
-- Integrated mutation testing support via `mutmut` (Makefile target `mutation`
-  and `pyproject.toml` configuration) to spot gaps in the test suite.
-- Added automated performance regression execution (`make perf-test` and a
-  dedicated GitHub Actions job) covering the weighted evidence Bayesian confidence scorer hot path.
-- Runtime telemetry for cache hit/miss rates (opt-in via
-  `IMPORTOBOT_ENABLE_TELEMETRY`) with rate-limited emissions for performance,
-  detection, and file content caches.
-- Async wrappers (`ingest_file_async`, `ingest_json_string_async`, etc.) for
-  `DataIngestionService`, simplifying integration with event-loop driven
-  ingestion pipelines.
-- `make benchmark-dashboard` command and `benchmark_dashboard.py` script for
-  compiling JSON benchmark runs into a shareable HTML report.
+- `EvidenceMetrics` dataclass and regression tests to keep the independent Bayesian scorer honest (`tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`).
+- Benchmark artifacts under `wiki/benchmarks/` covering format-detection accuracy, detection latency, and regex cache performance.
+- Environment flags (`IMPORTOBOT_SECURITY_RATE_MAX_QUEUE`, `IMPORTOBOT_SECURITY_RATE_BACKOFF_BASE`, `IMPORTOBOT_SECURITY_RATE_BACKOFF_MAX`) to tune the security gateway rate limiter.
 
 ### Changed
-- Made SciPy an optional dependency available via the `confidence` extra; the
-  MVLP Bayesian scorer now falls back to heuristic tuning with a warning when
-  SciPy is unavailable.
-- Added configurable TTL eviction to optimization scenarios/results via
-  `IMPORTOBOT_OPTIMIZATION_CACHE_TTL_SECONDS` to prevent unbounded growth in
-  long-running processes.
+- Replaced the weighted evidence scorer with the independent Bayesian pipeline. Evidence penalties are now explicit constants and ambiguous data is capped at a 1.5:1 likelihood ratio.
+- Hardened the rate limiter with queue caps and exponential backoff; cleaned up the README and wiki to describe the migration path.
+- Updated documentation to explain the removal of the `robot.utils` shim and to show empirical results from the new scorer.
+
+### Removed
+- Legacy `WeightedEvidenceBayesianScorer` entry points and the analysis scripts that referred to it.
 
 ## [0.1.1] - 2025-09-29
 

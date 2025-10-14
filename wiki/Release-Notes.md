@@ -112,7 +112,7 @@ If you were directly accessing `bronze._records` (private API), this has moved t
 - No security issues detected (detect-secrets, bandit)
 - 100% backward compatibility maintained
 
-**What's Next (v0.1.3)**
+**What's Next (v0.1.2+)**
 Planned improvements:
 - Pre-commit hooks for faster feedback
 - Pylint incremental mode for changed files only

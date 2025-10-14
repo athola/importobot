@@ -18,6 +18,8 @@ from tests.shared_ssh_test_data import (
     get_basic_ssh_connection_keywords,
 )
 
+pytestmark = pytest.mark.slow
+
 
 class TestSSHComprehensiveCoverage:
     """Comprehensive generative tests for all SSH keywords."""

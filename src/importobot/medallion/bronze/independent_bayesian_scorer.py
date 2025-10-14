@@ -1,22 +1,10 @@
-"""Independent Bayesian evidence scorer with mathematical rigor.
+"""Independent Bayesian evidence scorer.
 
-This module implements a mathematically sound approach to evidence scoring
-that uses evidence independence assumptions for proper Bayesian likelihood calculations.
-
-Mathematical Foundation:
----------------------
-1. Evidence Independence: P(E1,E2,E3|H) = P(E1|H) × P(E2|H) × P(E3|H)
-2. Log-Likelihood: log P(E|H) = Σ log P(Ei|H) for numerical stability
-3. Proper Distributions: Beta, Poisson, Bernoulli for different evidence types
-4. Bayesian Updating: P(H|E) ∝ P(E|H) × P(H)
-
-Key Features:
---------------
-- Replaces arbitrary weighted combinations with independent evidence multiplication
-- Uses log-likelihood calculations to avoid numerical underflow
-- Applies proper probability distributions for each evidence type
-- Maintains discriminative power while ensuring mathematical coherence
-- Provides uncertainty quantification through Bayesian inference
+We rewrote the scorer in release 0.1.2 to replace the noisy-OR heuristic that
+overconfidently labeled ambiguous XML imports. The current implementation keeps
+the math explicit: independent evidence terms, log-space products, and a
+quadratic model for P(E|¬H). The helpers in this module are shared by the unit
+tests that guard the 1.5:1 ambiguity cap and the benchmark jobs in CI.
 """
 
 from __future__ import annotations
@@ -38,6 +26,12 @@ from .shared_config import (
 from .test_case_complexity_analyzer import ComplexityMetrics
 
 logger = setup_logger(__name__)
+
+LOG_LIKELIHOOD_FLOOR = 1e-12  # Keeps log products bounded (~-27.6) for three factors
+AMBIGUOUS_RATIO_CAP = 1.5  # Stops ambiguous payloads from swamping priors
+STRONG_EVIDENCE_RATIO_CAP = (
+    3.0  # Allows confident evidence to stand out without spiking
+)
 
 
 @dataclass
@@ -201,38 +195,22 @@ class IndependentBayesianScorer:
             raise ValueError("Invalid Bayesian parameters")
 
     def _conservative_likelihood_mapping(self, value: float) -> float:
-        """Apply conservative baseline likelihood mapping for evidence metrics.
+        """Map a metric in [0, 1] into [0.05, 0.90] before any boosts.
 
-        Mathematical Principle:
-        Based on research recommendations for discriminative but stable
-        likelihood functions. Conservative baseline provides 1.5:1 to 2:1
-        discriminative ratios for strong evidence while preventing extreme
-        overconfidence.
-
-        Formula: P = 0.4 + 0.4 * value (linear in [0.4, 0.8])
-        This ensures:
-        - Minimum 40% likelihood even for weak evidence
-        - Maximum 80% likelihood to prevent overconfidence
-        - Linear relationship for interpretability and maintainability
+        The 0.05 floor keeps the product of three evidence terms away from zero,
+        and the 0.90 ceiling leaves headroom for amplification without breaching
+        probabilistic bounds.
         """
-        # Conservative linear mapping: [0,1] -> [0.05, 0.90]
-        # Keeps weak evidence near-zero while allowing strong evidence to approach 0.9.
         return 0.05 + 0.85 * value
 
     def _amplify_strong_evidence(
         self, base_likelihood: float, evidence_type: EvidenceType, value: float
     ) -> float:
-        """Amplify likelihood for high-confidence evidence based on research.
+        """Boost strong evidence while keeping the result ≤ 0.95.
 
-        Mathematical Principle:
-        Strong evidence should get multiplicative boost while capping
-        maximum likelihood to prevent overconfidence. This provides
-        the discriminative power needed for format-specific indicators.
-
-        Amplification Rules:
-        - Very strong evidence (>0.9): 1.5x boost, capped at 0.95
-        - Strong evidence (>0.8): 1.2x boost, capped at 0.90
-        - Moderate/weak evidence: no amplification
+        Uniqueness gets the biggest multiplier because it is usually scarce.
+        Completeness and quality receive lighter boosts so the scorer does not
+        outrun the ambiguity caps.
         """
         if evidence_type == EvidenceType.UNIQUENESS and value > 0.9:
             # Very strong uniqueness evidence - highest amplification
@@ -279,25 +257,11 @@ class IndependentBayesianScorer:
         return amplified_likelihood
 
     def _apply_likelihood_ratio_capping(
-        self, likelihoods: Dict[str, float], max_ratio: float = 3.0
+        self,
+        likelihoods: Dict[str, float],
+        max_ratio: float = STRONG_EVIDENCE_RATIO_CAP,
     ) -> Dict[str, float]:
-        """Apply adaptive likelihood ratio capping based on evidence strength.
-
-        Mathematical Principle:
-        Based on research recommendations, use adaptive ratio capping:
-        - For strong evidence (max_likelihood > 0.5): allow up to 3:1 ratio for
-        # discriminative power
-        - For weak/ambiguous evidence (max_likelihood <= 0.5): use conservative
-        # 1.5:1 ratio
-        This prevents extreme discrimination when evidence is genuinely ambiguous.
-
-        Args:
-            likelihoods: Raw likelihoods for each format
-            max_ratio: Maximum allowed ratio for strong evidence cases
-
-        Returns:
-            Capped likelihoods maintaining relative ordering
-        """
+        """Clamp low-probability formats so ratios stay within an interpretable band."""
         if not likelihoods:
             return likelihoods
 
@@ -308,7 +272,7 @@ class IndependentBayesianScorer:
         # Adaptive ratio based on evidence strength
         if max_likelihood <= 0.3:
             # Very weak/ambiguous evidence - use conservative ratio
-            effective_max_ratio = 1.5
+            effective_max_ratio = AMBIGUOUS_RATIO_CAP
         else:
             # Moderate to strong evidence - allow more discriminative power
             effective_max_ratio = max_ratio
@@ -357,10 +321,11 @@ class IndependentBayesianScorer:
 
         # Independence assumption: multiply likelihoods
         # Use log-space for numerical stability (standard Naive Bayes practice)
+        floor = max(self.bayesian_config.numerical_epsilon, LOG_LIKELIHOOD_FLOOR)
         log_likelihood = (
-            math.log(max(completeness_likelihood, 1e-10))
-            + math.log(max(quality_likelihood, 1e-10))
-            + math.log(max(uniqueness_likelihood, 1e-10))
+            math.log(max(completeness_likelihood, floor))
+            + math.log(max(quality_likelihood, floor))
+            + math.log(max(uniqueness_likelihood, floor))
         )
 
         # Convert back from log-space
@@ -435,6 +400,38 @@ class IndependentBayesianScorer:
 
         posterior = numerator / denominator
         return float(max(0.0, min(1.0, posterior)))
+
+    def calculate_posterior_distribution(
+        self, all_metrics: Dict[str, EvidenceMetrics]
+    ) -> Dict[str, float]:
+        """Return a normalized posterior for every format with metrics.
+
+        This helper is deliberately explicit: it multiplies each likelihood by the
+        configured prior, sums the contributions, and returns posteriors whose sum
+        is one (bar floating point noise). Callers that only care about a single
+        format can continue to use ``calculate_posterior``.
+        """
+        if not all_metrics:
+            return {}
+
+        weighted_likelihoods: Dict[str, float] = {}
+        denominator = 0.0
+        for format_name, metrics in all_metrics.items():
+            likelihood = self.calculate_likelihood(metrics)
+            prior = self.format_priors.get(format_name, 0.1)
+            weighted = likelihood * prior
+            weighted_likelihoods[format_name] = weighted
+            denominator += weighted
+
+        if denominator < self.bayesian_config.numerical_epsilon:
+            # ruff: noqa: C420 -- dict.fromkeys would drop the float type annotation
+            return {name: 0.0 for name in weighted_likelihoods}
+
+        normalization_factor = 1.0 / denominator
+        return {
+            name: max(0.0, min(1.0, weighted * normalization_factor))
+            for name, weighted in weighted_likelihoods.items()
+        }
 
     def _estimate_p_e_not_h_for_other_format(
         self,
