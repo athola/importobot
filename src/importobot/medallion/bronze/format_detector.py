@@ -12,16 +12,14 @@ from importobot.config import (
 )
 from importobot.medallion.interfaces.enums import SupportedFormat
 from importobot.utils.logging import setup_logger
-from importobot.utils.string_cache import data_to_lower_cached
 
 from .complexity_analyzer import ComplexityAnalyzer
-from .confidence_calculator import ConfidenceCalculator
 from .detection_cache import DetectionCache
 from .detection_metrics import PerformanceMonitor
 from .evidence_accumulator import EvidenceAccumulator
 from .evidence_collector import EvidenceCollector
-from .evidence_evaluator import EvidenceEvaluator
 from .format_registry import FormatRegistry
+from .hierarchical_classifier import HierarchicalClassifier
 from .scoring_algorithms import ScoringAlgorithms, ScoringConstants
 from .shared_config import PRIORITY_MULTIPLIERS
 
@@ -32,14 +30,16 @@ class FormatDetector:
     """Main facade for format detection using modular components."""
 
     def __init__(self) -> None:
-        """Initialize the modular format detector."""
+        """Initialize modular format detector with Bayesian evidence accumulation."""
         self.format_registry = FormatRegistry()
         self.detection_cache = DetectionCache()
         self.evidence_collector = EvidenceCollector(self.format_registry)
-        self.confidence_calculator = ConfidenceCalculator(
-            self.evidence_collector.get_all_patterns()
-        )
         self.evidence_accumulator = EvidenceAccumulator()
+        self.hierarchical_classifier = HierarchicalClassifier(
+            self.format_registry,
+            self.evidence_collector,
+            self.evidence_accumulator,
+        )
 
         self._cache_lock = threading.Lock()
         self._circuit_lock = threading.Lock()
@@ -69,20 +69,14 @@ class FormatDetector:
                 )
                 return cached_result
 
+            # Circuit breaker removed - fail fast instead of fallback
             if self._is_circuit_open():
-                logger.warning(
-                    "Format detection circuit breaker is open; "
-                    "using fallback detection."
+                logger.error(
+                    "Format detection circuit breaker is open; returning UNKNOWN."
                 )
-                fallback_result = self._fallback_detection(data)
                 self.detection_cache.enforce_min_detection_time(start_time, data)
-                confidence = (
-                    self.get_format_confidence(data, fallback_result)
-                    if fallback_result != SupportedFormat.UNKNOWN
-                    else 0.0
-                )
-                monitor.record_detection(fallback_result, confidence)
-                return fallback_result
+                monitor.record_detection(SupportedFormat.UNKNOWN, 0.0)
+                return SupportedFormat.UNKNOWN
 
             if not isinstance(data, dict) or not data:
                 if not isinstance(data, dict):
@@ -140,6 +134,23 @@ class FormatDetector:
 
     def _quick_format_detection(self, data: Dict[str, Any]) -> SupportedFormat:
         """Quickly compare format candidates using Bayesian relative scoring."""
+        # First, check for strong format indicators (same as fast path)
+        strong_indicators = {
+            SupportedFormat.JIRA_XRAY: ["testExecutions", "testInfo", "evidences"],
+            SupportedFormat.ZEPHYR: ["testCase", "execution", "cycle"],
+            SupportedFormat.TESTRAIL: ["suite_id", "project_id", "milestone_id"],
+            SupportedFormat.TESTLINK: ["testsuites", "testsuite"],
+        }
+
+        top_level_field_names = set(data.keys()) if isinstance(data, dict) else set()
+        for format_type, indicators in strong_indicators.items():
+            matches = sum(
+                1 for indicator in indicators if indicator in top_level_field_names
+            )
+            if matches >= ScoringConstants.MIN_STRONG_INDICATORS_THRESHOLD:
+                return format_type
+
+        # Fall back to pattern-based scoring
         data_str = self.detection_cache.get_data_string_efficient(data)
         format_patterns = self.evidence_collector.get_all_patterns()
 
@@ -188,31 +199,31 @@ class FormatDetector:
         return SupportedFormat.UNKNOWN
 
     def _full_format_detection(self, data: Dict[str, Any]) -> SupportedFormat:
-        """Full format detection algorithm."""
-        data_str = self.detection_cache.get_data_string_efficient(data)
-        format_patterns = self.evidence_collector.get_all_patterns()
+        """Full format detection algorithm using hierarchical classifier."""
+        # Use hierarchical classifier for proper two-stage detection
+        result = self.hierarchical_classifier.classify(data)
 
-        scores: Dict[SupportedFormat, float] = {}
-        for format_type, patterns in format_patterns.items():
-            score = ScoringAlgorithms.calculate_format_score(data_str, patterns, data)
-            scores[format_type] = score * PRIORITY_MULTIPLIERS.get(format_type, 1.0)
-
-        best_format = max(scores.keys(), key=lambda k: scores[k])
-        best_score = scores[best_format]
-
-        if not EvidenceEvaluator.is_sufficient_for_detection(int(best_score)):
+        # If Stage 1 failed (not test data), return UNKNOWN
+        if not result.is_test_data:
             return SupportedFormat.UNKNOWN
 
-        return best_format
-
-    def _fallback_detection(self, data: Dict[str, Any]) -> SupportedFormat:
-        """Fallback detection used while the circuit breaker is open."""
-        if not isinstance(data, dict) or not data:
+        # Get format with highest posterior probability
+        if not result.format_posteriors:
             return SupportedFormat.UNKNOWN
+
+        best_format_name = max(result.format_posteriors.items(), key=lambda x: x[1])[0]
+        best_confidence = result.format_posteriors[best_format_name]
+
+        # Minimum confidence threshold for detection
+        min_detection_confidence = 0.3  # Business requirement for valid detection
+        if best_confidence < min_detection_confidence:
+            return SupportedFormat.UNKNOWN
+
+        # Convert format name to enum
         try:
-            return self._quick_format_detection(data)
-        except Exception:  # pragma: no cover - fallback should be lightweight
-            logger.debug("Fallback detection failed; returning UNKNOWN.", exc_info=True)
+            return SupportedFormat[best_format_name]
+        except KeyError:
+            logger.warning("Unknown format name from classifier: %s", best_format_name)
             return SupportedFormat.UNKNOWN
 
     def _note_detection_failure(self) -> None:
@@ -251,41 +262,53 @@ class FormatDetector:
     def get_format_confidence(
         self, data: Dict[str, Any], format_type: SupportedFormat
     ) -> float:
-        """Return confidence estimate for a specific format with Bayesian correction."""
+        """Return confidence estimate using proper multi-class Bayesian normalization.
+
+        This method implements mathematically correct multi-class classification:
+        1. Evaluates evidence against ALL format hypotheses
+        2. Calculates likelihoods P(E|H_i) for each format
+        3. Applies proper Bayesian normalization:
+           P(H_i|E) = P(E|H_i)*P(H_i) / Σ_j[P(E|H_j)*P(H_j)]
+
+        This prevents overconfident wrong-format matches by considering that evidence
+        might better match a different format.
+        """
         if not isinstance(data, dict):
             return 0.0
 
-        data_str = self.detection_cache.get_data_string_efficient(data)
-        data_str_lower = data_to_lower_cached(data_str)
+        # Evaluate evidence against ALL formats to get proper normalization
+        all_confidences = self.get_all_format_confidences(data)
 
-        base_confidence = self.confidence_calculator.get_format_confidence(
-            data, format_type, data_str, ScoringAlgorithms.calculate_format_score
-        )
+        # Return the confidence for the requested format
+        return all_confidences.get(format_type.name, 0.0)
 
-        patterns = self.evidence_collector.get_patterns(format_type)
-        required_keys = patterns.get("required_keys", [])
+    def get_all_format_confidences(self, data: Dict[str, Any]) -> Dict[str, float]:
+        """Calculate properly normalized confidence scores for ALL formats.
 
-        if required_keys:
-            if format_type == SupportedFormat.GENERIC:
-                generic_alternatives = ["tests", "test_cases", "testcases"]
-                has_any_alternative = any(
-                    alt.lower() in data_str_lower for alt in generic_alternatives
-                )
-                return (
-                    base_confidence if has_any_alternative else base_confidence * 0.01
-                )
+        Uses two-stage hierarchical Bayesian classification:
+        1. Stage 1: Validate input represents test management data
+        2. Stage 2: Discriminate between specific test formats
 
-            matches = sum(1 for key in required_keys if key.lower() in data_str_lower)
-            total_required = len(required_keys)
-            required_ratio = matches / total_required
+        Returns:
+            Dictionary mapping format names to their normalized posterior probabilities
+        """
+        if not isinstance(data, dict):
+            return {fmt.name: 0.0 for fmt in self.format_registry.get_all_formats()}
 
-            if required_ratio == 0:
-                bayesian_multiplier = 0.01
-            else:
-                bayesian_multiplier = required_ratio**1.5
-            return base_confidence * bayesian_multiplier
+        # Always use hierarchical classification
+        result = self.hierarchical_classifier.classify(data)
 
-        return base_confidence
+        # If Stage 1 failed (not test data), return all zeros
+        if not result.is_test_data:
+            logger.warning(
+                "Hierarchical Stage 1 FAILED: Input not recognized as test data "
+                "(confidence=%.3f)",
+                result.test_data_confidence,
+            )
+            return {fmt.name: 0.0 for fmt in self.format_registry.get_all_formats()}
+
+        # Return Stage 2 posteriors
+        return result.format_posteriors
 
     def get_supported_formats(self) -> List[SupportedFormat]:
         """Get list of supported format types."""

@@ -21,13 +21,14 @@ from importobot.medallion.interfaces.data_models import (
 )
 from importobot.medallion.interfaces.enums import ProcessingStatus
 from importobot.medallion.interfaces.records import BronzeRecord, RecordMetadata
+from importobot.medallion.placeholder_base import PlaceholderMixin
 from importobot.utils.validation_models import (
     QualitySeverity,
     ValidationResult,
 )
 
 
-class SilverLayer(BaseMedallionLayer):
+class SilverLayer(BaseMedallionLayer, PlaceholderMixin):
     """Silver layer for curated and standardized data.
 
     The Silver layer implements data standardization, enrichment, and quality
@@ -112,29 +113,19 @@ class SilverLayer(BaseMedallionLayer):
         self, data: dict[str, Any], source_info: dict[str, Any]
     ) -> BronzeRecord:
         """Process data with format detection (to be implemented in MR2)."""
-        raise NotImplementedError("Silver layer ingest_with_detection pending MR2")
+        raise self._not_implemented_error("ingest_with_detection", "MR2")
 
     def get_record_metadata(self, record_id: str) -> Optional[RecordMetadata]:
         """Retrieve record metadata (to be implemented in MR2)."""
-        return None
+        return self._placeholder_record_metadata(record_id)
 
     def get_record_lineage(self, record_id: str) -> Optional[DataLineage]:
         """Retrieve record lineage information (to be implemented in MR2)."""
-        return None
+        return self._placeholder_record_lineage(record_id)
 
     def validate_bronze_data(self, data: dict[str, Any]) -> dict[str, Any]:
         """Validate bronze data for silver processing (to be implemented in MR2)."""
-        # pylint: disable=duplicate-code
-        return {
-            "is_valid": False,
-            "error_count": 0,
-            "warning_count": 1,
-            "issues": ["Silver layer validation pending MR2"],
-            "quality_score": 0.0,
-            "completeness_score": 0.0,
-            "consistency_score": 0.0,
-            "validity_score": 0.0,
-        }
+        return self._placeholder_validate_bronze_data(data, "Silver", "MR2")
 
     def get_bronze_records(
         self,
@@ -142,8 +133,7 @@ class SilverLayer(BaseMedallionLayer):
         limit: Optional[int] = None,
     ) -> list[BronzeRecord]:
         """Retrieve bronze records for silver processing (to be implemented in MR2)."""
-        # pylint: disable=duplicate-code
-        return []
+        return self._placeholder_get_bronze_records(filter_criteria, limit)
 
 
 __all__ = ["SilverLayer"]

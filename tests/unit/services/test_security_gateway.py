@@ -124,7 +124,7 @@ class TestSecurityGatewayBleachFallback:
 
         gateway = SecurityGateway(SecurityLevel.STANDARD)
 
-        with caplog.at_level("WARNING"):
+        with caplog.at_level("INFO"):
             # pylint: disable=protected-access
             sanitized, issues = gateway._sanitize_string_input(
                 "<script>alert('hi')</script>"
@@ -132,7 +132,7 @@ class TestSecurityGatewayBleachFallback:
 
         assert sanitized == "alert('hi')"
         assert issues
-        assert "Bleach dependency not available" in caplog.text
+        assert "Running in lightweight security mode without bleach" in caplog.text
 
 
 class TestJSONSanitization:

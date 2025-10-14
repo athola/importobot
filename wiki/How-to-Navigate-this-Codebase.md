@@ -110,7 +110,7 @@ Shared helpers used across the codebase:
 
 - `validation/` - Input validation with helpful error messages
 - `test_generation/` - Test data generators for development
-- `robot_compat.py` - Robot Framework version compatibility shims
+- Legacy Robot Framework compatibility shims were removed after upgrading dependencies
 
 The validation module is worth understanding - it catches common JSON structure issues early and provides specific feedback about what went wrong.
 

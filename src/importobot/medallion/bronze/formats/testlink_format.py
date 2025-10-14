@@ -48,10 +48,30 @@ def create_testlink_format() -> FormatDefinition:
         # STRONG indicators - TestLink structure elements
         strong_indicators=[
             FieldDefinition(
+                name="internalid",
+                evidence_weight=EvidenceWeight.STRONG,
+                description="TestLink internal ID attribute - XML-specific",
+            ),
+            FieldDefinition(
+                name="externalid",
+                evidence_weight=EvidenceWeight.STRONG,
+                description="TestLink external identifier - unique to TestLink",
+            ),
+            FieldDefinition(
+                name="node_order",
+                evidence_weight=EvidenceWeight.STRONG,
+                description="TestLink node ordering - XML hierarchy indicator",
+            ),
+            FieldDefinition(
+                name="execution_type",
+                evidence_weight=EvidenceWeight.STRONG,
+                description="TestLink execution type (1=manual, 2=automated)",
+            ),
+            FieldDefinition(
                 name="testcase",
                 evidence_weight=EvidenceWeight.STRONG,
                 pattern=r"^testcase$",
-                description="TestLink test case within suite",
+                description="TestLink test case within suite - lowercase pattern",
             ),
         ],
         # MODERATE indicators - common test management features

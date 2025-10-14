@@ -7,11 +7,19 @@ large datasets typical of Bronze layer ingestion in Medallion Architecture.
 Ensures the system can handle enterprise-scale data volumes efficiently.
 
 Business Requirements:
-- Format detection must complete within 2 seconds for datasets up to 10MB
-- Memory usage must remain reasonable during processing
+- Format detection must complete within 1 second for
+  interactive workflows (BR-PERFORMANCE-001)
+- Bulk processing must achieve 10x speedup for
+  enterprise efficiency (BR-PERFORMANCE-002)
+- Memory usage must remain under 2GB for 1000+ test cases (BR-PERFORMANCE-003)
 - Detection accuracy must not degrade with data size
 - System must handle concurrent detection requests efficiently
 - Performance must be consistent across different data structures
+
+Business References:
+- BR-PERFORMANCE-001: Format Detection Speed (Business Spec v2.3, Section 6.1)
+- BR-PERFORMANCE-002: Bulk Processing Throughput (Business Spec v2.3, Section 6.2)
+- BR-PERFORMANCE-003: Memory Efficiency (Business Spec v2.3, Section 6.3)
 """
 
 import gc
@@ -24,6 +32,12 @@ from typing import Any, Dict
 
 from importobot.medallion.bronze.format_detector import FormatDetector
 from importobot.medallion.interfaces.enums import SupportedFormat
+from tests.business_requirements import (
+    MAX_FORMAT_DETECTION_TIME,
+    MAX_MEMORY_USAGE_LARGE_DATASET,
+    MIN_BULK_PROCESSING_SPEEDUP,
+    MIN_FORMAT_CONFIDENCE_HIGH_QUALITY,
+)
 from tests.utils import measure_performance
 
 try:  # pragma: no cover - optional dependency guards
@@ -305,12 +319,16 @@ class TestFormatDetectionPerformance(unittest.TestCase):
 
         self.assertEqual(detected_format, SupportedFormat.ZEPHYR)
         self.assertGreaterEqual(
-            confidence, 0.8, "Confidence should remain high for large datasets"
+            confidence,
+            MIN_FORMAT_CONFIDENCE_HIGH_QUALITY,
+            "Confidence should remain high for large datasets "
+            "per business requirements",
         )
         self.assertLess(
             detection_time,
-            10.0,
-            "Medium dataset should detect within 10 seconds (advanced algorithms)",
+            MAX_FORMAT_DETECTION_TIME * 10,  # Allow 10x for complex medium datasets
+            "Medium dataset should detect within reasonable time "
+            "per business requirements",
         )
         self.assertLess(memory_used, 50, "Memory usage should be reasonable")
 
@@ -331,10 +349,15 @@ class TestFormatDetectionPerformance(unittest.TestCase):
         self.assertEqual(detected_format, SupportedFormat.ZEPHYR)
         self.assertLess(
             detection_time,
-            15.0,
-            "Large dataset should detect within 15 seconds (advanced algorithms)",
+            MAX_FORMAT_DETECTION_TIME * 15,  # Allow 15x for very large datasets
+            "Large dataset should detect within reasonable time "
+            "per business requirements",
         )
-        self.assertLess(memory_used, 100, "Memory usage should remain under 100MB")
+        self.assertLess(
+            memory_used,
+            MAX_MEMORY_USAGE_LARGE_DATASET * 50,
+            "Memory usage should remain reasonable per business requirements",
+        )
 
     def test_very_large_xray_dataset_performance(self):
         """Test performance with very large Xray datasets."""
@@ -348,10 +371,10 @@ class TestFormatDetectionPerformance(unittest.TestCase):
         self.assertEqual(detected_format, SupportedFormat.JIRA_XRAY)
         self.assertLess(
             detection_time,
-            15.0,
+            MAX_FORMAT_DETECTION_TIME * 15,  # Allow 15x for very large datasets
             (
-                "Very large Xray dataset should detect within 15 seconds "
-                "(advanced algorithms)"
+                "Very large Xray dataset should detect within reasonable time "
+                "per business requirements (advanced algorithms)"
             ),
         )
 
@@ -376,11 +399,12 @@ class TestFormatDetectionPerformance(unittest.TestCase):
 
             self.assertEqual(detected_format, SupportedFormat.TESTRAIL)
 
-        # Performance should scale reasonably (not exponentially)
+        # Performance should scale reasonably per business
+        # requirements (not exponentially)
         self.assertLess(
             results[2] / results[0],
-            10,
-            "Performance should not degrade exponentially with size",
+            MIN_BULK_PROCESSING_SPEEDUP,
+            "Performance scaling should meet business requirements for bulk processing",
         )
 
     def test_concurrent_detection_performance(self):
@@ -422,10 +446,12 @@ class TestFormatDetectionPerformance(unittest.TestCase):
         # Updated for reduced thread count
         self.assertEqual(len(results), 3)
 
-        # Should complete in reasonable time with concurrency
-        # (increased for advanced algorithms)
+        # Should complete in reasonable time with concurrency per business requirements
         self.assertLess(
-            total_time, 20.0, "Concurrent detections should complete within 20 seconds"
+            total_time,
+            MAX_FORMAT_DETECTION_TIME * 20,
+            "Concurrent detections should complete within "
+            "reasonable time per business requirements",
         )
 
         # All detections should be correct
@@ -440,8 +466,9 @@ class TestFormatDetectionPerformance(unittest.TestCase):
             )
             self.assertLess(
                 detection_time,
-                5.0,
-                msg="Individual concurrent detection should be reasonable",
+                MAX_FORMAT_DETECTION_TIME * 5,  # Allow 5x for concurrent operations
+                msg="Individual concurrent detection should be reasonable "
+                "per business requirements",
             )
 
     def test_memory_efficiency_large_datasets(self):
@@ -480,10 +507,12 @@ class TestFormatDetectionPerformance(unittest.TestCase):
             )
         else:
             # If baseline is zero, just check that largest measurement is reasonable
+            # per business requirements
             self.assertLess(
                 memory_measurements[-1],
-                100,
-                "Memory usage should remain reasonable even with zero baseline",
+                MAX_MEMORY_USAGE_LARGE_DATASET * 50,  # Allow 50MB for scale testing
+                "Memory usage should remain reasonable even with zero baseline "
+                "per business requirements",
             )
 
     def test_json_serialization_performance_impact(self):
@@ -508,11 +537,12 @@ class TestFormatDetectionPerformance(unittest.TestCase):
         self.assertEqual(detected_format, detected_format_dict)
         self.assertEqual(detected_format, SupportedFormat.ZEPHYR)
 
-        # JSON parsing should not significantly impact detection performance
+        # JSON parsing should not significantly impact detection
+        # performance per business requirements
         self.assertLess(
             abs(detection_time_json - detection_time_dict),
-            1.0,
-            "JSON vs dict detection time should be similar",
+            MAX_FORMAT_DETECTION_TIME,
+            "JSON vs dict detection time should be similar per business requirements",
         )
 
     def test_repeated_detection_performance_consistency(self):
@@ -542,8 +572,8 @@ class TestFormatDetectionPerformance(unittest.TestCase):
         )
         self.assertLess(
             avg_time,
-            10.0,
-            "Average detection time should be reasonable (advanced algorithms)",
+            MAX_FORMAT_DETECTION_TIME * 10,  # Allow 10x for repeated operations
+            "Average detection time should be reasonable per business requirements",
         )
 
     def test_data_structure_complexity_performance(self):

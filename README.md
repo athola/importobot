@@ -17,13 +17,13 @@ Importobot converts structured test exports (Zephyr, TestLink, Xray) into Robot 
 
 ## Features
 
-- Convert Zephyr, TestLink, and Xray JSON exports to Robot Framework
-- Process entire directories recursively
-- Preserve descriptions, steps, tags, and priorities
-- Validate inputs and flag suspicious data
-- Python API for CI/CD integration
-- Mathematically rigorous Bayesian confidence scoring
-- Comprehensive test suite (~1150 checks)
+- Convert Zephyr, TestLink, and Xray JSON exports to Robot Framework.
+- Process entire directories recursively so large imports stay hands-off.
+- Preserve descriptions, steps, tags, and priorities for auditors.
+- Validate inputs and flag suspicious data before generating Robot code.
+- Provide a Python API for CI/CD integration and scripted workflows.
+- Use an independent Bayesian scorer with explicit ratio caps to keep ambiguous evidence honest.
+- Ship with 1 813 unit and integration tests (`uv run pytest`).
 
 ## Installation
 
@@ -104,6 +104,25 @@ User Login Functionality
     Input Text    id=username    testuser
     Textfield Value Should Be    id=username    testuser
 ```
+
+## Confidence Scoring
+
+Importobot uses an independent Bayesian scorer to detect file formats:
+
+```
+P(H|E) = P(E|H) × P(H) / [P(E|H) × P(H) + P(E|¬H) × P(¬H)]
+```
+
+Key details:
+
+- Likelihood mapping: `P = 0.05 + 0.85 × value`, which keeps weak evidence near zero and caps strong evidence at 0.9 before amplification.
+- Quadratic decay for wrong-format estimates: `P(E|¬H) = 0.01 + 0.49 × (1 - likelihood)²`.
+- Ambiguous evidence is clamped to a 1.5:1 likelihood ratio; confident samples can reach 3:1 against the nearest competitor.
+- Dedicated tests in `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py` prevent regressions in these guarantees.
+
+Format-specific adjustments keep things realistic—XML-heavy TestLink data tolerates a little more ambiguity, while JSON-first TestRail requires explicit IDs.
+
+For complete mathematical details, see [Mathematical Foundations](https://github.com/athola/importobot/wiki/Mathematical-Foundations).
 
 ## Documentation
 

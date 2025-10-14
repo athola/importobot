@@ -56,7 +56,8 @@ notes = engine.suggest_improvements(problematic_tests)
 ### Highlights
 - Parameter conversion now ignores comment lines, so literal placeholders and odd control characters remain visible for auditors while executable steps still gain Robot variables.
 - Test cases include both the original and normalized names, which keeps the Hypothesis invariants honest even when source data contains `\f` or `\b` characters.
-- A tiny `robot.utils` shim preloads deprecated helpers, eliminating the SeleniumLibrary warnings that used to clutter validation runs.
+- Independent Bayesian scoring replaced the legacy weighted heuristic. Missing required indicators are penalised, ambiguous evidence is capped at 1.5:1, and the new regression suite (`tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`) keeps those guarantees honest.
+- Robot Framework dependencies now ship without the deprecated `robot.utils` helpers, so the old shim was removed and SeleniumLibrary runs warning-free.
 - Selenium integration tests switched to a deterministic dry-run path with explicit resource cleanup, removing the flaky WebDriver dependency and lingering socket warnings.
 - Cache sizing is now configurable through environment variables (`IMPORTOBOT_DETECTION_CACHE_MAX_SIZE`, `IMPORTOBOT_FILE_CACHE_MAX_MB`, etc.) so CI and production environments can tune memory usage.
 

@@ -148,6 +148,9 @@ addopts = [
     "--strict-config",
     "--verbose"
 ]
+markers = [
+    "timeout: Set timeout for individual tests (provided by configure_timeout fixture)"
+]
 
 [tool.coverage.run]
 source = ["src"]
@@ -167,7 +170,6 @@ select = [
     "B",    # flake8-bugbear
 ]
 extend-ignore = [
-    "E501", # Line too long (handled by ruff format)
 ]
 
 [tool.ruff.lint.per-file-ignores]
