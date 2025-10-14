@@ -4,15 +4,11 @@ Use this guide to refer to CLI flags, input formats, and supporting tools for Im
 
 ## Supported Input Formats
 
-### Current
-- **Zephyr JSON**
-- **Generic JSON**
-
-### Planned
-- **JIRA/Xray** (XML and JSON)
-- **TestLink** (XML)
-- **CSV**
-- **Excel**
+- **Zephyr** JSON exports
+- **JIRA/Xray** JSON
+- **TestLink** XML/JSON conversions
+- **TestRail** API payloads
+- **Generic** dictionaries for ad-hoc conversions
 
 ## Command-Line Interface
 
@@ -37,6 +33,22 @@ Helper scripts under `scripts/` can emit large sample suites for demos or benchm
 ```bash
 python scripts/generate_enterprise_tests.py
 python scripts/generate_zephyr_tests.py
+```
+
+## Migration from 0.1.1
+
+Version 0.1.2 removes the legacy `WeightedEvidenceBayesianScorer`. If you imported it
+directly, switch to `FormatDetector` or the new
+`importobot.medallion.bronze.independent_bayesian_scorer.IndependentBayesianScorer`.
+The behaviour is covered by `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`.
+
+Security rate limiting picked up exponential backoff. Existing deployments work
+unchanged, but you can tune it with:
+
+```bash
+export IMPORTOBOT_SECURITY_RATE_MAX_QUEUE=256
+export IMPORTOBOT_SECURITY_RATE_BACKOFF_BASE=2.0
+export IMPORTOBOT_SECURITY_RATE_BACKOFF_MAX=8.0
 ```
 
 ## How It Works

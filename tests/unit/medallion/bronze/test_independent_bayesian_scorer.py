@@ -1,14 +1,6 @@
-"""TDD tests for independent Bayesian evidence scorer.
+"""Regression tests for the independent Bayesian evidence scorer.
 
-This test suite validates the mathematical correctness of the independent
-Bayesian approach using evidence independence assumptions.
-
-Mathematical Requirements:
-- Evidence independence: P(E1,E2,E3|H) = P(E1|H) × P(E2|H) × P(E3|H)
-- Log-likelihood calculations for numerical stability
-- Proper probability distributions (Beta, Poisson)
-- Likelihood ratios provide discriminative power
-- Bayesian updating maintains probability coherence
+This suite properly bounds independence math and ambiguity caps.
 """
 
 import math
@@ -16,6 +8,7 @@ import unittest
 
 from importobot.medallion.bronze.evidence_metrics import EvidenceMetrics
 from importobot.medallion.bronze.independent_bayesian_scorer import (
+    EvidenceType,
     IndependentBayesianParameters,
     IndependentBayesianScorer,
 )
@@ -164,6 +157,20 @@ class TestIndependentBayesianScorer(unittest.TestCase):
                 components[component], 10.0
             )  # Reasonable upper bound for PDFs
 
+    def test_metric_likelihood_monotonicity(self):
+        """Higher evidence inputs should never reduce component likelihood."""
+        sample_values = [0.0, 0.2, 0.4, 0.6, 0.8, 0.95, 1.0]
+        for evidence_type in EvidenceType:
+            previous = -1.0
+            for value in sample_values:
+                likelihood = self.scorer._metric_to_likelihood(value, evidence_type)
+                self.assertGreaterEqual(
+                    likelihood,
+                    previous - 1e-9,  # small tolerance for floating point noise
+                    f"{evidence_type.value} likelihood dropped at value {value}",
+                )
+                previous = likelihood
+
     def test_discriminative_score_amplification(self):
         """Discriminative score should amplify uniqueness effects.
 
@@ -188,15 +195,19 @@ class TestIndependentBayesianScorer(unittest.TestCase):
         Mathematical Requirement: P(H|E) ∝ P(E|H) × P(H)
         Business Logic: Higher likelihood with prior should increase posterior
         """
-        # Test data with moderate likelihood
-        metrics = EvidenceMetrics(0.6, 0.7, 0.5, 6, 2)
-        likelihood = self.scorer.calculate_likelihood(metrics)
-
-        # Test with different priors
-        low_prior_posterior = self.scorer.calculate_posterior(
-            likelihood, "LOW_PRIOR_FORMAT"
+        # Use a scorer with custom priors so the test exercises the prior effect.
+        scorer = IndependentBayesianScorer(
+            format_priors={
+                "LOW_PRIOR_FORMAT": 0.05,
+                "HIGH_PRIOR_FORMAT": 0.25,
+            }
         )
-        high_prior_posterior = self.scorer.calculate_posterior(
+
+        metrics = EvidenceMetrics(0.6, 0.7, 0.5, 6, 2)
+        likelihood = scorer.calculate_likelihood(metrics)
+
+        low_prior_posterior = scorer.calculate_posterior(likelihood, "LOW_PRIOR_FORMAT")
+        high_prior_posterior = scorer.calculate_posterior(
             likelihood, "HIGH_PRIOR_FORMAT"
         )
 
@@ -208,6 +219,28 @@ class TestIndependentBayesianScorer(unittest.TestCase):
             with self.subTest(prior_type=name):
                 self.assertGreaterEqual(posterior, 0.0)
                 self.assertLessEqual(posterior, 1.0)
+
+        self.assertGreater(high_prior_posterior, low_prior_posterior)
+
+    def test_strong_evidence_confidence_threshold(self):
+        """Strong evidence should produce a high-confidence posterior."""
+
+        metrics = EvidenceMetrics(
+            completeness=0.95,
+            quality=0.94,
+            uniqueness=0.85,
+            evidence_count=12,
+            unique_count=4,
+        )
+
+        likelihood = self.scorer.calculate_likelihood(metrics)
+        posterior = self.scorer.calculate_posterior(
+            likelihood,
+            "TESTRAIL",
+            metrics,
+        )
+
+        self.assertGreaterEqual(posterior, 0.7)
 
     def test_mathematical_coherence(self):
         """Mathematical properties should be coherent and consistent.
@@ -328,6 +361,22 @@ class TestIndependentBayesianScorer(unittest.TestCase):
             1.1,  # Very conservative requirement due to likelihood ratio capping
             f"JIRA should provide >=1.1x advantage: {likelihood_ratio:.2f}",
         )
+
+    def test_posterior_distribution_normalization(self):
+        """Posterior distribution should sum to one when we have all metrics."""
+        metrics_by_format = {
+            "TESTRAIL": EvidenceMetrics(0.92, 0.9, 0.75, 12, 4),
+            "TESTLINK": EvidenceMetrics(0.65, 0.6, 0.1, 8, 1),
+            "GENERIC": EvidenceMetrics(0.4, 0.35, 0.05, 3, 0),
+        }
+
+        distribution = self.scorer.calculate_posterior_distribution(metrics_by_format)
+
+        self.assertAlmostEqual(sum(distribution.values()), 1.0, places=9)
+        for name, posterior in distribution.items():
+            with self.subTest(format=name):
+                self.assertGreaterEqual(posterior, 0.0)
+                self.assertLessEqual(posterior, 1.0)
 
 
 if __name__ == "__main__":

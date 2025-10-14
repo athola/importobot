@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from importobot.medallion.bronze.format_detector import FormatDetector
 from importobot.medallion.interfaces.enums import SupportedFormat
+from tests.fixtures.format_detection_fixtures import FormatTestDataGenerator
 
 
 def _collect_likelihoods(detector: FormatDetector, data: dict) -> dict[str, float]:
@@ -124,3 +125,30 @@ def test_wrong_format_likelihood_penalty() -> None:
         assert lik <= correct * 0.7, (
             f"{fmt} likelihood {lik:.3f} exceeds 70% of Zephyr's {correct:.3f}"
         )
+
+
+def test_strong_evidence_crosses_confidence_threshold() -> None:
+    """High-quality format data should easily clear the business confidence bar."""
+    detector = FormatDetector()
+    generator = FormatTestDataGenerator()
+    data = generator.create_testrail_data(runs_count=2, tests_count=6, cases_count=4)
+
+    confidence = detector.get_format_confidence(data, SupportedFormat.TESTRAIL)
+    assert confidence >= 0.85
+
+
+def test_invalid_jira_keys_receive_penalty() -> None:
+    """Invalid issue keys should drop the confidence score below the valid sample."""
+    detector = FormatDetector()
+    generator = FormatTestDataGenerator()
+
+    valid = generator.create_jira_xray_issue()
+    invalid = generator.create_jira_xray_issue()
+    invalid["issues"][0]["key"] = "invalid-key"
+    invalid["issues"][0]["fields"]["issuetype"]["name"] = "Task"
+
+    valid_conf = detector.get_format_confidence(valid, SupportedFormat.JIRA_XRAY)
+    invalid_conf = detector.get_format_confidence(invalid, SupportedFormat.JIRA_XRAY)
+
+    assert valid_conf >= 0.8
+    assert invalid_conf < valid_conf

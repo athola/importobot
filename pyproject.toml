@@ -149,7 +149,8 @@ addopts = [
     "--verbose"
 ]
 markers = [
-    "timeout: Set timeout for individual tests (provided by configure_timeout fixture)"
+    "timeout: Set timeout for individual tests (provided by configure_timeout fixture)",
+    "slow: Marks long-running generative tests",
 ]
 
 [tool.coverage.run]

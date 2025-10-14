@@ -119,60 +119,25 @@ P(quality|format) = Beta(α_quality, β_quality)
 - Structural quality assessment
 - Field specificity scoring
 
-**Stage 2**: Format discrimination using:
-- Unique indicator likelihood ratios
-- Format-specific evidence priors
-- Proper multi-class Bayesian normalization
+**Stage 2**: Format discrimination with:
+- Dirichlet priors on format frequencies
+- Bernoulli/Beta models for indicator presence
+- Logarithmic scaling for rare indicators
 
-## Implementation Plan
+### Phase 3: Long-Term Exploration
 
-### Step 1: Fix Current Evidence Accumulator
-- Replace weighted evidence objective with proper likelihood calculation
-- Implement log-likelihood for numerical stability
-- Add proper probability distributions for each evidence type
+1. **Hierarchical Bayesian modeling** with PyMC or NumPyro for full posterior inference.
+2. **Mutual information feature selection** to identify the most discriminative indicators.
+3. **Hybrid Bayesian + logistic regression** approach where Bayesian priors inform logistic regression features.
 
-### Step 2: Redesign Bayesian Scorer
-- Implement proper hierarchical Bayesian inference
-- Add uncertainty quantification
-- Maintain existing interface for backward compatibility
+## Risks and Mitigations
 
-### Step 3: Update Evidence Collection
-- Collect evidence statistics (counts, presence/absence)
-- Calculate proper likelihood ratios
-- Maintain discriminative power while ensuring mathematical rigor
+1. **Data sparsity**: Some formats may lack sufficient training data. Mitigate with informative priors and synthetic augmentation.
+2. **Model interpretability**: Keep explanations grounded in evidence metrics and publish derived parameters.
+3. **Computational overhead**: Pre-compute format-specific parameters and cache likelihood components.
 
-### Step 4: Comprehensive Testing
-- Unit tests for probability calculations
-- Integration tests for end-to-end detection
-- Performance tests for computational efficiency
+## Next Steps
 
-## Mathematical Validation
-
-### Required Properties
-1. **Probability Coherence**: All probabilities in [0,1], sum to 1.0
-2. **Bayesian Consistency**: Proper prior/posterior relationships
-3. **Numerical Stability**: Log-space calculations to avoid underflow
-4. **Discriminative Power**: Unique evidence produces ≥2x likelihood ratios
-
-### Test Cases
-- **Unique Evidence**: Format-specific fields produce high discrimination
-- **Generic Evidence**: Common fields produce similar likelihoods across formats
-- **Mixed Evidence**: Proper combination of unique and generic evidence
-- **Edge Cases**: Empty data, malformed data, conflicting evidence
-
-## Benefits of Mathematical Rigor
-
-1. **Maintainability**: Clear mathematical foundation, no magic numbers
-2. **Debuggability**: Probabilistic interpretation of intermediate results
-3. **Extensibility**: Easy to add new formats and evidence types
-4. **Reliability**: Proper uncertainty quantification
-5. **Performance**: Optimized through mathematical properties rather than heuristics
-
-## Timeline
-
-- **Week 1**: Fix current evidence accumulation and Bayesian scoring
-- **Week 2**: Implement proper hierarchical model
-- **Week 3**: Comprehensive testing and validation
-- **Week 4**: Performance optimization and documentation
-
-This approach ensures we solve the root mathematical problem rather than applying band-aid fixes that accumulate technical debt.
+1. Implement evidence independence in the current scorer.
+2. Replace ad-hoc likelihoods with Beta/Bernoulli models per evidence type.
+3. Establish benchmarking suite aligned with `wiki/benchmarks/format_detection_benchmark.json`.

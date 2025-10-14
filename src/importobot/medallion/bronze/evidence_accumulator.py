@@ -27,6 +27,23 @@ from .test_case_complexity_analyzer import ComplexityMetrics, TestCaseComplexity
 
 logger = setup_logger(__name__)
 
+# Penalty constants are defined here so the ratios we enforce stay transparent.
+# - PATTERN_MISMATCH_PENALTY pushes down confidence when regex checks fail.
+# - SPARSE_EVIDENCE_PENALTY dampens formats that only hit generic indicators.
+# - REQUIRED_FIELD_PENALTY handles cases where unique/strong keys are missing.
+PATTERN_MISMATCH_PENALTY = 0.01
+SPARSE_EVIDENCE_PENALTY = 0.1
+REQUIRED_FIELD_PENALTY = 0.05
+SPARSE_EVIDENCE_FORMATS = {
+    SupportedFormat.TESTRAIL.name,
+    SupportedFormat.TESTLINK.name,
+}
+REQUIRED_FIELD_FORMATS = {
+    SupportedFormat.TESTRAIL.name,
+    SupportedFormat.TESTLINK.name,
+    SupportedFormat.ZEPHYR.name,
+}
+
 
 @dataclass
 class EvidenceItem:
@@ -331,30 +348,21 @@ class EvidenceAccumulator:
         if any(
             item.source == "field_pattern_mismatch" for item in profile.evidence_items
         ):
-            penalty_factor = min(penalty_factor, 0.01)
+            penalty_factor = min(penalty_factor, PATTERN_MISMATCH_PENALTY)
         elif (
-            profile.format_name != SupportedFormat.GENERIC.name
+            profile.format_name in SPARSE_EVIDENCE_FORMATS
             and unique_count == 0
             and total_count <= 3
         ):
-            # Penalize non-generic formats that only produced a couple of generic
-            # indicators. This keeps simple "tests" payloads from being misclassified
-            # as TestRail.
-            penalty_factor = min(
-                penalty_factor,
-                0.1
-                if profile.format_name
-                in {SupportedFormat.TESTRAIL.name, SupportedFormat.TESTLINK.name}
-                else 0.4,
-            )
-        elif profile.format_name in {
-            SupportedFormat.TESTRAIL.name,
-            SupportedFormat.TESTLINK.name,
-            SupportedFormat.ZEPHYR.name,
-        } and any(item.source.endswith("_missing") for item in profile.evidence_items):
-            # Missing required indicators should dramatically reduce confidence for
-            # specific formats.
-            penalty_factor = min(penalty_factor, 0.05)
+            # Penalize formats that only produced generic indicators. This keeps simple
+            # “tests” payloads from being misclassified as TestRail or TestLink.
+            penalty_factor = min(penalty_factor, SPARSE_EVIDENCE_PENALTY)
+        elif profile.format_name in REQUIRED_FIELD_FORMATS and any(
+            item.source.endswith("_missing") for item in profile.evidence_items
+        ):
+            # Missing required indicators should dramatically reduce confidence for the
+            # structured formats that rely on them.
+            penalty_factor = min(penalty_factor, REQUIRED_FIELD_PENALTY)
 
         return EvidenceMetrics(
             completeness=completeness,

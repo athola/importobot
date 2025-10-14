@@ -1,126 +1,24 @@
 # Mathematical Foundations
 
-This is a review of the mathematical techniques behind Importobot’s format detection and optimization pieces. Most readers only require context around the Bayesian confidence scoring; the rest supports the Medallion optimization work.
+This note catalogs the math we lean on for format detection and Medallion optimisation. Most engineers only need the Bayesian summary; the optimisation sections explain why certain heuristics survived code review.
 
 ## Overview
 
-The system leans on a few well-worn tools:
-- Bayesian inference for format confidence scoring.
-- Information-theoretic metrics to spot structural patterns in exports.
-- Gradient-style and heuristic optimizers to tune conversion parameters.
-- Lightweight statistical checks to confirm outputs look sane.
+We still rely on the same pieces we introduced in 0.1.1: Bayes for confidence scoring, information-theoretic metrics to flag structural drift, and a mix of gradient and heuristic search when the objective surface turns lumpy. Lightweight statistical checks catch regressions before production does.
 
 ## Core Mathematical Framework
 
 ### Bayesian statistics & format detection
 
-#### Bayesian Implementation (October 2025)
+The Bayesian scorer is the backbone of our format confidence pipeline. This section now keeps the high-level picture; the detailed derivation, parameter tables, and regression notes live in the [Bayesian scorer mathematical review](Bayesian-Scorer-Mathematical-Review.md).
 
-We replaced the previous heuristic confidence scoring with proper Bayesian inference. The old approach used a noisy-OR model that violated probability axioms - specifically, it would fall back to prior probabilities when evidence was weak, which doesn't make mathematical sense.
+We compute posteriors directly instead of trusting the legacy noisy-OR shim. Ambiguous payloads stop at the 1.5:1 cap; confident cases can stretch to 3:1 because the scorer uses format-specific ambiguity adjustments pulled from calibration runs. The quadratic decay for `P(E|¬H)` and the configurable epsilon prevent a divide-by-zero spiral when evidence dries up. See the [Bayesian scorer mathematical review](Bayesian-Scorer-Mathematical-Review.md) for the derivations, parameter ranges, and regression coverage.
 
-The new implementation follows Bayes' theorem directly:
+TODO: gather correlation numbers for completeness vs. quality so we can document how badly the independence assumption is violated in real imports.
 
-#### Proper Bayesian Formula
-```
-P(H|E) = P(E|H) × P(H) / [P(E|H) × P(H) + P(E|¬H) × P(¬H)]
-```
+### Empirical Validation & Benchmarks
 
-Where:
-- **H**: "Data is from this format" (hypothesis)
-- **E**: Observed evidence metrics (evidence)
-- **P(H)**: Prior probability (format prevalence)
-- **P(E|H)**: Likelihood (from weighted evidence objective)
-- **P(E|¬H)**: Adaptive estimate using quadratic decay
-
-#### Adaptive P(E|¬H) Estimation
-
-The key challenge was estimating P(E|¬H) - the probability that observed evidence would come from the wrong format. We use quadratic decay:
-
-```python
-P(E|¬H) = 0.01 + 0.49 × (1 - likelihood)²
-```
-
-This gives us:
-- Likelihood 0.0 → P(E|¬H) = 0.50 (weak evidence could be anything)
-- Likelihood 0.5 → P(E|¬H) = 0.13 (moderate evidence less likely from wrong format)
-- Likelihood 1.0 → P(E|¬H) = 0.01 (perfect evidence very rarely from wrong format)
-
-We chose quadratic decay because linear decay didn't discriminate strongly enough. With the quadratic formula, perfect evidence (likelihood=1.0) and a low prior (0.1) gives us 0.92 confidence, which satisfies our requirement that strong evidence (>0.9 likelihood) produces confidence above 0.8.
-
-The implementation also handles zero evidence correctly - when likelihood is 0.0, the numerator becomes 0.0 and confidence is 0.0, which makes mathematical sense.
-
-#### Legacy Implementation (Noisy-OR) - DEPRECATED
-```python
-confidence = likelihood + prior × (1 - likelihood)
-```
-
-The noisy-OR approach had several issues:
-- Violated independence assumptions
-- Fell back to prior probabilities with zero evidence (mathematically incorrect)
-- Let priors override weak evidence
-- Produced absolute confidence (1.0) with perfect evidence
-
-The new Bayesian implementation fixes these problems and follows proper probability theory.
-
-#### Configuration Dataclass & Metrics
-
-We used to have mathematical constants scattered throughout the code, which made them hard to track and justify. Now we use a `BayesianConfiguration` dataclass:
-
-```python
-@dataclass
-class BayesianConfiguration:
-    # P(E|¬H) Estimation Parameters
-    min_evidence_not_format: float = 0.01      # 1% chance perfect evidence is from wrong format
-    evidence_not_format_scale: float = 0.49    # Scale factor for quadratic decay
-    evidence_not_format_exponent: float = 2.0  # Quadratic decay exponent
-
-    # Numerical Stability Parameters
-    numerical_epsilon: float = 1e-15           # Division by zero prevention
-```
-
-Each parameter has a validation range:
-- `min_evidence_not_format`: 0.0 < value < 0.05 (even perfect evidence can be wrong)
-- `evidence_not_format_scale`: 0.0 < value < 1.0 (scale factor for quadratic decay)
-- `evidence_not_format_exponent`: 1.0 <= value <= 5.0 (convex decay shape)
-- `numerical_epsilon`: 1e-20 < value < 1e-10 (machine epsilon scaled for double precision)
-
-This approach prevents magic numbers and makes the mathematical assumptions explicit.
-
-Evidence now flows through a dedicated `EvidenceMetrics` dataclass (`completeness`, `quality`, `uniqueness`, `evidence_count`, `unique_count`, `complexity_score`, `penalty_factor`). Required-field misses and pattern mismatches feed the penalty factor, which prevents “generic” payloads from being misclassified as TestRail or Zephyr. The helper lives in `src/importobot/medallion/bronze/evidence_metrics.py`.
-
-#### Format-Specific Adjustments & Ratio Safeguards
-
-Different formats have different structural ambiguity profiles. We apply format-specific adjustments to P(E|¬H):
-
-- **TESTLINK (XML)**: 1.1 adjustment - XML can be ambiguous with nested structures
-- **TESTRAIL (JSON)**: 0.9 adjustment - JSON is more structured with stricter field matching
-- **JIRA_XRAY/ZEPHYR**: 1.0 adjustment - Standard JIRA patterns, moderate ambiguity
-- **GENERIC**: 1.2 adjustment - Generic formats are most ambiguous
-- **UNKNOWN**: 1.5 adjustment - Unknown formats get highest ambiguity
-
-We also calculate evidence strength using multiple metrics:
-
-```python
-def _calculate_evidence_strength(self, metrics):
-    # Base strength from quality and completeness
-    base_strength = (metrics.quality + metrics.completeness) / 2.0
-
-    # Uniqueness bonus: unique evidence is more valuable
-    uniqueness_bonus = metrics.uniqueness * 0.3
-
-    # Quantity consideration: more evidence increases confidence
-    if metrics.evidence_count >= 5:
-        quantity_factor = 1.0
-    elif metrics.evidence_count >= 2:
-        quantity_factor = 0.8 + (metrics.evidence_count - 2) * 0.1
-    else:
-        quantity_factor = 0.7
-
-    evidence_strength = (base_strength + uniqueness_bonus) * quantity_factor
-    return max(0.5, min(2.0, evidence_strength))
-```
-
-The evidence strength is bounded between 0.5 and 2.0 to prevent extreme values while still allowing strong evidence to significantly impact confidence. Ambiguous inputs are capped at a 1.5:1 likelihood ratio, while confident samples can reach 3:1. `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py` keeps these numbers honest with regression tests for ambiguous data, confident samples, and wrong-format penalties.
+Every release runs the fixtures in `tests/fixtures/format_detection_fixtures.py`; the results live in `wiki/benchmarks/format_detection_benchmark.json`. We kept 14/14 accuracy after the 0.1.2 rewrite and clamped the ambiguous ratio at 1.5:1, as enforced by `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`. Average detection time nudged from 53.8 ms to 55.0 ms over 200 conversions on a single core, which was within the tolerance we set during performance triage.
 
 #### Numerical Stability
 
