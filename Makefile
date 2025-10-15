@@ -57,7 +57,8 @@ help:
 .PHONY: init
 init:
 	$(info $(NEWLINE)==================== Installing dependencies ====================$(NEWLINE))
-	uv sync
+	uv sync --dev
+	uv pip install -e ./scripts
 
 # Sync and install all development dependencies
 .PHONY: sync
