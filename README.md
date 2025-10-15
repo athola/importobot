@@ -23,7 +23,7 @@ Importobot converts structured test exports (Zephyr, TestLink, Xray) into Robot 
 - Validate inputs and flag suspicious data before generating Robot code.
 - Provide a Python API for CI/CD integration and scripted workflows.
 - Use an independent Bayesian scorer with explicit ratio caps to keep ambiguous evidence honest.
-- Ship with 1 813 unit and integration tests (`uv run pytest`).
+- Ship with roughly 1,800 unit and integration tests (currently 1,813; `uv run pytest`).
 
 ## Installation
 
@@ -104,6 +104,24 @@ User Login Functionality
     Input Text    id=username    testuser
     Textfield Value Should Be    id=username    testuser
 ```
+
+## Examples
+
+- Convert an entire directory while preserving structure:
+  ```console
+  $ uv run importobot ./exports/zephyr ./converted
+  ```
+- Enable Bayesian optimiser tuning with SciPy installed via `importobot[advanced]`:
+  ```python
+  from importobot.medallion.bronze import optimization
+
+  optimizer = optimization.MVLPConfidenceOptimizer()
+  optimizer.tune_parameters("fixtures/complex_suite.json")
+  ```
+- Render conversion metrics if rich numerical plots are desired:
+  ```console
+  $ uv run python scripts/src/importobot_scripts/example_advanced_features.py
+  ```
 
 ## Confidence Scoring
 

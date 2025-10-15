@@ -33,8 +33,6 @@ help:
 	@echo "  enterprise-demo         - Bulk conversion test"
 	@echo "  interactive-demo        - Run interactive business benefits demo"
 	@echo "  interactive-demo-test   - Run interactive demo in non-interactive mode"
-	@echo "  mcp-query               - Query the Qwen model through MCP"
-	@echo "  mcp-review              - Request a code review through MCP"
 	@echo "  bench                   - Run performance benchmarks"
 	@echo "  mutation               - Run mutation tests (mutmut)"
 	@echo "  perf-test              - Run performance regression tests"
@@ -124,7 +122,6 @@ typecheck:
 	uv run mypy -p importobot
 	uv run mypy tests
 	cd scripts && uv run mypy -p importobot_scripts
-	cd scripts && uv run mypy tests
 
 # Validate PR readiness
 # Expected timing breakdown (~5 minutes total):
@@ -257,17 +254,6 @@ interactive-demo:
 interactive-demo-test:
 	$(info $(NEWLINE)==================== Running interactive demo in non-interactive mode ====================$(NEWLINE))
 	uv run interactive-demo --non-interactive
-
-# MCP commands
-.PHONY: mcp-query
-mcp-query:
-	$(info $(NEWLINE)==================== Querying Qwen model through MCP ====================$(NEWLINE))
-	uv run importobot-mcp query
-
-.PHONY: mcp-review
-mcp-review:
-	$(info $(NEWLINE)==================== Requesting code review through MCP ====================$(NEWLINE))
-	uv run importobot-mcp review
 
 # Performance benchmark
 .PHONY: bench

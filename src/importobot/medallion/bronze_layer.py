@@ -519,8 +519,6 @@ class BronzeLayer(BaseMedallionLayer):
 
             lineage = self.get_record_lineage(record_id)
 
-            lineage = self.get_record_lineage(record_id)
-
             records.append(
                 self._build_bronze_record(
                     data=data,

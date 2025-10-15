@@ -6,7 +6,6 @@ practices for organizing test utilities and fixtures.
 """
 
 import shutil
-import sys
 import tempfile
 import time
 from pathlib import Path
@@ -16,10 +15,6 @@ import pytest
 
 from importobot import telemetry
 from tests.business_requirements import BusinessRequirements
-
-# Add the project root to Python path for imports
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
 
 # Import shared fixtures to make them available globally
 try:

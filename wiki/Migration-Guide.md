@@ -9,7 +9,7 @@ This guide covers the switch to the medallion architecture introduced in v0.1.1.
 | Security Gateway | `sanitize_api_input` / `validate_file_operation` now return typed dictionaries that include an optional `correlation_id`. | Update call sites to read from `result["sanitized_data"]` and propagate `result["correlation_id"]` into logs/metadata where you need request tracing. |
 | Data ingestion | `DataIngestionService` automatically generates a correlation id per ingest and stores it in `metadata.custom_metadata` and error details. | If you previously injected your own `correlation_id`, pass it via the new `context={"correlation_id": "..."}` argument on security gateway calls. |
 | Caching | Detection/cache limits are now driven by environment variables (`IMPORTOBOT_DETECTION_CACHE_MAX_SIZE`, `IMPORTOBOT_DETECTION_CACHE_COLLISION_LIMIT`, `IMPORTOBOT_FILE_CACHE_MAX_MB`, `IMPORTOBOT_PERFORMANCE_CACHE_MAX_SIZE`). | Export the variables in CI/staging to tune cache pressure; omit them to use the previous defaults. |
-| Optimization | SciPy dependency downgraded to optional; MVLP optimization falls back to heuristic mode when SciPy is absent. | Install the `importobot[advanced]` extra in environments that perform parameter training, or accept heuristic scoring when only runtime confidence is required. |
+| Optimization | SciPy dependency downgraded to optional; advanced optimization uses heuristic mode when SciPy is unavailable. | Install the `importobot[advanced]` extra in environments that perform parameter training, or accept heuristic scoring when only runtime confidence is required. |
 
 ## Additional changes in v0.1.2
 
@@ -212,15 +212,15 @@ If upgrading from v0.1.0:
 
 | Component | v0.1.0 (Old) | v0.1.1 (New - Required) |
 | --- | --- | --- |
-| **Format Detection** | Ad-hoc pattern matching | **Medallion Bronze layer** with MVLP Bayesian confidence scoring |
+| **Format Detection** | Ad-hoc pattern matching | **Medallion Bronze layer** with MVLP Bayesian confidence scoring (upgraded to independent Bayesian in 0.1.2) |
 | **Data Validation** | Basic validation | **Security Gateway** with strict validation levels |
-| **Confidence Scoring** | Simple heuristics | **MVLP Bayesian optimization** with SciPy-based parameter tuning (optional via `importobot[advanced]`) |
+| **Confidence Scoring** | Simple heuristics | **MVLP Bayesian optimization** with SciPy-based parameter tuning (optional via `importobot[advanced]`) (upgraded to independent Bayesian in 0.1.2) |
 | **Internal APIs** | Mixed public/private | **Clear separation**: Public APIs stable, internal APIs private |
 
 ### No backwards compatibility for internals
 
 Previous internal implementations have been removed:
-- Old Bayesian confidence implementation removed (replaced by MVLP)
+- Old Bayesian confidence implementation removed (replaced by MVLP Bayesian scoring in 0.1.1 and independent Bayesian scoring in 0.1.2)
 - Ad-hoc validation replaced by medallion validation layers
 - Internal APIs reorganized for clarity
 
@@ -271,7 +271,7 @@ Previous internal implementations have been removed:
 - **Post-Gold-Layer-Implementation** – Replace custom optimizers with the shipped
   OptimizedConverter once benchmarks confirm the value.
 
-## Fallback Strategy
+## Alternative Strategy
 
 If the medallion layers uncover blocking issues, revert to the previous
 `JsonToRobotConverter` path while undergoing triage. Disable the

@@ -3,6 +3,8 @@
 from typing import Any
 
 import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from importobot.utils.test_generation.categories import CategoryEnum
 from importobot.utils.test_generation.distributions import (
@@ -200,6 +202,43 @@ class TestDistributionManagerWeightedDistribution:
         assert result["cat1"] == 167  # 1/6 * 1000
         assert result["cat2"] == 333  # 2/6 * 1000
         assert result["cat3"] == 500  # 3/6 * 1000
+
+    @settings(max_examples=200, deadline=None)
+    @given(
+        total_tests=st.integers(min_value=1, max_value=250),
+        weight_values=st.lists(
+            st.integers(min_value=1, max_value=20), min_size=1, max_size=8
+        ),
+    )
+    def test_fractional_remainder_allocation(
+        self, total_tests: int, weight_values: list[int]
+    ) -> None:
+        """Check that remainder slots favor the largest fractional shares."""
+        weights = {
+            f"cat_{index}": float(weight) for index, weight in enumerate(weight_values)
+        }
+
+        result = DistributionManager.process_weighted_distribution(total_tests, weights)
+        assert sum(result.values()) == total_tests
+
+        total_weight = sum(weights.values())
+        normalized = {k: v / total_weight for k, v in weights.items()}
+        raw_counts = {k: total_tests * normalized[k] for k in weights}
+        base_counts = {k: int(raw_counts[k]) for k in weights}
+        remainder = total_tests - sum(base_counts.values())
+
+        fractional_parts = [
+            (k, (total_tests * normalized[k]) % 1) for k in weights.keys()
+        ]
+        fractional_parts.sort(key=lambda item: item[1], reverse=True)
+        expected_recipients = {k for k, _ in fractional_parts[:remainder]}
+        actual_recipients = {k for k in weights if result[k] > base_counts[k]}
+
+        for key in weights:
+            delta = result[key] - base_counts[key]
+            assert delta in (0, 1)
+
+        assert actual_recipients == expected_recipients
 
 
 class TestPrintTestDistribution:

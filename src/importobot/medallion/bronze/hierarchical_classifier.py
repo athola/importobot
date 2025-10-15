@@ -24,6 +24,7 @@ from typing import Any, Dict, Optional
 
 from importobot.utils.logging import setup_logger
 
+from ..interfaces.enums import EvidenceSource
 from .evidence_accumulator import EvidenceAccumulator, EvidenceItem
 from .evidence_collector import EvidenceCollector
 from .format_models import EvidenceWeight
@@ -274,7 +275,7 @@ class HierarchicalClassifier:
             if indicator in key_tokens:
                 evidence_items.append(
                     EvidenceItem(
-                        source="test_data_indicator",
+                        source=EvidenceSource.TEST_DATA_INDICATOR,
                         weight=EvidenceWeight.MODERATE,  # Generic
                         # indicators are moderate
                         confidence=1.0,

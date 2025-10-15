@@ -57,7 +57,7 @@ The full validation suite (`make validate`) takes around 4 minutes. Breakdown:
 | Type checking | 5s | mypy covers main package plus scripts subproject |
 | Security scans | 15s | detect-secrets + bandit |
 
-Pylint's 95-second runtime is reasonable for ~15K lines of code. It runs comprehensive analysis including duplicate detection, complexity metrics, and import graph validation—checks that catch real bugs before they ship.
+Pylint's 95-second analysis prevents production issues by catching code duplicates, complexity violations, and import errors before they reach users.
 
 ### Quick validation during development
 

@@ -47,7 +47,7 @@ Environment variables:
 - Test utilities restructured into focused modules:
   - `tests/utils/test_helpers.py` - Core test utilities
   - `tests/utils/performance_utils.py` - Performance testing tools
-- Enhanced `performance_benchmark.py` (912 → 1078 lines)
+- Enhanced `performance_benchmark.py` with CI threshold validation, lazy loading benchmarks, and comprehensive performance reporting
 - New `run_bronze_benchmark.py` for Bronze layer-specific benchmarks
 
 **Improvements**

@@ -138,7 +138,7 @@ PANDAS = OptionalDependency(
     "pandas",
     fallback_message=(
         "Data processing features require pandas. "
-        "Install with: pip install 'importobot[data]'"
+        "Install with: pip install 'importobot[analytics]'"
     ),
 )
 

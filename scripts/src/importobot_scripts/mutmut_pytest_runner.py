@@ -33,6 +33,14 @@ def _sync_tree(source_root: Path, destination_root: Path) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Entry point for mutation testing with pytest.
+
+    Args:
+        argv: Command line arguments for pytest
+
+    Returns:
+        Exit code from pytest execution
+    """
     # File moved from scripts/ to scripts/src/importobot_scripts/ (+2 levels)
     project_root = Path(__file__).resolve().parents[5]
     mutated_src = project_root / "src"
