@@ -122,6 +122,7 @@ typecheck:
 	uv run mypy -p importobot
 	uv run mypy tests
 	cd scripts && uv run mypy -p importobot_scripts
+	cd scripts && uv run mypy tests
 
 # Validate PR readiness
 # Expected timing breakdown (~5 minutes total):

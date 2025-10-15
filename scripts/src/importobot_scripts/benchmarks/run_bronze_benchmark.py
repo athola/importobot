@@ -53,6 +53,28 @@ def _ingest_records(
     return throughput, elapsed
 
 
+def _invoke_ingest_with_compat(
+    layer: BronzeLayer, records: int, template: dict[str, Any]
+) -> tuple[float, float]:
+    """Call _ingest_records while supporting historical keyword aliases."""
+    attempts = [
+        {"records": records, "template": template},
+        {"records": records, "_template": template},
+        {"_records": records, "_template": template},
+    ]
+    last_error: TypeError | None = None
+    for kwargs in attempts:
+        try:
+            return _ingest_records(layer, **kwargs)  # type: ignore[arg-type]
+        except TypeError as exc:  # pragma: no cover - exercised via tests
+            if "unexpected keyword argument" not in str(exc):
+                raise
+            last_error = exc
+    if last_error is not None:
+        raise last_error
+    raise TypeError("Unable to invoke _ingest_records with provided arguments")
+
+
 def run_benchmark(
     *,
     warmup_records: int,
@@ -73,8 +95,8 @@ def run_benchmark(
         }
     }
 
-    warmup_throughput, warmup_elapsed = _ingest_records(
-        bronze_layer, records=warmup_records, template=template
+    warmup_throughput, warmup_elapsed = _invoke_ingest_with_compat(
+        bronze_layer, warmup_records, template
     )
     if warmup_throughput < min_baseline_throughput:
         raise SystemExit(
@@ -82,8 +104,8 @@ def run_benchmark(
             f"is below minimum baseline {min_baseline_throughput:.2f} rec/s"
         )
 
-    benchmark_throughput, benchmark_elapsed = _ingest_records(
-        bronze_layer, records=benchmark_records, template=template
+    benchmark_throughput, benchmark_elapsed = _invoke_ingest_with_compat(
+        bronze_layer, benchmark_records, template
     )
     ratio = benchmark_throughput / warmup_throughput if warmup_throughput else 0.0
     if ratio < min_ratio:

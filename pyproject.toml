@@ -236,14 +236,18 @@ module = "tests.*"
 disallow_untyped_defs = false
 
 [[tool.mypy.overrides]]
+module = "scripts.tests.*"
+disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
 module = "robot"
 ignore_missing_imports = true
 ignore_errors = true
 
 
 [tool.ty.environment]
-root = ["./src", "./tests", "./scripts/src"]
-extra-paths = ["./src", "./tests", "./scripts/src"]
+root = ["./src", "./tests", "./scripts/src", "./scripts/tests"]
+extra-paths = ["./src", "./tests", "./scripts/src", "./scripts/tests"]
 
 [tool.ty.rules]
 unresolved-import = "ignore"
