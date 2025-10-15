@@ -1,238 +1,305 @@
-"""Heavy lifting for converting JSON test data into Robot Framework format.
-
-This module does the heavy lifting of converting JSON test data into Robot Framework
-format.
-
-Works with Zephyr exports and pretty much any similar JSON structure you throw at it.
-"""
-
 import json
 import os
 from pathlib import Path
-from typing import Any, Union
+from typing import Any, Dict, Optional
 
-from importobot import exceptions
+# Assuming these exist based on the plan and common structure
+from importobot.formats import SupportedFormat  # New import for the enum
+from importobot.medallion.bronze.raw_data_processor import RawDataProcessor
 from importobot.core.engine import GenericConversionEngine
-from importobot.core.suggestions import GenericSuggestionEngine
-from importobot.utils.json_utils import load_json_file
-from importobot.utils.logging import setup_logger
-from importobot.utils.validation import (
-    validate_json_dict,
-    validate_not_empty,
-    validate_safe_path,
-    validate_string_content,
-    validate_type,
+from importobot.exceptions import (
+    ConversionError,
+    FileAccessError,
+    ParseError,
+    ValidationError,
 )
+from importobot.config import MAX_JSON_SIZE_MB # Example config import
 
-logger = setup_logger(__name__)
-
+import logging
+logger = logging.getLogger(__name__)
 
 class JsonToRobotConverter:
-    """Main converter class that transforms JSON test formats into Robot Framework code.
+    """
+    Primary interface for converting JSON test cases to Robot Framework format.
 
-    This class provides the primary interface for converting JSON test formats
-    into Robot Framework code.
+    This class orchestrates the conversion process, handling file operations,
+    JSON parsing, and delegating to internal components for raw data processing
+    and final Robot Framework generation. It supports both automatic source
+    format detection and explicit format specification to optimize performance.
     """
 
-    def __init__(self) -> None:
-        """Initialize the converter with conversion and suggestion engines."""
-        self.conversion_engine = GenericConversionEngine()
-        self.suggestion_engine = GenericSuggestionEngine()
-
-    def convert_json_string(self, json_string: str) -> str:
-        """Convert a JSON string directly to Robot Framework format."""
-        validate_string_content(json_string)
-        validate_not_empty(json_string, "JSON string")
-
-        try:
-            json_data = json.loads(json_string)
-        except json.JSONDecodeError as e:
-            raise exceptions.ParseError(
-                f"Invalid JSON at line {e.lineno}: {e.msg}"
-            ) from e
-
-        validate_json_dict(json_data)
-
-        try:
-            return self.conversion_engine.convert(json_data)
-        except Exception as e:
-            logger.exception("Error during conversion")
-            raise exceptions.ConversionError(
-                f"Failed to convert JSON to Robot Framework: {str(e)}"
-            ) from e
-
-    def convert_json_data(self, json_data: dict[str, Any]) -> str:
-        """Convert a JSON dictionary to Robot Framework format."""
-        validate_json_dict(json_data)
-
-        try:
-            return self.conversion_engine.convert(json_data)
-        except Exception as e:
-            logger.exception("Error during conversion")
-            raise exceptions.ConversionError(
-                f"Failed to convert JSON to Robot Framework: {str(e)}"
-            ) from e
-
-    def convert_file(self, input_file: str, output_file: str) -> dict[str, Any]:
-        """Convert a JSON file to Robot Framework format.
+    def __init__(self, source_format: Optional[SupportedFormat] = None) -> None:
+        """
+        Initializes the JsonToRobotConverter.
 
         Args:
-            input_file: Path to input JSON file
-            output_file: Path to output Robot Framework file
-
-        Returns:
-            dict: Conversion result with success status and metadata
+            source_format: An optional default source format (e.g., SupportedFormat.ZEPHYR)
+                           to be used for all conversions performed by this instance,
+                           unless explicitly overridden by method-level arguments.
+                           If `None`, automatic format detection will be performed.
         """
-        # Delegate to standalone function but return result dict
-        convert_file(input_file, output_file)
-        return {"success": True, "input_file": input_file, "output_file": output_file}
-
-    def convert_directory(self, input_dir: str, output_dir: str) -> dict[str, Any]:
-        """Convert all JSON files in a directory to Robot Framework format.
-
-        Args:
-            input_dir: Path to input directory containing JSON files
-            output_dir: Path to output directory for Robot Framework files
-
-        Returns:
-            dict: Conversion result with success/error counts
-        """
-        # Delegate to standalone function but return result dict
-        convert_directory(input_dir, output_dir)
-        return {"success": True, "input_dir": input_dir, "output_dir": output_dir}
-
-
-# Standalone suggestion functions
-def get_conversion_suggestions(json_data: dict[str, Any]) -> list[str]:
-    """Generate suggestions for improving JSON test data for Robot conversion."""
-    suggestion_engine = GenericSuggestionEngine()
-    return suggestion_engine.get_suggestions(json_data)
-
-
-def apply_conversion_suggestions(
-    json_data: Union[dict[str, Any], list[Any]],
-) -> tuple[Union[dict[str, Any], list[Any]], list[dict[str, Any]]]:
-    """Apply automatic improvements to JSON test data for Robot Framework conversion."""
-    suggestion_engine = GenericSuggestionEngine()
-    try:
-        return suggestion_engine.apply_suggestions(json_data)
-    except exceptions.ImportobotError:
-        # For invalid JSON structures, return the original data with no changes
-        return json_data, []
-
-
-def apply_conversion_suggestions_simple(
-    json_data: Union[dict[str, Any], list[Any]],
-) -> Union[dict[str, Any], list[Any]]:
-    """Apply improvements to JSON test data, returning only the improved data."""
-    improved_data, _ = apply_conversion_suggestions(json_data)
-    return improved_data
-
-
-def save_robot_file(content: str, file_path: str) -> None:
-    """Save Robot Framework content to file."""
-    validate_string_content(content)
-
-    validated_path = validate_safe_path(file_path)
-
-    with open(validated_path, "w", encoding="utf-8") as f:
-        f.write(content)
-
-
-def convert_file(input_file: str, output_file: str) -> None:
-    """Convert single JSON file to Robot Framework.
-
-    Raises:
-        ValidationError: For invalid input parameters.
-        ConversionError: For conversion failures.
-        FileNotFoundError: If input file doesn't exist.
-    """
-    validate_type(input_file, str, "Input file path")
-    validate_type(output_file, str, "Output file path")
-    validate_not_empty(input_file, "Input file path")
-    validate_not_empty(output_file, "Output file path")
-
-    json_data = load_json_file(input_file)
-    converter = JsonToRobotConverter()
-    robot_content = converter.convert_json_data(json_data)
-    save_robot_file(robot_content, output_file)
-
-
-def convert_multiple_files(input_files: list[str], output_dir: str) -> None:
-    """Convert multiple JSON files to Robot Framework files."""
-    validate_type(input_files, list, "Input files")
-    validate_type(output_dir, str, "Output directory")
-    validate_not_empty(input_files, "Input files list")
-
-    try:
-        os.makedirs(output_dir, exist_ok=True)
-    except Exception as e:
-        logger.exception("Error creating output directory")
-        raise exceptions.FileAccessError(
-            f"Could not create output directory: {str(e)}"
-        ) from e
-
-    for input_file in input_files:
-        try:
-            output_filename = Path(input_file).stem + ".robot"
-            output_path = Path(output_dir) / output_filename
-            convert_file(input_file, str(output_path))
-        except exceptions.ImportobotError:
-            # Re-raise Importobot-specific exceptions
-            raise
-        except Exception as e:
-            logger.exception("Error converting file %s", input_file)
-            raise exceptions.ConversionError(
-                f"Failed to convert file {input_file}: {str(e)}"
-            ) from e
-
-
-def convert_directory(input_dir: str, output_dir: str) -> None:
-    """Convert all JSON files in directory to Robot Framework files."""
-    try:
-        _validate_directory_args(input_dir, output_dir)
-        json_files = _find_json_files_in_directory(input_dir)
-    except exceptions.ImportobotError:
-        # Re-raise Importobot-specific exceptions
-        raise
-    except Exception as e:
-        logger.exception("Error validating directory arguments")
-        raise exceptions.ValidationError(
-            f"Invalid directory arguments: {str(e)}"
-        ) from e
-
-    if not json_files:
-        raise exceptions.ValidationError(
-            f"No JSON files found in directory: {input_dir}"
+        self._instance_source_format: Optional[SupportedFormat] = source_format
+        # RawDataProcessor is identified as the module responsible for format detection
+        self._raw_data_processor = RawDataProcessor()
+        # GenericConversionEngine handles the actual transformation to Robot
+        self._conversion_engine = GenericConversionEngine()
+        logger.debug(
+            f"JsonToRobotConverter initialized with instance default source_format: "
+            f"{self._instance_source_format.value if self._instance_source_format else 'None (auto-detect)'}"
         )
 
-    try:
-        convert_multiple_files(json_files, output_dir)
-    except exceptions.ImportobotError:
-        # Re-raise Importobot-specific exceptions
-        raise
-    except Exception as e:
-        logger.exception("Error converting directory")
-        raise exceptions.ConversionError(
-            f"Failed to convert directory: {str(e)}"
-        ) from e
+    def _get_effective_source_format(self, method_source_format: Optional[SupportedFormat]) -> Optional[SupportedFormat]:
+        """
+        Determines the effective source format to use for a conversion operation.
+
+        Args:
+            method_source_format: The source format provided directly to a conversion method.
+                                  If this is not None, it takes precedence.
+
+        Returns:
+            The effective SupportedFormat to use for the current operation. If both
+            `method_source_format` and `self._instance_source_format` are None,
+            then None is returned, indicating that automatic detection is required.
+        """
+        return method_source_format if method_source_format is not None else self._instance_source_format
+
+    def _load_and_process_json_data(self, json_content: str, effective_source_format: Optional[SupportedFormat]) -> Dict[str, Any]:
+        """
+        Loads, validates, and processes JSON content using the RawDataProcessor.
+
+        Args:
+            json_content: The raw JSON string content.
+            effective_source_format: The determined source format to use. If None,
+                                     the RawDataProcessor will perform automatic detection.
+
+        Returns:
+            A dictionary containing processed data ready for the conversion engine.
+
+        Raises:
+            FileAccessError: If the input JSON exceeds maximum allowed size.
+            ParseError: If the input JSON cannot be parsed.
+            ValidationError: If the raw data processor detects structural issues.
+            ConversionError: If the data processing fails for other reasons.
+        """
+        json_byte_size = len(json_content.encode('utf-8'))
+        json_mb_size = json_byte_size / (1024 * 1024)
+
+        if json_mb_size > MAX_JSON_SIZE_MB:
+            logger.error(f"Input JSON ({json_mb_size:.2f}MB) exceeds maximum allowed size of {MAX_JSON_SIZE_MB}MB.")
+            raise FileAccessError(f"Input JSON exceeds maximum allowed size of {MAX_JSON_SIZE_MB}MB.")
+        elif json_mb_size > (MAX_JSON_SIZE_MB / 2): # Heuristic for large but valid files
+            logger.info(f"Processing large JSON input ({json_mb_size:.2f}MB).")
+
+        try:
+            raw_data = json.loads(json_content)
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON input: {e}", exc_info=True)
+            raise ParseError(f"Invalid JSON input: {e}") from e
+
+        log_format_value = effective_source_format.value if effective_source_format else 'auto-detect'
+        logger.debug(
+            f"Raw data loaded. Passing to RawDataProcessor with effective format: {log_format_value}"
+        )
+        try:
+            # Pass effective_source_format down to the RawDataProcessor.
+            # This is where the core logic to bypass auto-detection will reside.
+            processed_data = self._raw_data_processor.process_raw_data(
+                raw_data, source_format=effective_source_format
+            )
+            return processed_data
+        except (ValidationError, ConversionError) as e:
+            logger.error(f"Error during raw data processing: {e}", exc_info=True)
+            raise # Re-raise the original exception
+        except Exception as e:
+            logger.critical(f"An unexpected error occurred during raw data processing: {e}", exc_info=True)
+            raise ConversionError(f"An unexpected error occurred during data processing: {e}") from e
 
 
-def _validate_directory_args(input_dir: str, output_dir: str) -> None:
-    """Validate directory conversion arguments."""
-    validate_type(input_dir, str, "Input directory")
-    validate_type(output_dir, str, "Output directory")
+    def convert_json_string(self, json_string: str, source_format: Optional[SupportedFormat] = None) -> str:
+        """
+        Converts a JSON string containing test cases to a Robot Framework string.
+
+        Args:
+            json_string: The JSON string content.
+            source_format: Optional. Specifies the source format to bypass
+                           automatic detection. If provided, it overrides the
+                           instance-level `source_format` for this conversion.
+                           Pass `None` to force automatic detection (even if an
+                           instance-level `source_format` was set).
+
+        Returns:
+            A string containing the Robot Framework test suite.
+
+        Raises:
+            ValidationError: If the input JSON is structurally invalid.
+            ParseError: If the input JSON cannot be parsed.
+            ConversionError: If an error occurs during the conversion process.
+            FileAccessError: If the input JSON string size exceeds limits.
+        """
+        effective_source_format = self._get_effective_source_format(source_format)
+
+        log_msg_format = effective_source_format.value if effective_source_format else 'auto-detect'
+        logger.info(f"Starting JSON string conversion (effective format: {log_msg_format})")
+        
+        try:
+            # Load and process the JSON data, passing the effective source_format
+            processed_data = self._load_and_process_json_data(json_string, effective_source_format)
+            
+            # Convert the processed data into Robot Framework content.
+            # The GenericConversionEngine is assumed to handle the normalized data
+            # from RawDataProcessor without needing explicit format information here.
+            robot_content = self._conversion_engine.convert(processed_data)
+            logger.info(f"JSON string conversion completed successfully.")
+            return robot_content
+        except (FileAccessError, ParseError, ValidationError, ConversionError) as e:
+            logger.error(f"Failed to convert JSON string: {e}", exc_info=True)
+            raise # Re-raise the original exception
+        except Exception as e:
+            logger.critical(f"An unexpected error occurred during JSON string conversion: {e}", exc_info=True)
+            raise ConversionError(f"An unexpected error occurred during conversion: {e}") from e
 
 
-def _find_json_files_in_directory(input_dir: str) -> list[str]:
-    """Find all JSON files in a directory recursively."""
-    all_files = Path(input_dir).rglob("*")
-    json_files = [
-        str(f) for f in all_files if f.is_file() and f.suffix.lower() == ".json"
-    ]
-    return json_files
+    def convert_file(self, input_path: str, output_path: str, source_format: Optional[SupportedFormat] = None) -> None:
+        """
+        Converts a single JSON file to a Robot Framework file.
+
+        Args:
+            input_path: Path to the input JSON file.
+            output_path: Path to the output Robot Framework file.
+            source_format: Optional. Specifies the source format to bypass
+                           automatic detection. If provided, it overrides the
+                           instance-level `source_format` for this conversion.
+                           Pass `None` to force automatic detection (even if an
+                           instance-level `source_format` was set).
+
+        Raises:
+            FileNotFoundError: If the input file does not exist.
+            FileAccessError: If there's an issue reading the input or writing the output.
+            ValidationError: If the input JSON is structurally invalid.
+            ParseError: If the input JSON cannot be parsed.
+            ConversionError: If an error occurs during the conversion process.
+        """
+        input_file_path = Path(input_path)
+        output_file_path = Path(output_path)
+
+        if not input_file_path.exists():
+            logger.error(f"Input file not found: {input_path}")
+            raise FileNotFoundError(f"Input file not found: {input_path}")
+        if not input_file_path.is_file():
+            logger.error(f"Input path '{input_path}' is not a file.")
+            raise FileAccessError(f"Input path '{input_path}' is not a file.")
+
+        try:
+            output_file_path.parent.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            logger.error(f"Failed to create output directory {output_file_path.parent}: {e}", exc_info=True)
+            raise FileAccessError(f"Error creating output directory for {output_path}: {e}") from e
+
+        logger.info(f"Reading input file: {input_path}")
+        try:
+            with open(input_file_path, 'r', encoding='utf-8') as f:
+                json_content = f.read()
+        except OSError as e:
+            logger.error(f"Error reading input file {input_path}: {e}", exc_info=True)
+            raise FileAccessError(f"Error reading input file {input_path}: {e}") from e
+
+        effective_source_format = self._get_effective_source_format(source_format)
+
+        log_msg_format = effective_source_format.value if effective_source_format else 'auto-detect'
+        logger.info(f"Converting file '{input_path}' to '{output_path}' (effective format: {log_msg_format})")
+
+        try:
+            # Call convert_json_string to perform the actual conversion logic
+            robot_content = self.convert_json_string(json_content, effective_source_format)
+
+            logger.info(f"Writing output file: {output_path}")
+            with open(output_file_path, 'w', encoding='utf-8') as f:
+                f.write(robot_content)
+            logger.info(f"File '{input_path}' converted successfully to '{output_path}'.")
+        except (FileNotFoundError, FileAccessError, ParseError, ValidationError, ConversionError) as e:
+            logger.error(f"Failed to convert file '{input_path}': {e}", exc_info=True)
+            raise # Re-raise the original exception
+        except Exception as e:
+            logger.critical(f"An unexpected error occurred during file conversion for '{input_path}': {e}", exc_info=True)
+            raise ConversionError(f"An unexpected error occurred during file conversion: {e}") from e
+
+        
+    def convert_directory(self, input_dir: str, output_dir: str, source_format: Optional[SupportedFormat] = None) -> Dict[str, Any]:
+        """
+        Converts all JSON files in an input directory (and its subdirectories)
+        to Robot Framework files in an output directory, maintaining the original
+        directory structure.
+
+        Args:
+            input_dir: Path to the input directory containing JSON files.
+            output_dir: Path to the output directory for Robot Framework files.
+            source_format: Optional. Specifies the source format to bypass
+                           automatic detection for all files in the directory.
+                           If provided, it overrides the instance-level
+                           `source_format` for all conversions in this batch.
+                           Pass `None` to force automatic detection (even if an
+                           instance-level `source_format` was set).
+
+        Returns:
+            A dictionary containing conversion summary (e.g., success_count, error_count, errors).
+
+        Raises:
+            FileNotFoundError: If the input directory does not exist.
+            FileAccessError: If there's an issue with directory access.
+        """
+        input_path = Path(input_dir)
+        output_path = Path(output_dir)
+
+        if not input_path.exists():
+            logger.error(f"Input directory not found: {input_dir}")
+            raise FileNotFoundError(f"Input directory not found: {input_dir}")
+        if not input_path.is_dir():
+            logger.error(f"Input path '{input_dir}' is not a directory.")
+            raise FileAccessError(f"Input path '{input_dir}' is not a directory.")
+
+        try:
+            output_path.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            logger.error(f"Failed to create output directory {output_path}: {e}", exc_info=True)
+            raise FileAccessError(f"Error creating output directory {output_dir}: {e}") from e
+
+        success_count = 0
+        error_count = 0
+        errors: Dict[str, str] = {}
+
+        # Determine the effective source_format for the batch
+        effective_source_format = self._get_effective_source_format(source_format)
+
+        log_msg_format = effective_source_format.value if effective_source_format else 'auto-detect'
+        logger.info(
+            f"Starting batch conversion from '{input_dir}' to '{output_dir}' "
+            f"(effective format: {log_msg_format})"
+        )
+
+        json_files = list(input_path.rglob("*.json"))
+        if not json_files:
+            logger.warning(f"No JSON files found in input directory '{input_dir}' or its subdirectories.")
+            return {"success_count": 0, "error_count": 0, "errors": {}, "message": "No JSON files found."}
 
 
-__all__ = [
-    "JsonToRobotConverter",
-]
+        for json_file in json_files:
+            relative_path = json_file.relative_to(input_path)
+            output_file = (output_path / relative_path).with_suffix(".robot")
+            
+            try:
+                # Ensure the parent directory for the output file exists
+                output_file.parent.mkdir(parents=True, exist_ok=True)
+                
+                # Pass the batch-level effective_source_format to convert_file
+                self.convert_file(str(json_file), str(output_file), source_format=effective_source_format)
+                success_count += 1
+            except Exception as e:
+                error_count += 1
+                errors[str(json_file)] = str(e)
+                logger.error(f"Failed to convert '{json_file}': {e}", exc_info=True)
+
+        logger.info(
+            f"Batch conversion completed for '{input_dir}': "
+            f"{success_count} successful, {error_count} failed."
+        )
+        return {"success_count": success_count, "error_count": error_count, "errors": errors}
