@@ -21,6 +21,9 @@ from importobot.telemetry import (
     reset_telemetry_client,
 )
 
+# pylint: disable=no-name-in-module
+from tests.utils.performance_utils import get_adaptive_thresholds
+
 
 class TestTelemetryOverhead:
     """Measure telemetry overhead in hot paths."""
@@ -34,9 +37,11 @@ class TestTelemetryOverhead:
         def record_metrics():
             client.record_cache_metrics("cache", hits=100, misses=50)
 
-        result = benchmark(record_metrics)
-        # Disabled telemetry should complete very quickly (< 1ms)
-        assert result is None
+        result = benchmark(record_metrics, iterations=1000)
+        # Disabled telemetry should complete extremely quickly - use adaptive threshold
+        threshold = get_adaptive_thresholds().get_telemetry_threshold(enabled=False)
+        assert result["result"] is None
+        assert result["elapsed"] < threshold
 
     def test_enabled_telemetry_overhead_acceptable(self, benchmark):
         """Enabled telemetry overhead should be acceptable for production."""
@@ -51,8 +56,11 @@ class TestTelemetryOverhead:
         def record_metrics():
             client.record_cache_metrics("cache", hits=100, misses=50)
 
-        benchmark(record_metrics)
-        # Should complete in < 10ms even with full processing
+        result = benchmark(record_metrics, iterations=1000)
+        # Should complete quickly - use adaptive threshold based on system performance
+        # Note: The actual overhead includes logging, so be more lenient
+        threshold = get_adaptive_thresholds().get_telemetry_threshold(enabled=True) * 20
+        assert result["elapsed"] < threshold
 
     def test_rate_limiting_reduces_overhead(self, benchmark):
         """Rate limiting should reduce overhead for high-frequency calls."""
@@ -72,7 +80,8 @@ class TestTelemetryOverhead:
             for i in range(100):
                 client.record_cache_metrics("cache", hits=i, misses=i // 2)
 
-        benchmark(record_many_metrics)
+        result = benchmark(record_many_metrics)
+        assert result["elapsed"] < 1e-3
 
         # Rate limiting should have prevented most emissions
         assert call_count[0] < 10  # Much less than 100
@@ -87,8 +96,9 @@ class TestTelemetryOverhead:
             for data in test_data:
                 cache.get_cached_string_lower(data)
 
-        benchmark(cache_operations)
-        # Should complete in < 100ms even with telemetry
+        result = benchmark(cache_operations, iterations=10)
+        # Should complete in <2ms on average even with telemetry
+        assert result["elapsed"] < 2e-3
 
 
 class TestConcurrentPerformance:
@@ -128,8 +138,9 @@ class TestConcurrentPerformance:
         total_ops = num_threads * ops_per_thread
         ops_per_sec = total_ops / elapsed
 
-        # Should achieve > 5k ops/sec (realistic threshold for concurrent operations)
-        assert ops_per_sec > 5_000
+        # Use adaptive throughput threshold based on system performance
+        min_throughput = get_adaptive_thresholds().get_throughput_threshold(50_000)
+        assert ops_per_sec > min_throughput
 
     def test_lock_contention_minimal(self):
         """Lock contention should not significantly degrade performance."""
@@ -157,8 +168,9 @@ class TestConcurrentPerformance:
 
         elapsed = time.time() - start_time
 
-        # Should complete in reasonable time (< 5 seconds)
-        assert elapsed < 5.0
+        # Use adaptive threshold based on system performance - be much more lenient
+        threshold = get_adaptive_thresholds().get_operation_threshold(200.0) * 10
+        assert elapsed < threshold
 
     def test_exporter_processing_parallelization(self):
         """Multiple exporters should not significantly increase overhead."""
@@ -178,8 +190,10 @@ class TestConcurrentPerformance:
 
         elapsed = time.time() - start_time
 
-        # Even with 10 exporters, should complete quickly (< 1 second)
-        assert elapsed < 1.0
+        # Even with 10 exporters, should complete quickly
+        # Use adaptive threshold based on system performance
+        threshold = get_adaptive_thresholds().get_operation_threshold(50.0)
+        assert elapsed < threshold
 
 
 class TestMemoryFootprint:
@@ -238,8 +252,13 @@ class TestRateLimitingPerformance:
         def rate_limited_call():
             client.record_cache_metrics("cache", hits=101, misses=51)
 
-        benchmark(rate_limited_call)
-        # Should be very fast (< 1ms) due to early exit
+        result = benchmark(rate_limited_call, iterations=1000)
+        # Should be fast due to early exit
+        # Use adaptive threshold with logging overhead and system variability
+        threshold = (
+            get_adaptive_thresholds().get_telemetry_threshold(enabled=False) * 25
+        )
+        assert result["elapsed"] < threshold
 
     def test_time_interval_check_efficient(self, benchmark, monkeypatch):
         """Time interval checking should be efficient."""
@@ -261,7 +280,13 @@ class TestRateLimitingPerformance:
                 m.setattr("time.time", lambda: base_time + 30)
                 client.record_cache_metrics("cache", hits=20, misses=10)
 
-        benchmark(rate_limited_call)
+        result = benchmark(rate_limited_call, iterations=1000)
+        # Use adaptive threshold for rate-limited operations
+        # with logging overhead and system variability
+        threshold = (
+            get_adaptive_thresholds().get_telemetry_threshold(enabled=False) * 25
+        )
+        assert result["elapsed"] < threshold
 
 
 class TestScalability:
@@ -284,8 +309,10 @@ class TestScalability:
 
         elapsed = time.time() - start_time
 
-        # Should handle 1000 unique caches quickly (< 1 second)
-        assert elapsed < 1.0
+        # Should handle 1000 unique caches very quickly
+        # Use adaptive threshold based on system performance
+        threshold = get_adaptive_thresholds().get_operation_threshold(50.0)
+        assert elapsed < threshold
 
     def test_many_exporters_linear_scaling(self):
         """Performance should scale linearly with number of exporters."""
@@ -334,8 +361,8 @@ class TestRealWorldScenarios:
 
         elapsed = time.time() - start_time
 
-        # Should complete 10k operations quickly (< 1 second)
-        assert elapsed < 1.0
+        # Should complete 10k operations quickly (<200ms)
+        assert elapsed < 0.2
 
         # Verify telemetry was collected
         stats = cache.get_cache_stats()
@@ -362,8 +389,8 @@ class TestRealWorldScenarios:
 
         elapsed = time.time() - start_time
 
-        # Should complete quickly even with telemetry
-        assert elapsed < 1.0
+        # Should complete quickly even with telemetry (<300ms)
+        assert elapsed < 0.3
 
         # Should have throttled emissions
         assert len(emitted) < 50  # Much less than 1000
@@ -396,8 +423,9 @@ class TestRealWorldScenarios:
         total_ops = num_workers * ops_per_worker
         ops_per_sec = total_ops / elapsed
 
-        # Should achieve good throughput (> 5k ops/sec)
-        assert ops_per_sec > 5_000
+        # Use adaptive throughput threshold based on system performance
+        min_throughput = get_adaptive_thresholds().get_throughput_threshold(50_000)
+        assert ops_per_sec > min_throughput
 
 
 class TestTelemetryDisabledPerformance:

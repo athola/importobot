@@ -393,11 +393,11 @@ class TestExporterErrorHandling:
         )
 
         # Capture logger output
-        with patch("importobot.telemetry.logger.info") as mock_log:
+        with patch("importobot.telemetry.logger.warning") as mock_log:
             client.record_cache_metrics("test", hits=10, misses=5)
 
             mock_log.assert_called_once()
-            # The format is: logger.info("telemetry.%s %s", event_name, json_string)
+            # The format is: logger.warning("telemetry.%s %s", event_name, json_string)
             # So args are: (format_string, event_name, json_string)
             assert len(mock_log.call_args[0]) == 3
             _log_format, event_name, json_msg = mock_log.call_args[0]

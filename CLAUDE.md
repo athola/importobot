@@ -4,16 +4,14 @@ This guide explains how to work with Importobot, a Python project built with Tes
 
 ## Project Philosophy
 
-Importobot exists to turn structured test cases (Zephyr, Xray, TestLink and friends) into Robot Framework suites without wasting time on manual conversion. Utilize tooling for automation and loop in humans when judgment is required.
+Importobot exists so we do not rebuild Zephyr or TestRail suites by hand. One command should process an entire directory, the generated files should still read like the source material, and the output must run under Robot Framework without a clean-up pass. When a conversion misses that bar we treat it as a bug, not an acceptable trade-off.
 
-Our goals are simple:
-- One command should convert a directory of tests without hand-editing.
-- The converted suite should keep the intent of the original artifacts—names, steps, metadata, priorities.
-- Generated files must run immediately in Robot Framework; otherwise we treat the bug as a blocker.
+The workflow leans on a few rules of thumb learned the hard way:
+- Conversions usually arrive in bulk, so predictable behaviour beats clever heuristics.
+- Earlier validation saves time. Fail fast on schema, security, or format detection rather than shipping half-converted suites.
+- Reviewers need context. Preserve names, priorities, and comments instead of hiding them behind abstractions.
 
-TDD and XP practices enforce quality. Every new parser feature arrives with tests, which informs how to write the code in order to get to a pass. Across multiple services and modules this lays a tight standard to which the system must adhere.
-
-Automation matters because the legacy alternative is tedious and error-prone. Teams typically bring hundreds of cases at a time, and consistency matters more than self-sacrifice. By surfacing validation failures early and preserving traceability, a lot of time can be saved from having to hunt through spreadsheets of test results.
+Disciplined TDD means every parser or optimizer tweak starts with a failing test in the suite, and we expect contributors to leave touched modules tidier for the next engineer who picks up the trail.
 
 ## TDD/XP in This Project
 
@@ -35,14 +33,16 @@ Automation matters because the legacy alternative is tedious and error-prone. Te
 ## Recent Improvements
 
 - Parameter conversion now skips comment lines, so literal `{placeholders}` and control characters survive in traceability comments while executable statements still become Robot variables.
-- Test generation captures both the original and normalized test names, letting invariant/property suites confirm identity even when inputs contain form feeds or backspaces.
-- A lightweight `robot.utils` compatibility shim preloads deprecated helpers so SeleniumLibrary stops emitting deprecation warnings during lint/typecheck runs.
-- Selenium integration tests run in dry-run mode with deterministic resource cleanup, eliminating the flaky WebDriver startup and the socket/file ResourceWarnings it caused.
+- Test generation captures both the original and normalized names, which keeps the Hypothesis fixtures honest even when a source file contains odd control characters.
+- The weighted “Bayesian” shim is gone. Evidence flows through `EvidenceMetrics`, required-field gaps apply penalties, and `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py` keeps ambiguous-data ratios capped at 1.5:1.
+- Robot Framework dependencies are current, so the `robot.utils` compatibility shim—and the noisy warning suppression around it—has been retired.
+- Selenium integration tests still run in deterministic dry-run mode with explicit resource cleanup, so CI remains free of WebDriver start-up flakes.
 
 ### 2025 highlights worth remembering
-- September’s cleanup retired roughly 200 lines of legacy compatibility hacks and replaced them with a shared `data_analysis` helper; `__all__` exports now mark the public API explicitly.
-- An additional push added `scripts/interactive_demo.py`, which we use in customer demos to show conversion throughput, cost savings, and where manual review still matters.
-- The same cycle produced utilities for pattern extraction/step comments and beefed up SSH validation so the interactive demo and the CLI share logic instead of diverging.
+- **Bayesian revamp (Oct 2025):** replaced the weighted scorer with an independent model, quadratic P(E|¬H), and regression tests for ratio caps. Strong evidence now clears the 0.8 confidence bar without hand tuning.
+- September's cleanup retired ~200 lines of compatibility hacks and replaced them with a shared `data_analysis` helper; `__all__` exports now match our actual public API.
+- `scripts/interactive_demo.py` landed after customers kept asking for a demo harness that shares code with the CLI.
+- The same cycle produced utilities for pattern extraction/step comments and tightened SSH validation so the interactive demo and the CLI share logic instead of diverging.
 
 ## CI/CD
 

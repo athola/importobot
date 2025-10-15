@@ -60,6 +60,8 @@ class PerformanceCache:
 
         resolved_ttl = ttl_seconds if ttl_seconds is not None else DEFAULT_TTL_SECONDS
         self._ttl_seconds: Optional[int] = resolved_ttl if resolved_ttl > 0 else None
+        # TTL evicts stale entries automatically; defaults to
+        # `IMPORTOBOT_PERFORMANCE_CACHE_TTL_SECONDS`.
 
         self._string_cache: Dict[str, str] = {}
         self._string_cache_expiry: Dict[str, float] = {}

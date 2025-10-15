@@ -54,6 +54,32 @@ def create_xray_format() -> FormatDefinition:
         # STRONG indicators - JIRA integration markers
         strong_indicators=[
             FieldDefinition(
+                name="xrayInfo",
+                evidence_weight=EvidenceWeight.STRONG,
+                description="Xray info object - Xray-specific metadata structure",
+            ),
+            FieldDefinition(
+                name="testExecutionKey",
+                evidence_weight=EvidenceWeight.STRONG,
+                description="Xray test execution key - unique "
+                "to Xray JSON import format",
+            ),
+            FieldDefinition(
+                name="testPlanKey",
+                evidence_weight=EvidenceWeight.STRONG,
+                description="Xray test plan key - Xray-specific planning structure",
+            ),
+            FieldDefinition(
+                name="testKey",
+                evidence_weight=EvidenceWeight.STRONG,
+                description="Xray test key within execution results",
+            ),
+            FieldDefinition(
+                name="testEnvironments",
+                evidence_weight=EvidenceWeight.STRONG,
+                description="Xray test environments array - Xray-specific field",
+            ),
+            FieldDefinition(
                 name="issues",
                 evidence_weight=EvidenceWeight.STRONG,
                 description="JIRA issues structure - Xray uses native JIRA issues",

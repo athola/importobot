@@ -1,7 +1,7 @@
 [MASTER]
-# Ignore .venv directory, .uv-cache, and scripts subproject
-ignore-patterns = \.venv.*,\.uv-cache.*,scripts.*
-ignore = .venv,.uv-cache,scripts
+# Ignore .venv directory, .uv-cache, and build artifacts
+ignore-patterns = \.venv.*,\.uv-cache.*,build.*
+ignore = .venv,.uv-cache,build
 
 # Load pylint extensions
 load-plugins =

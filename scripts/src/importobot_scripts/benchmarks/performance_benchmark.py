@@ -445,6 +445,36 @@ class PerformanceBenchmark:
 
         return results
 
+    def run_ci_smoke_benchmark(self) -> dict[str, Any]:
+        """Run a lightweight benchmark suite suitable for CI gating."""
+        results: dict[str, Any] = {
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "single_file_conversion": {},
+            "bulk_conversion": {},
+        }
+
+        # Focus on the most common complexity level for smoke runs
+        results["single_file_conversion"]["medium"] = self.benchmark_single_conversion(
+            "medium", iterations=5, warmup_iterations=1
+        )
+
+        # Check bulk conversion at a representative scale
+        results["bulk_conversion"]["25_files"] = self.benchmark_bulk_conversion(
+            file_count=25, complexity="medium"
+        )
+
+        # Include API method comparison with reduced iterations
+        results["api_methods"] = self.benchmark_api_methods(
+            complexity="medium", iterations=3, warmup_iterations=1
+        )
+
+        # Exercise lazy loading with reduced iterations to keep runtime reasonable
+        results["lazy_loading"] = self.benchmark_lazy_loading(
+            warmup_iterations=3, iterations=30
+        )
+
+        return results
+
     def _format_header(self, results: dict[str, Any]) -> list[str]:
         """Format the header section of benchmark results."""
         output: list[str] = []
@@ -743,10 +773,10 @@ class PerformanceBenchmark:
             if isinstance(result[key], dict):
                 result[key]["memory_usage"] = memory_stats  # type: ignore[index]
 
-    def benchmark_lazy_loading(self, warmup_iterations: int = 10) -> dict[str, Any]:
+    def benchmark_lazy_loading(
+        self, warmup_iterations: int = 10, iterations: int = 100
+    ) -> dict[str, Any]:
         """Benchmark lazy loading system performance and benefits."""
-        iterations = 100
-
         # Run individual benchmarks
         cold_times, cold_memory = self._benchmark_cold_start_access(
             warmup_iterations, iterations
@@ -844,6 +874,111 @@ class PerformanceBenchmark:
             return result
 
 
+def _convert_seconds_to_ms(value: float | None) -> float | None:
+    """Convert seconds to milliseconds when value is present."""
+    if value is None:
+        return None
+    return value * 1000.0
+
+
+def validate_ci_thresholds(  # pylint: disable=too-many-locals, too-many-branches, too-many-statements
+    results: dict[str, Any], thresholds: dict[str, Any]
+) -> list[str]:
+    """Validate benchmark results against configured CI thresholds."""
+    failures: list[str] = []
+
+    # Single file conversion thresholds
+    single_thresholds = thresholds.get("single_file_conversion", {})
+    single_results = results.get("single_file_conversion", {})
+    for complexity, limits in single_thresholds.items():
+        stats = single_results.get(complexity)
+        if not stats:
+            failures.append(
+                f"Missing single file conversion data for complexity '{complexity}'."
+            )
+            continue
+        mean_ms = _convert_seconds_to_ms(stats.get("mean"))
+        if "max_mean_ms" in limits and mean_ms is not None:
+            if mean_ms > limits["max_mean_ms"]:
+                failures.append(
+                    f"{complexity} mean {mean_ms:.2f}ms exceeded max_mean_ms "
+                    f"{limits['max_mean_ms']:.2f}ms."
+                )
+
+        p95_seconds = stats.get("percentile_95")
+        p95_ms = (
+            _convert_seconds_to_ms(p95_seconds) if p95_seconds is not None else None
+        )
+        if "max_p95_ms" in limits:
+            if p95_ms is None:
+                failures.append(
+                    f"{complexity} percentile data unavailable to validate max_p95_ms "
+                    f"{limits['max_p95_ms']}ms."
+                )
+            elif p95_ms > limits["max_p95_ms"]:
+                failures.append(
+                    f"{complexity} p95 {p95_ms:.2f}ms exceeded max_p95_ms "
+                    f"{limits['max_p95_ms']:.2f}ms."
+                )
+
+    # Bulk conversion thresholds
+    bulk_thresholds = thresholds.get("bulk_conversion", {})
+    bulk_results = results.get("bulk_conversion", {})
+    for bucket, limits in bulk_thresholds.items():
+        stats = bulk_results.get(bucket)
+        if not stats:
+            failures.append(f"Missing bulk conversion data for bucket '{bucket}'.")
+            continue
+        fps = stats.get("files_per_second")
+        if "min_files_per_second" in limits and fps is not None:
+            if fps < limits["min_files_per_second"]:
+                failures.append(
+                    f"{bucket} throughput {fps:.2f} files/s fell below "
+                    f"{limits['min_files_per_second']:.2f} files/s."
+                )
+        avg_ms = _convert_seconds_to_ms(stats.get("avg_time_per_file"))
+        if "max_avg_time_ms" in limits and avg_ms is not None:
+            if avg_ms > limits["max_avg_time_ms"]:
+                failures.append(
+                    f"{bucket} avg time {avg_ms:.2f}ms exceeded "
+                    f"{limits['max_avg_time_ms']:.2f}ms."
+                )
+
+    # API method thresholds
+    api_thresholds = thresholds.get("api_methods", {})
+    api_results = results.get("api_methods", {})
+    for mode, limits in api_thresholds.items():
+        stats = api_results.get(mode)
+        if not stats:
+            failures.append(f"Missing API method data for '{mode}'.")
+            continue
+        mean_ms = _convert_seconds_to_ms(stats.get("mean"))
+        if "max_mean_ms" in limits and mean_ms is not None:
+            if mean_ms > limits["max_mean_ms"]:
+                failures.append(
+                    f"{mode} mean {mean_ms:.2f}ms exceeded max_mean_ms "
+                    f"{limits['max_mean_ms']:.2f}ms."
+                )
+
+    # Lazy loading thresholds
+    lazy_thresholds = thresholds.get("lazy_loading", {})
+    lazy_results = results.get("lazy_loading", {})
+    if lazy_thresholds:
+        if not lazy_results:
+            failures.append("Missing lazy loading benchmark results.")
+        else:
+            improvement = lazy_results.get("performance_improvement_percent")
+            if "min_improvement_percent" in lazy_thresholds and improvement is not None:
+                if improvement < lazy_thresholds["min_improvement_percent"]:
+                    failures.append(
+                        "Lazy loading improvement "
+                        f"{improvement:.2f}% fell below "
+                        f"{lazy_thresholds['min_improvement_percent']:.2f}%."
+                    )
+
+    return failures
+
+
 def main() -> None:
     """Run performance benchmarks and display results."""
     # Parse command line arguments
@@ -885,16 +1020,38 @@ def main() -> None:
         default="medium",
         help="Complexity level for benchmarks (default: medium)",
     )
+    parser.add_argument(
+        "--ci-mode",
+        action="store_true",
+        help="Run a lightweight smoke benchmark suitable for CI gating.",
+    )
+    parser.add_argument(
+        "--ci-thresholds",
+        type=Path,
+        help=(
+            "Path to JSON file containing performance thresholds. "
+            "If provided, benchmark results must satisfy these limits."
+        ),
+    )
 
     args = parser.parse_args()
 
     benchmark = PerformanceBenchmark()
-    results = benchmark.run_comprehensive_benchmark(
-        single_file_iterations=args.iterations,
-        api_iterations=args.api_iterations,
-        bulk_file_counts=args.bulk_files,
-        run_parallel=args.parallel,
-    )
+    if args.ci_mode:
+        print("🔧 Running Importobot CI performance smoke benchmarks...")
+        results = benchmark.run_ci_smoke_benchmark()
+    else:
+        results = benchmark.run_comprehensive_benchmark(
+            single_file_iterations=args.iterations,
+            api_iterations=args.api_iterations,
+            bulk_file_counts=args.bulk_files,
+            run_parallel=args.parallel,
+        )
+
+    threshold_config: dict[str, Any] | None = None
+    if args.ci_thresholds:
+        with open(args.ci_thresholds, encoding="utf-8") as threshold_file:
+            threshold_config = json.load(threshold_file)
 
     # Display results
     print("\n" + benchmark.format_results(results))
@@ -906,6 +1063,15 @@ def main() -> None:
 
     print(f"\n📁 Detailed results saved to: {output_file}")
     print("=" * 70)
+
+    if threshold_config is not None:
+        failures = validate_ci_thresholds(results, threshold_config)
+        if failures:
+            print("\n❌ Performance threshold violations detected:")
+            for failure in failures:
+                print(f"  - {failure}")
+            raise SystemExit(1)
+        print("\n✅ Performance thresholds satisfied.")
 
 
 if __name__ == "__main__":

@@ -198,7 +198,7 @@ class ScoringAlgorithms:
     def _score_structured_pattern(
         data: Dict[str, Any], field_name: str, pattern: str
     ) -> int:
-        """Score pattern matching for structured data (legacy method)."""
+        """Score pattern matching for structured data."""
         field_values = ScoringAlgorithms._extract_field_values(data, field_name)
         return ScoringAlgorithms._score_structured_pattern_cached(
             field_name, pattern, field_values

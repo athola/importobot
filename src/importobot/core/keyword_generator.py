@@ -140,7 +140,12 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
                 lambda: web.generate_navigation_keyword(test_data)
             ),
             IntentType.INPUT_USERNAME: (
-                lambda: web.generate_input_keyword("username", test_data)
+                lambda: web.generate_input_keyword(
+                    "email"
+                    if self._has_email_indicator(description, test_data)
+                    else "username",
+                    test_data,
+                )
             ),
             IntentType.INPUT_PASSWORD: (
                 lambda: web.generate_password_keyword(test_data)
@@ -359,6 +364,17 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
             SSH_STRONG_INDICATORS + additional_indicators + SSH_FILE_PATH_INDICATORS
         )
         return any(indicator in combined for indicator in ssh_indicators)
+
+    def _has_email_indicator(self, description: str, test_data: str) -> bool:
+        """Detect if the content refers to an email field specifically."""
+        combined = f"{description} {test_data}".lower()
+        email_indicators = [
+            "email",
+            "e-mail",
+            "email address",
+            "mail address",
+        ]
+        return any(indicator in combined for indicator in email_indicators)
 
     def _handle_file_transfer(self, description: str, test_data: str) -> str:
         """Handle file transfer operations, routing to SSH or local file operations."""

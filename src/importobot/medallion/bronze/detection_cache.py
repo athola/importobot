@@ -33,8 +33,16 @@ class DetectionCache:
     """Manages caching and performance optimizations for format detection."""
 
     # Security constants
-    MAX_COLLISION_CHAIN_LENGTH = 3  # Prevent DoS via collision chains
-    MAX_CONTENT_SIZE = 50000  # Prevent memory exhaustion attacks
+    # Limit collision chains to three entries to cap the work factor for any single
+    # hash bucket. Beyond this, the cache refuses to store additional entries to
+    # mitigate adversarial avalanche/DoS scenarios inspired by hash-collision attacks
+    # (see CVE-2011-4885).
+    MAX_COLLISION_CHAIN_LENGTH = 3
+
+    # Reject payloads over ~50 KB. Real-world JSON fixtures for test cases fall well
+    # below this ceiling, so the cap provides headroom for genuine inputs while
+    # discouraging memory-amplification attempts.
+    MAX_CONTENT_SIZE = 50000
 
     def __init__(
         self,
@@ -68,6 +76,8 @@ class DetectionCache:
             ttl_seconds if ttl_seconds is not None else DETECTION_CACHE_TTL_SECONDS
         )
         self._ttl_seconds: Optional[int] = resolved_ttl if resolved_ttl > 0 else None
+        # TTL prevents long-lived workers from retaining stale detection results.
+        # Configure via `IMPORTOBOT_DETECTION_CACHE_TTL_SECONDS`.
 
         # Use string hash as key, store only the computed result
         self._data_string_cache: OrderedDict[str, str] = OrderedDict()
@@ -81,6 +91,7 @@ class DetectionCache:
         self._cache_misses = 0
         self._collision_count = 0
         self._rejected_large_content = 0
+        self._eviction_count = 0
         self._telemetry = telemetry_client or get_telemetry_client()
 
     def get_data_string_efficient(self, data: Any) -> str:
@@ -141,6 +152,7 @@ class DetectionCache:
         if len(self._data_string_cache) > self.max_cache_size:
             oldest_key, _ = self._data_string_cache.popitem(last=False)
             self._data_string_expiry.pop(oldest_key, None)
+            self._eviction_count += 1
 
         return data_str
 
@@ -222,6 +234,7 @@ class DetectionCache:
         # Maintain cache size
         if len(self._normalized_key_cache) > self.max_cache_size:
             self._normalized_key_cache.popitem(last=False)
+            self._eviction_count += 1
 
         return normalized_keys
 
@@ -252,6 +265,8 @@ class DetectionCache:
             if len(self._detection_result_cache) > self.max_cache_size:
                 oldest_key, _ = self._detection_result_cache.popitem(last=False)
                 self._detection_result_expiry.pop(oldest_key, None)
+                self._eviction_count += 1
+                self._emit_cache_metrics()
         except (TypeError, ValueError):
             # Can't process this data, skip caching
             pass
@@ -343,6 +358,7 @@ class DetectionCache:
         self._cache_misses = 0
         self._collision_count = 0
         self._rejected_large_content = 0
+        self._eviction_count = 0
         self._emit_cache_metrics()
 
     def _emit_cache_metrics(self) -> None:
@@ -351,10 +367,13 @@ class DetectionCache:
             hits=self._cache_hits,
             misses=self._cache_misses,
             extras={
+                "max_cache_size": self.max_cache_size,
                 "data_string_cache_size": len(self._data_string_cache),
                 "detection_result_cache_size": len(self._detection_result_cache),
                 "normalized_key_cache_size": len(self._normalized_key_cache),
                 "collision_count": self._collision_count,
+                "rejected_large_content": self._rejected_large_content,
+                "evictions": self._eviction_count,
                 "ttl_seconds": self._ttl_seconds or 0,
             },
         )

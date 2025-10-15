@@ -59,12 +59,50 @@ def create_testrail_format() -> FormatDefinition:
             FieldDefinition(
                 name="suite_id",
                 evidence_weight=EvidenceWeight.STRONG,
-                description="TestRail suite identifier - hierarchical structure",
+                description="TestRail suite identifier - *_id "
+                "pattern unique to TestRail",
+                is_required=True,
             ),
             FieldDefinition(
                 name="case_id",
                 evidence_weight=EvidenceWeight.STRONG,
-                description="TestRail case identifier - unique entity ID",
+                description="TestRail case identifier - *_id pattern",
+            ),
+            FieldDefinition(
+                name="project_id",
+                evidence_weight=EvidenceWeight.STRONG,
+                description="TestRail project identifier - *_id pattern",
+                is_required=True,
+            ),
+            FieldDefinition(
+                name="section_id",
+                evidence_weight=EvidenceWeight.STRONG,
+                description="TestRail section identifier - organizational *_id pattern",
+            ),
+            FieldDefinition(
+                name="template_id",
+                evidence_weight=EvidenceWeight.STRONG,
+                description="TestRail template identifier - *_id pattern",
+            ),
+            FieldDefinition(
+                name="type_id",
+                evidence_weight=EvidenceWeight.STRONG,
+                description="TestRail type identifier - categorical *_id pattern",
+            ),
+            FieldDefinition(
+                name="priority_id",
+                evidence_weight=EvidenceWeight.STRONG,
+                description="TestRail priority identifier - *_id pattern",
+            ),
+            FieldDefinition(
+                name="created_by",
+                evidence_weight=EvidenceWeight.STRONG,
+                description="TestRail user ID who created - audit field pattern",
+            ),
+            FieldDefinition(
+                name="updated_by",
+                evidence_weight=EvidenceWeight.STRONG,
+                description="TestRail user ID who updated - audit field pattern",
             ),
             FieldDefinition(
                 name="tests",
@@ -76,14 +114,9 @@ def create_testrail_format() -> FormatDefinition:
         # MODERATE indicators - TestRail organizational features
         moderate_indicators=[
             FieldDefinition(
-                name="project_id",
-                evidence_weight=EvidenceWeight.MODERATE,
-                description="TestRail project identifier",
-            ),
-            FieldDefinition(
                 name="milestone_id",
                 evidence_weight=EvidenceWeight.MODERATE,
-                description="TestRail milestone association",
+                description="TestRail milestone association - *_id pattern",
             ),
             FieldDefinition(
                 name="run_id",

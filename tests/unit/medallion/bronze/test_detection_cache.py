@@ -81,3 +81,61 @@ class TestDetectionCacheConfiguration:
         event_name, payload = telemetry_events[-1]
         assert event_name == "cache_metrics"
         assert payload["cache_name"] == "detection_cache"
+
+    def test_rejects_oversized_content(self, monkeypatch):
+        """Oversized payloads should be rejected and not cached."""
+        cache = DetectionCache()
+        monkeypatch.setattr(cache, "MAX_CONTENT_SIZE", 8, raising=False)
+
+        large_data = {"payload": "A" * 20}
+        result = cache.get_data_string_efficient(large_data)
+
+        # Result is returned directly but cache remains empty
+        assert "aaaaaaaaaaaaaaa" in result
+        assert not cache._data_string_cache  # pylint: disable=protected-access
+        assert cache._rejected_large_content == 1  # pylint: disable=protected-access
+
+    def test_collision_chain_limit_enforced(self, monkeypatch):
+        """Collision chains should be capped to prevent DoS."""
+        cache = DetectionCache(collision_chain_limit=1)
+
+        # Force primary hash collisions with different secondary hashes
+        monkeypatch.setattr(
+            cache,
+            "_get_content_hash_and_string",  # pylint: disable=protected-access
+            lambda data: ("fixed_hash", str(data).lower()),
+        )
+        # Different prefixes for collision simulation
+        monkeypatch.setattr(
+            cache,
+            "_get_secondary_hash",  # pylint: disable=protected-access
+            lambda data_str: (
+                f"hash1_{data_str}" if "one" in data_str else f"hash2_{data_str}"
+            ),
+        )
+
+        first = cache.get_data_string_efficient("entry-one")
+        second = cache.get_data_string_efficient("entry-two")
+
+        # First entry cached; second rejected due to collision limit
+        assert first == "entry-one"
+        # Returns original input when collision limit reached
+        assert second == "entry-two"
+        assert len(cache._data_string_cache) == 1  # pylint: disable=protected-access
+        assert cache._collision_count == 1  # pylint: disable=protected-access
+
+    def test_eviction_metrics_include_counts(self, telemetry_events):
+        """Evictions should be counted and surfaced via telemetry."""
+        cache = DetectionCache(max_cache_size=2)
+        cache.cache_detection_result({"id": 1}, SupportedFormat.ZEPHYR)
+        cache.cache_detection_result({"id": 2}, SupportedFormat.ZEPHYR)
+        cache.cache_detection_result({"id": 3}, SupportedFormat.ZEPHYR)
+
+        # pylint: disable=protected-access
+        assert len(cache._detection_result_cache) == 2
+        assert cache._eviction_count == 1  # pylint: disable=protected-access
+
+        # Last telemetry entry should mention evictions
+        event_name, payload = telemetry_events[-1]
+        assert event_name == "cache_metrics"
+        assert payload["evictions"] >= 1
