@@ -79,3 +79,33 @@ def test_run_benchmark_success(monkeypatch: pytest.MonkeyPatch) -> None:
     assert result.benchmark_throughput == pytest.approx(190.0)
     assert result.throughput_ratio == pytest.approx(0.95)
     assert result.records_ingested == 60
+    assert result.benchmark_attempts == 1
+
+
+def test_run_benchmark_retry_success(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Benchmark retries should allow transient slowdowns to recover."""
+    responses = iter(
+        [
+            (200.0, 0.05),  # warm-up
+            (120.0, 0.066),  # initial benchmark attempt (60% of baseline)
+            (195.0, 0.052),  # retry benchmark attempt (97.5% of baseline)
+        ]
+    )
+
+    monkeypatch.setattr(
+        benchmark,
+        "_ingest_records",
+        lambda layer, *, records, template: next(responses),
+    )
+
+    result = benchmark.run_benchmark(
+        warmup_records=10,
+        benchmark_records=60,
+        min_ratio=0.9,
+        min_baseline_throughput=100.0,
+        benchmark_retries=2,
+    )
+
+    assert result.benchmark_throughput == pytest.approx(195.0)
+    assert result.throughput_ratio == pytest.approx(195.0 / 200.0)
+    assert result.benchmark_attempts == 2
