@@ -25,7 +25,7 @@ from importobot.medallion.bronze.p_e_not_h_learner import (
 )
 
 
-def main() -> int:
+def main() -> int:  # pylint: disable=too-many-locals, too-many-statements
     """Train and evaluate Bayesian parameters."""
     print("=" * 80)
     print("BAYESIAN PARAMETER LEARNING FROM EMPIRICAL DATA")
@@ -130,16 +130,19 @@ def main() -> int:
     hardcoded_params = {"a": 0.01, "b": 0.49, "c": 2.0}
     print("Comparison to Hardcoded Baseline:")
     print(
-        f"  Hardcoded: a={hardcoded_params['a']}, b={hardcoded_params['b']}, c={hardcoded_params['c']}"
+        f"  Hardcoded: a={hardcoded_params['a']}, b={hardcoded_params['b']}, "
+        f"c={hardcoded_params['c']}"
     )
     print(
-        f"  Learned:   a={results['p_e_not_h_params']['a']:.4f}, b={results['p_e_not_h_params']['b']:.4f}, c={results['p_e_not_h_params']['c']:.4f}"
+        f"  Learned:   a={results['p_e_not_h_params']['a']:.4f}, "
+        f"b={results['p_e_not_h_params']['b']:.4f}, "
+        f"c={results['p_e_not_h_params']['c']:.4f}"
     )
     print()
 
     # Save results
     output_file = Path("learned_bayesian_parameters.json")
-    with open(output_file, "w") as f:
+    with open(output_file, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2)
     print(f"Results saved to: {output_file}")
     print()

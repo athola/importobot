@@ -1,10 +1,9 @@
 """Independent Bayesian evidence scorer.
 
-We rewrote the scorer in release 0.1.2 to replace the noisy-OR heuristic that
-overconfidently labeled ambiguous XML imports. The current implementation keeps
-the math explicit: independent evidence terms, log-space products, and a
-quadratic model for P(E|¬H). The helpers in this module are shared by the unit
-tests that guard the 1.5:1 ambiguity cap and the benchmark jobs in CI.
+This module exposes the full probability model: independence assumptions,
+log-probability accumulation, and the quadratic P(E|¬H) decay. The helpers are
+shared by the unit tests that guard the 1.5:1 ambiguity cap and the benchmark
+jobs in CI.
 """
 
 from __future__ import annotations
@@ -28,10 +27,8 @@ from .test_case_complexity_analyzer import ComplexityMetrics
 logger = setup_logger(__name__)
 
 LOG_LIKELIHOOD_FLOOR = 1e-12  # Keeps log products bounded (~-27.6) for three factors
-AMBIGUOUS_RATIO_CAP = 1.5  # Stops ambiguous payloads from swamping priors
-STRONG_EVIDENCE_RATIO_CAP = (
-    3.0  # Allows confident evidence to stand out without spiking
-)
+AMBIGUOUS_RATIO_CAP = 1.5  # Caps weak signals so the posterior stays near the priors
+STRONG_EVIDENCE_RATIO_CAP = 3.0  # Caps strong signals so likelihood ratios stay bounded
 
 
 @dataclass

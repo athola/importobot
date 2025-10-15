@@ -9,6 +9,7 @@ from scripts.src.importobot_scripts.benchmarks import benchmark_dashboard
 
 
 def sample_benchmark_payload() -> dict[str, object]:
+    """Return a sample benchmark payload for testing."""
     return {
         "timestamp": "2025-01-01 12:00:00",
         "single_file_conversion": {
@@ -37,6 +38,7 @@ def sample_benchmark_payload() -> dict[str, object]:
 
 
 def test_benchmark_dashboard_generation(tmp_path: Path) -> None:
+    """Test benchmark dashboard HTML generation from JSON results."""
     results_path = tmp_path / "run1.json"
     results_path.write_text(json.dumps(sample_benchmark_payload()), encoding="utf-8")
     output_html = tmp_path / "dashboard.html"

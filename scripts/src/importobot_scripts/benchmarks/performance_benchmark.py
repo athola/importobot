@@ -875,13 +875,13 @@ class PerformanceBenchmark:
 
 
 def _convert_seconds_to_ms(value: float | None) -> float | None:
-    """Helper to convert seconds to milliseconds when value is present."""
+    """Convert seconds to milliseconds when value is present."""
     if value is None:
         return None
     return value * 1000.0
 
 
-def validate_ci_thresholds(
+def validate_ci_thresholds(  # pylint: disable=too-many-locals, too-many-branches, too-many-statements
     results: dict[str, Any], thresholds: dict[str, Any]
 ) -> list[str]:
     """Validate benchmark results against configured CI thresholds."""

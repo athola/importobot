@@ -27,6 +27,7 @@ from importobot.medallion.bronze.format_registry import (
     FormatRegistry,
 )
 from importobot.medallion.interfaces.enums import (
+    EvidenceSource,
     SupportedFormat,
 )
 
@@ -69,7 +70,7 @@ class TestEvidenceCollectorIntegration(unittest.TestCase):
 
         self.assertGreater(total_weight, 0)
         self.assertTrue(
-            any(item.source == "required_key" for item in evidence_items),
+            any(item.source == EvidenceSource.REQUIRED_KEY for item in evidence_items),
             "Expected required_key evidence for Zephyr data",
         )
 

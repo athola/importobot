@@ -14,6 +14,7 @@ on:
     paths:
       - "src/**/*.py"
       - "tests/**/*.py"
+      - "scripts/**/*.py"
       - "examples/json/**/*.json"
       - "pyproject.toml"
       - "Makefile"
@@ -24,6 +25,7 @@ on:
     paths:
       - "src/**/*.py"
       - "tests/**/*.py"
+      - "scripts/**/*.py"
       - "examples/json/**/*.json"
       - "pyproject.toml"
       - "Makefile"
@@ -59,13 +61,13 @@ jobs:
     
     
     - name: Run pycodestyle
-      run: uv run pycodestyle src/ tests/
-    
+      run: uv run pycodestyle src/ tests/ scripts/
+
     - name: Run pydocstyle
-      run: uv run pydocstyle src/
-    
+      run: uv run pydocstyle src/ scripts/
+
     - name: Run pylint
-      run: uv run pylint src/ tests/
+      run: uv run pylint src/ tests/ scripts/
     
     - name: Minimize uv cache
       run: uv cache prune --ci

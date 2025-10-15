@@ -11,7 +11,7 @@ The workflow leans on a few rules of thumb learned the hard way:
 - Earlier validation saves time. Fail fast on schema, security, or format detection rather than shipping half-converted suites.
 - Reviewers need context. Preserve names, priorities, and comments instead of hiding them behind abstractions.
 
-TDD keeps us honest. Every parser or optimizer change lands with failing tests first, and we leave modules tidier than we found them so the next person can follow the thread.
+Disciplined TDD means every parser or optimizer tweak starts with a failing test in the suite, and we expect contributors to leave touched modules tidier for the next engineer who picks up the trail.
 
 ## TDD/XP in This Project
 

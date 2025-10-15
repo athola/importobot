@@ -14,7 +14,7 @@ def test_run_benchmark_enforces_ratio(monkeypatch: pytest.MonkeyPatch) -> None:
     call_order: list[int] = []
 
     def fake_ingest(
-        layer: Any, *, records: int, template: dict[str, Any]
+        _layer: Any, *, records: int, _template: dict[str, Any]
     ) -> tuple[float, float]:
         call_order.append(records)
         if records == 10:
@@ -38,7 +38,7 @@ def test_run_benchmark_enforces_baseline(monkeypatch: pytest.MonkeyPatch) -> Non
     """Benchmark should fail fast when baseline throughput is too low."""
 
     def fake_ingest(
-        layer: Any, *, records: int, template: dict[str, Any]
+        _layer: Any, *, _records: int, _template: dict[str, Any]
     ) -> tuple[float, float]:
         return 20.0, 1.0
 

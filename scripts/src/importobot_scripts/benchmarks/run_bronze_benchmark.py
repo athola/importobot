@@ -89,7 +89,8 @@ def run_benchmark(
     if ratio < min_ratio:
         raise SystemExit(
             f"Benchmark throughput ratio {ratio:.2%} below minimum {min_ratio:.2%} "
-            f"(warm-up {warmup_throughput:.2f} rec/s, benchmark {benchmark_throughput:.2f} rec/s)"
+            f"(warm-up {warmup_throughput:.2f} rec/s, "
+            f"benchmark {benchmark_throughput:.2f} rec/s)"
         )
 
     return BenchmarkResult(
@@ -125,6 +126,7 @@ def _int_env(name: str, default: int) -> int:
 
 
 def main() -> None:
+    """Execute Bronze layer ingestion benchmark with command line arguments."""
     parser = argparse.ArgumentParser(description="Bronze layer ingestion benchmark.")
     parser.add_argument(
         "--warmup-records", type=int, default=_int_env("BRONZE_BENCHMARK_WARMUP", 100)

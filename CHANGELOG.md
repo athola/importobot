@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- `EvidenceMetrics` dataclass and regression tests to keep the independent Bayesian scorer honest (`tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`).
+- `EvidenceMetrics` dataclass plus additional regression coverage (`tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`, `tests/unit/medallion/bronze/test_independent_bayesian_scorer.py`) that holds the independent Bayesian scorer to the 1.5:1 ambiguity cap and validates posterior normalization.
 - Benchmark artifacts under `wiki/benchmarks/` covering format-detection accuracy, detection latency, and regex cache performance.
 - Environment flags (`IMPORTOBOT_SECURITY_RATE_MAX_QUEUE`, `IMPORTOBOT_SECURITY_RATE_BACKOFF_BASE`, `IMPORTOBOT_SECURITY_RATE_BACKOFF_MAX`) to tune the security gateway rate limiter.
 

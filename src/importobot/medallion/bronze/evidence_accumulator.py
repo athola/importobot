@@ -16,7 +16,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
-from importobot.medallion.interfaces.enums import SupportedFormat
+from importobot.medallion.interfaces.enums import EvidenceSource, SupportedFormat
 from importobot.utils.logging import setup_logger
 
 from .evidence_metrics import EvidenceMetrics
@@ -49,7 +49,7 @@ REQUIRED_FIELD_FORMATS = {
 class EvidenceItem:
     """Single piece of evidence for format detection."""
 
-    source: str  # What generated this evidence (e.g., "required_key", "pattern_match")
+    source: EvidenceSource  # Evidence source type (e.g., REQUIRED_KEY, FIELD_PATTERN)
     weight: EvidenceWeight  # Strength of this evidence
     confidence: float  # How certain we are about this evidence (0.0-1.0)
     details: str = ""  # Human-readable explanation
@@ -346,7 +346,8 @@ class EvidenceAccumulator:
 
         penalty_factor = 1.0
         if any(
-            item.source == "field_pattern_mismatch" for item in profile.evidence_items
+            item.source == EvidenceSource.FIELD_PATTERN_MISMATCH
+            for item in profile.evidence_items
         ):
             penalty_factor = min(penalty_factor, PATTERN_MISMATCH_PENALTY)
         elif (
@@ -355,10 +356,10 @@ class EvidenceAccumulator:
             and total_count <= 3
         ):
             # Penalize formats that only produced generic indicators. This keeps simple
-            # “tests” payloads from being misclassified as TestRail or TestLink.
+            # "tests" payloads from being misclassified as TestRail or TestLink.
             penalty_factor = min(penalty_factor, SPARSE_EVIDENCE_PENALTY)
         elif profile.format_name in REQUIRED_FIELD_FORMATS and any(
-            item.source.endswith("_missing") for item in profile.evidence_items
+            item.source.is_missing() for item in profile.evidence_items
         ):
             # Missing required indicators should dramatically reduce confidence for the
             # structured formats that rely on them.

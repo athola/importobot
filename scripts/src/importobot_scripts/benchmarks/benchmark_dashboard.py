@@ -24,7 +24,10 @@ def _render_table(headers: Iterable[str], rows: Iterable[Iterable[str]]) -> str:
     for row in rows:
         cells = "".join(f"<td>{html.escape(str(c))}</td>" for c in row)
         body.append(f"<tr>{cells}</tr>")
-    return f"<table><thead><tr>{header_html}</tr></thead><tbody>{''.join(body)}</tbody></table>"
+    return (
+        f"<table><thead><tr>{header_html}</tr></thead><tbody>"
+        f"{''.join(body)}</tbody></table>"
+    )
 
 
 def _render_single_file_section(data: dict[str, Any]) -> str:
@@ -91,7 +94,8 @@ def _render_lazy_loading_section(data: dict[str, Any]) -> str:
         return ""
     improvement = data.get("performance_improvement_percent")
     summary = (
-        f"<p><strong>Cache effectiveness:</strong> {html.escape(data.get('cache_effectiveness', 'Unknown'))}"
+        f"<p><strong>Cache effectiveness:</strong> "
+        f"{html.escape(data.get('cache_effectiveness', 'Unknown'))}"
         f" — <em>{improvement:.2f}% speedup after warm cache</em></p>"
         if improvement is not None
         else ""
@@ -106,7 +110,15 @@ def _render_lazy_loading_section(data: dict[str, Any]) -> str:
     return f"<h2>Lazy Loading</h2>{summary}{table}"
 
 
-def render_dashboard(run_results: list[tuple[Path, dict[str, Any]]]) -> str:
+def render_dashboard(run_results: list[tuple[Path, dict[str, Any]]]) -> str:  # pylint: disable=line-too-long
+    """Render HTML dashboard from benchmark results.
+
+    Args:
+        run_results: List of (path, data) tuples containing benchmark results
+
+    Returns:
+        Complete HTML dashboard as string
+    """
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ")
     sections = [
         "<h1>Importobot Benchmark Dashboard</h1>",
@@ -119,7 +131,8 @@ def render_dashboard(run_results: list[tuple[Path, dict[str, Any]]]) -> str:
         for path, data in run_results:
             sections.append(
                 f"<section class=run><h2>Run: {html.escape(str(path))}</h2>"
-                f"<p><strong>Timestamp:</strong> {html.escape(data.get('timestamp', 'unknown'))}</p>"
+                f"<p><strong>Timestamp:</strong> "
+                f"{html.escape(data.get('timestamp', 'unknown'))}</p>"
             )
             sections.append(
                 _render_single_file_section(data.get("single_file_conversion", {}))
@@ -145,34 +158,48 @@ def render_dashboard(run_results: list[tuple[Path, dict[str, Any]]]) -> str:
             sections.append(_render_lazy_loading_section(data.get("lazy_loading", {})))
             raw_json = html.escape(json.dumps(data, indent=2))
             sections.append(
-                f"<details><summary>Raw JSON</summary><pre>{raw_json}</pre></details></section>"
+                f"<details><summary>Raw JSON</summary><pre>{raw_json}</pre>"
+                f"</details></section>"
             )
 
-    return f"""<!DOCTYPE html>
+    html_template = f"""<!DOCTYPE html>  # pylint: disable=line-too-long
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <title>Importobot Benchmark Dashboard</title>
 <style>
-body {{ font-family: Arial, sans-serif; margin: 2rem; background-color: #f8f9fa; color: #212529; }}
+body {{ font-family: Arial, sans-serif; margin: 2rem;
+        background-color: #f8f9fa; color: #212529; }}
 h1 {{ margin-top: 0; }}
 h2 {{ margin-top: 1.8rem; }}
-table {{ border-collapse: collapse; margin-top: 0.8rem; width: 100%; max-width: 960px; background: white; }}
+table {{ border-collapse: collapse; margin-top: 0.8rem; width: 100%;
+        max-width: 960px; background: white; }}
 th, td {{ border: 1px solid #dee2e6; padding: 0.5rem 0.75rem; text-align: left; }}
 th {{ background-color: #343a40; color: #fff; }}
 tr:nth-child(even) td {{ background-color: #f1f3f5; }}
-section.run {{ margin-bottom: 3rem; padding: 1.5rem; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border-radius: 8px; }}
+section.run {{ margin-bottom: 3rem; padding: 1.5rem; background: white;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08); border-radius: 8px; }}
 p.meta {{ color: #6c757d; }}
-details pre {{ background: #212529; color: #f8f9fa; padding: 1rem; overflow-x: auto; }}
+details pre {{ background: #212529; color: #f8f9fa; padding: 1rem;
+               overflow-x: auto; }}
 </style>
 </head>
 <body>
 {"".join(sections)}
 </body>
 </html>"""
+    return html_template
 
 
 def load_results(paths: list[Path]) -> list[tuple[Path, dict[str, Any]]]:
+    """Load benchmark results from JSON files.
+
+    Args:
+        paths: List of paths to JSON benchmark result files
+
+    Returns:
+        List of (path, data) tuples for successfully loaded files
+    """
     run_results: list[tuple[Path, dict[str, Any]]] = []
     for path in paths:
         if not path.exists():
@@ -187,6 +214,14 @@ def load_results(paths: list[Path]) -> list[tuple[Path, dict[str, Any]]]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Generate benchmark dashboard HTML from JSON files.
+
+    Args:
+        argv: Command line arguments
+
+    Returns:
+        Exit code (0 for success)
+    """
     parser = argparse.ArgumentParser(description="Generate benchmark dashboard")
     parser.add_argument(
         "--input",

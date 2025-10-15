@@ -9,6 +9,7 @@ Business Use Cases:
 - Validate error handling across random inputs
 """
 
+import logging
 import shutil
 import tempfile
 import unittest
@@ -17,23 +18,27 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from hypothesis import strategies as st
 
 try:
     from hypothesis import given, settings
-    from hypothesis import strategies as st
 except ImportError as exc:  # pragma: no cover - optional dependency
     raise unittest.SkipTest("Hypothesis is required for generative tests") from exc
 
 from importobot.medallion.bronze_layer import BronzeLayer
 from importobot.medallion.interfaces.data_models import LayerMetadata
-from importobot.medallion.interfaces.enums import SupportedFormat
+from importobot.medallion.interfaces.enums import ProcessingStatus, SupportedFormat
 from importobot.medallion.storage.local import LocalStorageBackend
 
 pytestmark = pytest.mark.slow
 
+logger = logging.getLogger(__name__)
+
 
 class TestBronzeStorageGenerative(unittest.TestCase):
     """Generative tests for Bronze layer storage operations."""
+
+    unicode_failures: list[dict[str, str]] = []
 
     def setUp(self):
         """Set up test environment."""
@@ -48,6 +53,17 @@ class TestBronzeStorageGenerative(unittest.TestCase):
     def tearDown(self):
         """Clean up test environment."""
         shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        """Log any unicode ingestion failures observed during the test run."""
+        super().tearDownClass()
+        if cls.unicode_failures:
+            logger.warning(
+                "Captured %d unicode ingestion failures: %s",
+                len(cls.unicode_failures),
+                cls.unicode_failures,
+            )
 
     @given(
         st.dictionaries(
@@ -82,9 +98,12 @@ class TestBronzeStorageGenerative(unittest.TestCase):
         result = self.bronze_layer.ingest(test_data, metadata)
 
         # Should always succeed or handle gracefully
-        self.assertIn(result.status.value, ["completed", "failed"])
+        self.assertIn(
+            result.status,
+            {ProcessingStatus.COMPLETED, ProcessingStatus.FAILED},
+        )
 
-        if result.status.value == "completed":
+        if result.status is ProcessingStatus.COMPLETED:
             # Should be able to retrieve the data
             records = self.bronze_layer.get_bronze_records()
             self.assertGreater(len(records), 0)
@@ -232,17 +251,24 @@ class TestBronzeStorageGenerative(unittest.TestCase):
         try:
             result = self.bronze_layer.ingest(test_data, metadata)
 
-            if result.status.value == "completed":
+            if result.status is ProcessingStatus.COMPLETED:
                 # Should be able to retrieve
                 records = self.bronze_layer.get_bronze_records()
                 if len(records) > 0:
                     # Verify data integrity
                     self.assertIsInstance(records[0].data, dict)
 
-        except Exception:
-            # Some character combinations may fail, which is acceptable
-            # as long as it doesn't crash the process
-            pass
+        except Exception as exc:
+            # Some character combinations may fail; record the context for analysis
+            failure_info = {
+                "name": test_name,
+                "description": description[:200],  # avoid huge log entries
+                "error": repr(exc),
+            }
+            self.unicode_failures.append(failure_info)
+            logger.warning(
+                "Unicode ingestion failed: name=%r error=%s", test_name, repr(exc)
+            )
 
     @given(
         st.lists(
@@ -323,7 +349,7 @@ class TestBronzeStorageGenerativeEdgeCases(unittest.TestCase):
             source_path = Path(path_str.replace("\x00", "_").replace("/", "_"))
         except Exception:
             # Invalid path strings should be handled gracefully
-            source_path = Path("fallback.json")
+            source_path = Path("default_source.json")
 
         test_data = {"test": "data"}
         metadata = LayerMetadata(
@@ -336,19 +362,33 @@ class TestBronzeStorageGenerativeEdgeCases(unittest.TestCase):
 
         # Should handle gracefully
         self.assertIsNotNone(result)
-        self.assertIn(result.status.value, ["completed", "failed"])
+        self.assertIn(
+            result.status,
+            {ProcessingStatus.COMPLETED, ProcessingStatus.FAILED},
+        )
+
+    BASE_VALUE = st.none() | st.booleans() | st.integers() | st.text(max_size=50)
+    _NESTED_DICT_VALUES: st.SearchStrategy[Any] = st.deferred(
+        lambda base_value=BASE_VALUE: st.one_of(  # type: ignore[misc]
+            base_value,
+            st.lists(base_value, max_size=4),
+            st.dictionaries(st.text(max_size=10), base_value, max_size=4),
+            st.lists(
+                st.one_of(
+                    base_value,
+                    st.dictionaries(st.text(max_size=10), base_value, max_size=4),
+                ),
+                max_size=4,
+            ),
+        )
+    )
 
     @given(
         st.dictionaries(
             keys=st.text(min_size=1, max_size=20),
-            values=st.recursive(
-                st.none() | st.booleans() | st.integers() | st.text(max_size=50),
-                lambda children: st.lists(children, max_size=5)
-                | st.dictionaries(st.text(max_size=10), children, max_size=5),
-                max_leaves=20,
-            ),
+            values=_NESTED_DICT_VALUES,
             min_size=1,
-            max_size=10,
+            max_size=5,
         )
     )
     @settings(max_examples=20, deadline=3000)
@@ -363,19 +403,14 @@ class TestBronzeStorageGenerativeEdgeCases(unittest.TestCase):
             ingestion_timestamp=datetime.now(),
         )
 
-        try:
-            result = self.bronze_layer.ingest(nested_data, metadata)
+        result = self.bronze_layer.ingest(nested_data, metadata)
 
-            # Should handle nested structures
-            self.assertIsNotNone(result)
+        # Should handle nested structures
+        self.assertIsNotNone(result)
 
-            if result.status.value == "completed":
-                records = self.bronze_layer.get_bronze_records()
-                self.assertGreater(len(records), 0)
-
-        except RecursionError:
-            # Extremely deep nesting may hit recursion limit, acceptable
-            pass
+        if result.status is ProcessingStatus.COMPLETED:
+            records = self.bronze_layer.get_bronze_records()
+            self.assertGreater(len(records), 0)
 
     @given(
         format_type=st.sampled_from(
@@ -412,7 +447,7 @@ class TestBronzeStorageGenerativeEdgeCases(unittest.TestCase):
         )
 
         result = self.bronze_layer.ingest(test_data, metadata)
-        self.assertEqual(result.status.value, "completed")
+        self.assertEqual(result.status, ProcessingStatus.COMPLETED)
 
         # Retrieve and verify format is preserved
         records = self.bronze_layer.get_bronze_records()

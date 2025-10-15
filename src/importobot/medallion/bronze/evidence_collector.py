@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, List, Tuple
 
-from importobot.medallion.interfaces.enums import SupportedFormat
+from importobot.medallion.interfaces.enums import EvidenceSource, SupportedFormat
 from importobot.utils.regex_cache import get_compiled_pattern
 
 from .context_searcher import ContextSearcher
@@ -129,7 +129,7 @@ class EvidenceCollector:
         return self._collect_field_evidence(
             all_keys,
             patterns.get("required_fields", []),
-            source="required_key",
+            source=EvidenceSource.REQUIRED_KEY,
             template="Required key '{key}' found",
         )
 
@@ -139,7 +139,7 @@ class EvidenceCollector:
         return self._collect_field_evidence(
             all_keys,
             patterns.get("optional_fields", []),
-            source="optional_key",
+            source=EvidenceSource.OPTIONAL_KEY,
             template="Optional key '{key}' found",
         )
 
@@ -149,7 +149,7 @@ class EvidenceCollector:
         return self._collect_field_evidence(
             all_keys,
             patterns.get("structure_fields", []),
-            source="structure_indicator",
+            source=EvidenceSource.STRUCTURE_INDICATOR,
             template="Structure indicator '{key}' found",
         )
 
@@ -158,7 +158,7 @@ class EvidenceCollector:
         all_keys: set,
         fields: List[Any],  # List of FieldDefinition objects
         *,
-        source: str,
+        source: EvidenceSource,
         template: str,
     ) -> List[EvidenceItem]:
         """Collect evidence using actual field definitions with proper weights.
@@ -225,7 +225,7 @@ class EvidenceCollector:
             if not matched and getattr(field, "is_required", False):
                 evidence.append(
                     EvidenceItem(
-                        source=f"{source}_missing",
+                        source=EvidenceSource.missing_variant(source),
                         weight=field.evidence_weight,
                         confidence=0.0,
                         details=f"Required key '{field.name}' missing",
@@ -276,7 +276,7 @@ class EvidenceCollector:
                     existing_item.confidence = max(existing_item.confidence, 1.0)
                 evidence_items.append(
                     EvidenceItem(
-                        source="field_pattern",
+                        source=EvidenceSource.FIELD_PATTERN,
                         weight=field.evidence_weight,
                         confidence=1.0,  # Pattern matched
                         details=f"Field pattern '{field.name}' matched",
@@ -290,7 +290,7 @@ class EvidenceCollector:
                         pass
                 evidence_items.append(
                     EvidenceItem(
-                        source="field_pattern_mismatch",
+                        source=EvidenceSource.FIELD_PATTERN_MISMATCH,
                         weight=field.evidence_weight,
                         confidence=0.0,
                         details=f"Field pattern '{field.name}' mismatch",

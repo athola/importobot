@@ -1,8 +1,8 @@
 # How to Navigate this Codebase
 
-I wrote this guide because the Importobot codebase can look complex at first glance. After watching junior engineers spin up on this project, I noticed common patterns of confusion. This is the guide I wish I'd had when I started.
+This guide breaks down the complexity of the Importobot codebase. To better acclimate on this project, it addresses common patterns of confusion. It is intended to quickstart a new engineer on development.
 
-The project uses a layered architecture. We borrowed the pandas API pattern because it works: import key classes directly, keep internal modules private, and provide an enterprise toolkit for advanced users.
+The project uses a layered architecture. We borrowed the pandas API pattern because it provides a great reference point for API exposure: import key classes directly, keep internal modules private, and provide an enterprise toolkit for advanced users.
 
 ```
 src/importobot/
@@ -18,32 +18,30 @@ src/importobot/
 
 ## The Public API
 
-Start here. 95% of users never need anything beyond what's in `__init__.py`.
+A public API is exposed for users looking to tie this into their project.
 
 ### `src/importobot/__init__.py`
 
-This file exposes the `JsonToRobotConverter` class and a few helpers. We deliberately keep the public surface small because changing APIs breaks user code. The dependency validation happens at import time - you'll get clear errors immediately if Robot Framework is missing.
+This file exposes the `JsonToRobotConverter` class and a few helpers. The public surface is kept small because changing APIs can oftentimes break user code. The dependency validation happens at import time - clear errors display immediately if Robot Framework is missing.
 
 ```python
 import importobot
 converter = importobot.JsonToRobotConverter()
 ```
 
-That's it for most use cases.
-
 ### `src/importobot/api/`
 
-The API module is for integration work. We built this after a customer needed to hook Importobot into their Jenkins pipeline and wanted programmatic access to validation and suggestions.
+The API module is for integration work. This was built to address the need to plug Importobot into a CI/CD pipeline and provide programmatic access to validation and suggestions.
 
 - `validation/` - JSON structure validation before conversion
 - `suggestions/` - Step improvement suggestions (still experimental)
 - `converters/` - Alternative conversion strategies
 
-Use this when you're building tooling, not just converting files.
+Use this when building tooling to call the script to perform analysis on test suite infrastructure.
 
 ## The Core Engine
 
-The `core/` directory contains the conversion pipeline. These modules are intentionally private - we refactor them frequently as we improve the conversion logic.
+The `core/` directory contains the conversion pipeline. These modules are intentionally private. They may be refactored as the conversion logic is improved.
 
 ### `core/engine.py`
 
@@ -53,7 +51,7 @@ The `GenericConversionEngine.convert()` method is the main pipeline. It runs thr
 2. Detect Robot Framework libraries by analyzing step patterns
 3. Generate the final Robot Framework syntax
 
-The error handling around line 64-74 is worth reading - it shows how we give users specific feedback when their JSON doesn't match expected patterns.
+The error handling around line 64-74 is worth reading - it shows how feedback is provided to users when their JSON doesn't match expected patterns.
 
 ### `core/parsers.py`
 
@@ -72,11 +70,11 @@ Each file handles a specific domain:
 - `ssh_keywords.py` - Command execution patterns
 - `database_keywords.py` - SQL query patterns
 
-The pattern matching is regex-based. If you're adding support for a new type of step, start by looking at the existing patterns in these files.
+The pattern matching is regex-based. If adding support for a new type of step, start by looking at the existing patterns in these files.
 
 ## The Medallion Architecture
 
-We adopted the medallion architecture from data lakehouse patterns because Importobot needed to handle messy, real-world data exports. The layers are internal implementation details and change frequently.
+This architecture was adopted from data lakehouse patterns because Importobot needed to handle messy, real-world data exports. The layers are internal implementation details and change frequently.
 
 **Bronze Layer:** Raw data ingestion and format detection
 **Silver Layer:** Processed and standardized data
@@ -84,11 +82,11 @@ We adopted the medallion architecture from data lakehouse patterns because Impor
 
 ### Bronze Layer Format Detection
 
-The bronze layer figures out what kind of JSON we're dealing with. This matters because customers send us exports from at least five different test management systems, each with slightly different JSON structures.
+The bronze layer figures out what kind of JSON is being dealt with. This matters because customers provide exports from at least five different test management systems, each with slightly different JSON structures.
 
 #### `bronze/format_detector.py`
 
-This runs Bayesian confidence scoring to guess the format. We chose Bayesian methods because they give us probability scores rather than binary decisions - important when dealing with ambiguous data.
+This runs Bayesian confidence scoring to guess the format. Bayesian methods are chosen because they expose probability scores rather than binary decisions - important when dealing with ambiguous data.
 
 #### `bronze/evidence_collector.py`
 
@@ -96,11 +94,11 @@ Collects signals from the JSON structure. For example, Zephyr exports usually ha
 
 #### `bronze/confidence_calculator.py`
 
-The Bayesian math lives here. We implemented proper temperature scaling after discovering that our initial implementation couldn't achieve >0.8 confidence for strong evidence - a hard requirement from our testing framework. The quadratic decay function for P(E|¬H) estimation was the result of several iterations of testing against real customer data.
+The Bayesian math is derived here. Proper temperature scaling was integrated after discovering that the initial implementation couldn't achieve >0.8 confidence for strong evidence - a business requirement from this testing framework. The quadratic decay function for P(E|¬H) estimation was the result of several iterations of testing against real customer data.
 
 #### `bronze/storage/local.py`
 
-Handles file system operations and caching. The query pagination bug we fixed here was causing issues with large test suites - it was materializing data prematurely instead of just counting matches.
+Handles file system operations and caching. A query pagination bug was fixed here from an earlier implementation due causing issues with large test suites - it was materializing data prematurely instead of just counting matches.
 
 ## Utilities and Services
 
@@ -120,11 +118,11 @@ High-level business logic coordination. Most of this is plumbing for the convers
 
 ### `cli/`
 
-Command-line interface using standard argparse patterns. The `handlers.py` file shows how we wire up CLI commands to the core conversion logic.
+Command-line interface using standard argparse patterns. The `handlers.py` file shows how CLI commands are wired to the core conversion logic.
 
 ### `exceptions.py`
 
-Custom exception types. When you see an error, check here first - the exception names usually tell you exactly what went wrong (e.g., `ValidationError` for bad input, `ConversionError` for processing failures).
+Custom exception types. When an error is received, check here first - the exception names usually describe exactly what went wrong (e.g., `ValidationError` for bad input, `ConversionError` for processing failures).
 
 ## Test Structure
 
@@ -139,7 +137,7 @@ The most useful tests to read are in `tests/unit/core/test_engine.py` (shows con
 
 ## Learning Path
 
-Based on watching new engineers join the project:
+Based on mentoring new engineers who join the project:
 
 ### Week 1: Public API
 Read `__init__.py` completely, understand `JsonToRobotConverter`, try the basic examples from Getting-Started.
@@ -171,7 +169,7 @@ Create a format file in `medallion/bronze/formats/`, add detection logic to `for
 
 **Reading the code:** Start with `core/interfaces.py` for contracts, follow the data flow from `engine.py`, and use the tests to understand intended usage.
 
-**Making changes:** Don't break public APIs, write tests first (we use TDD), ensure Bayesian confidence scores exceed 0.8 for strong evidence, and run `make test` before committing.
+**Making changes:** Don't break public APIs, write tests first (TDD is strongly encouraged), ensure Bayesian confidence scores exceed 0.8 for strong evidence, and run `make test` before committing.
 
 **Debugging:** Enable telemetry with `IMPORTOBOT_ENABLE_TELEMETRY=true` to see cache hit rates, use `importobot.api.validation` for input issues, and check confidence scores when format detection seems wrong.
 
@@ -183,4 +181,4 @@ Create a format file in `medallion/bronze/formats/`, add detection logic to `for
 
 ---
 
-I wrote this guide after watching several engineers struggle with the same parts of the codebase. The medallion architecture and Bayesian confidence scoring took time to get right - the >0.8 confidence requirement came from real testing needs. If you find parts unclear, let me know so I can improve this guide.
+This guide was written to provide a liferaft for engineers learning this codebase. The medallion architecture and Bayesian confidence scoring took time to get right - the >0.8 confidence requirement came from real testing needs. If parts are unclear, raise the flag so this guide can be improved.

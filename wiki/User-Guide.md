@@ -42,8 +42,8 @@ directly, switch to `FormatDetector` or the new
 `importobot.medallion.bronze.independent_bayesian_scorer.IndependentBayesianScorer`.
 The behaviour is covered by `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`.
 
-Security rate limiting picked up exponential backoff. Existing deployments work
-unchanged, but you can tune it with:
+Security rate limiting was improved with exponential backoff. Existing deployments work
+unchanged, but can be tuned with:
 
 ```bash
 export IMPORTOBOT_SECURITY_RATE_MAX_QUEUE=256

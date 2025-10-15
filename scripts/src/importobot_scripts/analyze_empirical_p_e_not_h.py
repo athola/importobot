@@ -9,14 +9,25 @@ Usage:
     uv run python -m importobot_scripts.analyze_empirical_p_e_not_h
 """
 
+# ruff: noqa: E402, I001 - Module level import not at top of file
+# due to Robot Framework stubbing
+# pylint: disable=C0413
 from __future__ import annotations
 
 import sys
 from typing import Any
 
-from importobot.medallion.bronze.evidence_accumulator import EvidenceAccumulator
-from importobot.medallion.bronze.format_detector import FormatDetector
-from importobot.medallion.interfaces.enums import SupportedFormat
+import numpy as np
+
+# Local/third-party imports (before first-party due to Robot Framework stubbing)
+from importobot_scripts.test_fixtures import TEST_DATA_SAMPLES  # noqa: E402
+
+# Importobot first-party imports
+from importobot.medallion.bronze.evidence_accumulator import (
+    EvidenceAccumulator,  # noqa: E402
+)
+from importobot.medallion.bronze.format_detector import FormatDetector  # noqa: E402
+from importobot.medallion.interfaces.enums import SupportedFormat  # noqa: E402
 
 
 def get_test_data_samples() -> list[tuple[dict[str, Any], SupportedFormat]]:
@@ -25,14 +36,6 @@ def get_test_data_samples() -> list[tuple[dict[str, Any], SupportedFormat]]:
     Returns:
         List of (test_data, ground_truth_format) pairs
     """
-    # Import test data
-    from tests.unit.medallion.bronze.test_format_detection_integration import (  # type: ignore[import-untyped]
-        TestFormatDetectionIntegration,
-    )
-
-    test_instance = TestFormatDetectionIntegration()
-    test_instance.setUp()
-
     samples = []
 
     # Map test data keys to their true formats
@@ -45,8 +48,8 @@ def get_test_data_samples() -> list[tuple[dict[str, Any], SupportedFormat]]:
     }
 
     for key, true_format in format_mapping.items():
-        if key in test_instance.test_data_samples:
-            samples.append((test_instance.test_data_samples[key], true_format))
+        if key in TEST_DATA_SAMPLES:
+            samples.append((TEST_DATA_SAMPLES[key], true_format))
 
     return samples
 
@@ -110,8 +113,6 @@ def analyze_p_e_not_h(
     Args:
         cross_format_evidence: Cross-format likelihood observations
     """
-    import numpy as np
-
     print("=" * 80)
     print("EMPIRICAL P(E|¬H) ANALYSIS")
     print("=" * 80)
@@ -209,7 +210,7 @@ def calculate_posterior_with_current_formula(
 
 
 def main() -> int:
-    """Main analysis routine."""
+    """Run analysis of empirical P(E|¬H) from test data."""
     print("Loading test data samples...")
     samples = get_test_data_samples()
     print(f"Loaded {len(samples)} labeled test samples")

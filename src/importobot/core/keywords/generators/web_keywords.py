@@ -73,6 +73,11 @@ class WebKeywordGenerator(BaseKeywordGenerator):
             # When we have a specific locator, prefer Click Element for flexibility
             return f"Click Element    {locator}"
 
+        if "submit" in desc_lower:
+            if any(term in desc_lower for term in ["button", "form", "login"]):
+                return "Click Button    id=submit_button"
+            return "Click Element    id=submit_button"
+
         # Fallback to original logic if no locator found
         if "login" in desc_lower and "button" in desc_lower:
             return "Click Button    id=login_button"
