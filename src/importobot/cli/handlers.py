@@ -1,6 +1,7 @@
 """CLI command handlers and processing logic."""
 
 import argparse
+import enum
 import glob
 import os
 import sys
@@ -19,57 +20,66 @@ from importobot.utils.file_operations import (
 from importobot.utils.json_utils import load_json_file
 from importobot.utils.logging import setup_logger
 
+
+class InputType(enum.Enum):
+    """Input type enumeration for CLI processing."""
+
+    FILE = "file"
+    DIRECTORY = "directory"
+    WILDCARD = "wildcard"
+    ERROR = "error"
+
+
 logger = setup_logger("importobot-cli")
 
 
-def detect_input_type(input_path: str) -> tuple[str, list[str]]:
+def detect_input_type(input_path: str) -> tuple[InputType, list[str]]:
     """Detect input type and return (type, files_list).
 
     Returns:
-        tuple: (input_type, files_list) where input_type is one of:
-               'file', 'directory', 'wildcard', 'error'
+        tuple: (input_type, files_list) where input_type is an InputType enum
     """
     # Check if it contains wildcard characters
     if any(char in input_path for char in ["*", "?", "[", "]"]):
         # Handle wildcard pattern
         matched_files = glob.glob(input_path, recursive=True)
         if not matched_files:
-            return "error", []
+            return InputType.ERROR, []
         # Filter for JSON files only
         json_files = [f for f in matched_files if f.lower().endswith(".json")]
         if not json_files:
-            return "error", []
-        return "wildcard", json_files
+            return InputType.ERROR, []
+        return InputType.WILDCARD, json_files
 
     # Check if it's a directory
     if os.path.isdir(input_path):
-        return "directory", [input_path]
+        return InputType.DIRECTORY, [input_path]
 
     # Check if it's a file
     if os.path.isfile(input_path):
-        return "file", [input_path]
+        return InputType.FILE, [input_path]
 
     # Path doesn't exist
-    return "error", []
+    return InputType.ERROR, []
 
 
-def requires_output_directory(input_type: str, files_count: int) -> bool:
+def requires_output_directory(input_type: InputType, files_count: int) -> bool:
     """Determine if the input type requires an output directory."""
-    if input_type == "directory":
+    if input_type == InputType.DIRECTORY:
         return True
-    if input_type == "wildcard" and files_count > 1:
+    if input_type == InputType.WILDCARD and files_count > 1:
         return True
     return False
 
 
 def validate_input_and_output(
-    input_type: str,
+    input_type: InputType,
     detected_files: list,
     args: argparse.Namespace,
     parser: argparse.ArgumentParser,
 ) -> None:
     """Validate input and output arguments."""
-    if input_type == "error":
+    if input_type == InputType.ERROR:
         logger.error("No matching files found for '%s'", args.input)
         sys.exit(1)
 
@@ -194,13 +204,13 @@ def apply_suggestions_single_file(args: argparse.Namespace) -> None:
 
 
 def handle_bulk_conversion_with_suggestions(
-    args: argparse.Namespace, input_type: str, detected_files: list
+    args: argparse.Namespace, input_type: InputType, detected_files: list
 ) -> None:
     """Handle conversion for directories or multiple files with suggestions warning."""
     print("Warning: --apply-suggestions only supported for single files.")
     print("Performing normal conversion instead...")
 
-    if input_type == "directory":
+    if input_type == InputType.DIRECTORY:
         convert_directory(args.input, args.output_file)
         print(f"Successfully converted directory {args.input} to {args.output_file}")
     elif len(detected_files) == 1:
@@ -223,17 +233,17 @@ def handle_positional_args(
     validate_input_and_output(input_type, detected_files, args, parser)
 
     if args.apply_suggestions:
-        if input_type == "file":
+        if input_type == InputType.FILE:
             apply_suggestions_single_file(args)
         else:
             handle_bulk_conversion_with_suggestions(args, input_type, detected_files)
     else:
         # Normal conversion
-        if input_type == "file":
+        if input_type == InputType.FILE:
             convert_single_file(args)
-        elif input_type == "directory":
+        elif input_type == InputType.DIRECTORY:
             convert_directory_handler(args)
-        elif input_type == "wildcard":
+        elif input_type == InputType.WILDCARD:
             convert_wildcard_files(args, detected_files)
 
 
@@ -283,3 +293,23 @@ def handle_directory_conversion(
 
     convert_directory(args.directory, args.output)
     print(f"Successfully converted directory {args.directory} to {args.output}")
+
+
+__all__ = [
+    "InputType",
+    "detect_input_type",
+    "requires_output_directory",
+    "validate_input_and_output",
+    "collect_suggestions",
+    "filter_suggestions",
+    "print_suggestions",
+    "display_suggestions",
+    "convert_single_file",
+    "convert_directory_handler",
+    "convert_wildcard_files",
+    "apply_suggestions_single_file",
+    "handle_bulk_conversion_with_suggestions",
+    "handle_positional_args",
+    "handle_files_conversion",
+    "handle_directory_conversion",
+]

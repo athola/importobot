@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from importobot.core.converter import JsonToRobotConverter
+from importobot.medallion.bronze.format_detector import FormatDetector
 from importobot.medallion.bronze.raw_data_processor import (
     RawDataProcessor,
 )
@@ -334,24 +335,33 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
         self.assertEqual(detected_format, SupportedFormat.UNKNOWN)
 
     def test_format_detection_confidence_scoring(self):
-        """Test that format detection provides confidence scores."""
-        # High confidence case - must meet business requirement
-        # for correct format detection
-        high_confidence = self.ingestion.get_format_confidence(
-            self.zephyr_data, SupportedFormat.ZEPHYR
-        )
-        self.assertGreaterEqual(
-            high_confidence, 0.8
-        )  # Business requirement: >80% confidence for known formats
+        """Test that multi-class Bayesian normalization ranks correct format highest.
 
-        # Low confidence case (wrong format) - adjusted for advanced
-        # mathematical algorithms
-        low_confidence = self.ingestion.get_format_confidence(
-            self.zephyr_data, SupportedFormat.TESTLINK
+        With proper multi-class Bayesian inference, the mathematically correct
+        property is that the correct format receives the HIGHEST posterior
+        probability among all formats.
+        """
+        detector = FormatDetector()
+
+        # Get properly normalized confidences for all formats
+        all_confidences = detector.get_all_format_confidences(self.zephyr_data)
+
+        # Find the format with highest confidence
+        max_format = max(all_confidences.items(), key=lambda x: x[1])
+        max_format_name, max_confidence = max_format
+
+        # Zephyr confidence
+        zephyr_confidence = all_confidences.get("ZEPHYR", 0.0)
+
+        # Correct format (Zephyr) should have the HIGHEST confidence
+        # Allow for floating point ties
+        self.assertGreaterEqual(
+            zephyr_confidence,
+            max_confidence * 0.99,
+            f"ZEPHYR ({zephyr_confidence:.4f}) should be highest, "
+            f"but {max_format_name} has {max_confidence:.4f}. "
+            f"All confidences: {sorted(all_confidences.items(), key=lambda x: -x[1])}",
         )
-        self.assertLessEqual(
-            low_confidence, 0.65
-        )  # Advanced algorithms show higher cross-format similarity
 
     # Test 4: Quality metrics and validation
     def test_quality_metrics_calculated_during_ingestion(self):

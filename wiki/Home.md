@@ -7,6 +7,7 @@ If you are new, start with Getting Started. The other pages cover the conversion
 ## Quick Navigation
 
 - [Getting Started](Getting-Started) - Installation and basic usage
+- [How to Navigate this Codebase](How-to-Navigate-this-Codebase) - Architecture and code organization guide
 - [User Guide](User-Guide) - Usage instructions
 - [Migration Guide](Migration-Guide) - Incremental adoption plan
 - [Usage Examples](Usage-Examples) - Quick CLI and API snippets
@@ -18,6 +19,7 @@ If you are new, start with Getting Started. The other pages cover the conversion
 - [Deployment Guide](Deployment-Guide) - Local, container, and CI/CD steps
 - [Security Standards](Security-Standards) - Mandatory validation and hardening checklist
 - [Architecture Decision Records](architecture/ADR-0001-medallion-architecture) - Design history
+- [Layer Interactions Diagram](architecture/Layer-Interactions) - Medallion data flow
 - [Contributing](Contributing) - Guidelines for contributors
 - [FAQ](FAQ) - Common issues and solutions
 - [Roadmap](Roadmap) - Future development plans
@@ -53,8 +55,9 @@ notes = engine.suggest_improvements(problematic_tests)
 
 ### Highlights
 - Parameter conversion now ignores comment lines, so literal placeholders and odd control characters remain visible for auditors while executable steps still gain Robot variables.
-- Test cases include both the original and normalized names, which keeps the Hypothesis invariants honest even when source data contains `\f` or `\b` characters.
-- A tiny `robot.utils` shim preloads deprecated helpers, eliminating the SeleniumLibrary warnings that used to clutter validation runs.
+- Test cases include both the original and normalized names so Hypothesis fixtures still cover edge cases like `\f` or `\b`.
+- Independent Bayesian scoring replaced the legacy weighted heuristic. Missing required indicators now apply penalties, ambiguous evidence is capped at 1.5:1, and `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py` validates the enforcement of these constraints.
+- Robot Framework dependencies now ship without the deprecated `robot.utils` helpers, so the old shim was removed and SeleniumLibrary runs warning-free.
 - Selenium integration tests switched to a deterministic dry-run path with explicit resource cleanup, removing the flaky WebDriver dependency and lingering socket warnings.
 - Cache sizing is now configurable through environment variables (`IMPORTOBOT_DETECTION_CACHE_MAX_SIZE`, `IMPORTOBOT_FILE_CACHE_MAX_MB`, etc.) so CI and production environments can tune memory usage.
 

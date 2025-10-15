@@ -6,7 +6,6 @@ enterprise integration and CI/CD pipeline integration.
 
 from __future__ import annotations
 
-# Direct imports - no circular dependency issues exist
 from importobot.utils.validation import (
     ValidationError,
     validate_json_dict,

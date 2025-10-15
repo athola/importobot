@@ -102,6 +102,7 @@ visualizations/
 # Performance benchmarks output
 scripts/performance_results/
 scripts/benchmark_output/
+performance-metrics/
 
 # Generated test data
 tests/generated/

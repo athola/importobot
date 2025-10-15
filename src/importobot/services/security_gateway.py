@@ -9,9 +9,24 @@ Implements centralized security hardening identified in the staff review:
 from __future__ import annotations
 
 import json
+import os
 import re
+import threading
+import time
+from collections import deque
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Pattern, Tuple, TypedDict, Union
+from typing import (
+    Any,
+    Deque,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Pattern,
+    Tuple,
+    TypedDict,
+    Union,
+)
 
 from importobot.services.security_types import SecurityLevel
 from importobot.services.validation_service import ValidationService
@@ -27,8 +42,15 @@ from importobot.utils.validation import (
 
 try:
     import bleach  # type: ignore[import-untyped]
-except ImportError:  # pragma: no cover - bleach is optional at runtime
+
+    _BLEACH_AVAILABLE = True
+except ImportError:  # pragma: no cover - lightweight security mode
     bleach = None  # type: ignore[assignment]
+    _BLEACH_AVAILABLE = False
+
+
+class _BleachState:
+    warned = False
 
 
 INLINE_EVENT_HANDLER_PATTERN = (
@@ -42,6 +64,75 @@ INLINE_EVENT_HANDLER_PATTERN = (
 )
 
 logger = setup_logger(__name__)
+
+
+def _int_from_env(var_name: str, default: int) -> int:
+    raw = os.getenv(var_name)
+    if raw is None:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        return default
+
+
+def _float_from_env(var_name: str, default: float) -> float:
+    raw = os.getenv(var_name)
+    if raw is None:
+        return default
+    try:
+        return float(raw)
+    except ValueError:
+        return default
+
+
+class _SecurityRateLimiter:
+    """Simple token bucket rate limiter for security-sensitive operations."""
+
+    def __init__(
+        self,
+        max_calls: int,
+        interval: float,
+        *,
+        max_queue_size: Optional[int] = None,
+        backoff_base: float = 2.0,
+        max_backoff_multiplier: float = 8.0,
+    ) -> None:
+        self._max_calls = max_calls
+        self._interval = interval
+        self._max_queue_size = max_queue_size or max_calls
+        self._backoff_base = backoff_base
+        self._max_backoff_multiplier = max_backoff_multiplier
+        self._events: Dict[str, Deque[float]] = {}
+        self._backoff_state: Dict[str, float] = {}
+        self._lock = threading.Lock()
+
+    def try_acquire(self, bucket: str) -> tuple[bool, float]:
+        """Attempt to acquire a token for the given bucket."""
+        now = time.time()
+        with self._lock:
+            event_queue = self._events.get(bucket)
+            if event_queue is None:
+                event_queue = deque(maxlen=self._max_queue_size)
+                self._events[bucket] = event_queue
+
+            while event_queue and now - event_queue[0] > self._interval:
+                event_queue.popleft()
+
+            if len(event_queue) >= self._max_calls:
+                base_retry = self._interval - (now - event_queue[0])
+                base_retry = max(base_retry, 0.0)
+                multiplier = self._backoff_state.get(bucket, 1.0)
+                retry_after = base_retry * multiplier if base_retry else self._interval
+                new_multiplier = min(
+                    multiplier * self._backoff_base, self._max_backoff_multiplier
+                )
+                self._backoff_state[bucket] = new_multiplier
+                return False, retry_after
+
+            event_queue.append(now)
+            self._backoff_state[bucket] = 1.0
+        return True, 0.0
 
 
 class SanitizationResult(TypedDict, total=False):
@@ -70,8 +161,14 @@ class FileOperationResult(TypedDict, total=False):
 class SecurityGateway:
     """Centralized security gateway for API input validation and sanitization."""
 
+    _rate_limiter: Optional[_SecurityRateLimiter]
+
     def __init__(
-        self, security_level: Union[SecurityLevel, str] = SecurityLevel.STANDARD
+        self,
+        security_level: Union[SecurityLevel, str] = SecurityLevel.STANDARD,
+        *,
+        rate_limit_max_calls: Optional[int] = None,
+        rate_limit_interval_seconds: Optional[float] = None,
     ):
         """Initialize security gateway.
 
@@ -94,9 +191,40 @@ class SecurityGateway:
         ]
         self._suspicious_patterns = self._build_suspicious_patterns()
         self._path_traversal_patterns = self._build_traversal_patterns()
+        max_calls = (
+            rate_limit_max_calls
+            if rate_limit_max_calls is not None
+            else _int_from_env("IMPORTOBOT_SECURITY_RATE_LIMIT", 120)
+        )
+        interval = (
+            rate_limit_interval_seconds
+            if rate_limit_interval_seconds is not None
+            else _float_from_env("IMPORTOBOT_SECURITY_RATE_INTERVAL_SECONDS", 60.0)
+        )
+        max_queue_size = _int_from_env("IMPORTOBOT_SECURITY_RATE_MAX_QUEUE", max_calls)
+        backoff_base = _float_from_env("IMPORTOBOT_SECURITY_RATE_BACKOFF_BASE", 2.0)
+        max_backoff_multiplier = _float_from_env(
+            "IMPORTOBOT_SECURITY_RATE_BACKOFF_MAX", 8.0
+        )
+        if max_calls and max_calls > 0 and interval > 0:
+            self._rate_limiter = _SecurityRateLimiter(
+                max_calls,
+                interval,
+                max_queue_size=max_queue_size,
+                backoff_base=backoff_base,
+                max_backoff_multiplier=max_backoff_multiplier,
+            )
+        else:
+            self._rate_limiter = None
         logger.info(
             "Initialized SecurityGateway with level=%s", self.security_level.value
         )
+
+        # NOTE: This gateway hardens XSS vectors at API boundaries. SQL injection,
+        # LDAP injection, and XXE are out of scope because this service neither
+        # executes database or directory queries nor processes XML payloads—it
+        # only receives JSON and delegates data storage to downstream layers with
+        # their own validators.
 
     @staticmethod
     def _build_dangerous_patterns() -> List[Tuple[re.Pattern[str], str]]:
@@ -182,6 +310,21 @@ class SecurityGateway:
             re.compile(r"^\.\.[\\/]"),
         ]
 
+    def _enforce_rate_limit(self, operation: str) -> None:
+        if not self._rate_limiter:
+            return
+        allowed, retry_after = self._rate_limiter.try_acquire(operation)
+        if not allowed:
+            logger.warning(
+                "Security operation '%s' rate limited (retry_in=%.2fs)",
+                operation,
+                retry_after,
+            )
+            raise SecurityError(
+                f"Security operation '{operation}' temporarily rate limited. "
+                f"Retry after {retry_after:.2f}s"
+            )
+
     def sanitize_api_input(
         self,
         data: Any,
@@ -199,6 +342,7 @@ class SecurityGateway:
         Raises:
             SecurityError: If input fails security validation
         """
+        self._enforce_rate_limit(f"sanitize_{input_type}")
         context_dict: Dict[str, Any] = dict(context or {})
         correlation_id = self._extract_correlation_id(context_dict)
         log_extra = self._build_log_extra(correlation_id)
@@ -266,6 +410,7 @@ class SecurityGateway:
         Returns:
             Validation result with security assessment
         """
+        self._enforce_rate_limit(f"file_op_{operation}")
         path_str = str(file_path)
         log_extra = self._build_log_extra(correlation_id)
         try:
@@ -362,9 +507,9 @@ class SecurityGateway:
         seen: set[str] = set()
         original = data
 
-        # Apply HTML sanitization using bleach when available, otherwise use a
-        # conservative fallback that strips markup.
-        if bleach is not None:
+        # Apply HTML sanitization using optimized bleach when available,
+        # otherwise use lightweight regex-based sanitization.
+        if _BLEACH_AVAILABLE and bleach is not None:
             sanitized_string = bleach.clean(
                 data,
                 tags=[],
@@ -372,7 +517,14 @@ class SecurityGateway:
                 protocols=[],
                 strip=True,
             )
-        else:  # pragma: no cover - bleach should be installed via project deps
+        else:  # pragma: no cover - lightweight security mode
+            if not _BleachState.warned:
+                logger.info(
+                    "Running in lightweight security mode without bleach dependency. "
+                    "Install bleach for comprehensive HTML sanitization."
+                )
+                _BleachState.warned = True
+            # Lightweight regex-based sanitization for performance
             sanitized_string = re.sub(r"<[^>]*>", "", data)
             sanitized_string = re.sub(
                 INLINE_EVENT_HANDLER_PATTERN,

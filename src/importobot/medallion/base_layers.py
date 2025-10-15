@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Optional
 
@@ -47,18 +47,53 @@ class BaseMedallionLayer(DataLayer):
             "Initialized %s layer with storage at %s", layer_name, self.storage_path
         )
 
-    def _generate_data_id(self, data: Any, metadata: LayerMetadata) -> str:
+    def _serialize_data(self, data: Any) -> str:
+        """Serialize data to a canonical JSON string for hashing operations."""
+
+        def _default(obj: Any) -> Any:
+            if isinstance(obj, (datetime, date)):
+                logger.debug(
+                    "Serializing %s via ISO-8601 in %s layer",
+                    type(obj).__name__,
+                    self.layer_name,
+                )
+                return obj.isoformat()
+            if isinstance(obj, Path):
+                logger.debug("Serializing Path '%s' in %s layer", obj, self.layer_name)
+                return str(obj)
+
+            logger.warning(
+                "Falling back to string serialization for %s in %s layer",
+                type(obj).__name__,
+                self.layer_name,
+            )
+            try:
+                return str(obj)
+            except Exception:  # pragma: no cover - extreme edge case
+                return repr(obj)
+
+        return json.dumps(data, sort_keys=True, default=_default)
+
+    def _generate_data_id(
+        self,
+        data: Any,
+        metadata: LayerMetadata,
+        *,
+        serialized_data: Optional[str] = None,
+    ) -> str:
         """Generate a unique ID for data based on content and metadata."""
-        content_str = json.dumps(data, sort_keys=True, default=str)
+        content_str = serialized_data or self._serialize_data(data)
         hash_input = (
             f"{metadata.source_path}:{content_str}:{metadata.ingestion_timestamp}"
         )
         # Use Blake2b for faster hashing on large content dumps
         return hashlib.blake2b(hash_input.encode(), digest_size=8).hexdigest()
 
-    def _calculate_data_hash(self, data: Any) -> str:
+    def _calculate_data_hash(
+        self, data: Any, *, serialized_data: Optional[str] = None
+    ) -> str:
         """Calculate hash for data integrity verification."""
-        content_str = json.dumps(data, sort_keys=True, default=str)
+        content_str = serialized_data or self._serialize_data(data)
         # Use Blake2b for faster data integrity hashing
         return hashlib.blake2b(content_str.encode()).hexdigest()
 
@@ -172,7 +207,7 @@ class BaseMedallionLayer(DataLayer):
     ) -> tuple[list, list]:
         """Apply pagination to filtered results."""
         start_idx = query.offset
-        end_idx = start_idx + query.limit if query.limit else len(records)
+        end_idx = start_idx + query.limit if query.limit is not None else len(records)
 
         return records[start_idx:end_idx], metadata[start_idx:end_idx]
 

@@ -6,13 +6,12 @@ to ensure proper functionality and TDD compliance.
 """
 
 # ruff: noqa: I001
+# pylint: disable=C0411
 
 from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
-
-from importobot.core.keyword_generator import GenericKeywordGenerator
 
 from importobot_scripts.demo_config import DemoConfig
 from importobot_scripts.demo_validation import safe_remove_file
@@ -21,6 +20,8 @@ from importobot_scripts.interactive_demo import (
     _display_business_challenge,
     _display_business_impact,
 )
+
+from importobot.core.keyword_generator import GenericKeywordGenerator
 
 
 class TestBusinessCaseHelpers:

@@ -82,6 +82,8 @@ class OptimizationService:
             else OPTIMIZATION_CACHE_TTL_SECONDS
         )
         self._ttl_seconds: Optional[int] = resolved_ttl if resolved_ttl > 0 else None
+        # TTL derives from `IMPORTOBOT_OPTIMIZATION_CACHE_TTL_SECONDS` to ensure
+        # scenarios/results expire in long-running processes.
         self._scenario_expiry: Dict[str, float] = {}
         self._result_expiry: Dict[str, float] = {}
 

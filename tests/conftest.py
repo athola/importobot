@@ -1,12 +1,84 @@
-"""pytest configuration and fixtures."""
+"""Pytest configuration and shared fixtures for Importobot test suite.
+
+This module provides common configuration and makes shared fixtures available
+across all test modules in the Importobot project. It follows pytest best
+practices for organizing test utilities and fixtures.
+"""
 
 import shutil
 import tempfile
+import time
 from pathlib import Path
+from typing import Any, Callable
 
 import pytest
 
 from importobot import telemetry
+from tests.business_requirements import BusinessRequirements
+
+# Import shared fixtures to make them available globally
+try:
+    # Import helper functions
+    from tests.fixtures.format_detection_fixtures import (
+        ConfidenceTestScenarios,
+        FormatTestDataGenerator,
+        FormatTestScenarios,
+        all_supported_formats,
+        ambiguous_examples,
+        complex_format_examples,
+        confidence_test_scenarios,
+        confidence_thresholds,
+        format_complexity_levels,
+        format_test_generator,
+        format_test_scenarios,
+        malformed_examples,
+        minimal_format_examples,
+        perfect_evidence_scenarios,
+        performance_dataset_sizes,
+        standard_format_examples,
+        validate_confidence_bounds,
+        validate_format_detection_result,
+        validate_performance_metrics,
+        weak_evidence_scenarios,
+        zero_evidence_scenarios,
+    )
+
+    # Make helper functions available at package level
+    __all__ = [
+        # Original fixtures
+        "temp_dir",
+        "sample_zephyr_json",
+        "cleanup_test_files",
+        "telemetry_events",
+        "benchmark",
+        # New fixtures
+        "format_test_generator",
+        "format_test_scenarios",
+        "confidence_test_scenarios",
+        "all_supported_formats",
+        "format_complexity_levels",
+        "minimal_format_examples",
+        "standard_format_examples",
+        "complex_format_examples",
+        "ambiguous_examples",
+        "malformed_examples",
+        "perfect_evidence_scenarios",
+        "zero_evidence_scenarios",
+        "weak_evidence_scenarios",
+        "performance_dataset_sizes",
+        "confidence_thresholds",
+        # Helper classes
+        "FormatTestDataGenerator",
+        "FormatTestScenarios",
+        "ConfidenceTestScenarios",
+        # Helper functions
+        "validate_format_detection_result",
+        "validate_confidence_bounds",
+        "validate_performance_metrics",
+    ]
+except ImportError:
+    # Fixtures module not available, skip imports
+    pass
 
 
 @pytest.fixture
@@ -86,8 +158,60 @@ def telemetry_events(monkeypatch):
 def benchmark():
     """Provide simple benchmark fixture for performance tests."""
 
-    def _benchmark(func):
-        """Run function and return its result."""
-        return func()
+    def _benchmark(func: Callable[[], Any], *, iterations: int = 1) -> dict[str, Any]:
+        """Run function and return timing/result information."""
+        start = time.perf_counter()
+        result = None
+        for _ in range(iterations):
+            result = func()
+        elapsed = (time.perf_counter() - start) / max(iterations, 1)
+        return {"elapsed": elapsed, "result": result}
 
     return _benchmark
+
+
+# Additional fixtures and configuration for enhanced testing
+@pytest.fixture(scope="session")
+def test_config():
+    """Provide test configuration values."""
+    return {
+        "timeout": 30,  # Default timeout for tests in seconds
+        "retry_count": 3,  # Number of retries for flaky tests
+        "performance_multiplier": 1.0,  # Multiplier for performance thresholds
+    }
+
+
+@pytest.fixture(autouse=True)
+def configure_timeout(request, test_config):
+    """Automatically apply timeout to all tests."""
+    # Set timeout based on test configuration
+    timeout = test_config["timeout"]
+
+    # Mark test with timeout if it doesn't already have one
+    if "timeout" not in request.node.keywords:
+        request.node.add_marker(pytest.mark.timeout(timeout))
+
+
+@pytest.fixture(scope="session")
+def business_requirements():
+    """Load business requirements for testing."""
+    br = BusinessRequirements()
+    return {
+        "format_confidence": {
+            "standard": br.MIN_FORMAT_CONFIDENCE_STANDARD,
+            "high_quality": br.MIN_FORMAT_CONFIDENCE_HIGH_QUALITY,
+            "perfect_match": br.MIN_FORMAT_CONFIDENCE_PERFECT_MATCH,
+            "generic": br.MIN_GENERIC_FORMAT_CONFIDENCE,
+        },
+        "bayesian_confidence": {
+            "strong_evidence_min": br.STRONG_EVIDENCE_MIN_CONFIDENCE,
+            "zero_evidence_max": br.ZERO_EVIDENCE_MAX_CONFIDENCE,
+            "zero_evidence_tolerance": br.ZERO_EVIDENCE_TOLERANCE,
+        },
+        "performance": {
+            "max_format_detection_time": br.MAX_FORMAT_DETECTION_TIME,
+            "max_confidence_calculation_time": br.MAX_CONFIDENCE_CALCULATION_TIME,
+            "min_bulk_processing_speedup": br.MIN_BULK_PROCESSING_SPEEDUP,
+            "max_memory_usage_large_dataset": br.MAX_MEMORY_USAGE_LARGE_DATASET,
+        },
+    }

@@ -265,9 +265,96 @@ if TYPE_CHECKING:
 engine: suggestions.GenericSuggestionEngine = ...
 ```
 
+## Confidence Scoring API
+
+Importobot provides access to its Bayesian confidence scoring system for advanced use cases:
+
+### Bayesian Configuration
+
+```python
+from importobot.medallion.bronze.independent_bayesian_scorer import BayesianConfiguration
+
+# Create custom configuration
+config = BayesianConfiguration(
+    min_evidence_not_format=0.01,      # Lower bound for P(E|¬H)
+    evidence_not_format_scale=0.49,    # Scale factor for quadratic decay
+    evidence_not_format_exponent=2.0,  # Quadratic decay exponent
+    numerical_epsilon=1e-15,           # Division by zero prevention
+)
+
+# Validate configuration
+if not config.validate():
+    raise ValueError("Invalid Bayesian configuration")
+```
+
+### Evidence Metrics
+
+```python
+from importobot.medallion.bronze.evidence_metrics import EvidenceMetrics
+
+# Create evidence metrics
+metrics = EvidenceMetrics(
+    completeness=0.8,    # Evidence coverage [0, 1]
+    quality=0.9,         # Average confidence [0, 1]
+    uniqueness=0.7,      # Normalized uniqueness [0, 1]
+    evidence_count=15,   # Total evidence items [0, ∞)
+    unique_count=8,      # Unique evidence items [0, ∞)
+    complexity_score=0.2 # Optional complexity scaling [0, 1]
+)
+```
+
+### Independent Bayesian Scoring
+
+```python
+from importobot.medallion.bronze.independent_bayesian_scorer import (
+    IndependentBayesianParameters,
+    IndependentBayesianScorer,
+)
+
+scorer = IndependentBayesianScorer(
+    parameters=IndependentBayesianParameters(),
+)
+
+likelihood = scorer.calculate_likelihood(metrics)
+posterior = scorer.calculate_posterior(
+    likelihood=likelihood,
+    format_name="TESTRAIL",
+    metrics=metrics,
+)
+
+print(f"Likelihood: {likelihood:.3f}")
+print(f"Posterior confidence: {posterior:.3f}")
+```
+
+### Parameter Customization
+
+```python
+from importobot.medallion.bronze.independent_bayesian_scorer import IndependentBayesianParameters
+
+custom_parameters = IndependentBayesianParameters(
+    quality_alpha=4.0,
+    quality_beta=1.2,
+    uniqueness_alpha=3.5,
+    uniqueness_beta=1.2,
+)
+
+if not custom_parameters.validate():
+    raise ValueError("Invalid Bayesian parameter configuration")
+```
+
+### Mathematical Constants Reference
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `min_evidence_not_format` | 0.01 | Minimum P(E|¬H) for perfect evidence |
+| `evidence_not_format_scale` | 0.49 | Scale factor for quadratic decay |
+| `evidence_not_format_exponent` | 2.0 | Decay exponent (quadratic) |
+| `numerical_epsilon` | 1e-15 | Division by zero prevention |
+
 ## Performance Considerations
 
 - **Bulk Operations**: Use `convert_directory()` for hundreds/thousands of files
 - **Memory Management**: Large files automatically handled within size limits
 - **Parallel Processing**: Directory conversion uses efficient batching
 - **Error Recovery**: Individual file failures don't stop batch processing
+- **Bayesian Calculations**: Confidence scoring is O(1) per evaluation with optional Monte Carlo sampling for uncertainty quantification

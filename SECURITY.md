@@ -57,6 +57,33 @@ Importobot processes data from external sources. Users should:
 - Regularly update to the latest version
 - Review permissions granted to imported content
 
+### Security Gateway Scope
+The `SecurityGateway` hardens API inputs against XSS and path traversal as data
+enters Importobot. It does not execute SQL, LDAP, or XML payloads, so injection
+defenses for those vectors are expected in downstream storage or directory
+services. When integrating Importobot with databases or directory services,
+continue to use parameterized queries and schema validation in those systems.
+
+- **DoS protection:** Security-sensitive operations are throttled via a token
+  bucket (`IMPORTOBOT_SECURITY_RATE_LIMIT` / `IMPORTOBOT_SECURITY_RATE_INTERVAL_SECONDS`)
+  so bursts of malicious requests surface as rate-limit errors instead of
+  exhausting CPU.
+
+#### Choosing a Security Level
+
+Importobot ships three levels that tune pattern matching, sensitive path lists,
+and validation strictness:
+
+| Level | When to use it | Highlights |
+| --- | --- | --- |
+| `strict` | Production, regulated workloads, shared environments | Blocks network/`/proc` probes, container escapes, user enumeration; widest sensitive path list; enables verbose audit logging |
+| `standard` *(default)* | CI pipelines, team development, staging | Balanced command/path blocking (rm -rf, sudo, shadow file access) without extra enterprise-only checks |
+| `permissive` | Local experiments, trusted sandboxes, demos | Eases curl/wget pipe bans and `/dev/null` redirection while keeping core filesystem guards |
+
+Pick the lowest level that satisfies policy and bump to `strict` anywhere
+untrusted input can reach the gateway. Mix levels per process by instantiating
+`SecurityGateway(security_level="…")`.
+
 ### Dependencies
 We regularly update dependencies to address known vulnerabilities:
 - Automated dependency updates via Dependabot

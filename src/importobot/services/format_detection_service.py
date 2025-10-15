@@ -48,7 +48,7 @@ class FormatDetectionService:
         Returns:
             Confidence score between 0.0 and 1.0
         """
-        # Use MVLP Bayesian confidence scoring from format detector
+        # Use Independent Bayesian confidence scoring from format detector
         return self.format_detector.get_format_confidence(data, target_format)
 
     def get_all_format_scores(

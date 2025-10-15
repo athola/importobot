@@ -292,12 +292,26 @@ class PatternMatcher:
             ),
             IntentPattern(
                 IntentType.BROWSER_NAVIGATE,
-                r"\b(?:go to|navigate to)\b.*\b(?:url|page|site)\b",
+                (
+                    r"\b(?:go to|navigate(?:\s+to)?)\b.*\b(?:url|page|site|screen|"
+                    r"login|portal|dashboard|home)\b"
+                ),
+                priority=6,
+            ),
+            IntentPattern(
+                IntentType.BROWSER_NAVIGATE,
+                (
+                    r"\bnavigate(?:\s+to)?\s+(?:login|home|dashboard|portal|"
+                    r"application|app)(?:\s+page|\s+screen)?\b"
+                ),
                 priority=6,
             ),
             IntentPattern(
                 IntentType.INPUT_USERNAME,
-                r"\b(?:enter|input|type|fill).*username\b",
+                (
+                    r"\b(?:enter|input|type|fill).*(?:username|user\s*name|email|"
+                    r"e-mail|email\s+address)\b"
+                ),
                 priority=5,
             ),
             IntentPattern(
@@ -315,6 +329,16 @@ class PatternMatcher:
                 IntentType.CLICK_ACTION,
                 r"\b(?:click|press|tap).*(?:button|element)\b",
                 priority=4,
+            ),
+            IntentPattern(
+                IntentType.CLICK_ACTION,
+                r"\bsubmit\b.*\b(?:form|button|login|request)\b",
+                priority=5,
+            ),
+            IntentPattern(
+                IntentType.CLICK_ACTION,
+                r"\b(?:click|press|tap)\b",
+                priority=3,
             ),
             # Specific patterns for builtin assertions
             IntentPattern(

@@ -3,11 +3,19 @@
 Importobot automates the conversion of test management frameworks (Atlassian Zephyr,
 JIRA/Xray, TestLink, etc.) into Robot Framework format with bulk processing capabilities
 and intelligent suggestions for ambiguous test cases.
+
+Public API:
+    - JsonToRobotConverter
+    - config
+    - exceptions
+    - api
+
+Internal:
+    - _check_dependencies
 """
 
 from __future__ import annotations
 
-import sys
 from typing import TYPE_CHECKING
 
 # Core public functionality - import without exposing modules
@@ -16,9 +24,6 @@ from importobot import api as _api
 from importobot import config as _config
 from importobot import exceptions as _exceptions
 from importobot.core.converter import JsonToRobotConverter
-from importobot.utils.robot_compat import (
-    patch_robot_legacy_utils as _patch_robot_legacy_utils,
-)
 
 
 # Dependency validation following pandas pattern
@@ -46,11 +51,8 @@ def _check_dependencies() -> None:
 
 
 _check_dependencies()
-_patch_robot_legacy_utils()
 
-# Type checking imports
-if TYPE_CHECKING:
-    pass  # Reserved for future type-only imports
+# TYPE_CHECKING block removed - no future type exports currently needed
 
 # Expose through clean interface
 config = _config
@@ -68,9 +70,9 @@ __all__ = [
     "api",
 ]
 
-__version__ = "1.0.0"
+__version__ = "0.1.2"
 
 # Clean up namespace - remove internal imports from dir()
 del _config, _exceptions, _api
-del _patch_robot_legacy_utils, sys, TYPE_CHECKING
+del TYPE_CHECKING
 del annotations  # from __future__ import

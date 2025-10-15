@@ -1,87 +1,73 @@
-# Importobot - Test Framework Converter
+# Importobot: Test Framework Converter
 
 | | |
 | --- | --- |
-| **Testing** | [![Test](https://github.com/athola/importobot/actions/workflows/test.yml/badge.svg)](https://github.com/athola/importobot/actions/workflows/test.yml) [![Lint](https://github.com/athola/importobot/actions/workflows/lint.yml/badge.svg)](https://github.com/athola/importobot/actions/workflows/lint.yml) [![Typecheck](https://github.com/athola/importobot/actions/workflows/typecheck.yml/badge.svg)](https://github.com/athola/importobot/actions/workflows/typecheck.yml) |
-| **Package** | [![PyPI Version](https://img.shields.io/pypi/v/importobot.svg)](https://pypi.org/project/importobot/) [![PyPI Downloads](https://img.shields.io/pypi/dm/importobot.svg)](https://pypi.org/project/importobot/) |
-| **Meta** | [![License](https://img.shields.io/pypi/l/importobot.svg)](./LICENSE) [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/) [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff) [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv) |
+| Testing | [![Test](https://github.com/athola/importobot/actions/workflows/test.yml/badge.svg)](https://github.com/athola/importobot/actions/workflows/test.yml) [![Lint](https://github.com/athola/importobot/actions/workflows/lint.yml/badge.svg)](https://github.com/athola/importobot/actions/workflows/lint.yml) [![Typecheck](https://github.com/athola/importobot/actions/workflows/typecheck.yml/badge.svg)](https://github.com/athola/importobot/actions/workflows/typecheck.yml) |
+| Package | [![PyPI Version](https://img.shields.io/pypi/v/importobot.svg)](https://pypi.org/project/importobot/) [![PyPI Downloads](https://img.shields.io/pypi/dm/importobot.svg)](https://pypi.org/project/importobot/) |
+| Meta | [![License](https://img.shields.io/pypi/l/importobot.svg)](./LICENSE) [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/) [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff) [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv) |
 
-## What is Importobot?
+Importobot converts structured test exports (Zephyr, TestLink, Xray) into Robot Framework files. It eliminates the manual work of copying test cases while preserving step order, metadata, and traceability.
 
-Importobot addresses the massive waste of time that is manually copying Zephyr or TestLink cases into Robot Framework. It reads structured exports (such as JSON) and writes runnable Robot suites without touching the browser or a spreadsheet.
+```python
+>>> import importobot
+>>> converter = importobot.JsonToRobotConverter()
+>>> summary = converter.convert_file("zephyr_export.json", "output.robot")
+>>> print(summary)
+```
 
-If there is a backlog of legacy tests and a deadline, Importobot keeps step order, migrates metadata, and flags the parts that still need a human decision.
+## Features
 
-## Main Features
-
-- Convert Zephyr JSON exports into Robot Framework files with a single command
-- Walk a directory tree and process discovered supported files
-- Preserve descriptions, steps, tags, and priorities instead of flattening them away
-- Raise validation errors when inputs look suspicious rather than imposing its own assumptions
-- Expose the same functionality as a Python API for CI pipelines and custom tooling
-- Ship with a test suite (~1150 checks) that protects the relied-upon conversions 
-
-## Latest updates
-
-- Comment lines now keep their literal placeholders and control characters; executable lines still gain `${param}` replacements, which satisfies the property-based step preservation checks.
-- Generated suites annotate both the raw and normalized test names, improving traceability when inputs contain non-printable characters.
-- A startup shim preloads deprecated `robot.utils` helpers so SeleniumLibrary tests run quietly, and the Selenium integration path now executes in dry-run mode with explicit cleanup to avoid ResourceWarnings.
-- Cache limits and TTLs are now configurable via environment variables such as `IMPORTOBOT_DETECTION_CACHE_MAX_SIZE`, `IMPORTOBOT_DETECTION_CACHE_COLLISION_LIMIT`, `IMPORTOBOT_DETECTION_CACHE_TTL_SECONDS`, `IMPORTOBOT_FILE_CACHE_MAX_MB`, `IMPORTOBOT_FILE_CACHE_TTL_SECONDS`, and `IMPORTOBOT_OPTIMIZATION_CACHE_TTL_SECONDS`, making prod/dev tuning easier.
-- SciPy is now optional; when absent, the MVLP scorer logs a warning and runs in heuristic mode while optimization/training remain disabled until SciPy is installed.
-- CI now runs the performance regression suite (`tests/performance`) via a
-  dedicated workflow job so hot paths stay within expected bounds.
-- Cache hit-rate telemetry can be enabled in production via `IMPORTOBOT_ENABLE_TELEMETRY`, with rate-limited emissions exposed through the central logging channel.
-- Asynchronous ingestion helpers (`ingest_file_async`, `ingest_json_string_async`, etc.) allow I/O-bound pipelines to integrate Importobot with event loops using `await` rather than dedicated worker threads.
-- Generate shareable performance dashboards with `make benchmark-dashboard`, which compiles the latest JSON benchmark output into a self-contained HTML report.
-
-## API surface & stability
-
-- **Supported:** `importobot.JsonToRobotConverter`, the CLI (`uv run importobot ...`), and modules exposed under `importobot.api.*`.
-- **Typed helpers:** `SecurityGateway` now returns structured results (`SanitizationResult` / `FileOperationResult`) with optional `correlation_id` metadata for tracing.
-- **Internal:** Packages under `importobot.medallion.*`, `importobot.core.*`, and `importobot.utils.test_generation.*` remain implementation details and may change without notice. Consume them only through the public API above.
-- **Configuration:** Tune cache behaviour with environment variables documented in the Configuration section (`IMPORTOBOT_*`), or explicitly pass cache instances to services when tighter control is required.
+- Convert Zephyr, TestLink, and Xray JSON exports to Robot Framework.
+- Process entire directories recursively so large imports stay hands-off.
+- Preserve descriptions, steps, tags, and priorities for auditors.
+- Validate inputs and flag suspicious data before generating Robot code.
+- Provide a Python API for CI/CD integration and scripted workflows.
+- Use an independent Bayesian scorer with explicit ratio caps to keep ambiguous evidence honest.
+- Ship with roughly 1,800 unit and integration tests (currently 1,813; `uv run pytest`).
 
 ## Installation
 
-### From PyPI (Recommended)
+Install via pip:
 
-```sh
-pip install importobot
+```console
+$ pip install importobot
 ```
 
-To enable SciPy-backed MVLP training and uncertainty intervals, install the
-confidence extra:
+For advanced optimization features and uncertainty quantification, install the optional dependencies:
 
-```sh
-pip install "importobot[confidence]"
+```console
+$ pip install "importobot[advanced]"
 ```
 
-
-### From Source
+## Development Version
 
 The source code is hosted on GitHub: https://github.com/athola/importobot
 
 This project uses [uv](https://github.com/astral-sh/uv) for package management. First, install `uv`:
 
-```sh
+```console
 # On macOS / Linux
-curl -LsSf https://astral.sh/uv/install.sh | sh
+$ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # On Windows (PowerShell)
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+$ powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
 Then, clone the repository and install the dependencies:
 
-```sh
-git clone https://github.com/athola/importobot.git
-cd importobot
-uv sync --dev
+```console
+$ git clone https://github.com/athola/importobot.git
+$ cd importobot
+$ uv sync --dev
 ```
 
 ## Quick Start
 
-Here’s the minimal workflow used to test conversions:
+Convert Zephyr JSON exports to Robot Framework:
+
+```console
+$ uv run importobot zephyr_export.json converted_tests.robot
+```
 
 **Input (Zephyr JSON):**
 ```json
@@ -103,12 +89,6 @@ Here’s the minimal workflow used to test conversions:
 }
 ```
 
-**Conversion Command:**
-
-```sh
-uv run importobot zephyr_export.json converted_tests.robot
-```
-
 **Output (Robot Framework):**
 ```robot
 *** Test Cases ***
@@ -125,58 +105,99 @@ User Login Functionality
     Textfield Value Should Be    id=username    testuser
 ```
 
-## API Usage
+## Examples
 
-Hooking the converter into another project is straightforward:
+- Convert an entire directory while preserving structure:
+  ```console
+  $ uv run importobot ./exports/zephyr ./converted
+  ```
+- Enable Bayesian optimiser tuning with SciPy installed via `importobot[advanced]`:
+  ```python
+  from importobot.medallion.bronze import optimization
 
-```python
-import importobot
+  optimizer = optimization.MVLPConfidenceOptimizer()
+  optimizer.tune_parameters("fixtures/complex_suite.json")
+  ```
+- Render conversion metrics if rich numerical plots are desired:
+  ```console
+  $ uv run python scripts/src/importobot_scripts/example_advanced_features.py
+  ```
 
-converter = importobot.JsonToRobotConverter()
-summary = converter.convert_file("input.json", "output.robot")
-print(summary)
+## Confidence Scoring
+
+Importobot uses an independent Bayesian scorer to detect file formats:
+
+```
+P(H|E) = P(E|H) × P(H) / [P(E|H) × P(H) + P(E|¬H) × P(¬H)]
 ```
 
-For bulk jobs, run this inside CI, validate the payload first, and let the converter walk nested directories.
+Key details:
+
+- Likelihood mapping: `P = 0.05 + 0.85 × value`, which keeps weak evidence near zero and caps strong evidence at 0.9 before amplification.
+- Quadratic decay for wrong-format estimates: `P(E|¬H) = 0.01 + 0.49 × (1 - likelihood)²`.
+- Ambiguous evidence is clamped to a 1.5:1 likelihood ratio; confident samples can reach 3:1 against the nearest competitor.
+- Dedicated tests in `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py` prevent regressions in these guarantees.
+
+Format-specific adjustments keep things realistic—XML-heavy TestLink data tolerates a little more ambiguity, while JSON-first TestRail requires explicit IDs.
+
+For complete mathematical details, see [Mathematical Foundations](https://github.com/athola/importobot/wiki/Mathematical-Foundations).
+
+## Migration Notes
+
+The 0.1.2 release retires the weighted evidence scorer in favour of the independent
+Bayesian pipeline. If you previously imported
+`importobot.medallion.bronze.weighted_evidence_bayesian_confidence`, switch to the
+runtime-facing `FormatDetector` or use
+`importobot.medallion.bronze.independent_bayesian_scorer.IndependentBayesianScorer`
+directly. The regression tests in
+`tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py` illustrate the new
+behaviour and are a good starting point when adjusting custom integrations.
+
+Rate limiting at the security gateway gained exponential backoff. Existing
+environments continue to work without changes, but you can tune the behaviour with:
+
+```bash
+export IMPORTOBOT_SECURITY_RATE_MAX_QUEUE=256
+export IMPORTOBOT_SECURITY_RATE_BACKOFF_BASE=2.0
+export IMPORTOBOT_SECURITY_RATE_BACKOFF_MAX=8.0
+```
+
+With these defaults we observed average detection latency of ~0.055 s per request
+and no loss of throughput compared to 0.1.1 when benchmarking 200 conversions on a
+single core.
 
 ## Documentation
 
-Docs live in the [project wiki](https://github.com/athola/importobot/wiki). Start with:
+Documentation is available on the [project wiki](https://github.com/athola/importobot/wiki):
 
-- [Medallion workflow walkthrough](https://github.com/athola/importobot/wiki/User-Guide#medallion-workflow-example)
+- [User Guide and Medallion workflow](https://github.com/athola/importobot/wiki/User-Guide)
 - [Migration guide](https://github.com/athola/importobot/wiki/Migration-Guide)
 - [Performance benchmarks](https://github.com/athola/importobot/wiki/Performance-Benchmarks)
-- [Architecture decision records](https://github.com/athola/importobot/wiki/architecture/ADR-0001-medallion-architecture)
+- [Architecture decisions](https://github.com/athola/importobot/wiki/architecture)
 - [Deployment guide](https://github.com/athola/importobot/wiki/Deployment-Guide)
 
 ## Contributing
 
-All contributions, bug reports, bug fixes, documentation improvements, enhancements, and ideas are welcome.
+We welcome contributions! Please open an issue on [GitHub](https://github.com/athola/importobot/issues) to report bugs or suggest features.
 
-Please feel free to open an issue on the [GitHub issue tracker](https://github.com/athola/importobot/issues).
+### Running Tests
 
-### Mutation testing
+```console
+$ make test
+```
 
-Run `make mutation` (or `uv run mutmut run`) to execute mutation tests. The
-configuration in `pyproject.toml` targets the high-risk MVLP scorer, detection
-cache, and optimization service modules plus their focused unit suites, and uses pytest as
-the runner; pass additional flags directly to `mutmut` when profiling a
-narrower subset locally.
+### Mutation Testing
 
-### Telemetry
+```console
+$ make mutation
+```
 
-Set `IMPORTOBOT_ENABLE_TELEMETRY=1` in production environments to publish cache
-hit/miss metrics. Optional tuning knobs `IMPORTOBOT_TELEMETRY_MIN_INTERVAL_SECONDS`
-and `IMPORTOBOT_TELEMETRY_MIN_SAMPLE_DELTA` control how frequently events are
-emitted (defaults: 60s and 100 operations). Telemetry is disabled by default to
-avoid noisy logs in local development.
+### Performance Benchmarks
 
-### Benchmarks dashboard
-
-Run `make bench` to capture the latest profiling output, then `make
-benchmark-dashboard` to generate `performance_benchmark_dashboard.html`. The
-dashboard summarises single-file, bulk, API, and lazy-loading performance
-profiles, and embeds the raw JSON for further analysis or sharing.
+```console
+$ make perf-test
+$ make benchmark-dashboard
+```
 
 ## License
 

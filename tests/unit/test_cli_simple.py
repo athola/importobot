@@ -10,7 +10,11 @@ from unittest.mock import patch
 import pytest
 
 from importobot.__main__ import main
-from importobot.cli.handlers import detect_input_type, requires_output_directory
+from importobot.cli.handlers import (
+    InputType,
+    detect_input_type,
+    requires_output_directory,
+)
 from importobot.cli.parser import create_parser
 
 
@@ -53,14 +57,14 @@ class TestInputDetection:
     def test_detect_input_type_error(self):
         """Test detection of non-existent files."""
         input_type, files = detect_input_type("/nonexistent/file.json")
-        assert input_type == "error"
+        assert input_type == InputType.ERROR
         assert not files
 
     def test_requires_output_directory(self):
         """Test output directory requirement logic."""
-        assert requires_output_directory("directory", 1) is True
-        assert requires_output_directory("wildcard", 2) is True
-        assert requires_output_directory("file", 1) is False
+        assert requires_output_directory(InputType.DIRECTORY, 1) is True
+        assert requires_output_directory(InputType.WILDCARD, 2) is True
+        assert requires_output_directory(InputType.FILE, 1) is False
 
 
 class TestCLIUserWorkflows:

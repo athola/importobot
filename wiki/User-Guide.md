@@ -4,15 +4,11 @@ Use this guide to refer to CLI flags, input formats, and supporting tools for Im
 
 ## Supported Input Formats
 
-### Current
-- **Zephyr JSON**
-- **Generic JSON**
-
-### Planned
-- **JIRA/Xray** (XML and JSON)
-- **TestLink** (XML)
-- **CSV**
-- **Excel**
+- **Zephyr** JSON exports
+- **JIRA/Xray** JSON
+- **TestLink** XML/JSON conversions
+- **TestRail** API payloads
+- **Generic** dictionaries for ad-hoc conversions
 
 ## Command-Line Interface
 
@@ -37,6 +33,22 @@ Helper scripts under `scripts/` can emit large sample suites for demos or benchm
 ```bash
 python scripts/generate_enterprise_tests.py
 python scripts/generate_zephyr_tests.py
+```
+
+## Migration from 0.1.1
+
+Version 0.1.2 removes the legacy `WeightedEvidenceBayesianScorer`. If you imported it
+directly, switch to `FormatDetector` or the new
+`importobot.medallion.bronze.independent_bayesian_scorer.IndependentBayesianScorer`.
+The behaviour is covered by `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`.
+
+Security rate limiting was improved with exponential backoff. Existing deployments work
+unchanged, but can be tuned with:
+
+```bash
+export IMPORTOBOT_SECURITY_RATE_MAX_QUEUE=256
+export IMPORTOBOT_SECURITY_RATE_BACKOFF_BASE=2.0
+export IMPORTOBOT_SECURITY_RATE_BACKOFF_MAX=8.0
 ```
 
 ## How It Works
@@ -175,3 +187,57 @@ else:
 ```
 
 **Internal layers (FYI only):** Bronze handles schema checks, Silver standardises data (in development), Gold prepares the Robot output. Stick to `importobot.*` and `importobot.api.*`; internal modules (`importobot.medallion.*`, `importobot.core.*`) are unsupported.
+
+## Confidence Scoring and Format Detection
+
+Importobot uses mathematically rigorous Bayesian confidence scoring to determine the most likely format of input data:
+
+### Bayesian Confidence Calculation
+
+The system calculates confidence using proper Bayesian inference:
+
+```
+P(Format|Evidence) = P(Evidence|Format) × P(Format) / P(Evidence)
+```
+
+Where:
+- **P(Format|Evidence)**: Final confidence score (posterior probability)
+- **P(Evidence|Format)**: Evidence strength given the format (likelihood)
+- **P(Format)**: Prior probability based on format prevalence
+- **P(Evidence)**: Normalization factor (marginal probability)
+
+### Evidence Metrics
+
+The system evaluates multiple evidence dimensions:
+
+| Metric | Description | Range |
+|--------|-------------|-------|
+| **Completeness** | How much required evidence is present | [0, 1] |
+| **Quality** | Average confidence of individual evidence items | [0, 1] |
+| **Uniqueness** | How distinctive the evidence is for the format | [0, 1] |
+| **Evidence Count** | Total number of evidence items found | [0, ∞] |
+| **Unique Count** | Number of unique evidence items | [0, ∞] |
+
+### Format-Specific Adjustments
+
+Different formats receive specialized treatment:
+
+- **XML formats (TestLink)**: More tolerant of structural errors
+- **JSON formats (TestRail)**: Stricter on field matching
+- **JIRA formats (Xray/Zephyr)**: Moderate tolerance with custom fields
+- **Generic formats**: Higher ambiguity factors
+
+### Confidence Thresholds
+
+- **Strong evidence (>0.9 likelihood)**: Confidence above 0.8 ✅
+- **Zero evidence**: Confidence of 0.0 (evidence of absence)
+- **Weak evidence**: Appropriately low confidence with uncertainty preserved
+
+### Advanced Features
+
+- **Uncertainty quantification** via Monte Carlo sampling (with SciPy)
+- **Cross-validation** for out-of-sample performance assessment
+- **Posterior predictive checks** for model validation
+- **Adaptive P(E|¬H)** estimation using quadratic decay
+
+For complete mathematical details, see [Mathematical Foundations](https://github.com/athola/importobot/wiki/Mathematical-Foundations).
