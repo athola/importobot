@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .enums import ProcessingStatus, SupportedFormat
 
@@ -16,7 +16,7 @@ class FormatDetectionResult:
 
     detected_format: SupportedFormat
     confidence_score: float
-    evidence_details: Dict[str, Any]
+    evidence_details: dict[str, Any]
     detection_timestamp: datetime = field(default_factory=datetime.now)
     detection_version: str = "1.0"
 
@@ -36,9 +36,9 @@ class DataLineage:
     source_id: str
     source_type: str  # "file", "api", "stream", etc.
     source_location: str
-    transformation_history: List[Dict[str, Any]] = field(default_factory=list)
-    parent_records: List[str] = field(default_factory=list)
-    child_records: List[str] = field(default_factory=list)
+    transformation_history: list[dict[str, Any]] = field(default_factory=list)
+    parent_records: list[str] = field(default_factory=list)
+    child_records: list[str] = field(default_factory=list)
     created_timestamp: datetime = field(default_factory=datetime.now)
 
     @property
@@ -50,9 +50,9 @@ class DataLineage:
         """
         return len(self.transformation_history)
 
-    def add_transformation(self, transformation: Dict[str, Any]) -> "DataLineage":
+    def add_transformation(self, transformation: dict[str, Any]) -> DataLineage:
         """Add transformation step to lineage history."""
-        new_history = self.transformation_history + [transformation]
+        new_history = [*self.transformation_history, transformation]
         return DataLineage(
             source_id=self.source_id,
             source_type=self.source_type,
@@ -71,7 +71,7 @@ class LayerMetadata:
     source_path: Path
     layer_name: str
     ingestion_timestamp: datetime
-    processing_timestamp: Optional[datetime] = None
+    processing_timestamp: datetime | None = None
     data_hash: str = ""
     version: str = "1.0"
     format_type: SupportedFormat = SupportedFormat.UNKNOWN
@@ -131,7 +131,7 @@ class ProcessingResult:
     start_timestamp: datetime
     metadata: LayerMetadata
     quality_metrics: DataQualityMetrics
-    end_timestamp: Optional[datetime] = None
+    end_timestamp: datetime | None = None
     lineage: list[LineageInfo] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
@@ -144,10 +144,10 @@ class LayerQuery:
 
     layer_name: str
     data_ids: list[str] = field(default_factory=list)
-    date_range: Optional[tuple[datetime, datetime]] = None
+    date_range: tuple[datetime, datetime] | None = None
     format_types: list[SupportedFormat] = field(default_factory=list)
     quality_threshold: float = 0.0
-    limit: Optional[int] = None
+    limit: int | None = None
     offset: int = 0
     filters: dict[str, Any] = field(default_factory=dict)
 

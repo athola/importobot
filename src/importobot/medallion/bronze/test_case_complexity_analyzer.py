@@ -14,7 +14,7 @@ Where α₁..α₄ are empirically determined weighting factors.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any
 
 from importobot.utils.logging import setup_logger
 
@@ -121,7 +121,7 @@ class TestCaseComplexityAnalyzer:
         """Initialize the complexity analyzer."""
         self.logger = setup_logger(__name__)
 
-    def analyze_complexity(self, test_data: Dict[str, Any]) -> ComplexityMetrics:
+    def analyze_complexity(self, test_data: dict[str, Any]) -> ComplexityMetrics:
         """Analyze test case complexity and return complexity metrics.
 
         Args:
@@ -157,7 +157,7 @@ class TestCaseComplexityAnalyzer:
             metrics.field_count += len(data)
 
             # Count arrays and objects
-            for _key, value in data.items():
+            for value in data.values():
                 if isinstance(value, list):
                     metrics.array_count += 1
                     metrics.step_count += len(value)  # Likely test steps
@@ -173,7 +173,7 @@ class TestCaseComplexityAnalyzer:
                 self._analyze_structure(item, metrics, depth + 1)
 
     def _analyze_evidence_diversity(
-        self, test_data: Dict[str, Any], metrics: ComplexityMetrics
+        self, test_data: dict[str, Any], metrics: ComplexityMetrics
     ) -> None:
         """Analyze evidence diversity and format-specific indicators."""
         if not isinstance(test_data, dict):
@@ -191,7 +191,7 @@ class TestCaseComplexityAnalyzer:
         # Count conditional logic elements
         metrics.conditional_logic_elements = self._count_conditional_elements(test_data)
 
-    def _count_unique_patterns(self, all_keys: List[str]) -> int:
+    def _count_unique_patterns(self, all_keys: list[str]) -> int:
         """Count unique field naming patterns."""
         patterns = set()
         for key in all_keys:
@@ -222,7 +222,7 @@ class TestCaseComplexityAnalyzer:
 
         return patterns
 
-    def _count_format_indicators(self, test_data: Dict[str, Any]) -> int:
+    def _count_format_indicators(self, test_data: dict[str, Any]) -> int:
         """Count format-specific indicators."""
         format_indicators = 0
 
@@ -241,7 +241,7 @@ class TestCaseComplexityAnalyzer:
 
         return format_indicators
 
-    def _count_conditional_elements(self, test_data: Dict[str, Any]) -> int:
+    def _count_conditional_elements(self, test_data: dict[str, Any]) -> int:
         """Count conditional logic elements."""
         conditional_patterns = ["if", "else", "when", "then", "condition", "branch"]
         text_content = str(test_data).lower()
@@ -253,7 +253,7 @@ class TestCaseComplexityAnalyzer:
         return count
 
     def _analyze_information_richness(
-        self, test_data: Dict[str, Any], metrics: ComplexityMetrics
+        self, test_data: dict[str, Any], metrics: ComplexityMetrics
     ) -> None:
         """Analyze information richness and relationships."""
         if not isinstance(test_data, dict):
@@ -276,7 +276,7 @@ class TestCaseComplexityAnalyzer:
 
         metrics.relationship_count = relationships
 
-    def _extract_all_keys(self, data: Any) -> List[str]:
+    def _extract_all_keys(self, data: Any) -> list[str]:
         """Extract all keys from nested dictionary structure."""
         keys = []
 
@@ -312,7 +312,7 @@ class TestCaseComplexityAnalyzer:
         total_amplification = base_amplification * info_amplification
         return min(total_amplification, 1.5)
 
-    def get_complexity_summary(self, test_data: Dict[str, Any]) -> Dict[str, Any]:
+    def get_complexity_summary(self, test_data: dict[str, Any]) -> dict[str, Any]:
         """Get comprehensive complexity analysis summary.
 
         Args:
@@ -360,4 +360,4 @@ class TestCaseComplexityAnalyzer:
         return "Very High"
 
 
-__all__ = ["TestCaseComplexityAnalyzer", "ComplexityMetrics"]
+__all__ = ["ComplexityMetrics", "TestCaseComplexityAnalyzer"]

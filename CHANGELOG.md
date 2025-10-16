@@ -11,11 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `EvidenceMetrics` dataclass plus additional regression coverage (`tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`, `tests/unit/medallion/bronze/test_independent_bayesian_scorer.py`) that holds the independent Bayesian scorer to the 1.5:1 ambiguity cap and validates posterior normalization.
 - Benchmark artifacts under `wiki/benchmarks/` covering format-detection accuracy, detection latency, and regex cache performance.
 - Environment flags (`IMPORTOBOT_SECURITY_RATE_MAX_QUEUE`, `IMPORTOBOT_SECURITY_RATE_BACKOFF_BASE`, `IMPORTOBOT_SECURITY_RATE_BACKOFF_MAX`) to tune the security gateway rate limiter.
+- **API Retrieval Integration** with comprehensive platform support and flexible client architecture:
+  - **Enhanced Zephyr Client** with automatic API discovery and adaptive authentication strategies
+  - **Multi-Platform Support** for Jira/Xray, Zephyr for Jira, TestRail, and TestLink APIs
+  - **Flexible Authentication** supporting Bearer tokens, API keys, Basic auth, and dual-token setups
+  - **Adaptive Pagination** with auto-detection of optimal page sizes based on server limits
+  - **Robust Payload Handling** supporting diverse endpoint response structures
+  - **Progress Feedback** with detailed reporting during large fetch operations
+  - **Environment Variable Configuration** with format-specific credential management
+  - **Container and Kubernetes Deployment** examples for production environments
+  - **Security Best Practices** documentation for API token management and monitoring
 
 ### Changed
 - Replaced the weighted evidence scorer with the independent Bayesian pipeline. Evidence penalties are now explicit constants and ambiguous data is capped at a 1.5:1 likelihood ratio.
 - Hardened the rate limiter with queue caps and exponential backoff; cleaned up the README and wiki to describe the migration path.
 - Updated documentation to explain the removal of the `robot.utils` shim and to show empirical results from the new scorer.
+- **Enhanced CLI Interface** with `--fetch-format` parameter and shared credential flags for seamless API integration
+- **Improved Documentation** across README.md, User Guide, and Deployment Guide with comprehensive API integration examples
+- **Extended Public API** with programmatic access to platform clients via `importobot.integrations.clients`
 
 ### Removed
 - Legacy `WeightedEvidenceBayesianScorer` entry points and the analysis scripts that referred to it.

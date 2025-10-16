@@ -1,9 +1,9 @@
 """Shared field extraction utilities."""
 
-from typing import Any, Dict, List
+from typing import Any
 
 
-def extract_field(data: Dict[str, Any], field_names: List[str]) -> str:
+def extract_field(data: dict[str, Any], field_names: list[str]) -> str:
     """Extract value from first matching field name.
 
     Args:
@@ -14,6 +14,6 @@ def extract_field(data: Dict[str, Any], field_names: List[str]) -> str:
         String value of first matching field, or empty string if none found
     """
     for field in field_names:
-        if field in data and data[field]:
+        if data.get(field):
             return str(data[field])
     return ""

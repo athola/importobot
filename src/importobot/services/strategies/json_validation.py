@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict
+from typing import Any
 
 from importobot.utils.validation import (
     ValidationError,
@@ -25,7 +25,7 @@ class JsonValidationStrategy:
         """
         self.max_size_mb = max_size_mb
 
-    def validate(self, data: Any, context: Dict[str, Any]) -> ValidationResult:
+    def validate(self, data: Any, context: dict[str, Any]) -> ValidationResult:
         """Validate JSON data structure and size."""
         messages = []
         severity = ValidationSeverity.INFO

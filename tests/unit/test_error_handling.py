@@ -64,7 +64,7 @@ class TestCreateEnhancedIOErrorMessage:
 
     def test_basic_io_error_message(self):
         """Test basic IO error message creation."""
-        error = IOError("Permission denied")
+        error = OSError("Permission denied")
 
         message = create_enhanced_io_error_message(error)
 
@@ -74,7 +74,7 @@ class TestCreateEnhancedIOErrorMessage:
 
     def test_io_error_with_file_path(self):
         """Test IO error message with file path."""
-        error = IOError("File not found")
+        error = OSError("File not found")
 
         message = create_enhanced_io_error_message(error, file_path="missing.txt")
 
@@ -83,7 +83,7 @@ class TestCreateEnhancedIOErrorMessage:
 
     def test_io_error_with_custom_context(self):
         """Test IO error message with custom context."""
-        error = IOError("Access denied")
+        error = OSError("Access denied")
 
         message = create_enhanced_io_error_message(error, context="file reading")
 
@@ -206,7 +206,7 @@ class TestEnhancedErrorLogger:
     def test_log_io_error(self):
         """Test logging IO error."""
         error_logger = EnhancedErrorLogger()
-        error = IOError("Permission denied")
+        error = OSError("Permission denied")
 
         with patch.object(error_logger.logger, "log") as mock_log:
             error_logger.log_io_error(error, file_path="test.txt")
@@ -357,7 +357,7 @@ class TestSafeFileOperation:
         """Test file operation that raises IO error."""
 
         def failing_operation():
-            raise IOError("Operation failed")
+            raise OSError("Operation failed")
 
         with patch("logging.getLogger") as mock_get_logger:
             mock_logger = MagicMock()

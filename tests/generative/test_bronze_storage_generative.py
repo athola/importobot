@@ -98,15 +98,12 @@ class TestBronzeStorageGenerative(unittest.TestCase):
         result = self.bronze_layer.ingest(test_data, metadata)
 
         # Should always succeed or handle gracefully
-        self.assertIn(
-            result.status,
-            {ProcessingStatus.COMPLETED, ProcessingStatus.FAILED},
-        )
+        assert result.status in {ProcessingStatus.COMPLETED, ProcessingStatus.FAILED}
 
         if result.status is ProcessingStatus.COMPLETED:
             # Should be able to retrieve the data
             records = self.bronze_layer.get_bronze_records()
-            self.assertGreater(len(records), 0)
+            assert len(records) > 0
 
     @given(st.text(min_size=1, max_size=40))
     @settings(max_examples=40, deadline=2000)
@@ -128,7 +125,7 @@ class TestBronzeStorageGenerative(unittest.TestCase):
         )
 
         ingestion_result = self.bronze_layer.ingest(test_data, metadata)
-        self.assertEqual(ingestion_result.processed_count, 1)
+        assert ingestion_result.processed_count == 1
 
         matching_records = self.bronze_layer.get_bronze_records(
             filter_criteria={"testCase.name": case_name}
@@ -137,12 +134,9 @@ class TestBronzeStorageGenerative(unittest.TestCase):
             filter_criteria={"testCase.name": f"{case_name}-different"}
         )
 
-        self.assertEqual(len(matching_records), 1)
-        self.assertEqual(
-            matching_records[0].data["testCase"]["name"],
-            case_name,
-        )
-        self.assertEqual(len(non_matching_records), 0)
+        assert len(matching_records) == 1
+        assert matching_records[0].data["testCase"]["name"] == case_name
+        assert len(non_matching_records) == 0
 
     @given(st.integers(min_value=0, max_value=1000))
     @settings(max_examples=20, deadline=5000)
@@ -174,9 +168,9 @@ class TestBronzeStorageGenerative(unittest.TestCase):
             records = bronze_layer.get_bronze_records(limit=limit)
 
             # Should never crash, should return 0 to min(limit, 10) records
-            self.assertIsInstance(records, list)
-            self.assertGreaterEqual(len(records), 0)
-            self.assertLessEqual(len(records), min(limit, 10))
+            assert isinstance(records, list)
+            assert len(records) >= 0
+            assert len(records) <= min(limit, 10)
 
     @given(
         st.lists(
@@ -220,7 +214,7 @@ class TestBronzeStorageGenerative(unittest.TestCase):
             records = bronze_layer.get_bronze_records(limit=len(test_data_list) + 10)
 
             # Should have ingested all records
-            self.assertEqual(len(records), len(test_data_list))
+            assert len(records) == len(test_data_list)
 
     @given(
         test_name=st.text(min_size=1, max_size=100, alphabet=st.characters()),
@@ -256,7 +250,7 @@ class TestBronzeStorageGenerative(unittest.TestCase):
                 records = self.bronze_layer.get_bronze_records()
                 if len(records) > 0:
                     # Verify data integrity
-                    self.assertIsInstance(records[0].data, dict)
+                    assert isinstance(records[0].data, dict)
 
         except Exception as exc:
             # Some character combinations may fail; record the context for analysis
@@ -309,7 +303,7 @@ class TestBronzeStorageGenerative(unittest.TestCase):
                 records = bronze_layer.get_bronze_records(limit=limit)
 
                 # Should return valid number of records
-                self.assertLessEqual(len(records), min(limit, 50))
+                assert len(records) <= min(limit, 50)
 
                 # Records should be consistent across queries
                 if previous_records is not None:
@@ -361,11 +355,8 @@ class TestBronzeStorageGenerativeEdgeCases(unittest.TestCase):
         result = self.bronze_layer.ingest(test_data, metadata)
 
         # Should handle gracefully
-        self.assertIsNotNone(result)
-        self.assertIn(
-            result.status,
-            {ProcessingStatus.COMPLETED, ProcessingStatus.FAILED},
-        )
+        assert result is not None
+        assert result.status in {ProcessingStatus.COMPLETED, ProcessingStatus.FAILED}
 
     BASE_VALUE = st.none() | st.booleans() | st.integers() | st.text(max_size=50)
     _NESTED_DICT_VALUES: st.SearchStrategy[Any] = st.deferred(
@@ -406,11 +397,11 @@ class TestBronzeStorageGenerativeEdgeCases(unittest.TestCase):
         result = self.bronze_layer.ingest(nested_data, metadata)
 
         # Should handle nested structures
-        self.assertIsNotNone(result)
+        assert result is not None
 
         if result.status is ProcessingStatus.COMPLETED:
             records = self.bronze_layer.get_bronze_records()
-            self.assertGreater(len(records), 0)
+            assert len(records) > 0
 
     @given(
         format_type=st.sampled_from(
@@ -447,18 +438,16 @@ class TestBronzeStorageGenerativeEdgeCases(unittest.TestCase):
         )
 
         result = self.bronze_layer.ingest(test_data, metadata)
-        self.assertEqual(result.status, ProcessingStatus.COMPLETED)
+        assert result.status == ProcessingStatus.COMPLETED
 
         # Retrieve and verify format is preserved
         records = self.bronze_layer.get_bronze_records()
-        self.assertGreater(len(records), 0)
+        assert len(records) > 0
 
         # Verify format detection information is present
         for record in records:
-            self.assertIsNotNone(record.format_detection)
-            self.assertIsInstance(
-                record.format_detection.detected_format, SupportedFormat
-            )
+            assert record.format_detection is not None
+            assert isinstance(record.format_detection.detected_format, SupportedFormat)
 
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any
 
 from importobot.utils.logging import setup_logger
 
@@ -81,7 +81,7 @@ class BayesianConfiguration:
 
         return all([min_format_ok, scale_ok, exponent_ok, epsilon_ok])
 
-    def get_p_e_not_h_params(self) -> Dict[str, float]:
+    def get_p_e_not_h_params(self) -> dict[str, float]:
         """Get P(E|¬H) parameters based on current mode."""
         if P_E_NOT_H_MODE == "learned":
             # Filter out None values from learned parameters
@@ -171,8 +171,8 @@ class IndependentBayesianScorer:
 
     def __init__(
         self,
-        format_priors: Optional[Dict[str, float]] = None,
-        parameters: Optional[IndependentBayesianParameters] = None,
+        format_priors: dict[str, float] | None = None,
+        parameters: IndependentBayesianParameters | None = None,
     ):
         """Initialize the independent Bayesian scorer.
 
@@ -255,9 +255,9 @@ class IndependentBayesianScorer:
 
     def _apply_likelihood_ratio_capping(
         self,
-        likelihoods: Dict[str, float],
+        likelihoods: dict[str, float],
         max_ratio: float = STRONG_EVIDENCE_RATIO_CAP,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Clamp low-probability formats so ratios stay within an interpretable band."""
         if not likelihoods:
             return likelihoods
@@ -339,7 +339,7 @@ class IndependentBayesianScorer:
         self,
         likelihood: float,
         format_name: str,
-        metrics: Optional[EvidenceMetrics] = None,
+        metrics: EvidenceMetrics | None = None,
     ) -> float:
         """Calculate posterior probability using proper multi-class Bayesian inference.
 
@@ -399,8 +399,8 @@ class IndependentBayesianScorer:
         return float(max(0.0, min(1.0, posterior)))
 
     def calculate_posterior_distribution(
-        self, all_metrics: Dict[str, EvidenceMetrics]
-    ) -> Dict[str, float]:
+        self, all_metrics: dict[str, EvidenceMetrics]
+    ) -> dict[str, float]:
         """Return a normalized posterior for every format with metrics.
 
         This helper is deliberately explicit: it multiplies each likelihood by the
@@ -411,7 +411,7 @@ class IndependentBayesianScorer:
         if not all_metrics:
             return {}
 
-        weighted_likelihoods: Dict[str, float] = {}
+        weighted_likelihoods: dict[str, float] = {}
         denominator = 0.0
         for format_name, metrics in all_metrics.items():
             likelihood = self.calculate_likelihood(metrics)
@@ -434,8 +434,8 @@ class IndependentBayesianScorer:
         self,
         current_likelihood: float,
         other_format: str,
-        metrics: Optional[EvidenceMetrics],
-        p_e_not_h_params: Dict[str, float],
+        metrics: EvidenceMetrics | None,
+        p_e_not_h_params: dict[str, float],
     ) -> float:
         """Estimate P(E|other_format) using P(E|¬H) approach.
 
@@ -475,7 +475,7 @@ class IndependentBayesianScorer:
         return float(max(1e-10, min(1.0, other_likelihood)))
 
     def _get_format_specific_adjustment(
-        self, format_name: str, metrics: Optional[EvidenceMetrics]
+        self, format_name: str, metrics: EvidenceMetrics | None
     ) -> float:
         """Get format-specific adjustment factor for P(E|¬H) estimation.
 
@@ -511,7 +511,7 @@ class IndependentBayesianScorer:
 
         return base_adjustment * quality_multiplier
 
-    def _calculate_evidence_strength(self, metrics: Optional[EvidenceMetrics]) -> float:
+    def _calculate_evidence_strength(self, metrics: EvidenceMetrics | None) -> float:
         """Calculate overall evidence strength for adaptive P(E|¬H) estimation.
 
         Combines multiple aspects of evidence quality:
@@ -559,9 +559,9 @@ class IndependentBayesianScorer:
 
     def apply_complexity_amplification(
         self,
-        likelihoods: Dict[str, float],
-        complexity_metrics: Dict[str, Optional["ComplexityMetrics"]],
-    ) -> Dict[str, float]:
+        likelihoods: dict[str, float],
+        complexity_metrics: dict[str, ComplexityMetrics | None],
+    ) -> dict[str, float]:
         """Apply complexity-based amplification to likelihoods.
 
         This method enhances discriminative power for complex test cases
@@ -634,8 +634,8 @@ class IndependentBayesianScorer:
         return float(max(0.0, min(1.0, discriminative_score)))
 
     def _apply_complexity_amplification_to_all(
-        self, likelihoods: Dict[str, float], all_metrics: Dict[str, EvidenceMetrics]
-    ) -> Dict[str, float]:
+        self, likelihoods: dict[str, float], all_metrics: dict[str, EvidenceMetrics]
+    ) -> dict[str, float]:
         """Apply complexity-based amplification across all formats.
 
         This method enhances discriminative power for complex test cases
@@ -679,8 +679,8 @@ class IndependentBayesianScorer:
         return enhanced_likelihoods
 
     def calculate_all_format_likelihoods(
-        self, all_metrics: Dict[str, EvidenceMetrics]
-    ) -> Dict[str, float]:
+        self, all_metrics: dict[str, EvidenceMetrics]
+    ) -> dict[str, float]:
         """Calculate likelihoods for all formats with complexity enhancement.
 
         Applies ratio capping and complexity-based amplification for enhanced
@@ -718,7 +718,7 @@ class IndependentBayesianScorer:
 
         return capped_likelihoods
 
-    def get_evidence_likelihoods(self, metrics: EvidenceMetrics) -> Dict[str, float]:
+    def get_evidence_likelihoods(self, metrics: EvidenceMetrics) -> dict[str, float]:
         """Calculate likelihoods for different evidence components.
 
         Provides transparency into how different evidence types contribute
@@ -749,7 +749,7 @@ class IndependentBayesianScorer:
 
     def calculate_confidence(
         self, metrics: EvidenceMetrics, format_name: str, use_uncertainty: bool = False
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Calculate confidence using independent Bayesian approach.
 
         This method provides compatibility with the EvidenceAccumulator interface
@@ -786,7 +786,7 @@ class IndependentBayesianScorer:
 
         return result
 
-    def get_parameter_summary(self) -> Dict[str, Any]:
+    def get_parameter_summary(self) -> dict[str, Any]:
         """Get summary of Bayesian parameters for transparency."""
         return {
             "parameters": self.parameters.__dict__,
@@ -804,8 +804,8 @@ class IndependentBayesianScorer:
 
 __all__ = [
     "BayesianConfiguration",
-    "IndependentBayesianScorer",
-    "IndependentBayesianParameters",
-    "EvidenceType",
     "EvidenceMetrics",
+    "EvidenceType",
+    "IndependentBayesianParameters",
+    "IndependentBayesianScorer",
 ]

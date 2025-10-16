@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Set
+from typing import Any
 
 
-def extract_nested_field_names(data: Dict[str, Any]) -> Set[str]:
+def extract_nested_field_names(data: dict[str, Any]) -> set[str]:
     """
     Extract all field names from a nested data structure.
 
@@ -21,18 +21,18 @@ def extract_nested_field_names(data: Dict[str, Any]) -> Set[str]:
         if isinstance(obj, dict):
             for key, value in obj.items():
                 field_names.add(key)
-                if isinstance(value, (dict, list)):
+                if isinstance(value, dict | list):
                     _traverse(value)
         elif isinstance(obj, list):
             for item in obj:
-                if isinstance(item, (dict, list)):
+                if isinstance(item, dict | list):
                     _traverse(item)
 
     _traverse(data)
     return field_names
 
 
-def extract_nested_field_data(data: Dict[str, Any]) -> Dict[str, List[Any]]:
+def extract_nested_field_data(data: dict[str, Any]) -> dict[str, list[Any]]:
     """
     Extract all field data from a nested structure for performance optimization.
 
@@ -42,7 +42,7 @@ def extract_nested_field_data(data: Dict[str, Any]) -> Dict[str, List[Any]]:
     Returns:
         Dictionary mapping field names to lists of all values found for that field
     """
-    field_data: Dict[str, List[Any]] = {}
+    field_data: dict[str, list[Any]] = {}
 
     def _traverse(obj: Any) -> None:
         if isinstance(obj, dict):
@@ -50,15 +50,15 @@ def extract_nested_field_data(data: Dict[str, Any]) -> Dict[str, List[Any]]:
                 if key not in field_data:
                     field_data[key] = []
                 field_data[key].append(value)
-                if isinstance(value, (dict, list)):
+                if isinstance(value, dict | list):
                     _traverse(value)
         elif isinstance(obj, list):
             for item in obj:
-                if isinstance(item, (dict, list)):
+                if isinstance(item, dict | list):
                     _traverse(item)
 
     _traverse(data)
     return field_data
 
 
-__all__ = ["extract_nested_field_names", "extract_nested_field_data"]
+__all__ = ["extract_nested_field_data", "extract_nested_field_names"]

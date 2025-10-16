@@ -9,8 +9,9 @@ from __future__ import annotations
 
 import math
 import random
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any
 
 
 @dataclass
@@ -54,19 +55,17 @@ class GradientDescentOptimizer:
         self.config = config or OptimizerConfig()
 
         # Optimization state
-        self.velocity: Dict[str, float] = {}
+        self.velocity: dict[str, float] = {}
         self.iteration_count = 0
-        self.convergence_history: List[float] = []
+        self.convergence_history: list[float] = []
 
     def optimize(
         self,
-        objective_function: Callable[[Dict[str, float]], float],
-        initial_parameters: Dict[str, float],
-        parameter_bounds: Optional[Dict[str, Tuple[float, float]]] = None,
-        gradient_function: Optional[
-            Callable[[Dict[str, float]], Dict[str, float]]
-        ] = None,
-    ) -> Tuple[Dict[str, float], float, Dict[str, Any]]:
+        objective_function: Callable[[dict[str, float]], float],
+        initial_parameters: dict[str, float],
+        parameter_bounds: dict[str, tuple[float, float]] | None = None,
+        gradient_function: Callable[[dict[str, float]], dict[str, float]] | None = None,
+    ) -> tuple[dict[str, float], float, dict[str, Any]]:
         """Optimize parameters using gradient descent.
 
         Args:
@@ -123,7 +122,7 @@ class GradientDescentOptimizer:
         return self._create_optimization_result(state)
 
     def _initialize_optimization_state(
-        self, initial_parameters: Dict[str, float], objective_function: Callable
+        self, initial_parameters: dict[str, float], objective_function: Callable
     ) -> Any:
         """Initialize optimization state variables."""
 
@@ -131,8 +130,8 @@ class GradientDescentOptimizer:
         class OptimizationState:
             """Optimization state tracking for gradient descent."""
 
-            parameters: Dict[str, float]
-            best_parameters: Dict[str, float]
+            parameters: dict[str, float]
+            best_parameters: dict[str, float]
             best_value: float
             learning_rate: float
             prev_gradient_norm: float
@@ -153,16 +152,16 @@ class GradientDescentOptimizer:
     def _compute_gradients(
         self,
         objective_function: Callable,
-        parameters: Dict[str, float],
-        gradient_function: Optional[Callable],
-    ) -> Dict[str, float]:
+        parameters: dict[str, float],
+        gradient_function: Callable | None,
+    ) -> dict[str, float]:
         """Compute gradients using provided function or numerical approximation."""
         if gradient_function:
             return gradient_function(parameters)  # type: ignore[no-any-return]
         return self._compute_numerical_gradients(objective_function, parameters)
 
     def _apply_regularization(
-        self, gradients: Dict[str, float], parameters: Dict[str, float]
+        self, gradients: dict[str, float], parameters: dict[str, float]
     ) -> None:
         """Apply L2 regularization to gradients."""
         for param in parameters:
@@ -172,8 +171,8 @@ class GradientDescentOptimizer:
     def _update_parameters_with_momentum(
         self,
         state: Any,
-        gradients: Dict[str, float],
-        parameter_bounds: Dict[str, Tuple[float, float]],
+        gradients: dict[str, float],
+        parameter_bounds: dict[str, tuple[float, float]],
     ) -> None:
         """Update parameters using momentum and apply bounds."""
         # Update velocity with momentum
@@ -198,7 +197,7 @@ class GradientDescentOptimizer:
 
     def _adjust_learning_rate(
         self,
-        gradients: Dict[str, float],
+        gradients: dict[str, float],
         current_learning_rate: float,
         prev_gradient_norm: float,
     ) -> float:
@@ -221,7 +220,7 @@ class GradientDescentOptimizer:
 
     def _create_optimization_result(
         self, state: Any
-    ) -> Tuple[Dict[str, float], float, Dict[str, Any]]:
+    ) -> tuple[dict[str, float], float, dict[str, Any]]:
         """Create final optimization result."""
         optimization_metadata = {
             "iterations": self.iteration_count + 1,
@@ -235,9 +234,9 @@ class GradientDescentOptimizer:
 
     def _compute_numerical_gradients(
         self,
-        objective_function: Callable[[Dict[str, float]], float],
-        parameters: Dict[str, float],
-    ) -> Dict[str, float]:
+        objective_function: Callable[[dict[str, float]], float],
+        parameters: dict[str, float],
+    ) -> dict[str, float]:
         """Compute gradients using numerical differentiation.
 
         Args:
@@ -307,14 +306,14 @@ class GeneticAlgorithmOptimizer:  # pylint: disable=too-many-positional-argument
 
         # Optimization state
         self.generation_count = 0
-        self.fitness_history: List[float] = []
+        self.fitness_history: list[float] = []
 
     def optimize(
         self,
-        fitness_function: Callable[[Dict[str, float]], float],
-        parameter_ranges: Dict[str, Tuple[float, float]],
-        initial_population: Optional[List[Dict[str, float]]] = None,
-    ) -> Tuple[Dict[str, float], float, Dict[str, Any]]:
+        fitness_function: Callable[[dict[str, float]], float],
+        parameter_ranges: dict[str, tuple[float, float]],
+        initial_population: list[dict[str, float]] | None = None,
+    ) -> tuple[dict[str, float], float, dict[str, Any]]:
         """Optimize parameters using genetic algorithm.
 
         Args:
@@ -354,9 +353,9 @@ class GeneticAlgorithmOptimizer:  # pylint: disable=too-many-positional-argument
 
     def _initialize_population(
         self,
-        parameter_ranges: Dict[str, Tuple[float, float]],
-        initial_population: Optional[List[Dict[str, float]]],
-    ) -> List[Dict[str, float]]:
+        parameter_ranges: dict[str, tuple[float, float]],
+        initial_population: list[dict[str, float]] | None,
+    ) -> list[dict[str, float]]:
         """Initialize the genetic algorithm population."""
         if initial_population:
             population = initial_population[: self.population_size]
@@ -371,26 +370,26 @@ class GeneticAlgorithmOptimizer:  # pylint: disable=too-many-positional-argument
         ]
 
     def _initialize_best_solution(
-        self, parameter_ranges: Dict[str, Tuple[float, float]]
-    ) -> Tuple[Dict[str, float], float]:
+        self, parameter_ranges: dict[str, tuple[float, float]]
+    ) -> tuple[dict[str, float], float]:
         """Initialize best solution tracking."""
         return self._generate_random_individual(parameter_ranges), float("-inf")
 
     def _evaluate_population(
         self,
-        population: List[Dict[str, float]],
-        fitness_function: Callable[[Dict[str, float]], float],
-    ) -> List[float]:
+        population: list[dict[str, float]],
+        fitness_function: Callable[[dict[str, float]], float],
+    ) -> list[float]:
         """Evaluate fitness for all individuals in population."""
         return [fitness_function(individual) for individual in population]
 
     def _update_best_solution(
         self,
-        population: List[Dict[str, float]],
-        fitness_scores: List[float],
-        current_best: Dict[str, float],
+        population: list[dict[str, float]],
+        fitness_scores: list[float],
+        current_best: dict[str, float],
         current_best_fitness: float,
-    ) -> Tuple[Dict[str, float], float]:
+    ) -> tuple[dict[str, float], float]:
         """Update best solution if a better one is found."""
         best_individual = current_best
         best_fitness = current_best_fitness
@@ -411,10 +410,10 @@ class GeneticAlgorithmOptimizer:  # pylint: disable=too-many-positional-argument
 
     def _create_next_generation(
         self,
-        population: List[Dict[str, float]],
-        fitness_scores: List[float],
-        parameter_ranges: Dict[str, Tuple[float, float]],
-    ) -> List[Dict[str, float]]:
+        population: list[dict[str, float]],
+        fitness_scores: list[float],
+        parameter_ranges: dict[str, tuple[float, float]],
+    ) -> list[dict[str, float]]:
         """Create the next generation through selection, crossover, and mutation."""
         new_population = []
 
@@ -431,8 +430,8 @@ class GeneticAlgorithmOptimizer:  # pylint: disable=too-many-positional-argument
         return new_population
 
     def _apply_elitism(
-        self, population: List[Dict[str, float]], fitness_scores: List[float]
-    ) -> List[Dict[str, float]]:
+        self, population: list[dict[str, float]], fitness_scores: list[float]
+    ) -> list[dict[str, float]]:
         """Select elite individuals for next generation."""
         elite_indices = sorted(
             range(len(fitness_scores)), key=lambda i: fitness_scores[i], reverse=True
@@ -444,10 +443,10 @@ class GeneticAlgorithmOptimizer:  # pylint: disable=too-many-positional-argument
 
     def _generate_offspring(
         self,
-        population: List[Dict[str, float]],
-        fitness_scores: List[float],
-        parameter_ranges: Dict[str, Tuple[float, float]],
-    ) -> Dict[str, float]:
+        population: list[dict[str, float]],
+        fitness_scores: list[float],
+        parameter_ranges: dict[str, tuple[float, float]],
+    ) -> dict[str, float]:
         """Generate a single offspring through selection, crossover, and mutation."""
         parent1 = self._tournament_selection(population, fitness_scores)
         parent2 = self._tournament_selection(population, fitness_scores)
@@ -465,8 +464,8 @@ class GeneticAlgorithmOptimizer:  # pylint: disable=too-many-positional-argument
         return child
 
     def _create_genetic_result(
-        self, best_individual: Dict[str, float], best_fitness: float
-    ) -> Tuple[Dict[str, float], float, Dict[str, Any]]:
+        self, best_individual: dict[str, float], best_fitness: float
+    ) -> tuple[dict[str, float], float, dict[str, Any]]:
         """Create final genetic algorithm result."""
         optimization_metadata = {
             "generations": self.generation_count + 1,
@@ -478,8 +477,8 @@ class GeneticAlgorithmOptimizer:  # pylint: disable=too-many-positional-argument
         return best_individual, best_fitness, optimization_metadata
 
     def _generate_random_individual(
-        self, parameter_ranges: Dict[str, Tuple[float, float]]
-    ) -> Dict[str, float]:
+        self, parameter_ranges: dict[str, tuple[float, float]]
+    ) -> dict[str, float]:
         """Generate a random individual within parameter ranges."""
         return {
             param: random.uniform(min_val, max_val)
@@ -487,8 +486,8 @@ class GeneticAlgorithmOptimizer:  # pylint: disable=too-many-positional-argument
         }
 
     def _tournament_selection(
-        self, population: List[Dict[str, float]], fitness_scores: List[float]
-    ) -> Dict[str, float]:
+        self, population: list[dict[str, float]], fitness_scores: list[float]
+    ) -> dict[str, float]:
         """Select individual using tournament selection."""
         tournament_indices = random.sample(
             range(len(population)), min(self.tournament_size, len(population))
@@ -500,8 +499,8 @@ class GeneticAlgorithmOptimizer:  # pylint: disable=too-many-positional-argument
         return population[winner_index].copy()
 
     def _crossover(
-        self, parent1: Dict[str, float], parent2: Dict[str, float]
-    ) -> Dict[str, float]:
+        self, parent1: dict[str, float], parent2: dict[str, float]
+    ) -> dict[str, float]:
         """Perform crossover between two parents."""
         child = {}
         for param in parent1:
@@ -514,9 +513,9 @@ class GeneticAlgorithmOptimizer:  # pylint: disable=too-many-positional-argument
 
     def _mutate(
         self,
-        individual: Dict[str, float],
-        parameter_ranges: Dict[str, Tuple[float, float]],
-    ) -> Dict[str, float]:
+        individual: dict[str, float],
+        parameter_ranges: dict[str, tuple[float, float]],
+    ) -> dict[str, float]:
         """Mutate an individual within parameter ranges."""
         mutated = individual.copy()
         for param in mutated:
@@ -530,11 +529,11 @@ class GeneticAlgorithmOptimizer:  # pylint: disable=too-many-positional-argument
 
 
 def simulated_annealing(
-    objective_function: Callable[[Dict[str, float]], float],
-    initial_parameters: Dict[str, float],
-    parameter_bounds: Optional[Dict[str, Tuple[float, float]]] = None,
+    objective_function: Callable[[dict[str, float]], float],
+    initial_parameters: dict[str, float],
+    parameter_bounds: dict[str, tuple[float, float]] | None = None,
     config: AnnealingConfig | None = None,
-) -> Tuple[Dict[str, float], float, Dict[str, Any]]:
+) -> tuple[dict[str, float], float, dict[str, Any]]:
     """Perform simulated annealing optimization algorithm.
 
     Args:

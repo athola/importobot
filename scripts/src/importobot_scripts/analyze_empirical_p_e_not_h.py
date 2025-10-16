@@ -11,7 +11,7 @@ Usage:
 
 # ruff: noqa: E402, I001 - Module level import not at top of file
 # due to Robot Framework stubbing
-# pylint: disable=C0413
+# pylint: disable=import-error
 from __future__ import annotations
 
 import sys

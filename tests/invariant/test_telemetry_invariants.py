@@ -13,7 +13,6 @@ import random
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, Set
 from unittest.mock import patch
 
 import pytest
@@ -155,7 +154,8 @@ class TestTelemetryClientInvariants:
 
         if emitted:
             hit_rate = emitted[0][1]["hit_rate"]
-            assert isinstance(hit_rate, float) and 0.0 <= hit_rate <= 1.0
+            assert isinstance(hit_rate, float)
+            assert 0.0 <= hit_rate <= 1.0
 
     @given(
         st.integers(min_value=0, max_value=10000),
@@ -190,14 +190,14 @@ class TestThreadSafetyInvariants:
 
         num_threads = 10
         exporters_per_thread = 5
-        registered_exporters: Set[int] = set()
+        registered_exporters: set[int] = set()
         lock = threading.Lock()
 
         def register_exporters():
             thread_exporters = []
             for _ in range(exporters_per_thread):
 
-                def exporter(_n: str, _p: dict[str, object]) -> None:  # noqa: ARG001
+                def exporter(_n: str, _p: dict[str, object]) -> None:
                     pass
 
                 thread_exporters.append(id(exporter))
@@ -262,7 +262,7 @@ class TestThreadSafetyInvariants:
         """Global singleton must be thread-safe during initialization."""
         reset_telemetry_client()
 
-        clients: List[int] = []
+        clients: list[int] = []
         lock = threading.Lock()
 
         def get_client():
@@ -332,11 +332,9 @@ class TestRateLimitingInvariants:
             for i in range(1, len(totals)):
                 curr = totals[i]
                 prev = totals[i - 1]
-                assert (
-                    isinstance(curr, int)
-                    and isinstance(prev, int)
-                    and curr - prev >= 50
-                )
+                assert isinstance(curr, int)
+                assert isinstance(prev, int)
+                assert curr - prev >= 50
 
     def test_time_throttling_respects_interval(self):
         """Emissions should respect minimum time interval."""
@@ -411,10 +409,14 @@ class TestMetricConsistencyInvariants:
             misses = payload["misses"]
             total = payload["total_requests"]
             hit_rate = payload["hit_rate"]
-            assert isinstance(hits, int) and hits >= 0
-            assert isinstance(misses, int) and misses >= 0
-            assert isinstance(total, int) and total == hits + misses
-            assert isinstance(hit_rate, float) and 0.0 <= hit_rate <= 1.0
+            assert isinstance(hits, int)
+            assert hits >= 0
+            assert isinstance(misses, int)
+            assert misses >= 0
+            assert isinstance(total, int)
+            assert total == hits + misses
+            assert isinstance(hit_rate, float)
+            assert 0.0 <= hit_rate <= 1.0
 
     def test_extras_never_override_core_fields(self):
         """Extra payload fields must not override core metric fields."""

@@ -104,7 +104,7 @@ dev = [
     "pytest-asyncio>=0.23.5",
     "coverage>=7.0.0",
     "ruff>=0.1.0",
-    "pylint>=2.17.0",
+
     "pycodestyle>=2.11.0",
     "pydocstyle>=6.3.0",
     "black>=23.0.0",
@@ -113,6 +113,7 @@ dev = [
     "ty",
     "types-PyYAML",
     "types-psutil>=7.0.0.20250822",
+    "types-requests>=2.32.0.20240622",
     "numpy",
     "pandas",
     "matplotlib",
@@ -164,6 +165,12 @@ select = [
     "I",    # isort
     "C",    # flake8-comprehensions
     "B",    # flake8-bugbear
+    "PL",   # Pylint codes (the equivalent rules)
+    "SIM",  # flake8-simplify
+    "UP",   # pyupgrade
+    "RUF",  # Ruff-specific rules
+    "PERF", # Performance rules
+    "PT",   # flake8-pytest-style
 ]
 extend-ignore = [
 ]
@@ -178,9 +185,7 @@ indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
 
-[tool.pylint]
-rcfile = "pylintrc"
-ignore = [".venv", ".uv-cache"]
+
 
 [tool.black]
 exclude = '''

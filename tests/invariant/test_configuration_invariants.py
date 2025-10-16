@@ -170,7 +170,7 @@ class TestConfigurationInvariants:
                 issues = config.validate()
 
                 # Validation should catch negative or zero values where inappropriate
-                field_name = list(config_data.keys())[0]
+                field_name = next(iter(config_data.keys()))
                 field_value = config_data[field_name]
 
                 if field_value <= 0:
@@ -206,18 +206,17 @@ class TestConfigurationInvariants:
                     issue for issue in issues if "backend_type" in issue.lower()
                 ]
                 assert len(backend_issues) == 0
-            else:
-                # Invalid backend types should generate validation issues
-                if backend_type not in [None, ""]:
-                    backend_issues = [
-                        issue for issue in issues if "backend_type" in issue.lower()
-                    ]
-                    # Should have at least one backend-related issue
-                    # for clearly invalid types
-                    if backend_type not in VALID_BACKEND_TYPES and isinstance(
-                        backend_type, str
-                    ):
-                        assert len(backend_issues) > 0
+            # Invalid backend types should generate validation issues
+            elif backend_type not in [None, ""]:
+                backend_issues = [
+                    issue for issue in issues if "backend_type" in issue.lower()
+                ]
+                # Should have at least one backend-related issue
+                # for clearly invalid types
+                if backend_type not in VALID_BACKEND_TYPES and isinstance(
+                    backend_type, str
+                ):
+                    assert len(backend_issues) > 0
 
         except (TypeError, AttributeError):
             # Expected for completely invalid types like integers

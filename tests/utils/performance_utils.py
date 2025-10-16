@@ -6,7 +6,6 @@ more reliable across different CI environments and machine configurations.
 
 import os
 import time
-from typing import Dict, Optional
 
 
 class SystemResources:
@@ -27,12 +26,12 @@ class SystemResources:
             # Windows or fallback
             return 0.5  # Conservative assumption
 
-    def _get_memory_info(self) -> Dict[str, float]:
+    def _get_memory_info(self) -> dict[str, float]:
         """Get basic memory information."""
         try:
             # Try to read from /proc/meminfo on Linux
             if os.path.exists("/proc/meminfo"):
-                with open("/proc/meminfo", "r", encoding="utf-8") as f:
+                with open("/proc/meminfo", encoding="utf-8") as f:
                     meminfo = f.read()
 
                 total_kb = 0
@@ -160,7 +159,7 @@ class AdaptiveThresholds:
 
 
 # Global instance for reuse
-_global_thresholds: Optional[AdaptiveThresholds] = None
+_global_thresholds: AdaptiveThresholds | None = None
 
 
 def get_adaptive_thresholds() -> AdaptiveThresholds:
@@ -176,7 +175,7 @@ def adaptive_threshold(base_threshold: float, complexity_factor: float = 1.0) ->
     return get_adaptive_thresholds().adjust_threshold(base_threshold, complexity_factor)
 
 
-def system_info() -> Dict[str, object]:
+def system_info() -> dict[str, object]:
     """Get system resource information for debugging."""
     system = SystemResources()
     return {

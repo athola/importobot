@@ -1,18 +1,26 @@
 """CLI command handlers and processing logic."""
 
+from __future__ import annotations
+
 import argparse
+import datetime as dt
 import enum
 import glob
+import json
 import os
 import sys
+from pathlib import Path
+from typing import Any
 
 from importobot import exceptions
+from importobot.config import resolve_api_ingest_config
 from importobot.core.converter import (
     convert_directory,
     convert_file,
     convert_multiple_files,
     get_conversion_suggestions,
 )
+from importobot.integrations.clients import get_api_client
 from importobot.utils.file_operations import (
     display_suggestion_changes,
     process_single_file_with_suggestions,
@@ -67,9 +75,7 @@ def requires_output_directory(input_type: InputType, files_count: int) -> bool:
     """Determine if the input type requires an output directory."""
     if input_type == InputType.DIRECTORY:
         return True
-    if input_type == InputType.WILDCARD and files_count > 1:
-        return True
-    return False
+    return bool(input_type == InputType.WILDCARD and files_count > 1)
 
 
 def validate_input_and_output(
@@ -224,6 +230,102 @@ def handle_bulk_conversion_with_suggestions(
         )
 
 
+def _build_payload_filename(config: Any) -> Path:
+    """Generate deterministic filename for downloaded payload."""
+    timestamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d-%H%M%S")
+    base_parts = [config.fetch_format.value]
+    if config.project_name:
+        base_parts.append(config.project_name.lower())
+    elif config.project_id is not None:
+        base_parts.append(str(config.project_id))
+    filename = "-".join(base_parts) + f"-{timestamp}.json"
+    return Path(config.output_dir) / filename
+
+
+def handle_api_ingest(args: argparse.Namespace) -> str:
+    """Fetch suites from a remote API and persist them to disk."""
+    config = resolve_api_ingest_config(args)
+    client = get_api_client(
+        config.fetch_format,
+        api_url=config.api_url,
+        tokens=config.tokens,
+        user=config.user,
+        project_name=config.project_name,
+        project_id=config.project_id,
+        max_concurrency=config.max_concurrency,
+    )
+
+    config.output_dir.mkdir(parents=True, exist_ok=True)
+    payload_path = _build_payload_filename(config)
+    metadata_path = payload_path.with_suffix(".meta.json")
+
+    totals = {"progress_events": 0, "items": 0}
+
+    def progress_cb(**info: Any) -> None:
+        totals["progress_events"] += 1
+        totals["items"] += int(info.get("items") or 0)
+        total_items = info.get("total")
+        if total_items:
+            logger.debug(
+                "Fetched page %s (%s/%s items)",
+                info.get("page"),
+                totals["items"],
+                total_items,
+            )
+        else:
+            logger.debug(
+                "Fetched page %s (%s items)",
+                info.get("page"),
+                totals["items"],
+            )
+
+    payloads: list[dict[str, Any]] = []
+    for chunk in client.fetch_all(progress_cb):
+        payloads.append(chunk)
+
+    page_count = len(payloads)
+
+    if not payloads:
+        logger.warning(
+            "No data returned from %s for %s",
+            config.api_url,
+            config.fetch_format.value,
+        )
+
+    with open(payload_path, "w", encoding="utf-8") as handle:
+        serialisable = payloads if len(payloads) != 1 else payloads[0]
+        json.dump(serialisable, handle, indent=2)
+
+    saved_at = dt.datetime.now(dt.timezone.utc)
+    metadata = {
+        "format": config.fetch_format.value,
+        "source": config.api_url,
+        "project": config.project_name or config.project_id,
+        "project_name": config.project_name,
+        "project_id": config.project_id,
+        "saved_at": saved_at.isoformat().replace("+00:00", "Z"),
+        "pages": page_count,
+        "items": totals["items"],
+    }
+
+    with open(metadata_path, "w", encoding="utf-8") as meta_handle:
+        json.dump(metadata, meta_handle, indent=2)
+
+    args.input = str(payload_path)
+    args.input_dir = str(config.output_dir)
+    args.fetched_payload_path = str(payload_path)
+
+    logger.info(
+        "Saved API payload to %s (pages=%s, items=%s, progress_events=%s)",
+        payload_path,
+        page_count,
+        totals["items"],
+        totals["progress_events"],
+    )
+
+    return str(payload_path)
+
+
 def handle_positional_args(
     args: argparse.Namespace, parser: argparse.ArgumentParser
 ) -> None:
@@ -237,14 +339,13 @@ def handle_positional_args(
             apply_suggestions_single_file(args)
         else:
             handle_bulk_conversion_with_suggestions(args, input_type, detected_files)
-    else:
-        # Normal conversion
-        if input_type == InputType.FILE:
-            convert_single_file(args)
-        elif input_type == InputType.DIRECTORY:
-            convert_directory_handler(args)
-        elif input_type == InputType.WILDCARD:
-            convert_wildcard_files(args, detected_files)
+    # Normal conversion
+    elif input_type == InputType.FILE:
+        convert_single_file(args)
+    elif input_type == InputType.DIRECTORY:
+        convert_directory_handler(args)
+    elif input_type == InputType.WILDCARD:
+        convert_wildcard_files(args, detected_files)
 
 
 def handle_files_conversion(
@@ -297,19 +398,20 @@ def handle_directory_conversion(
 
 __all__ = [
     "InputType",
+    "apply_suggestions_single_file",
+    "collect_suggestions",
+    "convert_directory_handler",
+    "convert_single_file",
+    "convert_wildcard_files",
     "detect_input_type",
+    "display_suggestions",
+    "filter_suggestions",
+    "handle_api_ingest",
+    "handle_bulk_conversion_with_suggestions",
+    "handle_directory_conversion",
+    "handle_files_conversion",
+    "handle_positional_args",
+    "print_suggestions",
     "requires_output_directory",
     "validate_input_and_output",
-    "collect_suggestions",
-    "filter_suggestions",
-    "print_suggestions",
-    "display_suggestions",
-    "convert_single_file",
-    "convert_directory_handler",
-    "convert_wildcard_files",
-    "apply_suggestions_single_file",
-    "handle_bulk_conversion_with_suggestions",
-    "handle_positional_args",
-    "handle_files_conversion",
-    "handle_directory_conversion",
 ]

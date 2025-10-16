@@ -105,6 +105,73 @@ User Login Functionality
     Textfield Value Should Be    id=username    testuser
 ```
 
+## API Retrieval
+
+Importobot can pull test suites directly from supported platforms before running the
+existing conversion pipeline. The enhanced Zephyr client automatically adapts to different server configurations and API response structures.
+
+- Fetch and convert in one step:
+  ```console
+  $ uv run importobot \
+      --fetch-format testrail \
+      --api-url https://testrail.example/api/v2/get_runs/42 \
+      --api-user automation@example.com \
+      --tokens api-token-value \
+      --project QA \
+      --output suite.robot
+  ```
+- Zephyr with automatic discovery:
+  ```console
+  $ uv run importobot \
+      --fetch-format zephyr \
+      --api-url https://your-zephyr.example.com \
+      --tokens your-api-token \
+      --project PROJECT_KEY \
+      --output converted.robot
+  ```
+- Fetch only (the payload is stored in the current directory unless `--input-dir`
+  is provided):
+  ```console
+  $ uv run importobot \
+      --fetch-format jira_xray \
+      --api-url https://jira.example/rest/api/2/search \
+      --tokens jira-api-token \
+      --project ENG-QA
+  Saved API payload to ./jira_xray-eng-qa-20250314-103205.json
+  ```
+- Tokens can be supplied as repeated flags (`--tokens alpha --tokens beta`) or as a
+  comma-separated list (`--tokens alpha,beta`).
+- `--project` accepts either a human-readable project name (e.g., `QA`) or a numeric
+  project ID (e.g., `12345`); Importobot automatically detects which form you provided.
+
+### Zephyr Client Features
+
+The enhanced Zephyr client provides:
+- **Automatic API Discovery**: Tries multiple endpoint patterns (`direct_search`, `two_stage_fetch`, `alternative`) to find working configurations
+- **Authentication Flexibility**: Supports Bearer tokens, API keys, Basic auth, and dual-token setups
+- **Adaptive Pagination**: Auto-detects optimal page sizes (100, 200, 250, 500) based on server limits
+- **Robust Payload Handling**: Handles diverse Zephyr response structures without manual configuration
+- **Progress Feedback**: Detailed progress reporting during large fetch operations
+
+Environment variables mirror the CLI flags and are prefixed with the target format.
+CLI arguments always take precedence:
+
+| Format | API URL | Tokens | User | Project |
+| --- | --- | --- | --- | --- |
+| Jira/Xray | `IMPORTOBOT_JIRA_XRAY_API_URL` | `IMPORTOBOT_JIRA_XRAY_TOKENS` | `IMPORTOBOT_JIRA_XRAY_API_USER` | `IMPORTOBOT_JIRA_XRAY_PROJECT` |
+| Zephyr for Jira | `IMPORTOBOT_ZEPHYR_API_URL` | `IMPORTOBOT_ZEPHYR_TOKENS` | `IMPORTOBOT_ZEPHYR_API_USER` | `IMPORTOBOT_ZEPHYR_PROJECT` |
+| TestRail | `IMPORTOBOT_TESTRAIL_API_URL` | `IMPORTOBOT_TESTRAIL_TOKENS` | `IMPORTOBOT_TESTRAIL_API_USER` | `IMPORTOBOT_TESTRAIL_PROJECT` |
+| TestLink | `IMPORTOBOT_TESTLINK_API_URL` | `IMPORTOBOT_TESTLINK_TOKENS` | `IMPORTOBOT_TESTLINK_API_USER` | `IMPORTOBOT_TESTLINK_PROJECT` |
+
+Shared settings:
+
+- `IMPORTOBOT_API_INPUT_DIR` – default directory for downloaded payloads.
+- `IMPORTOBOT_API_MAX_CONCURRENCY` – experimental limit for concurrent requests.
+
+All fetched payloads are stored verbatim alongside a small `.meta.json` file that
+records the total pages, items, and source URL. Secrets are masked in logs and error
+messages, so tokens never appear in stdout/stderr output.
+
 ## Examples
 
 - Convert an entire directory while preserving structure:
@@ -173,7 +240,7 @@ Documentation is available on the [project wiki](https://github.com/athola/impor
 - [User Guide and Medallion workflow](https://github.com/athola/importobot/wiki/User-Guide)
 - [Migration guide](https://github.com/athola/importobot/wiki/Migration-Guide)
 - [Performance benchmarks](https://github.com/athola/importobot/wiki/Performance-Benchmarks)
-- [Architecture decisions](https://github.com/athola/importobot/wiki/architecture)
+- [Architecture decisions](https://github.com/athola/importobot/wiki/architecture/ADR-0001-medallion-architecture)
 - [Deployment guide](https://github.com/athola/importobot/wiki/Deployment-Guide)
 
 ## Contributing

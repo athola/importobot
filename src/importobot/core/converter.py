@@ -9,7 +9,7 @@ Works with Zephyr exports and pretty much any similar JSON structure you throw a
 import json
 import os
 from pathlib import Path
-from typing import Any, Union
+from typing import Any
 
 from importobot import exceptions
 from importobot.core.engine import GenericConversionEngine
@@ -58,7 +58,7 @@ class JsonToRobotConverter:
         except Exception as e:
             logger.exception("Error during conversion")
             raise exceptions.ConversionError(
-                f"Failed to convert JSON to Robot Framework: {str(e)}"
+                f"Failed to convert JSON to Robot Framework: {e!s}"
             ) from e
 
     def convert_json_data(self, json_data: dict[str, Any]) -> str:
@@ -70,7 +70,7 @@ class JsonToRobotConverter:
         except Exception as e:
             logger.exception("Error during conversion")
             raise exceptions.ConversionError(
-                f"Failed to convert JSON to Robot Framework: {str(e)}"
+                f"Failed to convert JSON to Robot Framework: {e!s}"
             ) from e
 
     def convert_file(self, input_file: str, output_file: str) -> dict[str, Any]:
@@ -110,8 +110,8 @@ def get_conversion_suggestions(json_data: dict[str, Any]) -> list[str]:
 
 
 def apply_conversion_suggestions(
-    json_data: Union[dict[str, Any], list[Any]],
-) -> tuple[Union[dict[str, Any], list[Any]], list[dict[str, Any]]]:
+    json_data: dict[str, Any] | list[Any],
+) -> tuple[dict[str, Any] | list[Any], list[dict[str, Any]]]:
     """Apply automatic improvements to JSON test data for Robot Framework conversion."""
     suggestion_engine = GenericSuggestionEngine()
     try:
@@ -122,8 +122,8 @@ def apply_conversion_suggestions(
 
 
 def apply_conversion_suggestions_simple(
-    json_data: Union[dict[str, Any], list[Any]],
-) -> Union[dict[str, Any], list[Any]]:
+    json_data: dict[str, Any] | list[Any],
+) -> dict[str, Any] | list[Any]:
     """Apply improvements to JSON test data, returning only the improved data."""
     improved_data, _ = apply_conversion_suggestions(json_data)
     return improved_data
@@ -169,7 +169,7 @@ def convert_multiple_files(input_files: list[str], output_dir: str) -> None:
     except Exception as e:
         logger.exception("Error creating output directory")
         raise exceptions.FileAccessError(
-            f"Could not create output directory: {str(e)}"
+            f"Could not create output directory: {e!s}"
         ) from e
 
     for input_file in input_files:
@@ -183,7 +183,7 @@ def convert_multiple_files(input_files: list[str], output_dir: str) -> None:
         except Exception as e:
             logger.exception("Error converting file %s", input_file)
             raise exceptions.ConversionError(
-                f"Failed to convert file {input_file}: {str(e)}"
+                f"Failed to convert file {input_file}: {e!s}"
             ) from e
 
 
@@ -197,9 +197,7 @@ def convert_directory(input_dir: str, output_dir: str) -> None:
         raise
     except Exception as e:
         logger.exception("Error validating directory arguments")
-        raise exceptions.ValidationError(
-            f"Invalid directory arguments: {str(e)}"
-        ) from e
+        raise exceptions.ValidationError(f"Invalid directory arguments: {e!s}") from e
 
     if not json_files:
         raise exceptions.ValidationError(
@@ -213,9 +211,7 @@ def convert_directory(input_dir: str, output_dir: str) -> None:
         raise
     except Exception as e:
         logger.exception("Error converting directory")
-        raise exceptions.ConversionError(
-            f"Failed to convert directory: {str(e)}"
-        ) from e
+        raise exceptions.ConversionError(f"Failed to convert directory: {e!s}") from e
 
 
 def _validate_directory_args(input_dir: str, output_dir: str) -> None:

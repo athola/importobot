@@ -110,7 +110,7 @@ class GenericConversionEngine(ConversionEngine):
             return f"Documentation    {sanitize_robot_string(value)}"
 
         # Check summary field as well
-        if "summary" in data and data["summary"]:
+        if data.get("summary"):
             return f"Documentation    {sanitize_robot_string(data['summary'])}"
 
         # Default documentation when none found
@@ -128,7 +128,7 @@ class GenericConversionEngine(ConversionEngine):
                             tags.extend([str(t) for t in value])
                         elif value:
                             tags.append(str(value))
-                    elif isinstance(value, (dict, list)):
+                    elif isinstance(value, dict | list):
                         find_tags(value)
             elif isinstance(obj, list):
                 for item in obj:

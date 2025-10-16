@@ -14,7 +14,7 @@ help:
 	@echo "  test         - Run tests (~2 minutes)"
 	@echo "  coverage     - Run tests with coverage"
 	@echo "  lint         - Run all linting checks (~2 minutes)"
-	@echo "  lint-fast    - Run fast linting (skip pylint, ~10 seconds)"
+
 	@echo "  format       - Format code"
 	@echo "  typecheck    - Run type checking (~5 seconds)"
 	@echo "  validate     - Validate PR readiness (~5 minutes total)"
@@ -83,26 +83,11 @@ coverage:
 	$(info $(NEWLINE)==================== Running tests with coverage ====================$(NEWLINE))
 	uv run coverage run -m pytest && uv run coverage report
 
-# Linting (full suite, ~2 minutes total)
-# Breakdown: ruff <1s, pylint ~95s, pycodestyle ~4s, pydocstyle ~3s
+# Linting
 .PHONY: lint
 lint:
 	$(info $(NEWLINE)==================== Running linting ====================$(NEWLINE))
 	@echo "→ Running ruff (fast)..."
-	@uv run ruff check .
-	@echo "→ Running pylint (this may take 90-120 seconds)..."
-	@uv run pylint .
-	@echo "→ Running pycodestyle..."
-	@uv run pycodestyle .
-	@echo "→ Running pydocstyle..."
-	@uv run pydocstyle .
-
-# Fast linting (skips pylint, ~10 seconds total)
-# Use for quick checks before committing
-.PHONY: lint-fast
-lint-fast:
-	$(info $(NEWLINE)==================== Running fast linting (no pylint) ====================$(NEWLINE))
-	@echo "→ Running ruff..."
 	@uv run ruff check .
 	@echo "→ Running pycodestyle..."
 	@uv run pycodestyle .
@@ -190,13 +175,49 @@ example-login:
 
 .PHONY: example-suggestions
 example-suggestions:
-	$(info $(NEWLINE)==================== Running hash file example with suggestions ====================$(NEWLINE))
+	$(info $(NEWLINE)==================== Running suggestions showcase examples ====================$(NEWLINE))
+	@printf '---- hash_file suggestions ----\n'
 	@cat examples/json/hash_file.json
 	uv run importobot examples/json/hash_file.json examples/robot/hash_example.robot
 	@cat examples/robot/hash_example.robot
 	uv run importobot --apply-suggestions examples/json/hash_file.json examples/robot/hash_applied.robot
 	@cat examples/robot/hash_applied.robot
 	uv run robot --dryrun examples/robot/hash_applied.robot
+	@printf '\n---- cat_small_file suggestions ----\n'
+	@cat examples/json/cat_small_file.json
+	uv run importobot examples/json/cat_small_file.json examples/robot/cat_small_file_example.robot
+	@cat examples/robot/cat_small_file_example.robot
+	uv run importobot --apply-suggestions examples/json/cat_small_file.json examples/robot/cat_small_file_applied.robot
+	@cat examples/robot/cat_small_file_applied.robot
+	uv run robot --dryrun examples/robot/cat_small_file_applied.robot
+	@printf '\n---- chmod_file suggestions ----\n'
+	@cat examples/json/chmod_file.json
+	uv run importobot examples/json/chmod_file.json examples/robot/chmod_file_example.robot
+	@cat examples/robot/chmod_file_example.robot
+	uv run importobot --apply-suggestions examples/json/chmod_file.json examples/robot/chmod_file_applied.robot
+	@cat examples/robot/chmod_file_applied.robot
+	uv run robot --dryrun examples/robot/chmod_file_applied.robot
+	@printf '\n---- cp_file suggestions ----\n'
+	@cat examples/json/cp_file.json
+	uv run importobot examples/json/cp_file.json examples/robot/cp_file_example.robot
+	@cat examples/robot/cp_file_example.robot
+	uv run importobot --apply-suggestions examples/json/cp_file.json examples/robot/cp_file_applied.robot
+	@cat examples/robot/cp_file_applied.robot
+	uv run robot --dryrun examples/robot/cp_file_applied.robot
+	@printf '\n---- mkdir suggestions ----\n'
+	@cat examples/json/mkdir.json
+	uv run importobot examples/json/mkdir.json examples/robot/mkdir_example.robot
+	@cat examples/robot/mkdir_example.robot
+	uv run importobot --apply-suggestions examples/json/mkdir.json examples/robot/mkdir_applied.robot
+	@cat examples/robot/mkdir_applied.robot
+	uv run robot --dryrun examples/robot/mkdir_applied.robot
+	@printf '\n---- rm_file suggestions ----\n'
+	@cat examples/json/rm_file.json
+	uv run importobot examples/json/rm_file.json examples/robot/rm_file_example.robot
+	@cat examples/robot/rm_file_example.robot
+	uv run importobot --apply-suggestions examples/json/rm_file.json examples/robot/rm_file_applied.robot
+	@cat examples/robot/rm_file_applied.robot
+	uv run robot --dryrun examples/robot/rm_file_applied.robot
 
 .PHONY: example-user-registration
 example-user-registration:

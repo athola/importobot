@@ -1,7 +1,7 @@
 """Main suggestion engine that orchestrates all suggestion components."""
 
 import copy
-from typing import Any, Union
+from typing import Any
 
 from importobot import exceptions
 from importobot.core.constants import TEST_CONTAINER_FIELD_NAMES
@@ -29,9 +29,7 @@ class GenericSuggestionEngine(SuggestionEngine):
         self.comparison_analyzer = ComparisonAnalyzer()
         self.builtin_analyzer = BuiltInKeywordAnalyzer()
 
-    def get_suggestions(
-        self, json_data: Union[dict[str, Any], list[Any], Any]
-    ) -> list[str]:
+    def get_suggestions(self, json_data: dict[str, Any] | list[Any] | Any) -> list[str]:
         """Generate suggestions for improving JSON test data for Robot conversion."""
         try:
             test_cases = self._extract_test_cases(json_data)
@@ -69,7 +67,7 @@ class GenericSuggestionEngine(SuggestionEngine):
 
         except Exception as e:
             logger.error("Error generating suggestions: %s", e)
-            return [f"Error analyzing test data: {str(e)}"]
+            return [f"Error analyzing test data: {e!s}"]
 
     def suggest_improvements(self, test_data_list: list[Any]) -> list[str]:
         """Generate improvement suggestions for a list of test data.
@@ -87,7 +85,7 @@ class GenericSuggestionEngine(SuggestionEngine):
         return all_suggestions
 
     def apply_suggestions(
-        self, json_data: Union[dict[str, Any], list[Any], Any]
+        self, json_data: dict[str, Any] | list[Any] | Any
     ) -> tuple[Any, list[dict[str, Any]]]:
         """Apply automatic improvements to test data."""
         try:
@@ -130,7 +128,7 @@ class GenericSuggestionEngine(SuggestionEngine):
         except Exception as e:
             logger.error("Error applying suggestions: %s", e)
             raise exceptions.ImportobotError(
-                f"Failed to apply suggestions: {str(e)}"
+                f"Failed to apply suggestions: {e!s}"
             ) from e
 
     def _extract_test_cases(self, json_data: Any) -> Any:

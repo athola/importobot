@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 __all__ = ["VALID_BACKEND_TYPES", "StorageConfig"]
 
@@ -33,7 +33,7 @@ class StorageConfig:
 
     # Security settings
     encryption_enabled: bool = False
-    encryption_key_path: Optional[Path] = None
+    encryption_key_path: Path | None = None
 
     # Backup settings
     backup_enabled: bool = True
@@ -117,7 +117,7 @@ class StorageConfig:
         if "encryption_enabled" in config_dict:
             self.encryption_enabled = config_dict["encryption_enabled"]
 
-        if "encryption_key_path" in config_dict and config_dict["encryption_key_path"]:
+        if config_dict.get("encryption_key_path"):
             self.encryption_key_path = Path(config_dict["encryption_key_path"])
 
     def validate(self) -> list[str]:

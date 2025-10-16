@@ -6,7 +6,7 @@ import hashlib
 import json
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from importobot.medallion.interfaces.base_interfaces import DataLayer
 from importobot.medallion.interfaces.data_models import (
@@ -27,7 +27,7 @@ logger = setup_logger(__name__)
 class BaseMedallionLayer(DataLayer):
     """Base implementation for all Medallion layers with common functionality."""
 
-    def __init__(self, layer_name: str, storage_path: Optional[Path] = None) -> None:
+    def __init__(self, layer_name: str, storage_path: Path | None = None) -> None:
         """Initialize the base layer.
 
         Args:
@@ -51,7 +51,7 @@ class BaseMedallionLayer(DataLayer):
         """Serialize data to a canonical JSON string for hashing operations."""
 
         def _default(obj: Any) -> Any:
-            if isinstance(obj, (datetime, date)):
+            if isinstance(obj, datetime | date):
                 logger.debug(
                     "Serializing %s via ISO-8601 in %s layer",
                     type(obj).__name__,
@@ -79,7 +79,7 @@ class BaseMedallionLayer(DataLayer):
         data: Any,
         metadata: LayerMetadata,
         *,
-        serialized_data: Optional[str] = None,
+        serialized_data: str | None = None,
     ) -> str:
         """Generate a unique ID for data based on content and metadata."""
         content_str = serialized_data or self._serialize_data(data)
@@ -90,7 +90,7 @@ class BaseMedallionLayer(DataLayer):
         return hashlib.blake2b(hash_input.encode(), digest_size=8).hexdigest()
 
     def _calculate_data_hash(
-        self, data: Any, *, serialized_data: Optional[str] = None
+        self, data: Any, *, serialized_data: str | None = None
     ) -> str:
         """Calculate hash for data integrity verification."""
         content_str = serialized_data or self._serialize_data(data)
@@ -136,7 +136,7 @@ class BaseMedallionLayer(DataLayer):
         target_layer: str,
         *,
         transformation_type: str,
-        parent_ids: Optional[list[str]] = None,
+        parent_ids: list[str] | None = None,
     ) -> LineageInfo:
         """Create lineage information for data transformation."""
         return LineageInfo(
@@ -243,7 +243,10 @@ class BaseMedallionLayer(DataLayer):
         # Basic consistency check (non-empty strings, proper types)
         consistent_fields = 0
         for value in data.values():
-            if isinstance(value, (str, int, float, bool, list, dict)) and value != "":
+            if (
+                isinstance(value, str | int | float | bool | list | dict)
+                and value != ""
+            ):
                 consistent_fields += 1
         consistency_score = (
             (consistent_fields / total_fields * 100) if total_fields > 0 else 0

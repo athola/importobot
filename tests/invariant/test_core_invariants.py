@@ -8,10 +8,11 @@ Tests fundamental properties that should always hold true across the system:
 - Configuration validation is comprehensive
 """
 
+import contextlib
 import json
 import tempfile
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 from hypothesis import given, settings
@@ -37,7 +38,7 @@ class TestCoreInvariants:
             assert result is None or isinstance(result, str)
         except (ValidationError, ValueError, OSError) as e:
             # Expected exceptions are fine
-            assert isinstance(e, (ValidationError, ValueError, OSError))
+            assert isinstance(e, ValidationError | ValueError | OSError)
         except Exception as e:
             # Unexpected exceptions should not occur
             pytest.fail(
@@ -63,7 +64,7 @@ class TestCoreInvariants:
         )
     )
     @settings(max_examples=50)
-    def test_json_roundtrip_invariant(self, data: Dict[str, Any]) -> None:
+    def test_json_roundtrip_invariant(self, data: dict[str, Any]) -> None:
         """Invariant: Valid JSON data should round-trip through serialization."""
         try:
             # Serialize to JSON string
@@ -104,7 +105,7 @@ class TestCoreInvariants:
     )
     @settings(max_examples=30)
     def test_converter_initialization_invariant(
-        self, _config_data: Dict[str, str]
+        self, _config_data: dict[str, str]
     ) -> None:
         """Invariant: Converter should initialize safely with various configurations."""
         try:
@@ -140,9 +141,7 @@ class TestCoreInvariants:
                 tmp_file.flush()
 
                 # Read it back
-                with open(
-                    tmp_file.name, "r", encoding="utf-8", newline=""
-                ) as read_file:
+                with open(tmp_file.name, encoding="utf-8", newline="") as read_file:
                     read_content = read_file.read()
 
                 # Content should match what we wrote (or be platform-normalized)
@@ -150,15 +149,13 @@ class TestCoreInvariants:
                     "\r", "\n"
                 )
 
-            except (IOError, OSError, UnicodeError):
+            except (OSError, UnicodeError):
                 # Expected file system errors
                 pass
             finally:
                 # Clean up
-                try:
+                with contextlib.suppress(OSError):
                     Path(tmp_file.name).unlink()
-                except OSError:
-                    pass
 
     @given(
         st.one_of(
@@ -216,7 +213,7 @@ class TestCoreInvariants:
     )
     @settings(max_examples=30)
     def test_configuration_structure_invariant(
-        self, config_dict: Dict[str, Any]
+        self, config_dict: dict[str, Any]
     ) -> None:
         """Test that configuration structures are handled properly."""
 

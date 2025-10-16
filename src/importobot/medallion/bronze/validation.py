@@ -172,7 +172,7 @@ class BronzeValidator:
                 )
                 error_count += 1
         except (TypeError, ValueError) as e:
-            issues.append(f"Unable to calculate data size: {str(e)}")
+            issues.append(f"Unable to calculate data size: {e!s}")
             error_count += 1
 
         # Check for extremely large individual fields
@@ -187,9 +187,7 @@ class BronzeValidator:
                         large_fields.append((key, field_size_mb))
                 except (TypeError, ValueError) as e:
                     problematic_fields.append(key)
-                    issues.append(
-                        f"Unable to calculate size for field '{key}': {str(e)}"
-                    )
+                    issues.append(f"Unable to calculate size for field '{key}': {e!s}")
                     error_count += 1
 
             if large_fields:
@@ -249,7 +247,7 @@ class BronzeValidator:
             warning_count += 1
 
         # Check for empty keys - indicates poor data quality
-        empty_keys = [key for key in data.keys() if not key or not key.strip()]
+        empty_keys = [key for key in data if not key or not key.strip()]
         if empty_keys:
             suspicious_patterns.append("empty_keys")
             issues.append(f"Found {len(empty_keys)} empty or whitespace-only keys")
@@ -355,7 +353,7 @@ class BronzeValidator:
             nonlocal total_values, null_values
             total_values += 1
 
-            if obj is None or obj == "" or obj == []:
+            if obj is None or obj in ("", []):
                 null_values += 1
             elif isinstance(obj, dict):
                 for value in obj.values():

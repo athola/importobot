@@ -8,8 +8,9 @@ practices for organizing test utilities and fixtures.
 import shutil
 import tempfile
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import pytest
 
@@ -45,36 +46,36 @@ try:
 
     # Make helper functions available at package level
     __all__ = [
-        # Original fixtures
-        "temp_dir",
-        "sample_zephyr_json",
-        "cleanup_test_files",
-        "telemetry_events",
-        "benchmark",
-        # New fixtures
-        "format_test_generator",
-        "format_test_scenarios",
-        "confidence_test_scenarios",
-        "all_supported_formats",
-        "format_complexity_levels",
-        "minimal_format_examples",
-        "standard_format_examples",
-        "complex_format_examples",
-        "ambiguous_examples",
-        "malformed_examples",
-        "perfect_evidence_scenarios",
-        "zero_evidence_scenarios",
-        "weak_evidence_scenarios",
-        "performance_dataset_sizes",
-        "confidence_thresholds",
+        "ConfidenceTestScenarios",
         # Helper classes
         "FormatTestDataGenerator",
         "FormatTestScenarios",
-        "ConfidenceTestScenarios",
+        "all_supported_formats",
+        "ambiguous_examples",
+        "benchmark",
+        "cleanup_test_files",
+        "complex_format_examples",
+        "confidence_test_scenarios",
+        "confidence_thresholds",
+        "format_complexity_levels",
+        # New fixtures
+        "format_test_generator",
+        "format_test_scenarios",
+        "malformed_examples",
+        "minimal_format_examples",
+        "perfect_evidence_scenarios",
+        "performance_dataset_sizes",
+        "sample_zephyr_json",
+        "standard_format_examples",
+        "telemetry_events",
+        # Original fixtures
+        "temp_dir",
+        "validate_confidence_bounds",
         # Helper functions
         "validate_format_detection_result",
-        "validate_confidence_bounds",
         "validate_performance_metrics",
+        "weak_evidence_scenarios",
+        "zero_evidence_scenarios",
     ]
 except ImportError:
     # Fixtures module not available, skip imports
@@ -130,7 +131,7 @@ def cleanup_test_files(tmp_path):
                     file_path.unlink()
                 elif file_path.is_dir():
                     shutil.rmtree(file_path)
-            except (OSError, IOError, PermissionError) as e:
+            except (OSError, PermissionError) as e:
                 print(f"Warning: Could not clean up {file_path}: {e}")
 
 

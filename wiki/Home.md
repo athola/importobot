@@ -42,6 +42,28 @@ result = converter.convert_directory("/zephyr/exports", "/robot/tests")
 print(result)
 ```
 
+### API Integration
+```python
+from importobot.api import validation, suggestions
+from importobot.integrations.clients import get_api_client, SupportedFormat
+
+# Fetch directly from Zephyr with automatic discovery
+client = get_api_client(
+    SupportedFormat.ZEPHYR,
+    api_url="https://your-zephyr.example.com",
+    tokens=["your-token"],
+    user=None,
+    project_name="PROJECT",
+    project_id=None,
+    max_concurrency=None,
+)
+
+# Process results as they stream in
+for payload in client.fetch_all(progress_callback=lambda **kw: print(f"Fetched {kw.get('items', 0)} items")):
+    validation.validate_json_dict(payload)
+    # Process or convert the payload
+```
+
 ### Integration hooks
 ```python
 from importobot.api import validation, suggestions

@@ -62,12 +62,12 @@ api = _api
 __all__ = [
     # Core business functionality
     "JsonToRobotConverter",
+    # Public API toolkit
+    "api",
     # Configuration management
     "config",
     # Error handling
     "exceptions",
-    # Public API toolkit
-    "api",
 ]
 
 __version__ = "0.1.2"
