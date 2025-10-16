@@ -5,7 +5,7 @@ and intent recognition patterns used throughout the conversion system.
 """
 
 import re
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from importobot.core.pattern_matcher import IntentType, PatternMatcher
 from importobot.utils.security import SSH_SECURITY_GUIDELINES, extract_security_warnings
@@ -461,14 +461,14 @@ class RobotFrameworkKeywordRegistry:
     }
 
     @classmethod
-    def get_keyword_info(cls, library: str, keyword: str) -> Dict[str, Any]:
+    def get_keyword_info(cls, library: str, keyword: str) -> dict[str, Any]:
         """Get information about a specific keyword."""
         if library in cls.KEYWORD_LIBRARIES:
             return cls.KEYWORD_LIBRARIES[library].get(keyword, {})
         return {}
 
     @classmethod
-    def get_required_libraries(cls, keywords: List[Dict[str, Any]]) -> List[str]:
+    def get_required_libraries(cls, keywords: list[dict[str, Any]]) -> list[str]:
         """Get required libraries for keyword set."""
         libraries = set()
         for kw in keywords:
@@ -477,12 +477,12 @@ class RobotFrameworkKeywordRegistry:
         return sorted(libraries)
 
     @classmethod
-    def get_intent_keyword(cls, intent: str) -> Tuple[str, str]:
+    def get_intent_keyword(cls, intent: str) -> tuple[str, str]:
         """Get library and keyword for an intent."""
         return cls.INTENT_TO_LIBRARY_KEYWORDS.get(intent, ("builtin", "No Operation"))
 
     @classmethod
-    def validate_registry_integrity(cls) -> List[str]:
+    def validate_registry_integrity(cls) -> list[str]:
         """Validate that all intent mappings reference valid keywords.
 
         Returns:
@@ -508,7 +508,7 @@ class RobotFrameworkKeywordRegistry:
         return errors
 
     @classmethod
-    def get_registry_metrics(cls) -> Dict[str, Any]:
+    def get_registry_metrics(cls) -> dict[str, Any]:
         """Get metrics about the registry usage and coverage.
 
         Returns:
@@ -527,8 +527,8 @@ class RobotFrameworkKeywordRegistry:
         }
 
         # Count intents by library
-        intents_by_library: Dict[str, int] = {}
-        for _, (library, _) in cls.INTENT_TO_LIBRARY_KEYWORDS.items():
+        intents_by_library: dict[str, int] = {}
+        for library, _ in cls.INTENT_TO_LIBRARY_KEYWORDS.values():
             intents_by_library[library] = intents_by_library.get(library, 0) + 1
 
         # Count security warnings
@@ -570,7 +570,7 @@ class IntentRecognitionEngine:
         return detected_intent  # Return enum directly, not .value
 
     @classmethod
-    def detect_all_intents(cls, text: str) -> List[IntentType]:
+    def detect_all_intents(cls, text: str) -> list[IntentType]:
         """Detect all matching intents from text using PatternMatcher.
 
         Returns:
@@ -580,7 +580,7 @@ class IntentRecognitionEngine:
         return detected_intents  # Return enums directly, not .value
 
     @classmethod
-    def get_security_warnings_for_keyword(cls, library: str, keyword: str) -> List[str]:
+    def get_security_warnings_for_keyword(cls, library: str, keyword: str) -> list[str]:
         """Get security warnings for a specific keyword."""
         warnings = []
         if library in RobotFrameworkKeywordRegistry.KEYWORD_LIBRARIES:
@@ -591,12 +591,12 @@ class IntentRecognitionEngine:
         return warnings
 
     @classmethod
-    def get_ssh_security_guidelines(cls) -> List[str]:
+    def get_ssh_security_guidelines(cls) -> list[str]:
         """Get comprehensive SSH security guidelines."""
         return SSH_SECURITY_GUIDELINES
 
     @classmethod
-    def validate_command_security(cls, command: str) -> Dict[str, Any]:
+    def validate_command_security(cls, command: str) -> dict[str, Any]:
         """Validate command for security issues."""
         dangerous_patterns = [
             (r"rm\s+-rf", "Dangerous recursive delete command"),

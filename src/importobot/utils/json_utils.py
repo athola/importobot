@@ -2,7 +2,7 @@
 
 import json
 import os
-from typing import Any, Union
+from typing import Any
 
 from importobot import exceptions
 from importobot.utils.validation import validate_safe_path
@@ -115,11 +115,11 @@ def _read_json_file(file_path: str) -> Any:
     Returns:
         Raw JSON data
     """
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, encoding="utf-8") as f:
         return json.load(f)
 
 
-def _process_json_structure(data: Union[dict[str, Any], list[Any]]) -> dict[str, Any]:
+def _process_json_structure(data: dict[str, Any] | list[Any]) -> dict[str, Any]:
     """Process JSON data structure and validate format.
 
     Args:

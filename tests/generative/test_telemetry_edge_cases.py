@@ -111,7 +111,7 @@ class TestUnusualDataTypes:
         if emitted:
             payload = emitted[0][1]
             # Verify extras were merged
-            for key, _value in extras.items():
+            for key in extras:
                 assert key in payload
 
     def test_non_serializable_extras_handled(self):

@@ -56,7 +56,7 @@ class KeywordLibraryLoader:
             return {}
 
         try:
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, encoding="utf-8") as f:
                 config_raw = json.load(f)
                 config = config_raw if isinstance(config_raw, dict) else {}
                 self._cache[library_name] = config
@@ -73,7 +73,7 @@ class KeywordLibraryLoader:
                 e.msg,
             )
             return {}
-        except IOError as e:
+        except OSError as e:
             self.logger.error(
                 "Failed to read keyword library '%s' from %s: %s. "
                 "Check file permissions and ensure the file is accessible.",
@@ -98,7 +98,7 @@ class KeywordLibraryLoader:
 
         for json_file in self.data_dir.glob("*.json"):
             try:
-                with open(json_file, "r", encoding="utf-8") as f:
+                with open(json_file, encoding="utf-8") as f:
                     config = json.load(f)
                     library_name = config.get("library_name", json_file.stem)
                     libraries[library_name] = config
@@ -111,7 +111,7 @@ class KeywordLibraryLoader:
                     e.colno,
                     e.msg,
                 )
-            except IOError as e:
+            except OSError as e:
                 self.logger.error(
                     "Failed to read %s: %s. "
                     "Check permissions and accessibility. Skipping this config.",
@@ -163,10 +163,10 @@ class KeywordLibraryLoader:
     def _validate_single_configuration(self, json_file: Path) -> list[str]:
         """Validate a single configuration file."""
         try:
-            with open(json_file, "r", encoding="utf-8") as f:
+            with open(json_file, encoding="utf-8") as f:
                 config = json.load(f)
             return self._validate_config_structure(config)
-        except (json.JSONDecodeError, IOError) as e:
+        except (OSError, json.JSONDecodeError) as e:
             return [f"Failed to parse JSON: {e}"]
 
     def _validate_config_structure(self, config: dict[str, Any]) -> list[str]:

@@ -33,7 +33,7 @@ class TestTemporaryJsonFile:
             assert temp_filename.endswith(".json")
 
             # Verify the content is correct
-            with open(temp_filename, "r", encoding="utf-8") as f:
+            with open(temp_filename, encoding="utf-8") as f:
                 loaded_data = json.load(f)
             assert loaded_data == test_data
 
@@ -45,7 +45,7 @@ class TestTemporaryJsonFile:
         test_data = {"unicode": "Test with ñ, é, 中文", "special": "Test with ♠"}
 
         with temporary_json_file(test_data) as temp_filename:
-            with open(temp_filename, "r", encoding="utf-8") as f:
+            with open(temp_filename, encoding="utf-8") as f:
                 loaded_data = json.load(f)
             assert loaded_data == test_data
 
@@ -209,7 +209,7 @@ class TestSaveImprovedJsonAndConvert:
             assert os.path.exists(json_file)
 
             # Verify JSON content
-            with open(json_file, "r", encoding="utf-8") as f:
+            with open(json_file, encoding="utf-8") as f:
                 saved_data = json.load(f)
             assert saved_data == improved_data
 

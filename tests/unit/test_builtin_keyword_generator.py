@@ -18,25 +18,25 @@ class TestConversionKeywords:
         """Test convert to integer keyword generation."""
         test_data = "value: 123"
         result = generator.generate_convert_to_integer_keyword(test_data)
-        assert "Convert To Integer    123" == result
+        assert result == "Convert To Integer    123"
 
     def test_convert_to_string_keyword(self, generator):
         """Test convert to string keyword generation."""
         test_data = "value: 123"
         result = generator.generate_convert_to_string_keyword(test_data)
-        assert "Convert To String    123" == result
+        assert result == "Convert To String    123"
 
     def test_convert_to_boolean_keyword(self, generator):
         """Test convert to boolean keyword generation."""
         test_data = "value: True"
         result = generator.generate_convert_to_boolean_keyword(test_data)
-        assert "Convert To Boolean    True" == result
+        assert result == "Convert To Boolean    True"
 
     def test_convert_to_number_keyword(self, generator):
         """Test convert to number keyword generation."""
         test_data = "value: 123.45"
         result = generator.generate_convert_to_number_keyword(test_data)
-        assert "Convert To Number    123.45" == result
+        assert result == "Convert To Number    123.45"
 
 
 class TestLoggingAndVariableKeywords:
@@ -46,19 +46,19 @@ class TestLoggingAndVariableKeywords:
         """Test log keyword generation."""
         test_data = "message: Test message level: INFO"
         result = generator.generate_log_keyword(test_data)
-        assert "Log    Test message level: INFO    INFO" == result
+        assert result == "Log    Test message level: INFO    INFO"
 
     def test_set_variable_keyword(self, generator):
         """Test set variable keyword generation."""
         test_data = "name: test_var value: test_value"
         result = generator.generate_set_variable_keyword(test_data)
-        assert "Set Variable    test_var    test_value" == result
+        assert result == "Set Variable    test_var    test_value"
 
     def test_get_variable_keyword(self, generator):
         """Test get variable keyword generation."""
         test_data = "name: test_var"
         result = generator.generate_get_variable_keyword(test_data)
-        assert "Get Variable Value    test_var" == result
+        assert result == "Get Variable Value    test_var"
 
 
 class TestStringValidationKeywords:
@@ -69,21 +69,21 @@ class TestStringValidationKeywords:
         test_data = "text: hello world"
         expected = "hello"
         result = generator.generate_should_start_with_keyword(test_data, expected)
-        assert "Should Start With    hello    hello" == result
+        assert result == "Should Start With    hello    hello"
 
     def test_should_end_with_keyword(self, generator):
         """Test should end with keyword generation."""
         test_data = "text: hello world"
         expected = "world"
         result = generator.generate_should_end_with_keyword(test_data, expected)
-        assert "Should End With    hello    world" == result
+        assert result == "Should End With    hello    world"
 
     def test_should_match_keyword(self, generator):
         """Test should match keyword generation."""
         test_data = "text: hello123"
         expected = "hello*"
         result = generator.generate_should_match_keyword(test_data, expected)
-        assert "Should Match    hello123    hello*" == result
+        assert result == "Should Match    hello123    hello*"
 
 
 class TestCollectionKeywords:
@@ -117,7 +117,7 @@ class TestControlFlowKeywords:
         """Test evaluate keyword generation."""
         test_data = "expression: 2 + 2"
         result = generator.generate_evaluate_keyword(test_data)
-        assert "Evaluate    2 + 2" == result
+        assert result == "Evaluate    2 + 2"
 
     def test_run_keyword_if_keyword(self, generator):
         """Test run keyword if keyword generation."""
@@ -129,13 +129,14 @@ class TestControlFlowKeywords:
         """Test repeat keyword generation."""
         test_data = "times: 3 keyword: Log Hello"
         result = generator.generate_repeat_keyword_keyword(test_data)
-        assert "Repeat Keyword" in result and "3" in result
+        assert "Repeat Keyword" in result
+        assert "3" in result
 
     def test_fail_keyword(self, generator):
         """Test fail keyword generation."""
         test_data = "message: Test failed"
         result = generator.generate_fail_keyword(test_data)
-        assert "Fail    Test failed" == result
+        assert result == "Fail    Test failed"
 
 
 class TestVerificationKeywords:
@@ -155,7 +156,7 @@ class TestVerificationKeywords:
         """Test verify keyword generation."""
         expected = "test_value"
         result = generator.generate_verify_keyword(expected)
-        assert "Should Be Equal    ${actual}    test_value" == result
+        assert result == "Should Be Equal    ${actual}    test_value"
 
     def test_comparison_keyword(self, generator):
         """Test comparison keyword generation."""
@@ -182,12 +183,12 @@ class TestIntegrationAndEdgeCases:
     def test_empty_input_handling(self, generator):
         """Test handling of empty inputs."""
         result = generator.generate_log_keyword("")
-        assert "Log    Test message" == result
+        assert result == "Log    Test message"
 
     def test_missing_value_handling(self, generator):
         """Test handling when values are missing."""
         result = generator.generate_convert_to_integer_keyword("")
-        assert "Convert To Integer    ${value}" == result
+        assert result == "Convert To Integer    ${value}"
 
     def test_special_characters_in_data(self, generator):
         """Test handling of special characters."""

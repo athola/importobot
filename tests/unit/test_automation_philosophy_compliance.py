@@ -108,12 +108,49 @@ class TestAutomationPhilosophyCompliance:
                 ):
                     method = getattr(generator, method_name)
 
-                    # Skip methods that require specific parameters
+                    # Skip methods that require specific parameters or special signatures
                     if method_name in [
                         "generate_file_transfer_keyword",
                         "generate_directory_operations_keyword",
                     ]:
                         continue
+
+                    # Handle methods that expect dictionary input differently
+                    if method_name == "generate_step_keywords":
+                        # This method expects a dictionary, not a string
+                        for test_data in test_cases:
+                            try:
+                                # Use a sample dictionary that matches expected step format
+                                step_dict = {
+                                    "description": test_data,
+                                    "test_data": test_data,
+                                }
+                                result = method(step_dict)
+
+                                # Find all variable references
+                                variables = re.findall(r"\$\{([^}]+)\}", result)
+
+                                for var in variables:
+                                    # Must be uppercase Robot Framework convention
+                                    assert var.isupper(), (
+                                        f"Variable ${{{var}}} should be uppercase in "
+                                        f"{result}"
+                                    )
+                                    # Must not contain spaces
+                                    assert " " not in var, (
+                                        f"Variable ${{{var}}} should not contain spaces "
+                                        f"in {result}"
+                                    )
+                                    # Must be descriptive
+                                    assert len(var) > 1, (
+                                        f"Variable ${{{var}}} should be descriptive in "
+                                        f"{result}"
+                                    )
+
+                            except TypeError:
+                                # Skip methods with different signatures
+                                continue
+                        continue  # Skip to next method after handling this special case
 
                     for test_data in test_cases:
                         try:

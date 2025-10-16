@@ -4,6 +4,7 @@
 import json
 import os
 import random
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -41,56 +42,135 @@ class RobotFrameworkExecutor:
     """Execute Robot Framework files and validate results."""
 
     @staticmethod
+    def _find_local_robot() -> Path | None:
+        """Return the local Robot Framework executable if available."""
+        venv_dir = Path.cwd() / ".venv"
+        candidates = [
+            venv_dir / "bin" / "robot",
+            venv_dir / "Scripts" / "robot",
+            venv_dir / "Scripts" / "robot.exe",
+            venv_dir / "Scripts" / "robot.bat",
+        ]
+        for candidate in candidates:
+            if candidate.exists() and os.access(candidate, os.X_OK):
+                return candidate
+        return None
+
+    @staticmethod
+    def _prepare_execution_attempts(
+        common_args: list[str], env: dict[str, str]
+    ) -> list[tuple[str, list[str], dict[str, str]]]:
+        attempts: list[tuple[str, list[str], dict[str, str]]] = []
+        uv_path = shutil.which("uv")
+        if uv_path:
+            uv_env = env.copy()
+            cache_dir = uv_env.get("UV_CACHE_DIR")
+            if not cache_dir:
+                cache_dir = str(Path.cwd() / ".uv-cache")
+                uv_env["UV_CACHE_DIR"] = cache_dir
+            Path(cache_dir).mkdir(parents=True, exist_ok=True)
+            uv_env.setdefault("UV_LINK_MODE", "copy")
+            uv_env.setdefault("UV_PROJECT_ENVIRONMENT", str(Path.cwd() / ".venv"))
+            uv_env.setdefault("UV_NO_SYNC", "1")
+            attempts.append(("uv", [uv_path, "run", "robot", *common_args], uv_env))
+
+        local_robot = RobotFrameworkExecutor._find_local_robot()
+        if local_robot:
+            attempts.append(("robot", [str(local_robot), *common_args], env.copy()))
+        return attempts
+
+    @staticmethod
+    def _execute_attempt(
+        label: str, cmd: list[str], cmd_env: dict[str, str]
+    ) -> tuple[subprocess.CompletedProcess[str] | None, str | None]:
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+                env=cmd_env,
+            )
+            return result, None
+        except subprocess.TimeoutExpired:
+            return None, f"{label} execution timed out after 30 seconds."
+        except FileNotFoundError:
+            return None, f"{label} executable not found."
+        except Exception as exc:  # pylint: disable=broad-except
+            return None, f"{label} execution error: {exc}"
+
+    @staticmethod
     def execute_robot_file(
         robot_file_path: str, dry_run: bool = True
     ) -> dict[str, Any]:
         """Execute Robot Framework file and return results."""
-        try:
-            # Use --dryrun for syntax validation without actual execution
-            cmd = [
-                "uv",
-                "run",
-                "robot",
-                "--dryrun" if dry_run else "",
-                "--outputdir",
-                str(Path(robot_file_path).parent),
-                robot_file_path,
-            ]
+        env = os.environ.copy()
+        common_args: list[str] = []
+        if dry_run:
+            common_args.append("--dryrun")
+        output_dir = str(Path(robot_file_path).parent)
+        common_args.extend(["--outputdir", output_dir, robot_file_path])
 
-            if dry_run:
-                # Remove empty string
-                cmd = [c for c in cmd if c]
+        attempts = RobotFrameworkExecutor._prepare_execution_attempts(common_args, env)
 
-            env = os.environ.copy()
+        if not attempts:
+            return {
+                "success": False,
+                "returncode": -1,
+                "stdout": "",
+                "stderr": (
+                    "No Robot Framework executable available (uv or local robot)."
+                ),
+                "syntax_valid": False,
+            }
 
-            proc_result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=30, check=False, env=env
+        attempt_messages: list[str] = []
+        last_result: subprocess.CompletedProcess[str] | None = None
+
+        for label, cmd, cmd_env in attempts:
+            result, error_message = RobotFrameworkExecutor._execute_attempt(
+                label, cmd, cmd_env
             )
+            if error_message:
+                attempt_messages.append(error_message)
+                continue
 
-            return {
-                "success": proc_result.returncode == 0,
-                "returncode": proc_result.returncode,
-                "stdout": proc_result.stdout,
-                "stderr": proc_result.stderr,
-                "syntax_valid": proc_result.returncode == 0,
-            }
+            if result and result.returncode == 0:
+                stderr_output = result.stderr
+                if attempt_messages:
+                    prefix = "\n".join(attempt_messages)
+                    stderr_output = f"{prefix}\n{stderr_output}".strip()
+                return {
+                    "success": True,
+                    "returncode": 0,
+                    "stdout": result.stdout,
+                    "stderr": stderr_output,
+                    "syntax_valid": True,
+                }
 
-        except subprocess.TimeoutExpired:
-            return {
-                "success": False,
-                "returncode": -1,
-                "stdout": "",
-                "stderr": "Execution timeout",
-                "syntax_valid": False,
-            }
-        except Exception as e:
-            return {
-                "success": False,
-                "returncode": -1,
-                "stdout": "",
-                "stderr": str(e),
-                "syntax_valid": False,
-            }
+            if result:
+                error_detail = (
+                    result.stderr.strip() or result.stdout.strip() or "no output"
+                )
+                attempt_messages.append(
+                    f"{label} execution failed with return code "
+                    f"{result.returncode}: {error_detail}"
+                )
+                last_result = result
+
+        failure_stdout = last_result.stdout if last_result else ""
+        failure_stderr = "\n".join(attempt_messages)
+        if last_result and last_result.stderr:
+            failure_stderr = f"{failure_stderr}\n{last_result.stderr}".strip()
+
+        return {
+            "success": False,
+            "returncode": last_result.returncode if last_result else -1,
+            "stdout": failure_stdout,
+            "stderr": failure_stderr,
+            "syntax_valid": False,
+        }
 
 
 @pytest.mark.parametrize("structure", get_available_structures())
@@ -916,7 +996,7 @@ if __name__ == "__main__":
         convert_file(json_path, robot_path)
         print(f"\nConverted to: {robot_path}")
 
-        with open(robot_path, "r", encoding="utf-8") as robot_content:
+        with open(robot_path, encoding="utf-8") as robot_content:
             print("\nGenerated Robot Framework:")
             print(robot_content.read())
 

@@ -336,10 +336,7 @@ class TestGetSSHSecurityGuidelines:
         """Test that SSH guidelines cover all important aspects."""
         guidelines = get_ssh_security_guidelines()
 
-        expected_topics = SSH_SECURITY_TOPICS + [
-            "error handling",
-            "audits",
-        ]
+        expected_topics = [*SSH_SECURITY_TOPICS, "error handling", "audits"]
 
         guidelines_text = " ".join(guidelines).lower()
         for topic in expected_topics:

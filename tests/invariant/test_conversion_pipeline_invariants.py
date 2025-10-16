@@ -7,6 +7,7 @@ Tests properties that should hold true for the JSON to Robot Framework conversio
 - Output is deterministic for same input
 """
 
+import contextlib
 import json
 import tempfile
 from pathlib import Path
@@ -79,46 +80,48 @@ class TestConversionPipelineInvariants:
         converter = JsonToRobotConverter()
 
         try:
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".json", delete=False
-            ) as tmp_input:
-                with tempfile.NamedTemporaryFile(
+            with (
+                tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".json", delete=False
+                ) as tmp_input,
+                tempfile.NamedTemporaryFile(
                     mode="w", suffix=".robot", delete=False
-                ) as tmp_output:
-                    # Write test data to temporary file
+                ) as tmp_output,
+            ):
+                # Write test data to temporary file
 
-                    json.dump(test_data, tmp_input, indent=2)
-                    tmp_input.flush()
+                json.dump(test_data, tmp_input, indent=2)
+                tmp_input.flush()
 
-                    # Convert to Robot Framework
-                    converter.convert_file(tmp_input.name, tmp_output.name)
+                # Convert to Robot Framework
+                converter.convert_file(tmp_input.name, tmp_output.name)
 
-                    # Read the generated Robot Framework file
-                    with open(tmp_output.name, "r", encoding="utf-8") as f:
-                        robot_content = f.read()
+                # Read the generated Robot Framework file
+                with open(tmp_output.name, encoding="utf-8") as f:
+                    robot_content = f.read()
 
-                    # Test name should appear in the output
-                    test_name = test_data.get("testCase", {}).get("name", "")
-                    if test_name and test_name.strip():
-                        # Name might be modified for Robot Framework compatibility
-                        # Robot Framework converts newlines and special chars to spaces
-                        normalized_name = (
-                            test_name.replace("\n", " ").replace("\r", " ").strip()
+                # Test name should appear in the output
+                test_name = test_data.get("testCase", {}).get("name", "")
+                if test_name and test_name.strip():
+                    # Name might be modified for Robot Framework compatibility
+                    # Robot Framework converts newlines and special chars to spaces
+                    normalized_name = (
+                        test_name.replace("\n", " ").replace("\r", " ").strip()
+                    )
+                    while "  " in normalized_name:  # Remove double spaces
+                        normalized_name = normalized_name.replace("  ", " ")
+
+                    # Check if the normalized name or variations appear in output
+                    if normalized_name:
+                        assert (
+                            normalized_name in robot_content
+                            or normalized_name.replace(" ", "_") in robot_content
+                            or normalized_name.replace(" ", "") in robot_content
                         )
-                        while "  " in normalized_name:  # Remove double spaces
-                            normalized_name = normalized_name.replace("  ", " ")
 
-                        # Check if the normalized name or variations appear in output
-                        if normalized_name:
-                            assert (
-                                normalized_name in robot_content
-                                or normalized_name.replace(" ", "_") in robot_content
-                                or normalized_name.replace(" ", "") in robot_content
-                            )
-
-                    # Output should be valid Robot Framework format
-                    assert "*** Test Cases ***" in robot_content
-                    assert len(robot_content.strip()) > 0
+                # Output should be valid Robot Framework format
+                assert "*** Test Cases ***" in robot_content
+                assert len(robot_content.strip()) > 0
 
         except ImportobotError:
             # Expected application errors are acceptable
@@ -156,7 +159,7 @@ class TestConversionPipelineInvariants:
                     ) as tmp_output:
                         converter.convert_file(tmp_input.name, tmp_output.name)
 
-                        with open(tmp_output.name, "r", encoding="utf-8") as f:
+                        with open(tmp_output.name, encoding="utf-8") as f:
                             outputs.append(f.read())
 
                         Path(tmp_output.name).unlink()
@@ -175,10 +178,8 @@ class TestConversionPipelineInvariants:
                 f"Unexpected exception in determinism test: {type(e).__name__}: {e}"
             )
         finally:
-            try:
+            with contextlib.suppress(OSError):
                 Path(tmp_input.name).unlink()
-            except OSError:
-                pass
 
     @given(
         st.dictionaries(
@@ -194,27 +195,29 @@ class TestConversionPipelineInvariants:
         converter = JsonToRobotConverter()
 
         try:
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".json", delete=False
-            ) as tmp_input:
-                with tempfile.NamedTemporaryFile(
+            with (
+                tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".json", delete=False
+                ) as tmp_input,
+                tempfile.NamedTemporaryFile(
                     mode="w", suffix=".robot", delete=False
-                ) as tmp_output:
-                    # Write potentially malformed data
+                ) as tmp_output,
+            ):
+                # Write potentially malformed data
 
-                    json.dump(malformed_data, tmp_input, indent=2)
-                    tmp_input.flush()
+                json.dump(malformed_data, tmp_input, indent=2)
+                tmp_input.flush()
 
-                    # Attempt conversion
-                    converter.convert_file(tmp_input.name, tmp_output.name)
+                # Attempt conversion
+                converter.convert_file(tmp_input.name, tmp_output.name)
 
-                    # If conversion succeeds, output should be valid Robot Framework
-                    with open(tmp_output.name, "r", encoding="utf-8") as f:
-                        robot_content = f.read()
+                # If conversion succeeds, output should be valid Robot Framework
+                with open(tmp_output.name, encoding="utf-8") as f:
+                    robot_content = f.read()
 
-                    # Basic Robot Framework structure should be present
-                    assert isinstance(robot_content, str)
-                    assert len(robot_content) >= 0
+                # Basic Robot Framework structure should be present
+                assert isinstance(robot_content, str)
+                assert len(robot_content) >= 0
 
         except (ImportobotError, ValueError, KeyError, TypeError):
             # Expected errors for malformed input
@@ -269,48 +272,46 @@ class TestConversionPipelineInvariants:
         converter = JsonToRobotConverter()
 
         try:
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".json", delete=False
-            ) as tmp_input:
-                with tempfile.NamedTemporaryFile(
+            with (
+                tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".json", delete=False
+                ) as tmp_input,
+                tempfile.NamedTemporaryFile(
                     mode="w", suffix=".robot", delete=False
-                ) as tmp_output:
-                    # Write and convert
+                ) as tmp_output,
+            ):
+                # Write and convert
 
-                    json.dump(test_data, tmp_input, indent=2)
-                    tmp_input.flush()
+                json.dump(test_data, tmp_input, indent=2)
+                tmp_input.flush()
 
-                    converter.convert_file(tmp_input.name, tmp_output.name)
+                converter.convert_file(tmp_input.name, tmp_output.name)
 
-                    # Read and validate Robot Framework syntax
-                    with open(tmp_output.name, "r", encoding="utf-8") as f:
-                        robot_content = f.read()
+                # Read and validate Robot Framework syntax
+                with open(tmp_output.name, encoding="utf-8") as f:
+                    robot_content = f.read()
 
-                    # Basic syntax validation
-                    lines = robot_content.split("\n")
+                # Basic syntax validation
+                lines = robot_content.split("\n")
 
-                    # Should have proper sections
-                    has_test_cases = any("*** Test Cases ***" in line for line in lines)
-                    if has_test_cases:
-                        # Test case names should not be indented
-                        test_case_lines = []
-                        in_test_cases = False
+                # Should have proper sections
+                has_test_cases = any("*** Test Cases ***" in line for line in lines)
+                if has_test_cases:
+                    # Test case names should not be indented
+                    test_case_lines = []
+                    in_test_cases = False
 
-                        for line in lines:
-                            if "*** Test Cases ***" in line:
-                                in_test_cases = True
-                                continue
-                            if line.strip().startswith("***"):
-                                in_test_cases = False
-                            if (
-                                in_test_cases
-                                and line.strip()
-                                and not line.startswith(" ")
-                            ):
-                                test_case_lines.append(line)
+                    for line in lines:
+                        if "*** Test Cases ***" in line:
+                            in_test_cases = True
+                            continue
+                        if line.strip().startswith("***"):
+                            in_test_cases = False
+                        if in_test_cases and line.strip() and not line.startswith(" "):
+                            test_case_lines.append(line)
 
-                        # At least one test case should be defined
-                        assert len(test_case_lines) > 0 or not robot_content.strip()
+                    # At least one test case should be defined
+                    assert len(test_case_lines) > 0 or not robot_content.strip()
 
         except ImportobotError:
             # Expected conversion errors
@@ -336,22 +337,24 @@ class TestConversionPipelineInvariants:
             # Convert each test case individually
             individual_results = []
             for test_data in test_data_list:
-                with tempfile.NamedTemporaryFile(
-                    mode="w", suffix=".json", delete=False
-                ) as tmp_input:
-                    with tempfile.NamedTemporaryFile(
+                with (
+                    tempfile.NamedTemporaryFile(
+                        mode="w", suffix=".json", delete=False
+                    ) as tmp_input,
+                    tempfile.NamedTemporaryFile(
                         mode="w", suffix=".robot", delete=False
-                    ) as tmp_output:
-                        json.dump(test_data, tmp_input, indent=2)
-                        tmp_input.flush()
+                    ) as tmp_output,
+                ):
+                    json.dump(test_data, tmp_input, indent=2)
+                    tmp_input.flush()
 
-                        converter.convert_file(tmp_input.name, tmp_output.name)
+                    converter.convert_file(tmp_input.name, tmp_output.name)
 
-                        with open(tmp_output.name, "r", encoding="utf-8") as f:
-                            individual_results.append(f.read())
+                    with open(tmp_output.name, encoding="utf-8") as f:
+                        individual_results.append(f.read())
 
-                        Path(tmp_input.name).unlink()
-                        Path(tmp_output.name).unlink()
+                    Path(tmp_input.name).unlink()
+                    Path(tmp_output.name).unlink()
 
             # Each individual result should be valid
             for result in individual_results:
@@ -388,25 +391,25 @@ class TestConversionPipelineInvariants:
         converter = JsonToRobotConverter()
 
         try:
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".json", delete=False, encoding="utf-8"
-            ) as tmp_input:
-                with tempfile.NamedTemporaryFile(
+            with (
+                tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".json", delete=False, encoding="utf-8"
+                ) as tmp_input,
+                tempfile.NamedTemporaryFile(
                     mode="w", suffix=".robot", delete=False, encoding="utf-8"
-                ) as tmp_output:
-                    json.dump(
-                        special_chars_data, tmp_input, indent=2, ensure_ascii=False
-                    )
-                    tmp_input.flush()
+                ) as tmp_output,
+            ):
+                json.dump(special_chars_data, tmp_input, indent=2, ensure_ascii=False)
+                tmp_input.flush()
 
-                    converter.convert_file(tmp_input.name, tmp_output.name)
+                converter.convert_file(tmp_input.name, tmp_output.name)
 
-                    # Should be able to read the output without encoding errors
-                    with open(tmp_output.name, "r", encoding="utf-8") as f:
-                        robot_content = f.read()
+                # Should be able to read the output without encoding errors
+                with open(tmp_output.name, encoding="utf-8") as f:
+                    robot_content = f.read()
 
-                    # Output should be a valid string
-                    assert isinstance(robot_content, str)
+                # Output should be a valid string
+                assert isinstance(robot_content, str)
 
         except (ImportobotError, UnicodeError):
             # Expected for problematic characters

@@ -6,13 +6,13 @@ import json
 import os
 import threading
 import time
-from typing import Callable, Dict, Optional
+from collections.abc import Callable
 
 from importobot.utils.logging import setup_logger
 
 logger = setup_logger(__name__)
 
-TelemetryPayload = Dict[str, object]
+TelemetryPayload = dict[str, object]
 TelemetryExporter = Callable[[str, TelemetryPayload], None]
 
 
@@ -58,7 +58,7 @@ class TelemetryClient:
         self._min_emit_interval = min_emit_interval
         self._min_sample_delta = min_sample_delta
         self._lock = threading.Lock()
-        self._last_emit: Dict[str, tuple[int, float]] = {}
+        self._last_emit: dict[str, tuple[int, float]] = {}
         self._exporters: list[TelemetryExporter] = []
         if enabled:
             self.register_exporter(self._default_logger_exporter)
@@ -98,7 +98,7 @@ class TelemetryClient:
         *,
         hits: int,
         misses: int,
-        extras: Optional[TelemetryPayload] = None,
+        extras: TelemetryPayload | None = None,
     ) -> None:
         """Record cache hit/miss information with basic throttling."""
         if not self.enabled:
@@ -151,7 +151,7 @@ class _TelemetryClientHolder:
     """Thread-safe singleton holder for the telemetry client."""
 
     def __init__(self) -> None:
-        self._client: Optional[TelemetryClient] = None
+        self._client: TelemetryClient | None = None
         self._lock = threading.Lock()
 
     def get_client(self) -> TelemetryClient:

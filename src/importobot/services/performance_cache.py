@@ -12,7 +12,7 @@ import hashlib
 import json
 import time
 from collections import OrderedDict
-from typing import Any, Dict, Optional
+from typing import Any
 from weakref import WeakKeyDictionary
 
 from importobot.config import _int_from_env
@@ -35,10 +35,10 @@ class PerformanceCache:
 
     def __init__(
         self,
-        max_cache_size: Optional[int] = None,
+        max_cache_size: int | None = None,
         *,
-        ttl_seconds: Optional[int] = None,
-        telemetry_client: Optional[TelemetryClient] = None,
+        ttl_seconds: int | None = None,
+        telemetry_client: TelemetryClient | None = None,
     ) -> None:
         """Initialize performance cache.
 
@@ -59,18 +59,18 @@ class PerformanceCache:
         self.max_cache_size = resolved_max
 
         resolved_ttl = ttl_seconds if ttl_seconds is not None else DEFAULT_TTL_SECONDS
-        self._ttl_seconds: Optional[int] = resolved_ttl if resolved_ttl > 0 else None
+        self._ttl_seconds: int | None = resolved_ttl if resolved_ttl > 0 else None
         # TTL evicts stale entries automatically; defaults to
         # `IMPORTOBOT_PERFORMANCE_CACHE_TTL_SECONDS`.
 
-        self._string_cache: Dict[str, str] = {}
-        self._string_cache_expiry: Dict[str, float] = {}
-        self._json_cache: Dict[str, str] = {}
-        self._json_cache_expiry: Dict[str, float] = {}
+        self._string_cache: dict[str, str] = {}
+        self._string_cache_expiry: dict[str, float] = {}
+        self._json_cache: dict[str, str] = {}
+        self._json_cache_expiry: dict[str, float] = {}
         self._object_cache: WeakKeyDictionary = WeakKeyDictionary()
         self._cache_hits = 0
         self._cache_misses = 0
-        self._string_ops_cache: Dict[str, Any] = {}
+        self._string_ops_cache: dict[str, Any] = {}
         self._telemetry = telemetry_client or get_telemetry_client()
         logger.info("Initialized PerformanceCache with max_size=%d", resolved_max)
 
@@ -157,7 +157,7 @@ class PerformanceCache:
             self._object_cache[obj] = {}
         self._object_cache[obj][attribute] = value
 
-    def get_cached_object_attribute(self, obj: Any, attribute: str) -> Optional[Any]:
+    def get_cached_object_attribute(self, obj: Any, attribute: str) -> Any | None:
         """Get cached attribute for an object.
 
         Args:
@@ -186,7 +186,7 @@ class PerformanceCache:
         self._emit_cache_metrics()
         logger.info("Performance caches cleared")
 
-    def get_cache_stats(self) -> Dict[str, Any]:
+    def get_cache_stats(self) -> dict[str, Any]:
         """Get cache performance statistics."""
         total_requests = self._cache_hits + self._cache_misses
         hit_rate = (
@@ -248,7 +248,7 @@ class PerformanceCache:
         self._json_cache.pop(cache_key, None)
         self._json_cache_expiry.pop(cache_key, None)
 
-    def _is_expired(self, timestamp: Optional[float]) -> bool:
+    def _is_expired(self, timestamp: float | None) -> bool:
         if self._ttl_seconds is None or timestamp is None:
             return False
         return (time.time() - timestamp) > self._ttl_seconds
@@ -257,17 +257,17 @@ class PerformanceCache:
 class LazyEvaluator:
     """Lazy evaluation patterns for expensive computations."""
 
-    def __init__(self, cache: Optional[PerformanceCache] = None):
+    def __init__(self, cache: PerformanceCache | None = None):
         """Initialize lazy evaluator.
 
         Args:
             cache: Optional performance cache to use
         """
         self.cache = cache or PerformanceCache()
-        self._string_ops_cache: "OrderedDict[str, Any]" = OrderedDict()
+        self._string_ops_cache: OrderedDict[str, Any] = OrderedDict()
 
     def lazy_format_detection(
-        self, data: Dict[str, Any], format_detector_func: Any
+        self, data: dict[str, Any], format_detector_func: Any
     ) -> Any:
         """Lazy format detection with caching.
 
@@ -324,7 +324,7 @@ class LazyEvaluator:
 
 
 # Global performance cache instance
-_global_cache: Optional[PerformanceCache] = None
+_global_cache: PerformanceCache | None = None
 
 
 def get_performance_cache() -> PerformanceCache:

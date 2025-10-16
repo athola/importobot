@@ -2,7 +2,8 @@
 
 import subprocess
 import time
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 try:  # pragma: no cover - optional dependency guard
     from robot.api import TestSuite as RobotTestSuite  # type: ignore

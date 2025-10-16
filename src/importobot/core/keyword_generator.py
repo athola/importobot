@@ -199,6 +199,9 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
             IntentType.FILE_CREATION: lambda: self._handle_file_creation(
                 description, test_data
             ),
+            IntentType.FILE_STAT: (
+                lambda: os_generator.generate_command_keyword(test_data)
+            ),
             # SSH operations
             IntentType.SSH_CONNECT: (
                 lambda: ssh_generator.generate_connect_keyword(test_data)

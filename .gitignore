@@ -23,7 +23,6 @@ env/
 venv/
 
 # Testing
-*.json
 .pytest_cache/
 .coverage
 coverage.xml
@@ -73,8 +72,8 @@ compile.log
 visualizations/
 .aider*
 
-# MCP configuration
-.mcp/config.json
+# CI/CD
+ci/
 
 # Text artifacts
 *.txt
@@ -95,11 +94,13 @@ visualizations/
 .claude/
 
 # Temporary analysis files
+learned_bayesian_parameters.json
 *.analysis
 *.profile
 *.trace
 
 # Performance benchmarks output
+wiki/benchmarks/format_detection_benchmark.json
 scripts/performance_results/
 scripts/benchmark_output/
 performance-metrics/

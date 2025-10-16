@@ -1,6 +1,6 @@
 """Shared utilities for processing test steps."""
 
-from typing import Any, Dict, List
+from typing import Any
 
 from importobot.core.constants import (
     EXPECTED_RESULT_FIELD_NAMES,
@@ -10,7 +10,7 @@ from importobot.core.constants import (
 from importobot.utils.field_extraction import extract_field
 
 
-def combine_step_text(steps: List[Dict[str, Any]]) -> str:
+def combine_step_text(steps: list[dict[str, Any]]) -> str:
     """Convert steps to combined text for analysis.
 
     Args:
@@ -27,7 +27,7 @@ def combine_step_text(steps: List[Dict[str, Any]]) -> str:
     return " ".join(combined_text)
 
 
-def extract_step_information(step: Dict[str, Any]) -> tuple[str, str, str]:
+def extract_step_information(step: dict[str, Any]) -> tuple[str, str, str]:
     """Extract common step information for keyword generation.
 
     Args:
@@ -45,7 +45,7 @@ def extract_step_information(step: Dict[str, Any]) -> tuple[str, str, str]:
 
 def format_step_comments(
     description: str, test_data: str, expected: str, indent_level: int = 0
-) -> List[str]:
+) -> list[str]:
     """Format step comments with consistent structure.
 
     Args:
@@ -70,7 +70,7 @@ def format_step_comments(
     return lines
 
 
-def collect_command_steps(steps: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def collect_command_steps(steps: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Collect steps that contain command execution.
 
     Args:

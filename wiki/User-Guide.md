@@ -22,10 +22,51 @@ uv run importobot input.json output.robot
 uv run importobot --batch input_folder/ output_folder/
 ```
 
+### API Retrieval and Conversion
+
+Importobot can fetch test suites directly from supported platforms before conversion:
+
+#### Fetch and Convert in One Step
+```bash
+uv run importobot \
+    --fetch-format testrail \
+    --api-url https://testrail.example/api/v2/get_runs/42 \
+    --api-user automation@example.com \
+    --tokens api-token-value \
+    --project QA \
+    --output suite.robot
+```
+
+#### Zephyr with Automatic Discovery
+```bash
+uv run importobot \
+    --fetch-format zephyr \
+    --api-url https://your-zephyr.example.com \
+    --tokens your-api-token \
+    --project PROJECT_KEY \
+    --output converted.robot
+```
+
+#### Fetch Only (Save Payload)
+```bash
+uv run importobot \
+    --fetch-format jira_xray \
+    --api-url https://jira.example/rest/api/2/search \
+    --tokens jira-api-token \
+    --project ENG-QA
+# Saved to: ./jira_xray-eng-qa-20250314-103205.json
+```
+
 ### Options
 - `--help` – show CLI help
 - `--batch` – enable directory mode
 - `--verbose` – print extra diagnostics
+- `--fetch-format` – fetch from API (values: `jira_xray`, `zephyr`, `testrail`, `testlink`)
+- `--api-url` – API endpoint URL for fetching
+- `--tokens` – authentication tokens (comma-separated or repeatable)
+- `--api-user` – username for API authentication
+- `--project` – project name or ID
+- `--input-dir` – directory for downloaded payloads (default: current directory)
 
 ### Enterprise test generators
 Helper scripts under `scripts/` can emit large sample suites for demos or benchmarking:
@@ -129,11 +170,42 @@ Run `make clean` for common temp files or `make deep-clean` to remove generated 
 
 ### Environment Variables
 
-- `IMPORTOBOT_TEST_SERVER_URL`: Overrides the default test server URL.
-- `IMPORTOBOT_TEST_SERVER_PORT`: Overrides the default test server port.
-- `IMPORTOBOT_HEADLESS_BROWSER`: Set to `True` to run in headless mode.
+#### API Integration Configuration
+Environment variables mirror CLI flags and are prefixed with the target format. CLI arguments always take precedence:
 
-### Example
+| Format | API URL | Tokens | User | Project |
+| --- | --- | --- | --- | --- |
+| Jira/Xray | `IMPORTOBOT_JIRA_XRAY_API_URL` | `IMPORTOBOT_JIRA_XRAY_TOKENS` | `IMPORTOBOT_JIRA_XRAY_API_USER` | `IMPORTOBOT_JIRA_XRAY_PROJECT` |
+| Zephyr for Jira | `IMPORTOBOT_ZEPHYR_API_URL` | `IMPORTOBOT_ZEPHYR_TOKENS` | `IMPORTOBOT_ZEPHYR_API_USER` | `IMPORTOBOT_ZEPHYR_PROJECT` |
+| TestRail | `IMPORTOBOT_TESTRAIL_API_URL` | `IMPORTOBOT_TESTRAIL_TOKENS` | `IMPORTOBOT_TESTRAIL_API_USER` | `IMPORTOBOT_TESTRAIL_PROJECT` |
+| TestLink | `IMPORTOBOT_TESTLINK_API_URL` | `IMPORTOBOT_TESTLINK_TOKENS` | `IMPORTOBOT_TESTLINK_API_USER` | `IMPORTOBOT_TESTLINK_PROJECT` |
+
+**Shared settings:**
+- `IMPORTOBOT_API_INPUT_DIR` – default directory for downloaded payloads
+- `IMPORTOBOT_API_MAX_CONCURRENCY` – experimental limit for concurrent requests
+
+#### Test Configuration
+- `IMPORTOBOT_TEST_SERVER_URL`: Overrides the default test server URL
+- `IMPORTOBOT_TEST_SERVER_PORT`: Overrides the default test server port
+- `IMPORTOBOT_HEADLESS_BROWSER`: Set to `True` to run in headless mode
+
+### Configuration Examples
+
+#### API Integration with Environment Variables
+```bash
+# Configure Zephyr API access
+export IMPORTOBOT_ZEPHYR_API_URL="https://your-zephyr.example.com"
+export IMPORTOBOT_ZEPHYR_TOKENS="your-api-token"
+export IMPORTOBOT_ZEPHYR_PROJECT="PROJECT_KEY"
+
+# Configure input directory
+export IMPORTOBOT_API_INPUT_DIR="./api_payloads"
+
+# Run with environment configuration
+uv run importobot --fetch-format zephyr --output converted.robot
+```
+
+#### Test Server Configuration
 ```bash
 export IMPORTOBOT_TEST_SERVER_URL="https://test.example.com"
 export IMPORTOBOT_TEST_SERVER_PORT="8080"
@@ -184,6 +256,51 @@ if validation_result.is_valid:
     print("Test structure is valid")
 else:
     print(f"Validation errors: {validation_result.errors}")
+```
+
+### API Integration for Programmatic Use
+
+The Python API provides direct access to platform integrations:
+
+```python
+from importobot.integrations.clients import get_api_client, SupportedFormat
+from importobot.api import validation
+
+# Fetch directly from Zephyr with automatic discovery
+client = get_api_client(
+    SupportedFormat.ZEPHYR,
+    api_url="https://your-zephyr.example.com",
+    tokens=["your-token"],
+    user=None,
+    project_name="PROJECT",
+    project_id=None,
+    max_concurrency=None,
+)
+
+# Process results as they stream in
+for payload in client.fetch_all(progress_callback=lambda **kw: print(f"Fetched {kw.get('items', 0)} items")):
+    validation.validate_json_dict(payload)
+    # Process or convert the payload
+```
+
+#### Zephyr Client Features
+
+The enhanced Zephyr client provides automatic discovery and adaptation:
+
+- **Automatic API Discovery**: Tries multiple endpoint patterns to find working configurations
+- **Authentication Flexibility**: Supports Bearer tokens, API keys, Basic auth, and dual-token setups
+- **Adaptive Pagination**: Auto-detects optimal page sizes based on server limits
+- **Robust Payload Handling**: Handles diverse Zephyr response structures without manual configuration
+- **Progress Feedback**: Detailed progress reporting during large fetch operations
+
+#### Integration Hooks
+
+```python
+from importobot.api import validation, suggestions
+
+validation.validate_json_dict(test_data)
+engine = suggestions.GenericSuggestionEngine()
+notes = engine.suggest_improvements(problematic_tests)
 ```
 
 **Internal layers (FYI only):** Bronze handles schema checks, Silver standardises data (in development), Gold prepares the Robot output. Stick to `importobot.*` and `importobot.api.*`; internal modules (`importobot.medallion.*`, `importobot.core.*`) are unsupported.

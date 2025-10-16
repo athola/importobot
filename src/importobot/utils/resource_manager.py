@@ -286,7 +286,7 @@ class ResourceManager:
         except FileNotFoundError as e:
             self.logger.error("File system path not found: %s", e)
             return {"error": f"File system error: {e}"}
-        except (OSError, IOError) as e:
+        except OSError as e:
             self.logger.error("System error getting resource stats: %s", e)
             return {"error": f"System I/O error: {e}"}
         except RuntimeError as e:

@@ -1,7 +1,7 @@
 """Helper functions for robust testing of Robot Framework content."""
 
 import re
-from typing import Iterable, List, Set
+from collections.abc import Iterable
 
 EXPECTED_PUBLIC_EXPORTS = {
     "JsonToRobotConverter",
@@ -42,7 +42,7 @@ class RobotFrameworkAssertion:
         library_pattern = re.compile(f"Library\\s+{re.escape(library)}", re.IGNORECASE)
         return any(library_pattern.search(line) for line in self.lines)
 
-    def get_library_imports(self) -> Set[str]:
+    def get_library_imports(self) -> set[str]:
         """Get all library imports from the content."""
         libraries = set()
         library_pattern = re.compile(r"Library\s+(\w+)", re.IGNORECASE)
@@ -56,7 +56,7 @@ class RobotFrameworkAssertion:
         """Check if content has a specific test case."""
         return any(line.strip() == test_name for line in self.lines)
 
-    def get_test_cases(self) -> List[str]:
+    def get_test_cases(self) -> list[str]:
         """Get all test case names from the content."""
         test_cases = []
         in_test_section = False
@@ -76,7 +76,7 @@ class RobotFrameworkAssertion:
         keyword_pattern = re.compile(f"^\\s*{re.escape(keyword)}", re.IGNORECASE)
         return any(keyword_pattern.search(line) for line in self.lines)
 
-    def get_keywords_used(self) -> Set[str]:
+    def get_keywords_used(self) -> set[str]:
         """Get all keywords used in the content (heuristic approach)."""
         keywords = set()
         in_test_section = False

@@ -6,9 +6,10 @@ import contextlib
 import json
 import os
 import shutil
+from collections.abc import Iterator
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, ContextManager, Iterator, Optional
+from typing import Any, ContextManager
 
 try:  # pragma: no cover - platform specific imports
     import fcntl  # type: ignore[attr-defined]
@@ -56,10 +57,8 @@ def _exclusive_file_lock(lock_path: Path) -> Iterator[None]:
                 msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
         finally:
             lock_file.close()
-            try:
+            with contextlib.suppress(OSError):
                 lock_path.unlink()
-            except OSError:
-                pass
 
 
 class LocalStorageBackend(StorageBackend):
@@ -154,7 +153,7 @@ class LocalStorageBackend(StorageBackend):
 
     def retrieve_data(
         self, layer_name: str, data_id: str
-    ) -> Optional[tuple[dict[str, Any], LayerMetadata]]:
+    ) -> tuple[dict[str, Any], LayerMetadata] | None:
         """Retrieve specific data from the layer.
 
         Args:
@@ -173,11 +172,11 @@ class LocalStorageBackend(StorageBackend):
                 return None
 
             # Load data
-            with open(data_file, "r", encoding="utf-8") as f:
+            with open(data_file, encoding="utf-8") as f:
                 data = json.load(f)
 
             # Load metadata
-            with open(metadata_file, "r", encoding="utf-8") as f:
+            with open(metadata_file, encoding="utf-8") as f:
                 metadata_dict = json.load(f)
 
             metadata = LayerMetadata(
@@ -388,7 +387,7 @@ class LocalStorageBackend(StorageBackend):
 
     def _load_metadata_from_file(self, metadata_file: Path) -> LayerMetadata:
         """Load and parse metadata from a JSON file."""
-        with open(metadata_file, "r", encoding="utf-8") as f:
+        with open(metadata_file, encoding="utf-8") as f:
             metadata_dict = json.load(f)
 
         return LayerMetadata(
@@ -413,13 +412,11 @@ class LocalStorageBackend(StorageBackend):
             custom_metadata=metadata_dict.get("custom_metadata", {}),
         )
 
-    def _load_data_file(
-        self, layer_path: Path, data_id: str
-    ) -> Optional[dict[str, Any]]:
+    def _load_data_file(self, layer_path: Path, data_id: str) -> dict[str, Any] | None:
         """Load data from a JSON file."""
         data_file = layer_path / "data" / f"{data_id}.json"
         if data_file.exists():
-            with open(data_file, "r", encoding="utf-8") as f:
+            with open(data_file, encoding="utf-8") as f:
                 return json.load(f)  # type: ignore[no-any-return]
         return None
 
@@ -563,7 +560,7 @@ class LocalStorageBackend(StorageBackend):
 
             for metadata_file in metadata_files:
                 try:
-                    with open(metadata_file, "r", encoding="utf-8") as f:
+                    with open(metadata_file, encoding="utf-8") as f:
                         metadata_dict = json.load(f)
 
                     ingestion_time = datetime.fromisoformat(

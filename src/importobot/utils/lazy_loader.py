@@ -6,7 +6,7 @@ import importlib
 import json
 from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from types import ModuleType
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 class LazyModule:
     """Lazy module loader that defers imports until first access."""
 
-    def __init__(self, module_name: str, package: Optional[str] = None) -> None:
+    def __init__(self, module_name: str, package: str | None = None) -> None:
         """Initialize lazy module loader.
 
         Args:
@@ -24,8 +24,8 @@ class LazyModule:
         """
         self._module_name = module_name
         self._package = package
-        self._module: Optional[ModuleType] = None
-        self._import_error: Optional[ImportError] = None
+        self._module: ModuleType | None = None
+        self._import_error: ImportError | None = None
 
     def __getattr__(self, name: str) -> Any:
         """Load module on first attribute access."""
@@ -65,8 +65,8 @@ class OptionalDependency:
     def __init__(
         self,
         module_name: str,
-        package_name: Optional[str] = None,
-        fallback_message: Optional[str] = None,
+        package_name: str | None = None,
+        fallback_message: str | None = None,
     ) -> None:
         """Initialize optional dependency manager.
 
@@ -78,7 +78,7 @@ class OptionalDependency:
         self.module_name = module_name
         self.package_name = package_name or module_name
         self.fallback_message = fallback_message
-        self._module: Optional[ModuleType] = None
+        self._module: ModuleType | None = None
         self._checked = False
         self._available = False
 
@@ -148,33 +148,33 @@ class LazyDataLoader:
 
     @staticmethod
     @lru_cache(maxsize=32)
-    def load_templates(template_type: str) -> Dict[str, Any]:
+    def load_templates(template_type: str) -> dict[str, Any]:
         """Load templates from external files with caching."""
         data_dir = Path(__file__).parent.parent / "data" / "templates"
         template_file = data_dir / f"{template_type}.json"
 
         if template_file.exists():
-            with open(template_file, "r", encoding="utf-8") as f:
+            with open(template_file, encoding="utf-8") as f:
                 data = json.load(f)
                 return data if isinstance(data, dict) else {}
         return {}
 
     @staticmethod
     @lru_cache(maxsize=16)
-    def load_keyword_mappings(library_type: str) -> Dict[str, Any]:
+    def load_keyword_mappings(library_type: str) -> dict[str, Any]:
         """Load keyword mappings from external files."""
         data_dir = Path(__file__).parent.parent / "data" / "keywords"
         mapping_file = data_dir / f"{library_type}_mappings.json"
 
         if mapping_file.exists():
-            with open(mapping_file, "r", encoding="utf-8") as f:
+            with open(mapping_file, encoding="utf-8") as f:
                 data = json.load(f)
                 return data if isinstance(data, dict) else {}
         return {}
 
     @staticmethod
     def create_summary_comment(
-        data_structure: Dict[str, Any], max_items: int = 3
+        data_structure: dict[str, Any], max_items: int = 3
     ) -> str:
         """Generate summary comments for large data structures."""
         if not data_structure:

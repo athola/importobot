@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from importobot.utils.logging import setup_logger
 from importobot.utils.regex_cache import get_compiled_pattern
@@ -88,7 +88,7 @@ class ScoringAlgorithms:
 
     @staticmethod
     def calculate_format_score(
-        data_str: str, patterns: Dict[str, Any], data: Optional[Dict[str, Any]] = None
+        data_str: str, patterns: dict[str, Any], data: dict[str, Any] | None = None
     ) -> int:
         """Calculate the total score for a format based on patterns."""
         score = 0
@@ -99,7 +99,7 @@ class ScoringAlgorithms:
         return score
 
     @staticmethod
-    def _score_required_keys(data_str: str, patterns: Dict[str, Any]) -> int:
+    def _score_required_keys(data_str: str, patterns: dict[str, Any]) -> int:
         """
         Score based on required keys presence using Bayesian likelihood ratios.
 
@@ -139,7 +139,7 @@ class ScoringAlgorithms:
         return score
 
     @staticmethod
-    def _score_optional_keys(data_str: str, patterns: Dict[str, Any]) -> int:
+    def _score_optional_keys(data_str: str, patterns: dict[str, Any]) -> int:
         """Score based on optional keys presence."""
         score = 0
         optional_keys = patterns.get("optional_keys", [])
@@ -149,7 +149,7 @@ class ScoringAlgorithms:
         return score
 
     @staticmethod
-    def _score_structure_indicators(data_str: str, patterns: Dict[str, Any]) -> int:
+    def _score_structure_indicators(data_str: str, patterns: dict[str, Any]) -> int:
         """Score based on structure indicators presence."""
         score = 0
         structure_indicators = patterns.get("structure_indicators", [])
@@ -160,7 +160,7 @@ class ScoringAlgorithms:
 
     @staticmethod
     def _score_field_patterns(
-        data_str: str, patterns: Dict[str, Any], data: Optional[Dict[str, Any]] = None
+        data_str: str, patterns: dict[str, Any], data: dict[str, Any] | None = None
     ) -> int:
         """Score based on field pattern matches."""
         score = 0
@@ -172,7 +172,7 @@ class ScoringAlgorithms:
             # from nested structures that might contain similar field names
             # Use case-insensitive matching for top-level field names
             top_level_fields_lower = (
-                {k.lower(): k for k in data.keys() if isinstance(k, str)}
+                {k.lower(): k for k in data if isinstance(k, str)}
                 if isinstance(data, dict)
                 else {}
             )
@@ -196,7 +196,7 @@ class ScoringAlgorithms:
 
     @staticmethod
     def _score_structured_pattern(
-        data: Dict[str, Any], field_name: str, pattern: str
+        data: dict[str, Any], field_name: str, pattern: str
     ) -> int:
         """Score pattern matching for structured data."""
         field_values = ScoringAlgorithms._extract_field_values(data, field_name)
@@ -206,7 +206,7 @@ class ScoringAlgorithms:
 
     @staticmethod
     def _score_structured_pattern_cached(
-        field_name: str, pattern: str, field_values: List[Any]
+        field_name: str, pattern: str, field_values: list[Any]
     ) -> int:
         """
         Score pattern matching using Bayesian likelihood principles.
@@ -249,7 +249,7 @@ class ScoringAlgorithms:
 
     @staticmethod
     def _check_pattern_match(
-        field_name: str, pattern: str, field_values: List[Any]
+        field_name: str, pattern: str, field_values: list[Any]
     ) -> bool:
         """Check if pattern matches field name or any field values."""
         compiled_pattern = _compile_pattern_safe(pattern)
@@ -261,13 +261,10 @@ class ScoringAlgorithms:
             return True
 
         # If field name doesn't match, check field values
-        for value in field_values:
-            if compiled_pattern.search(str(value)):
-                return True
-        return False
+        return any(compiled_pattern.search(str(value)) for value in field_values)
 
     @staticmethod
-    def _extract_field_values(data: Dict[str, Any], field_name: str) -> List[Any]:
+    def _extract_field_values(data: dict[str, Any], field_name: str) -> list[Any]:
         """Extract all values for a given field name from nested data structure."""
         values = []
 
@@ -276,11 +273,11 @@ class ScoringAlgorithms:
                 for key, value in obj.items():
                     if key == target_field:
                         values.append(value)
-                    elif isinstance(value, (dict, list)):
+                    elif isinstance(value, dict | list):
                         _extract_recursive(value, target_field)
             elif isinstance(obj, list):
                 for item in obj:
-                    if isinstance(item, (dict, list)):
+                    if isinstance(item, dict | list):
                         _extract_recursive(item, target_field)
 
         _extract_recursive(data, field_name)

@@ -571,7 +571,7 @@ class EnterpriseTestGenerator:
         )
         progress_reporter.initialize(test_params.count)
 
-        for _business_category, scenario_list in valid_scenarios.items():
+        for scenario_list in valid_scenarios.values():
             scenario_count = distribution["per_type"]
             if distribution["remainder"] > 0:
                 scenario_count += 1
@@ -625,7 +625,7 @@ class EnterpriseTestGenerator:
                 # Report progress for large batches
                 batch_reporter.report_batch_progress(index, queue_size)
 
-            except IOError as e:
+            except OSError as e:
                 self.logger.error("Failed to write %s: %s", item["filepath"], e)
 
         self._file_write_queue.clear()
@@ -876,7 +876,7 @@ class EnterpriseTestGenerator:
         keyword_generators = self._get_keyword_generator_map(test_data)
 
         # Switch-style pattern matching
-        for _keyword_type, config in keyword_generators.items():
+        for config in keyword_generators.values():
             patterns = config["patterns"]
             library_check = config.get("library_check")
 

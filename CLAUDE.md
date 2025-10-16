@@ -39,10 +39,51 @@ Disciplined TDD means every parser or optimizer tweak starts with a failing test
 - Selenium integration tests still run in deterministic dry-run mode with explicit resource cleanup, so CI remains free of WebDriver start-up flakes.
 
 ### 2025 highlights worth remembering
+- **Enhanced Zephyr Client (Oct 2025):** Completely redesigned Zephyr integration with adaptive API discovery, supporting multiple authentication strategies, and robust payload structure handling. Now works with diverse Zephyr server configurations without manual configuration.
 - **Bayesian revamp (Oct 2025):** replaced the weighted scorer with an independent model, quadratic P(E|¬H), and regression tests for ratio caps. Strong evidence now clears the 0.8 confidence bar without hand tuning.
 - September's cleanup retired ~200 lines of compatibility hacks and replaced them with a shared `data_analysis` helper; `__all__` exports now match our actual public API.
 - `scripts/interactive_demo.py` landed after customers kept asking for a demo harness that shares code with the CLI.
 - The same cycle produced utilities for pattern extraction/step comments and tightened SSH validation so the interactive demo and the CLI share logic instead of diverging.
+
+## API Integration Enhancements
+
+### Flexible Zephyr Client
+The new `ZephyrClient` automatically adapts to different server configurations:
+
+- **API Pattern Discovery**: Tries multiple endpoint patterns (`direct_search`, `two_stage_fetch`, `alternative`) until finding working ones
+- **Authentication Fallbacks**: Supports Bearer tokens, API keys, Basic auth, and dual-token configurations
+- **Payload Structure Flexibility**: Enhanced `_extract_results` and `_extract_total` methods handle various Zephyr endpoint response structures
+- **Adaptive Pagination**: Auto-detects optimal page sizes (100, 200, 250, 500) based on server limits
+
+### Robust Payload Handling
+The client now handles diverse Zephyr response structures:
+```python
+# Standard structures
+{"results": [...], "total": 123}
+{"data": [...], "count": 456}
+{"testCases": [...], "pagination": {"total": 789}}
+
+# Nested and wrapped structures
+{"value": {"results": [...]}}
+{"pagination": {"totalCount": 1000}}
+```
+
+### Usage Examples
+```bash
+# Automatic discovery - let Importobot find the right approach
+uv run importobot \
+    --fetch-format zephyr \
+    --api-url https://your-zephyr.example.com \
+    --tokens your-api-token \
+    --project PROJECT_KEY \
+    --output converted.robot
+
+# The client will automatically:
+# 1. Try different API patterns and auth methods
+# 2. Detect optimal pagination settings
+# 3. Handle various payload structures
+# 4. Provide detailed progress feedback
+```
 
 ## CI/CD
 
@@ -113,8 +154,9 @@ del _config, _exceptions, _api
 
 **Enterprise Use Cases:**
 1. **Bulk Conversion Pipeline**: `JsonToRobotConverter` for hundreds/thousands of test cases
-2. **CI/CD Integration**: `importobot.api.validation` for automated pipeline validation
-3. **QA Suggestion Engine**: `importobot.api.suggestions` for ambiguous test case handling
+2. **API Integration**: `importobot.api.validation` and direct platform fetching via `--fetch-format`
+3. **CI/CD Integration**: Automated pipeline validation with real-time data fetching
+4. **QA Suggestion Engine**: `importobot.api.suggestions` for ambiguous test case handling
 
 **Security & Maintainability:**
 - Core implementation modules marked as private (empty `__all__` lists)

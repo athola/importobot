@@ -9,7 +9,7 @@ dangerous patterns are consistently flagged.
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 from hypothesis import given, settings
@@ -52,7 +52,7 @@ class TestSecurityInvariants:
     )
     @settings(max_examples=40)
     def test_json_sanitization_never_raises_and_returns_schema(
-        self, payload: Dict[str, Any]
+        self, payload: dict[str, Any]
     ) -> None:
         gateway = _security_gateway(SecurityLevel.STRICT)
 
@@ -88,7 +88,8 @@ class TestSecurityInvariants:
         assert any("sanit" in issue.lower() for issue in result["security_issues"])
         sanitized = result["sanitized_data"]
         lowered = sanitized.lower()
-        assert "<script" not in lowered and "</script" not in lowered
+        assert "<script" not in lowered
+        assert "</script" not in lowered
 
     @given(
         st.text(min_size=1, max_size=40),

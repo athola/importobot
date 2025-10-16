@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
 from re import Pattern
-from typing import Any, Dict, List, Set
+from typing import Any
 
 from importobot.utils.defaults import PROGRESS_CONFIG
 from importobot.utils.step_processing import combine_step_text
@@ -21,6 +21,7 @@ class IntentType(Enum):
     FILE_VERIFICATION = "file_verification"
     FILE_REMOVAL = "file_removal"
     FILE_CREATION = "file_creation"
+    FILE_STAT = "file_stat"
     SSH_CONNECT = "ssh_connect"
     SSH_DISCONNECT = "ssh_disconnect"
     SSH_CONFIGURATION = "ssh_configuration"
@@ -123,6 +124,7 @@ class PatternMatcher:
         """Build list of intent patterns."""
         return [
             # Command execution (highest priority for specific commands)
+            IntentPattern(IntentType.FILE_STAT, r"\bstat\b", priority=10),
             IntentPattern(
                 IntentType.COMMAND_EXECUTION,
                 r"\b(?:initiate.*download|execute.*curl|run.*wget|curl|wget)\b",
@@ -131,6 +133,11 @@ class PatternMatcher:
             IntentPattern(
                 IntentType.COMMAND_EXECUTION,
                 r"\b(?:echo|hash|blake2bsum)\b",
+                priority=9,
+            ),
+            IntentPattern(
+                IntentType.COMMAND_EXECUTION,
+                r"\b(?:chmod|chown|stat|truncate|cp|rm|mkdir|rmdir|touch|ls|cat)\b",
                 priority=9,
             ),
             # File operations (most specific patterns first)
@@ -746,7 +753,7 @@ class LibraryDetector:
     }
 
     @classmethod
-    def detect_libraries_from_text(cls, text: str) -> Set[str]:
+    def detect_libraries_from_text(cls, text: str) -> set[str]:
         """Detect required Robot Framework libraries from text content."""
         if not text:
             return set()
@@ -758,7 +765,7 @@ class LibraryDetector:
         return libraries
 
     @classmethod
-    def detect_libraries_from_steps(cls, steps: List[Dict[str, Any]]) -> Set[str]:
+    def detect_libraries_from_steps(cls, steps: list[dict[str, Any]]) -> set[str]:
         """Detect required libraries from step content."""
         combined_text = combine_step_text(steps)
         return cls.detect_libraries_from_text(combined_text)

@@ -47,5 +47,5 @@ def invariant_test_session():
 @pytest.fixture
 def clean_temp_dir(tmp_path):
     """Provide a clean temporary directory for each test."""
-    yield tmp_path
+    return tmp_path
     # Cleanup is automatic with tmp_path
