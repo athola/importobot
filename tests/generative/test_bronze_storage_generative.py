@@ -15,7 +15,7 @@ import tempfile
 import unittest
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import pytest
 from hypothesis import strategies as st
@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 class TestBronzeStorageGenerative(unittest.TestCase):
     """Generative tests for Bronze layer storage operations."""
 
-    unicode_failures: list[dict[str, str]] = []
+    unicode_failures: ClassVar[list[dict[str, str]]] = []
 
     def setUp(self):
         """Set up test environment."""

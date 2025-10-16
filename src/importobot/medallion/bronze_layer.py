@@ -7,7 +7,7 @@ from collections import deque
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 from importobot.config import (
     BRONZE_LAYER_IN_MEMORY_TTL_SECONDS,
@@ -50,7 +50,7 @@ class _FilterContext:
 class BronzeLayer(BaseMedallionLayer):
     """Bronze layer for raw data ingestion with minimal processing."""
 
-    _FILTER_DISPATCH_MAP: dict[str, str] = {
+    _FILTER_DISPATCH_MAP: ClassVar[dict[str, str]] = {
         "record_id": "_filter_record_id",
         "format_type": "_filter_format_type",
         "source_path": "_filter_source_path",

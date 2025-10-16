@@ -91,8 +91,7 @@ class GenericConversionEngine(ConversionEngine):
         all_libraries = detected_libraries.union(additional_libraries)
 
         # Libraries
-        for lib in sorted(all_libraries):
-            output_lines.append(f"Library    {lib}")
+        output_lines.extend(f"Library    {lib}" for lib in sorted(all_libraries))
 
         output_lines.extend(["", "*** Test Cases ***", ""])
         output_lines.extend(test_cases_content)

@@ -1,4 +1,4 @@
-"""Helper functions for robust testing of Robot Framework content."""
+"""Helper functions for testing Robot Framework content."""
 
 import re
 from collections.abc import Iterable

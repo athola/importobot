@@ -97,29 +97,39 @@ class KeywordLibraryLoader:
             return libraries
 
         for json_file in self.data_dir.glob("*.json"):
-            try:
-                with open(json_file, encoding="utf-8") as f:
-                    config = json.load(f)
-                    library_name = config.get("library_name", json_file.stem)
-                    libraries[library_name] = config
-            except json.JSONDecodeError as e:
-                self.logger.error(
-                    "Failed to parse JSON in %s: Line %d, Column %d: %s. "
-                    "Skipping this library configuration.",
-                    json_file,
-                    e.lineno,
-                    e.colno,
-                    e.msg,
-                )
-            except OSError as e:
-                self.logger.error(
-                    "Failed to read %s: %s. "
-                    "Check permissions and accessibility. Skipping this config.",
-                    json_file,
-                    e,
-                )
+            config = self._load_library_from_path(json_file)
+            if not config:
+                continue
+            library_name = config.get("library_name", json_file.stem)
+            libraries[library_name] = config
 
         return libraries
+
+    def _load_library_from_path(self, json_file: Path) -> dict[str, Any] | None:
+        """Load a single library configuration file."""
+        try:
+            with open(json_file, encoding="utf-8") as file_handle:
+                config = json.load(file_handle)
+        except json.JSONDecodeError as error:
+            self.logger.error(
+                "Failed to parse JSON in %s: Line %d, Column %d: %s. "
+                "Skipping this library configuration.",
+                json_file,
+                error.lineno,
+                error.colno,
+                error.msg,
+            )
+            return None
+        except OSError as error:
+            self.logger.error(
+                "Failed to read %s: %s. "
+                "Check permissions and accessibility. Skipping this config.",
+                json_file,
+                error,
+            )
+            return None
+
+        return config if isinstance(config, dict) else None
 
     def get_keywords_for_library(self, library_name: str) -> dict[str, dict[str, Any]]:
         """Get all keywords for a specific library."""

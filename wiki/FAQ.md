@@ -1,6 +1,6 @@
 # FAQ
 
-Commonly asked inquiries surrounding Importobot.
+Frequently asked questions about Importobot.
 
 ## General
 
@@ -8,7 +8,7 @@ Commonly asked inquiries surrounding Importobot.
 Importobot converts structured test exports (Zephyr today) into Robot Framework suites.
 
 ### Why use Importobot?
-It removes the copy/paste grind of migrating legacy test cases, keeps metadata intact, and flags anything that needs manual review.
+Eliminates manual copy/paste work when migrating test cases, preserves metadata, and highlights items needing manual review.
 
 ### What formats does Importobot support?
 Zephyr JSON is supported now. Xray and TestLink parsers are in review.

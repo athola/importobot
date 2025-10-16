@@ -22,7 +22,7 @@ Importobot uses layered testing:
 3. **Unit tests** — component-level checks.
 4. **Generative tests** — automated case generation.
 
-Current count: ~1545 tests across modules.
+Current count: 1,941 tests across modules with 0 skips.
 
 ## Test Organization
 

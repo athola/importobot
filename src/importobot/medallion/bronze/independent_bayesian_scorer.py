@@ -294,7 +294,7 @@ class IndependentBayesianScorer:
         """Calculate likelihood using research-backed Bayesian approach.
 
         Mathematical Foundation:
-        - Naive Bayes independence: P(E₁,E₂,E₃|H) = P(E₁|H) × P(E₂|H) × P(E₃|H)
+        - Naive Bayes independence: P(E1,E2,E3|H) = P(E1|H) * P(E2|H) * P(E3|H)
         - Conservative baseline with evidence amplification
         - Likelihood ratio capping to prevent extreme discrimination
         - Log-likelihood for numerical stability
@@ -457,7 +457,7 @@ class IndependentBayesianScorer:
         c = p_e_not_h_params.get("c", 2.0)
 
         # Base P(E|¬H) using quadratic decay formula
-        # P(E|¬H) = a + b × (1-L)^c
+        # P(E|¬H) = a + b * (1 - L) ** c
         base_p_e_not_h = a + b * (1.0 - current_likelihood) ** c
 
         # Apply format-specific adjustments
@@ -568,8 +568,8 @@ class IndependentBayesianScorer:
         while maintaining mathematical soundness through controlled amplification.
 
         Mathematical Principle:
-        P_enhanced = P_base × (1 + α × complexity_score)
-        Where α is the complexity amplification factor.
+        P_enhanced = P_base * (1 + alpha * complexity_score)
+        Where alpha is the complexity amplification factor.
 
         Args:
             likelihoods: Base likelihoods for each format
@@ -620,7 +620,7 @@ class IndependentBayesianScorer:
         base_likelihood = self.calculate_likelihood(metrics)
 
         # Apply uniqueness boost for formats with unique indicators
-        # The Beta distribution for uniqueness (α=3.0, β=1.5) provides
+        # The Beta distribution for uniqueness (alpha=3.0, beta=1.5) provides
         # monotonic discrimination, but we add additional emphasis
         if metrics.uniqueness > 0.0:
             # Uniqueness boost proportional to observed uniqueness

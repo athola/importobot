@@ -171,7 +171,7 @@ def benchmark():
     return _benchmark
 
 
-# Additional fixtures and configuration for enhanced testing
+# Additional fixtures and configuration for testing
 @pytest.fixture(scope="session")
 def test_config():
     """Provide test configuration values."""

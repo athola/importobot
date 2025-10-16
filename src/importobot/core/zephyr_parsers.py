@@ -1,12 +1,13 @@
 """Zephyr-specific parsers and analyzers for enhanced test case processing."""
 
 import re
+from typing import ClassVar
 
 
 class PlatformCommandParser:
     """Parse Zephyr-style platform-specific commands."""
 
-    PLATFORM_KEYWORDS = {
+    PLATFORM_KEYWORDS: ClassVar[dict[str, list[str]]] = {
         "PLATFORM1": ["target", "default", "standard"],
         "PLATFORM2": ["alternative", "fallback"],
         "PLATFORM3": ["embedded", "device"],
@@ -77,7 +78,7 @@ class PlatformCommandParser:
                     return True, current_platform
                 if stripped_line.upper().startswith(keyword_upper + " "):
                     current_platform = platform
-                    command = stripped_line[len(keyword_upper) :].strip()
+                    command = stripped_line[len(keyword_upper):].strip()
                     if command:  # Only append non-empty commands
                         commands[platform].append(command)
                     return True, current_platform
@@ -109,7 +110,7 @@ class PlatformCommandParser:
 class ZephyrTestLevelClassifier:
     """Classify tests according to Zephyr methodology."""
 
-    TEST_LEVELS = {
+    TEST_LEVELS: ClassVar[dict[str, int]] = {
         "Minimum Viable CRS": 1,  # Required for J9, CRS-linked
         "Smoke": 0,  # Preliminary critical tests
         "Edge Case": 2,  # Optional, edge cases
@@ -206,7 +207,7 @@ class ZephyrTestLevelClassifier:
 class ZephyrPreconditionAnalyzer:
     """Analyze and structure test preconditions."""
 
-    STANDARD_PRECONDITIONS = [
+    STANDARD_PRECONDITIONS: ClassVar[list[str]] = [
         "YJ Installed",
         "Communication Prepared",
         "Socket(s) Open",
@@ -238,26 +239,31 @@ class ZephyrPreconditionAnalyzer:
         current_step: dict[str, str] = {}
 
         for line in lines:
-            line = line.strip()
-            if not line:
+            stripped_line = line.strip()
+            if not stripped_line:
                 continue
 
             # Check for step numbering
-            if line[0].isdigit() and ("." in line or ")" in line):
+            if (
+                stripped_line[0].isdigit()
+                and ("." in stripped_line or ")" in stripped_line)
+            ):
                 if current_step:
                     steps.append(current_step)
                 current_step = {
-                    "description": line.split(".", 1)[-1].split(")", 1)[-1].strip()
+                    "description": stripped_line.split(".", 1)[-1]
+                    .split(")", 1)[-1]
+                    .strip()
                 }
-            elif line.startswith("-") or line.startswith("*"):
+            elif stripped_line.startswith("-") or stripped_line.startswith("*"):
                 if current_step:
                     steps.append(current_step)
-                current_step = {"description": line[1:].strip()}
+                current_step = {"description": stripped_line[1:].strip()}
             # Continuation of current step
             elif current_step:
-                current_step["description"] += " " + line
+                current_step["description"] += " " + stripped_line
             else:
-                current_step = {"description": line}
+                current_step = {"description": stripped_line}
 
         if current_step:
             steps.append(current_step)
@@ -267,10 +273,14 @@ class ZephyrPreconditionAnalyzer:
     def _has_formatting(self, lines: list[str]) -> bool:
         """Check if the text has formatting (numbering or bullets)."""
         for line in lines:
-            line = line.strip()
-            if line and line[0].isdigit() and ("." in line or ")" in line):
+            stripped_line = line.strip()
+            if (
+                stripped_line
+                and stripped_line[0].isdigit()
+                and ("." in stripped_line or ")" in stripped_line)
+            ):
                 return True
-            if line.startswith("-") or line.startswith("*"):
+            if stripped_line.startswith("-") or stripped_line.startswith("*"):
                 return True
         return False
 

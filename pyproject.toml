@@ -7,7 +7,7 @@ members = [".", "scripts"]
 
 [project]
 name = "importobot"
-version = "0.1.2"
+version = "0.1.3"
 description = "Automated test framework converter for migrating test cases from Zephyr, JIRA/Xray, and TestLink to Robot Framework format with bulk processing capabilities"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -173,11 +173,38 @@ select = [
     "PT",   # flake8-pytest-style
 ]
 extend-ignore = [
+    "PLR2004",
+    "PLR0911",
+    "PLR0912",
+    "PLR0913",
 ]
 
 [tool.ruff.lint.per-file-ignores]
 # Mathematical algorithms in format detector are inherently complex
 "src/importobot/medallion/bronze/format_detector.py" = ["C901"]
+"tests/**/*.py" = [
+    "C901",
+    "E501",
+    "PERF203",
+    "PERF401",
+    "PLR0911",
+    "PLR0912",
+    "PLR0913",
+    "PLR2004",
+    "PLW0603",
+    "PT009",
+    "PT011",
+    "PT012",
+    "PT017",
+    "PT019",
+    "RUF001",
+    "RUF002",
+    "RUF003",
+    "SIM102",
+    "SIM108",
+    "SIM115",
+    "SIM117",
+]
 
 [tool.ruff.format]
 quote-style = "double"

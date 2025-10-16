@@ -279,9 +279,7 @@ def handle_api_ingest(args: argparse.Namespace) -> str:
                 totals["items"],
             )
 
-    payloads: list[dict[str, Any]] = []
-    for chunk in client.fetch_all(progress_cb):
-        payloads.append(chunk)
+    payloads: list[dict[str, Any]] = list(client.fetch_all(progress_cb))
 
     page_count = len(payloads)
 

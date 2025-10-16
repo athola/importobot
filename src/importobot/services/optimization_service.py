@@ -13,7 +13,7 @@ import time
 from collections import OrderedDict
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
 from importobot.config import OPTIMIZATION_CACHE_TTL_SECONDS
 from importobot.utils.optimization import (
@@ -58,14 +58,14 @@ class OptimizationService:
     the implementation details of each algorithm.
     """
 
-    SUPPORTED_ALGORITHMS = {
+    SUPPORTED_ALGORITHMS: ClassVar[set[AlgorithmName]] = {
         "gradient_descent",
         "genetic_algorithm",
         "simulated_annealing",
     }
 
-    MAX_REGISTERED_SCENARIOS = 32
-    MAX_RESULT_HISTORY = 64
+    MAX_REGISTERED_SCENARIOS: ClassVar[int] = 32
+    MAX_RESULT_HISTORY: ClassVar[int] = 64
 
     def __init__(
         self,

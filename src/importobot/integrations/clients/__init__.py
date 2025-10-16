@@ -6,7 +6,7 @@ import logging
 import time
 from collections.abc import Callable, Iterator
 from enum import Enum
-from typing import Any, Protocol
+from typing import Any, ClassVar, Protocol
 from urllib.parse import parse_qs, urlparse
 
 import requests
@@ -186,10 +186,10 @@ class ZephyrClient(BaseAPIClient):
     __test__ = False
 
     # Configurable page sizes with auto-detection defaults
-    DEFAULT_PAGE_SIZES = [100, 200, 250, 500]
+    DEFAULT_PAGE_SIZES: ClassVar[list[int]] = [100, 200, 250, 500]
 
     # Multiple API endpoint patterns to try
-    API_PATTERNS = [
+    API_PATTERNS: ClassVar[list[dict[str, Any]]] = [
         # Direct search approach - single endpoint for full test case data
         {
             "name": "direct_search",
@@ -223,7 +223,7 @@ class ZephyrClient(BaseAPIClient):
         DUAL_TOKEN = "dual_token"
 
     # Multiple authentication strategies
-    AUTH_STRATEGIES = [
+    AUTH_STRATEGIES: ClassVar[list[dict[str, Any]]] = [
         {"type": AuthType.BEARER, "header": "Authorization", "format": "Bearer {}"},
         {"type": AuthType.API_KEY, "header": "X-Atlassian-Token", "format": "no-check"},
         {"type": AuthType.BASIC, "use_session_auth": True},

@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-import contextlib
 import json
 import os
 import shutil
 from collections.abc import Iterator
+from contextlib import AbstractContextManager, contextmanager, suppress
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, ContextManager
+from typing import Any
 
 try:  # pragma: no cover - platform specific imports
     import fcntl  # type: ignore[attr-defined]
@@ -34,31 +34,28 @@ from importobot.utils.logging import setup_logger
 logger = setup_logger(__name__)
 
 
-@contextlib.contextmanager
+@contextmanager
 def _exclusive_file_lock(lock_path: Path) -> Iterator[None]:
     """Cross-platform exclusive file lock using advisory locking primitives."""
     lock_path.parent.mkdir(parents=True, exist_ok=True)
-    lock_file = open(lock_path, "a+", encoding="utf-8")
-    try:
-        if fcntl is not None:  # Unix-like systems
-            fcntl.flock(lock_file, fcntl.LOCK_EX)
-        elif msvcrt is not None:  # Windows fallback
-            lock_file.seek(0)
-            lock_file.write("0")
-            lock_file.flush()
-            msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
-        yield
-    finally:
+    with open(lock_path, "a+", encoding="utf-8") as lock_file:
         try:
+            if fcntl is not None:  # Unix-like systems
+                fcntl.flock(lock_file, fcntl.LOCK_EX)
+            elif msvcrt is not None:  # Windows fallback
+                lock_file.seek(0)
+                lock_file.write("0")
+                lock_file.flush()
+                msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
+            yield
+        finally:
             if fcntl is not None:
                 fcntl.flock(lock_file, fcntl.LOCK_UN)
             elif msvcrt is not None:
                 lock_file.seek(0)
                 msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
-        finally:
-            lock_file.close()
-            with contextlib.suppress(OSError):
-                lock_path.unlink()
+    with suppress(OSError):
+        lock_path.unlink()
 
 
 class LocalStorageBackend(StorageBackend):
@@ -325,7 +322,7 @@ class LocalStorageBackend(StorageBackend):
 
     def _acquire_write_lock(
         self, layer_path: Path, data_id: str
-    ) -> ContextManager[None]:
+    ) -> AbstractContextManager[None]:
         """Acquire an exclusive lock for a specific data record."""
         lock_dir = layer_path / "locks"
         lock_dir.mkdir(exist_ok=True)
@@ -364,26 +361,45 @@ class LocalStorageBackend(StorageBackend):
             max_needed = query.offset + query.limit
 
         for metadata_path, _mtime in metadata_files:
-            try:
-                metadata = self._load_metadata_from_file(metadata_path)
-                data_id = metadata_path.stem
-
-                if self._matches_query(data_id, metadata, query):
-                    match_count += 1
-
-                    # Only materialize data if we need it for pagination
-                    if len(matching_items) < max_needed:
-                        data = self._load_data_file(layer_path, data_id)
-                        if data is not None:
-                            matching_items.append((data, metadata))
-
-            except Exception as e:
-                logger.warning(
-                    "Failed to process metadata file %s: %s", metadata_path, str(e)
-                )
-                continue
+            should_materialize = len(matching_items) < max_needed
+            match_delta, item = self._process_metadata_entry(
+                metadata_path, layer_path, query, should_materialize
+            )
+            match_count += match_delta
+            if item is not None:
+                matching_items.append(item)
 
         return matching_items, match_count
+
+    def _process_metadata_entry(
+        self,
+        metadata_path: Path,
+        layer_path: Path,
+        query: LayerQuery,
+        should_materialize: bool,
+    ) -> tuple[int, tuple[dict[str, Any], LayerMetadata] | None]:
+        """Process a single metadata file safely for lint performance rules."""
+        try:
+            metadata = self._load_metadata_from_file(metadata_path)
+        except Exception as error:
+            logger.warning(
+                "Failed to process metadata file %s: %s", metadata_path, error
+            )
+            return 0, None
+
+        data_id = metadata_path.stem
+
+        if not self._matches_query(data_id, metadata, query):
+            return 0, None
+
+        if not should_materialize:
+            return 1, None
+
+        data = self._load_data_file(layer_path, data_id)
+        if data is None:
+            return 1, None
+
+        return 1, (data, metadata)
 
     def _load_metadata_from_file(self, metadata_file: Path) -> LayerMetadata:
         """Load and parse metadata from a JSON file."""
@@ -559,25 +575,9 @@ class LocalStorageBackend(StorageBackend):
             metadata_files = list(metadata_path.glob("*.json"))
 
             for metadata_file in metadata_files:
-                try:
-                    with open(metadata_file, encoding="utf-8") as f:
-                        metadata_dict = json.load(f)
-
-                    ingestion_time = datetime.fromisoformat(
-                        metadata_dict["ingestion_timestamp"]
-                    )
-                    if ingestion_time < cutoff_date:
-                        data_id = metadata_file.stem
-                        if self.delete_data(layer_name, data_id):
-                            cleaned_count += 1
-
-                except Exception as e:
-                    logger.warning(
-                        "Failed to process metadata file %s during cleanup: %s",
-                        metadata_file,
-                        str(e),
-                    )
-                    continue
+                cleaned_count += self._cleanup_metadata_file(
+                    metadata_file, layer_name, cutoff_date
+                )
 
             logger.info(
                 "Cleaned up %s old items from layer %s", cleaned_count, layer_name
@@ -589,6 +589,31 @@ class LocalStorageBackend(StorageBackend):
                 "Failed to cleanup old data from layer %s: %s", layer_name, str(e)
             )
             return 0
+
+    def _cleanup_metadata_file(
+        self, metadata_file: Path, layer_name: str, cutoff_date: datetime
+    ) -> int:
+        """Cleanup a single metadata file during retention processing."""
+        try:
+            with open(metadata_file, encoding="utf-8") as file_handle:
+                metadata_dict = json.load(file_handle)
+
+            ingestion_time = datetime.fromisoformat(
+                metadata_dict["ingestion_timestamp"]
+            )
+        except Exception as error:  # pragma: no cover - defensive logging
+            logger.warning(
+                "Failed to process metadata file %s during cleanup: %s",
+                metadata_file,
+                error,
+            )
+            return 0
+
+        if ingestion_time >= cutoff_date:
+            return 0
+
+        data_id = metadata_file.stem
+        return 1 if self.delete_data(layer_name, data_id) else 0
 
     def backup_layer(self, layer_name: str, backup_path: Path) -> bool:
         """Create a backup of the entire layer.

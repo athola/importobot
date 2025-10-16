@@ -1,9 +1,7 @@
-"""Heavy lifting for converting JSON test data into Robot Framework format.
+"""Convert JSON test data into Robot Framework format.
 
-This module does the heavy lifting of converting JSON test data into Robot Framework
-format.
-
-Works with Zephyr exports and pretty much any similar JSON structure you throw at it.
+Handles conversion from Zephyr exports and similar JSON structures containing
+test cases with steps, expected results, and metadata.
 """
 
 import json
@@ -28,14 +26,14 @@ logger = setup_logger(__name__)
 
 
 class JsonToRobotConverter:
-    """Main converter class that transforms JSON test formats into Robot Framework code.
+    """Convert JSON test formats to Robot Framework code.
 
-    This class provides the primary interface for converting JSON test formats
-    into Robot Framework code.
+    Primary interface for converting Zephyr, TestRail, and similar JSON exports
+    to executable Robot Framework test cases.
     """
 
     def __init__(self) -> None:
-        """Initialize the converter with conversion and suggestion engines."""
+        """Initialize converter with conversion and suggestion engines."""
         self.conversion_engine = GenericConversionEngine()
         self.suggestion_engine = GenericSuggestionEngine()
 
@@ -173,18 +171,7 @@ def convert_multiple_files(input_files: list[str], output_dir: str) -> None:
         ) from e
 
     for input_file in input_files:
-        try:
-            output_filename = Path(input_file).stem + ".robot"
-            output_path = Path(output_dir) / output_filename
-            convert_file(input_file, str(output_path))
-        except exceptions.ImportobotError:
-            # Re-raise Importobot-specific exceptions
-            raise
-        except Exception as e:
-            logger.exception("Error converting file %s", input_file)
-            raise exceptions.ConversionError(
-                f"Failed to convert file {input_file}: {e!s}"
-            ) from e
+        _convert_file_with_error_handling(input_file, output_dir)
 
 
 def convert_directory(input_dir: str, output_dir: str) -> None:
@@ -212,6 +199,21 @@ def convert_directory(input_dir: str, output_dir: str) -> None:
     except Exception as e:
         logger.exception("Error converting directory")
         raise exceptions.ConversionError(f"Failed to convert directory: {e!s}") from e
+
+
+def _convert_file_with_error_handling(input_file: str, output_dir: str) -> None:
+    """Convert a single file while providing consistent error handling."""
+    try:
+        output_filename = Path(input_file).stem + ".robot"
+        output_path = Path(output_dir) / output_filename
+        convert_file(input_file, str(output_path))
+    except exceptions.ImportobotError:
+        raise
+    except Exception as e:
+        logger.exception("Error converting file %s", input_file)
+        raise exceptions.ConversionError(
+            f"Failed to convert file {input_file}: {e!s}"
+        ) from e
 
 
 def _validate_directory_args(input_dir: str, output_dir: str) -> None:

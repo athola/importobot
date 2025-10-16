@@ -124,12 +124,7 @@ def create_validation_result(
     issues = issues or []
 
     # Determine validity based on pattern
-    if messages:
-        # Service pattern: valid if no messages
-        is_valid = len(messages) == 0
-    else:
-        # Medallion pattern: valid if no errors
-        is_valid = error_count == 0
+    is_valid = len(messages) == 0 if messages else error_count == 0
 
     # Use provided severity or infer from errors
     if severity is None:

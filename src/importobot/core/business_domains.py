@@ -1,7 +1,7 @@
 """Business domain templates and enterprise scenarios for test generation."""
 
 import random
-from typing import Any
+from typing import Any, ClassVar
 
 from importobot.utils.lazy_loader import LazyDataLoader
 
@@ -19,7 +19,7 @@ class BusinessDomainTemplates:
         """Data pools for test parameterization."""
         return LazyDataLoader.load_templates("enterprise_data_pools")
 
-    ENVIRONMENT_REQUIREMENTS = {
+    ENVIRONMENT_REQUIREMENTS: ClassVar[dict[str, list[str]]] = {
         "web_automation": [
             "Selenium WebDriver",
             "Chrome/Firefox browser",
@@ -42,14 +42,14 @@ class BusinessDomainTemplates:
         ],
     }
 
-    COMPLIANCE_REQUIREMENTS = {
+    COMPLIANCE_REQUIREMENTS: ClassVar[dict[str, list[str]]] = {
         "web_automation": ["GDPR compliance", "Accessibility standards"],
         "api_testing": ["API security standards", "Data privacy"],
         "database_testing": ["Data retention policies", "Encryption standards"],
         "infrastructure_testing": ["Security compliance", "Audit requirements"],
     }
 
-    SETUP_INSTRUCTIONS = {
+    SETUP_INSTRUCTIONS: ClassVar[dict[str, list[str]]] = {
         "web_automation": [
             "Configure browser settings",
             "Set up test data",
@@ -72,7 +72,7 @@ class BusinessDomainTemplates:
         ],
     }
 
-    TEARDOWN_INSTRUCTIONS = {
+    TEARDOWN_INSTRUCTIONS: ClassVar[dict[str, list[str]]] = {
         "web_automation": [
             "Close browser sessions",
             "Clear test data",
@@ -139,7 +139,7 @@ class BusinessDomainTemplates:
 class TestCaseTemplates:
     """Template structures for test case generation."""
 
-    JSON_STRUCTURES = [
+    JSON_STRUCTURES: ClassVar[list[str]] = [
         "zephyr",
         "testlink",
         "jira",
@@ -147,7 +147,7 @@ class TestCaseTemplates:
         "generic",
     ]
 
-    ENTERPRISE_LABELS = [
+    ENTERPRISE_LABELS: ClassVar[list[str]] = [
         "regression",
         "smoke",
         "integration",
@@ -189,18 +189,22 @@ class TestCaseTemplates:
         "business_critical",
     ]
 
-    TEST_PRIORITIES = ["Critical", "High", "Medium", "Low"]
+    TEST_PRIORITIES: ClassVar[list[str]] = ["Critical", "High", "Medium", "Low"]
 
-    TEST_STATUSES = ["Approved", "Ready for Execution", "Under Review"]
+    TEST_STATUSES: ClassVar[list[str]] = [
+        "Approved",
+        "Ready for Execution",
+        "Under Review",
+    ]
 
-    AUTOMATION_READINESS_LEVELS = {
+    AUTOMATION_READINESS_LEVELS: ClassVar[dict[str, str]] = {
         "very_high": "Partial - Manual verification required",
         "web_automation": "Full - Ready for CI/CD",
         "api_testing": "Full - Ready for CI/CD",
         "default": "High - Suitable for automation",
     }
 
-    SECURITY_CLASSIFICATIONS = {
+    SECURITY_CLASSIFICATIONS: ClassVar[dict[str, str]] = {
         "web_automation": "Internal",
         "api_testing": "Confidential",
         "database_testing": "Restricted",
