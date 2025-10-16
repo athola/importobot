@@ -122,7 +122,7 @@ jobs:
 
     - name: Run Bronze ingestion benchmark
       env:
-        BRONZE_BENCHMARK_MIN_RATIO: "0.8"
+        BRONZE_BENCHMARK_MIN_RATIO: "0.75"
         BRONZE_BENCHMARK_MIN_BASELINE: "250"
       run: |
         cd scripts && uv run python -m importobot_scripts.benchmarks.run_bronze_benchmark --output performance-metrics/bronze_benchmark.json

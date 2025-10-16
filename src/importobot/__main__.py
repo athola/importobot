@@ -16,6 +16,7 @@ from importobot.cli.handlers import (
     handle_positional_args,
 )
 from importobot.cli.parser import create_parser
+from importobot.core.templates import configure_template_sources
 from importobot.utils.logging import log_exception, setup_logger
 
 logger = setup_logger("importobot-cli")
@@ -111,6 +112,10 @@ def main() -> None:
 
     try:
         had_conversion_flags = _check_conversion_flags(args)
+
+        template_sources = getattr(args, "robot_templates", None)
+        if template_sources:
+            configure_template_sources(template_sources)
 
         if getattr(args, "fetch_format", None):
             should_exit = _handle_api_ingest_logic(args, parser, had_conversion_flags)

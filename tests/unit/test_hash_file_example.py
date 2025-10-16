@@ -220,14 +220,14 @@ class TestHashFileExample:
         # Validate specific content from hash_file.json
         assert "hash" in content  # Test case name
         assert "Verify hashes match" in content  # Objective
-        assert "# Step: In the target machine's terminal, create a file" in content
+        assert "# In the target machine's terminal, create a file" in content
         assert (
-            "# Step: In target machine's terminal, get the sha of new file" in content
+            "# In target machine's terminal, get the sha of new file" in content
         )
-        assert "# Step: Use the hash command on the CLI" in content
+        assert "# Use the hash command on the CLI" in content
 
-        # Validate that Process library is imported (for echo command)
-        assert "Library    Process" in content
+        # Validate that SSHLibrary is imported (for CLI commands)
+        assert "Library             SSHLibrary" in content
 
     # pylint: disable=redefined-outer-name
     def test_hash_file_robot_content_executes_without_syntax_errors(

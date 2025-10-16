@@ -31,6 +31,10 @@ class DummyResponse:
         self.status_code = status_code
         self._payload = payload
         self.headers = headers or {}
+        # Add request attribute to match requests.Response interface
+        self.request = type(
+            "MockRequest", (), {"url": "https://mock-url.example", "headers": {}}
+        )()
 
     def json(self) -> dict[str, Any] | list[dict[str, Any]]:
         """Return the stored payload as JSON."""
@@ -364,8 +368,8 @@ def test_zephyr_client_supports_multiple_auth_strategies() -> None:
     assert client_basic is not None
     assert client_dual is not None
 
-    # Verify API patterns are configured
-    assert len(client_bearer.API_PATTERNS) == 3
+    # Verify API patterns are configured (includes new working_two_stage pattern)
+    assert len(client_bearer.API_PATTERNS) == 6
     assert len(client_bearer.AUTH_STRATEGIES) == 4
 
 
@@ -465,9 +469,11 @@ class RecordingSession:
         params: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
         timeout: int | float | None = None,
+        verify: bool | None = None,
     ) -> DummyResponse:
         """Make a GET request and return response based on matching rules."""
         _ = timeout  # unused in stub
+        _ = verify  # unused in stub
         payload = {"params": params or {}, "headers": headers or {}}
         self.calls.append((url, payload))
         return self._consume(url, payload["params"])
@@ -585,7 +591,7 @@ def test_zephyr_client_discovers_two_stage_strategy(
 
     assert len(payloads) == 1
     assert client._discovered_pattern is not None
-    assert client._discovered_pattern["name"] == "two_stage_fetch"
+    assert client._discovered_pattern["name"] == "working_two_stage"
     assert client._working_auth_strategy is not None
     assert client._working_auth_strategy["type"] is ZephyrClient.AuthType.BEARER
     assert client._effective_page_size == 100

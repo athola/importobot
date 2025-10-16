@@ -16,6 +16,7 @@ class DummyResponse:
     def __init__(self, *, status_code: int, payload: Any):
         self.status_code = status_code
         self._payload = payload
+        self.headers: dict[str, str] = {}
 
     def json(self) -> Any:
         """Return the stored payload."""
@@ -25,6 +26,19 @@ class DummyResponse:
         """Raise an error if status code indicates an error."""
         if self.status_code >= 400:
             raise RuntimeError(f"HTTP {self.status_code}")
+
+    @property
+    def request(self) -> DummyRequest:
+        """Return a dummy request object."""
+        return DummyRequest()
+
+
+class DummyRequest:
+    """Lightweight request object for performance tests."""
+
+    def __init__(self) -> None:
+        self.url = "https://mock-url.example"
+        self.headers: dict[str, str] = {}
 
 
 class CountingSession:
@@ -54,9 +68,10 @@ class CountingSession:
         params: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
         timeout: int | float | None = None,
+        verify: bool | None = None,
     ) -> DummyResponse:
         """Make a GET request and return a matching response."""
-        _ = headers, timeout  # unused
+        _ = headers, timeout, verify  # unused
         params = params or {}
         if params.get("maxResults") == 1 and "query" not in params:
             self.discovery_calls += 1
@@ -110,18 +125,8 @@ def test_zephyr_discovery_cached_between_runs(monkeypatch: pytest.MonkeyPatch) -
 
     session = CountingSession()
 
-    # Mock responses for discovery phase - direct_search pattern fails for all auth
-    # strategies (4 attempts)
-    for _ in range(4):  # 4 auth strategies
-        session.add_response(
-            _matcher(
-                "/rest/atm/1.0/testcase/search", max_results=1, require_query=False
-            ),
-            DummyResponse(status_code=404, payload={}),
-        )
-
-    # Mock responses for discovery phase - two_stage_fetch pattern succeeds on Bearer
-    # auth (4th attempt)
+    # Mock responses for discovery phase - working_two_stage pattern (index 0) succeeds on Bearer
+    # auth (4th attempt), but first 3 auth strategies fail
     # First 3 auth strategies fail
     for _ in range(3):
         session.add_response(

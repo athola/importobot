@@ -86,6 +86,41 @@ class TestLoadJsonFile:
         finally:
             os.unlink(temp_filename)
 
+    def test_load_json_file_single_test_case_array_unwraps(self) -> None:
+        """Arrays with a single test case are unwrapped to a dictionary."""
+        test_data = [{"name": "Login flow", "steps": []}]
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, encoding="utf-8"
+        ) as f:
+            json.dump(test_data, f)
+            temp_filename = f.name
+
+        try:
+            result = load_json_file(temp_filename)
+            assert result == test_data[0]
+        finally:
+            os.unlink(temp_filename)
+
+    def test_load_json_file_multiple_test_cases_array_wraps(self) -> None:
+        """Arrays with multiple test cases are wrapped for downstream parsing."""
+        test_data = [
+            {"name": "Login flow", "steps": []},
+            {"name": "Logout flow", "steps": []},
+        ]
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, encoding="utf-8"
+        ) as f:
+            json.dump(test_data, f)
+            temp_filename = f.name
+
+        try:
+            result = load_json_file(temp_filename)
+            assert result == {"testCases": test_data}
+        finally:
+            os.unlink(temp_filename)
+
     def test_load_json_file_empty_path_raises_error(self) -> None:
         """User gets clear error message when no file path provided."""
         with pytest.raises(ValueError, match="File path cannot be empty or None"):

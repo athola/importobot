@@ -26,6 +26,42 @@ This document outlines the future development plans for Importobot.
 - ML-assisted suggestions that propose tag/step tweaks.
 - Hosted Importobot for teams that cannot run the CLI themselves.
 
+## Zephyr Scale Enhancement Plan (Future Work)
+
+### Overview
+Enhance Importobot to support Zephyr Scale's sophisticated test case methodology while maintaining automated Robot Framework conversion.
+
+### Key Enhancements Planned
+
+#### Phase 1: Enhanced Field Recognition
+- Zephyr-specific field groups for test case details, preconditions, and traceability
+- Enhanced test case detection recognizing Zephyr structure patterns
+- Platform-specific command parsing for multi-platform test designs
+
+#### Phase 2: Test Analysis & Classification
+- Zephyr test level classifier (Minimum Viable CRS, Smoke, Edge Case, Regression)
+- Precondition analyzer for structured setup requirements
+- Enhanced Bayesian scoring with Zephyr-specific evidence patterns
+
+#### Phase 3: Platform-Agnostic Generation
+- Robot Framework generation supporting platform variations
+- Variable extraction from Zephyr {variable} format to ${variable} format
+- Conditional step generation for different target platforms
+
+#### Phase 4: Complete API Integration
+- Enhanced Zephyr client for comprehensive test case retrieval
+- Full field mapping and traceability data extraction
+- Support for Zephyr's complete test case structure
+
+### Success Metrics
+- 95%+ accuracy in parsing Zephyr test case structures
+- Preserve all test case metadata and requirement traceability
+- Handle 90%+ of platform variation patterns
+- Generate executable Robot Framework tests for 95%+ of cases
+
+### Implementation Timeline
+Planned for 2026 based on customer demand and Zephyr adoption patterns.
+
 ## Cloud Storage Backend Roadmap
 
 ### Phase 1: S3 backend

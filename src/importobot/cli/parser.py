@@ -5,25 +5,38 @@ from __future__ import annotations
 import argparse
 from collections.abc import Sequence
 
-from importobot.medallion.interfaces.enums import SupportedFormat
-
-FETCHABLE_FORMATS: dict[str, SupportedFormat] = {
-    SupportedFormat.JIRA_XRAY.value: SupportedFormat.JIRA_XRAY,
-    SupportedFormat.ZEPHYR.value: SupportedFormat.ZEPHYR,
-    SupportedFormat.TESTRAIL.value: SupportedFormat.TESTRAIL,
-    SupportedFormat.TESTLINK.value: SupportedFormat.TESTLINK,
-}
+from importobot.cli.constants import FETCHABLE_FORMATS, format_choices
 
 
-def _parse_fetch_format(value: str) -> SupportedFormat:
-    """Coerce string value into SupportedFormat."""
-    normalized = value.lower()
-    if normalized not in FETCHABLE_FORMATS:
-        valid = ", ".join(sorted(FETCHABLE_FORMATS))
-        raise argparse.ArgumentTypeError(
-            f"Unsupported fetch format '{value}'. Choose from: {valid}"
-        )
-    return FETCHABLE_FORMATS[normalized]
+class FetchFormatAction(argparse.Action):
+    """Normalize and coerce fetch format arguments."""
+
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: str | Sequence[str] | None,
+        option_string: str | None = None,
+    ) -> None:
+        """Normalize format input, validate against choices, and store enum."""
+        if values is None:
+            setattr(namespace, self.dest, None)
+            return
+
+        if isinstance(values, Sequence) and not isinstance(values, str):
+            parser.error(f"{option_string or '--fetch-format'} expected a single value")
+
+        if not isinstance(values, str):
+            parser.error(f"{option_string or '--fetch-format'} expects a string value")
+            return
+
+        normalized = values.lower()
+        fetch_format = FETCHABLE_FORMATS.get(normalized)
+        if fetch_format is None:
+            valid = ", ".join(format_choices())
+            parser.error(f"Unsupported fetch format '{values}'. Choose from: {valid}")
+
+        setattr(namespace, self.dest, fetch_format)
 
 
 class TokenListAction(argparse.Action):
@@ -115,7 +128,9 @@ def create_parser() -> argparse.ArgumentParser:
     # API retrieval options (can be combined with conversion flags)
     parser.add_argument(
         "--fetch-format",
-        type=_parse_fetch_format,
+        action=FetchFormatAction,
+        type=str.lower,
+        choices=format_choices(),
         metavar="FORMAT",
         help="Fetch test cases via platform API before converting "
         "(supported: jira_xray, zephyr, testrail, testlink)",
@@ -151,6 +166,18 @@ def create_parser() -> argparse.ArgumentParser:
         dest="max_concurrency",
         type=int,
         help="Maximum number of concurrent API requests (experimental)",
+    )
+
+    parser.add_argument(
+        "--robot-template",
+        dest="robot_templates",
+        action="append",
+        metavar="PATH",
+        help=(
+            "Robot Framework template file or directory. "
+            "Use multiple --robot-template flags to supply additional sources. "
+            "Entries can be FILE, DIR, or NAME=PATH to bind a template name."
+        ),
     )
 
     return parser

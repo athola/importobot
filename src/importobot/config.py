@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from importobot import exceptions
+from importobot.cli.constants import FETCHABLE_FORMATS, SUPPORTED_FETCH_FORMATS
 from importobot.medallion.interfaces.enums import SupportedFormat
 
 if TYPE_CHECKING:  # pragma: no cover - circular import guard for type checking
@@ -199,8 +200,22 @@ def _parse_project_identifier(value: str | None) -> tuple[str | None, int | None
 def resolve_api_ingest_config(args: Any) -> APIIngestConfig:
     """Resolve API ingestion credentials from CLI args and environment."""
     fetch_format = getattr(args, "fetch_format", None)
+    if isinstance(fetch_format, str):
+        fetch_format = FETCHABLE_FORMATS.get(fetch_format.lower())
+
     if not isinstance(fetch_format, SupportedFormat):
-        raise exceptions.ConfigurationError("API ingestion requires --fetch-format.")
+        valid = ", ".join(fmt.value for fmt in SUPPORTED_FETCH_FORMATS)
+        raise exceptions.ConfigurationError(
+            f"API ingestion requires --fetch-format. Supported: {valid}"
+        )
+
+    if fetch_format not in SUPPORTED_FETCH_FORMATS:
+        valid = ", ".join(fmt.value for fmt in SUPPORTED_FETCH_FORMATS)
+        raise exceptions.ConfigurationError(
+            f"Unsupported fetch format '{fetch_format.value}'. Supported: {valid}"
+        )
+
+    args.fetch_format = fetch_format
 
     prefix = f"IMPORTOBOT_{fetch_format.name}"
     fetch_env = os.getenv

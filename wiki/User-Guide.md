@@ -296,13 +296,7 @@ for payload in client.fetch_all(progress_callback=lambda **kw: print(f"Fetched {
 
 #### Zephyr Client Features
 
-The enhanced Zephyr client provides automatic discovery and adaptation:
-
-- **Automatic API Discovery**: Tries multiple endpoint patterns to find working configurations
-- **Authentication Flexibility**: Supports Bearer tokens, API keys, Basic auth, and dual-token setups
-- **Adaptive Pagination**: Auto-detects optimal page sizes based on server limits
-- **Robust Payload Handling**: Handles diverse Zephyr response structures without manual configuration
-- **Progress Feedback**: Detailed progress reporting during large fetch operations
+The enhanced Zephyr client provides automatic discovery and adaptation to different server configurations. For complete technical details, see [ADR-0003: API Integration Architecture](architecture/ADR-0003-api-integration).
 
 #### Integration Hooks
 
