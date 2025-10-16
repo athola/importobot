@@ -622,7 +622,7 @@ def _get_steps(test_case: dict[str, Any]) -> list[Step]:
 
 
 def _iter_step_text(step: Step) -> Iterable[str]:
-    for field in ("description", "testData", "expectedResult"):
+    for field in ("description", "action", "step", "instruction", "testData", "expectedResult"):
         value = step.get(field)
         if isinstance(value, str):
             yield value
@@ -715,7 +715,13 @@ def _render_cli_step(
     step_index: int,
 ) -> list[str]:
     test_data = step.get("testData") or ""
-    description = step.get("description")
+    # Check for action description in multiple fields (description, action, step, instruction)
+    description = (
+        step.get("description")
+        or step.get("action")
+        or step.get("step")
+        or step.get("instruction")
+    )
     expected = step.get("expectedResult")
 
     location, command_text, connection_override = _parse_step_location(test_data)
