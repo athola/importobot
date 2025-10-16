@@ -149,33 +149,32 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
         """Test that high-quality data receives appropriate quality scores."""
         validation_result = self.validator.validate_raw_data(self.high_quality_data)
 
-        self.assertTrue(validation_result.is_valid)
-        self.assertEqual(validation_result.error_count, 0)
-        self.assertLessEqual(validation_result.warning_count, 2)  # Allow minor warnings
+        assert validation_result.is_valid
+        assert validation_result.error_count == 0
+        assert validation_result.warning_count <= 2  # Allow minor warnings
         expected_severities = [QualitySeverity.INFO, QualitySeverity.LOW]
-        self.assertIn(validation_result.severity, expected_severities)
+        assert validation_result.severity in expected_severities
 
         # Verify detailed validation information is provided
-        self.assertIn("structure_validation", validation_result.details)
-        self.assertIn("size_validation", validation_result.details)
-        self.assertIn("content_validation", validation_result.details)
+        assert "structure_validation" in validation_result.details
+        assert "size_validation" in validation_result.details
+        assert "content_validation" in validation_result.details
 
     def test_medium_quality_data_has_warnings(self):
         """Test that medium-quality data generates appropriate warnings."""
         validation_result = self.validator.validate_raw_data(self.medium_quality_data)
 
-        self.assertTrue(validation_result.is_valid)  # Should still be valid for Bronze
-        self.assertEqual(validation_result.error_count, 0)
-        self.assertGreater(validation_result.warning_count, 0)
+        assert validation_result.is_valid  # Should still be valid for Bronze
+        assert validation_result.error_count == 0
+        assert validation_result.warning_count > 0
         expected_severities = [QualitySeverity.LOW, QualitySeverity.MEDIUM]
-        self.assertIn(validation_result.severity, expected_severities)
+        assert validation_result.severity in expected_severities
 
         # Should identify specific quality issues
         issues_text = " ".join(validation_result.issues).lower()
         indicators = ["empty", "missing", "incomplete"]
-        self.assertTrue(
-            any(indicator in issues_text for indicator in indicators),
-            "Should identify missing or empty content",
+        assert any(indicator in issues_text for indicator in indicators), (
+            "Should identify missing or empty content"
         )
 
     def test_poor_quality_data_identified_correctly(self):
@@ -183,9 +182,9 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
         validation_result = self.validator.validate_raw_data(self.poor_quality_data)
 
         # May still be valid for Bronze (raw data) but with many warnings
-        self.assertGreaterEqual(validation_result.warning_count, 3)
+        assert validation_result.warning_count >= 3
         expected_severities = [QualitySeverity.MEDIUM, QualitySeverity.HIGH]
-        self.assertIn(validation_result.severity, expected_severities)
+        assert validation_result.severity in expected_severities
 
         # Should identify multiple types of issues
         issues_text = " ".join(validation_result.issues).lower()
@@ -193,9 +192,7 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
         found_issues = sum(
             1 for issue_type in expected_issue_types if issue_type in issues_text
         )
-        self.assertGreaterEqual(
-            found_issues, 2, "Should identify multiple types of quality issues"
-        )
+        assert found_issues >= 2, "Should identify multiple types of quality issues"
 
     def test_validation_consistency_across_runs(self):
         """Test that validation results are consistent across multiple runs."""
@@ -207,10 +204,10 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
         # All results should be identical
         first_result = results[0]
         for result in results[1:]:
-            self.assertEqual(result.is_valid, first_result.is_valid)
-            self.assertEqual(result.error_count, first_result.error_count)
-            self.assertEqual(result.warning_count, first_result.warning_count)
-            self.assertEqual(result.severity, first_result.severity)
+            assert result.is_valid == first_result.is_valid
+            assert result.error_count == first_result.error_count
+            assert result.warning_count == first_result.warning_count
+            assert result.severity == first_result.severity
 
     # Test 2: Structure validation business logic
     def test_structure_validation_dictionary_requirement(self):
@@ -220,11 +217,9 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
                 validation_result = self.validator.validate_raw_data(malformed_data)
 
                 if not isinstance(malformed_data, dict):
-                    self.assertFalse(validation_result.is_valid)
-                    self.assertGreater(validation_result.error_count, 0)
-                    self.assertEqual(
-                        validation_result.severity, QualitySeverity.CRITICAL
-                    )
+                    assert not validation_result.is_valid
+                    assert validation_result.error_count > 0
+                    assert validation_result.severity == QualitySeverity.CRITICAL
 
     def test_structure_validation_nesting_depth_limits(self):
         """Test that structure validation enforces reasonable nesting depth."""
@@ -237,10 +232,9 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
         # Should generate warning about excessive nesting
         if validation_result.warning_count > 0:
             issues_text = " ".join(validation_result.issues).lower()
-            self.assertTrue(
-                any(keyword in issues_text for keyword in ["depth", "nesting", "deep"]),
-                "Should warn about excessive nesting depth",
-            )
+            assert any(
+                keyword in issues_text for keyword in ["depth", "nesting", "deep"]
+            ), "Should warn about excessive nesting depth"
 
     def test_structure_validation_test_indicators(self):
         """Test that structure validation identifies test-related content."""
@@ -257,7 +251,7 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
             "test_indicators", []
         )
 
-        self.assertGreater(len(test_indicators), 0, "Should identify test indicators")
+        assert len(test_indicators) > 0, "Should identify test indicators"
 
         # Data without test indicators
         non_test_data = {
@@ -268,7 +262,7 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
 
         validation_result = self.validator.validate_raw_data(non_test_data)
         # Should warn about lack of test indicators
-        self.assertGreater(validation_result.warning_count, 0)
+        assert validation_result.warning_count > 0
 
     # Test 3: Size validation business logic
     def test_size_validation_reasonable_limits(self):
@@ -276,11 +270,11 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
         validation_result = self.validator.validate_raw_data(self.large_data)
 
         size_details = validation_result.details.get("size_validation", {})
-        self.assertIn("size_mb", size_details)
-        self.assertIn("size_bytes", size_details)
+        assert "size_mb" in size_details
+        assert "size_bytes" in size_details
 
         # Should complete validation even for large data
-        self.assertIsNotNone(validation_result.is_valid)
+        assert validation_result.is_valid is not None
 
     def test_size_validation_extremely_large_data(self):
         """Test size validation behavior with extremely large data."""
@@ -294,12 +288,11 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
             validation_result = self.validator.validate_raw_data(huge_data)
             # Should either handle gracefully or fail with clear error
             if not validation_result.is_valid:
-                self.assertGreater(validation_result.error_count, 0)
+                assert validation_result.error_count > 0
                 issues_text = " ".join(validation_result.issues).lower()
                 keywords = ["size", "large", "exceeds"]
-                self.assertTrue(
-                    any(keyword in issues_text for keyword in keywords),
-                    "Should identify size issues",
+                assert any(keyword in issues_text for keyword in keywords), (
+                    "Should identify size issues"
                 )
         except MemoryError:
             # Acceptable to fail with memory error for extremely large data
@@ -319,7 +312,7 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
             size_details = validation_result.details.get("size_validation", {})
             if "large_fields" in size_details:
                 large_fields = size_details["large_fields"]
-                self.assertGreater(len(large_fields), 0)
+                assert len(large_fields) > 0
 
     # Test 4: Error severity classification
     def test_severity_classification_critical_errors(self):
@@ -334,9 +327,9 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
             with self.subTest(data=critical_data):
                 validation_result = self.validator.validate_raw_data(critical_data)
 
-                self.assertFalse(validation_result.is_valid)
-                self.assertEqual(validation_result.severity, QualitySeverity.CRITICAL)
-                self.assertGreater(validation_result.error_count, 0)
+                assert not validation_result.is_valid
+                assert validation_result.severity == QualitySeverity.CRITICAL
+                assert validation_result.error_count > 0
 
     def test_severity_classification_warning_levels(self):
         """Test that different warning levels are classified correctly."""
@@ -348,10 +341,10 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
         validation_result = self.validator.validate_raw_data(high_warning_data)
 
         if validation_result.warning_count > 5:
-            self.assertIn(
-                validation_result.severity,
-                [QualitySeverity.HIGH, QualitySeverity.MEDIUM],
-            )
+            assert validation_result.severity in [
+                QualitySeverity.HIGH,
+                QualitySeverity.MEDIUM,
+            ]
 
         # Low warning scenario
         low_warning_data = {
@@ -363,10 +356,10 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
         validation_result = self.validator.validate_raw_data(low_warning_data)
 
         if validation_result.warning_count > 0:
-            self.assertIn(
-                validation_result.severity,
-                [QualitySeverity.LOW, QualitySeverity.MEDIUM],
-            )
+            assert validation_result.severity in [
+                QualitySeverity.LOW,
+                QualitySeverity.MEDIUM,
+            ]
 
 
 class TestBronzeValidationContentAndPerformance(unittest.TestCase):
@@ -417,14 +410,14 @@ class TestBronzeValidationContentAndPerformance(unittest.TestCase):
         null_analysis = validation_result.details.get("content_validation", {}).get(
             "null_analysis", {}
         )
-        self.assertIn("total_values", null_analysis)
-        self.assertIn("null_values", null_analysis)
-        self.assertIn("null_percentage", null_analysis)
+        assert "total_values" in null_analysis
+        assert "null_values" in null_analysis
+        assert "null_percentage" in null_analysis
 
         # Should calculate reasonable percentages
         null_percentage = null_analysis.get("null_percentage", 0)
-        self.assertGreaterEqual(null_percentage, 0)
-        self.assertLessEqual(null_percentage, 100)
+        assert null_percentage >= 0
+        assert null_percentage <= 100
 
     def test_content_validation_suspicious_patterns(self):
         """Test detection of suspicious or problematic patterns."""
@@ -444,7 +437,7 @@ class TestBronzeValidationContentAndPerformance(unittest.TestCase):
 
         # Should identify at least some suspicious patterns
         if validation_result.warning_count > 0:
-            self.assertGreaterEqual(len(suspicious_patterns), 1)
+            assert len(suspicious_patterns) >= 1
 
     # Test 2: Performance validation
     def test_validation_performance_large_datasets(self):
@@ -455,10 +448,8 @@ class TestBronzeValidationContentAndPerformance(unittest.TestCase):
         validation_time = time.time() - start_time
 
         # Should complete validation within reasonable time
-        self.assertLess(
-            validation_time, 10.0, "Validation took too long for large dataset"
-        )
-        self.assertIsNotNone(validation_result.is_valid)
+        assert validation_time < 10.0, "Validation took too long for large dataset"
+        assert validation_result.is_valid is not None
 
     def test_validation_memory_efficiency(self):
         """Test that validation is memory efficient."""
@@ -472,7 +463,7 @@ class TestBronzeValidationContentAndPerformance(unittest.TestCase):
 
         # Should not use excessive memory (adjust threshold as needed)
         peak_mb = peak / 1024 / 1024
-        self.assertLess(peak_mb, 100, f"Validation used too much memory: {peak_mb}MB")
+        assert peak_mb < 100, f"Validation used too much memory: {peak_mb}MB"
 
     # Test 3: Configuration and customization
     def test_configurable_size_limits(self):
@@ -489,9 +480,8 @@ class TestBronzeValidationContentAndPerformance(unittest.TestCase):
         if validation_result.error_count > 0:
             issues_text = " ".join(validation_result.issues).lower()
             keywords = ["size", "exceeds", "maximum"]
-            self.assertTrue(
-                any(keyword in issues_text for keyword in keywords),
-                "Should respect configured size limits",
+            assert any(keyword in issues_text for keyword in keywords), (
+                "Should respect configured size limits"
             )
 
     def test_configurable_nesting_limits(self):
@@ -518,16 +508,16 @@ class TestBronzeValidationContentAndPerformance(unittest.TestCase):
         validation_result = self.validator.validate_raw_data(self.medium_quality_data)
 
         # Required fields
-        self.assertIsNotNone(validation_result.is_valid)
-        self.assertIsInstance(validation_result.error_count, int)
-        self.assertIsInstance(validation_result.warning_count, int)
-        self.assertIsInstance(validation_result.issues, list)
-        self.assertIsInstance(validation_result.details, dict)
-        self.assertIn(validation_result.severity, list(QualitySeverity))
+        assert validation_result.is_valid is not None
+        assert isinstance(validation_result.error_count, int)
+        assert isinstance(validation_result.warning_count, int)
+        assert isinstance(validation_result.issues, list)
+        assert isinstance(validation_result.details, dict)
+        assert validation_result.severity in list(QualitySeverity)
         # Validation timestamp should be recent
 
         time_diff = datetime.now() - validation_result.validation_timestamp
-        self.assertLess(time_diff, timedelta(seconds=10))
+        assert time_diff < timedelta(seconds=10)
 
     def test_validation_details_informativeness(self):
         """Test that validation details provide useful diagnostic information."""
@@ -542,17 +532,17 @@ class TestBronzeValidationContentAndPerformance(unittest.TestCase):
             "content_validation",
         ]
         for section in expected_sections:
-            self.assertIn(section, details, f"Missing validation section: {section}")
+            assert section in details, f"Missing validation section: {section}"
 
         # Each section should provide useful metrics
         structure_details = details.get("structure_validation", {})
         if "test_indicators" in structure_details:
-            self.assertIsInstance(structure_details["test_indicators"], list)
+            assert isinstance(structure_details["test_indicators"], list)
 
         size_details = details.get("size_validation", {})
         if "size_bytes" in size_details:
-            self.assertIsInstance(size_details["size_bytes"], int)
-            self.assertGreaterEqual(size_details["size_bytes"], 0)
+            assert isinstance(size_details["size_bytes"], int)
+            assert size_details["size_bytes"] >= 0
 
 
 if __name__ == "__main__":

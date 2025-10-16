@@ -13,10 +13,11 @@ import hashlib
 import json
 import time
 from collections import OrderedDict
+from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
-from typing import Any, List, Mapping, Optional, Union, cast
+from typing import Any, cast
 from uuid import uuid4
 
 from importobot.config import (
@@ -48,10 +49,10 @@ class FileContentCache:
 
     def __init__(
         self,
-        max_size_mb: Optional[int] = None,
-        ttl_seconds: Optional[int] = None,
+        max_size_mb: int | None = None,
+        ttl_seconds: int | None = None,
         *,
-        telemetry_client: Optional[TelemetryClient] = None,
+        telemetry_client: TelemetryClient | None = None,
     ) -> None:
         """Initialize cache with an LRU budget expressed in megabytes."""
         resolved_mb = (
@@ -63,12 +64,12 @@ class FileContentCache:
         resolved_ttl = (
             ttl_seconds if ttl_seconds is not None else FILE_CONTENT_CACHE_TTL_SECONDS
         )
-        self._ttl_seconds: Optional[int] = resolved_ttl if resolved_ttl > 0 else None
+        self._ttl_seconds: int | None = resolved_ttl if resolved_ttl > 0 else None
         self._cache_hits = 0
         self._cache_misses = 0
         self._telemetry = telemetry_client or get_telemetry_client()
 
-    def get_cached_content(self, file_path: Path) -> Optional[str]:
+    def get_cached_content(self, file_path: Path) -> str | None:
         """Return cached content if file unchanged, else evict entry."""
         cache_key = str(file_path.resolve())
         entry = self._cache.get(cache_key)
@@ -186,12 +187,12 @@ class DataIngestionService:
         self,
         bronze_layer: BronzeLayer,
         *,
-        security_level: Union[SecurityLevel, str] = SecurityLevel.STANDARD,
+        security_level: SecurityLevel | str = SecurityLevel.STANDARD,
         enable_security_gateway: bool = False,
-        format_service: Optional[Any] = None,
-        content_cache: Optional[FileContentCache] = None,
+        format_service: Any | None = None,
+        content_cache: FileContentCache | None = None,
     ):
-        """Initialize ingestion service."""  # noqa: D107
+        """Initialize ingestion service."""
         self.bronze_layer = bronze_layer
 
         if isinstance(security_level, str):
@@ -204,7 +205,7 @@ class DataIngestionService:
         self._content_cache = content_cache or FileContentCache()
 
         # Lazy-load security gateway to avoid circular imports
-        self._security_gateway: Optional[SecurityGateway] = None
+        self._security_gateway: SecurityGateway | None = None
 
         logger.info(
             "Initialized DataIngestionService with security_level=%s, gateway=%s",
@@ -213,13 +214,13 @@ class DataIngestionService:
         )
 
     @property
-    def security_gateway(self) -> Optional[SecurityGateway]:
+    def security_gateway(self) -> SecurityGateway | None:
         """Lazy-load security gateway when needed."""
         if self._security_gateway is None and self.enable_security_gateway:
             self._security_gateway = SecurityGateway(security_level=self.security_level)
         return self._security_gateway
 
-    def ingest_file(self, file_path: Union[str, Path]) -> ProcessingResult:
+    def ingest_file(self, file_path: str | Path) -> ProcessingResult:
         """Ingest a JSON file with optional security validation.
 
         Args:
@@ -320,20 +321,20 @@ class DataIngestionService:
             )
 
         except json.JSONDecodeError as e:
-            error_msg = f"Invalid JSON in file {file_path}: {str(e)}"
+            error_msg = f"Invalid JSON in file {file_path}: {e!s}"
             logger.error(error_msg)
             return self._create_error_result(
                 start_time, error_msg, file_path, correlation_id=correlation_id
             )
 
         except Exception as e:
-            error_msg = f"Failed to ingest file {file_path}: {str(e)}"
+            error_msg = f"Failed to ingest file {file_path}: {e!s}"
             logger.error(error_msg)
             return self._create_error_result(
                 start_time, error_msg, file_path, correlation_id=correlation_id
             )
 
-    async def ingest_file_async(self, file_path: Union[str, Path]) -> ProcessingResult:
+    async def ingest_file_async(self, file_path: str | Path) -> ProcessingResult:
         """Asynchronous wrapper for :meth:`ingest_file`."""
         return await asyncio.to_thread(self.ingest_file, file_path)
 
@@ -410,14 +411,14 @@ class DataIngestionService:
             return result
 
         except json.JSONDecodeError as e:
-            error_msg = f"Invalid JSON string '{source_name}': {str(e)}"
+            error_msg = f"Invalid JSON string '{source_name}': {e!s}"
             logger.error(error_msg)
             return self._create_error_result(
                 start_time, error_msg, Path(source_name), correlation_id=correlation_id
             )
 
         except Exception as e:
-            error_msg = f"Failed to ingest JSON string '{source_name}': {str(e)}"
+            error_msg = f"Failed to ingest JSON string '{source_name}': {e!s}"
             logger.error(error_msg)
             return self._create_error_result(
                 start_time, error_msg, Path(source_name), correlation_id=correlation_id
@@ -432,8 +433,8 @@ class DataIngestionService:
         )
 
     def ingest_batch(
-        self, file_paths: List[Union[str, Path]], max_workers: int = 4
-    ) -> List[ProcessingResult]:
+        self, file_paths: list[str | Path], max_workers: int = 4
+    ) -> list[ProcessingResult]:
         """Ingest multiple JSON files in parallel."""
         normalized_paths = [Path(path) for path in file_paths]
 
@@ -443,8 +444,8 @@ class DataIngestionService:
         return results
 
     async def ingest_batch_async(
-        self, file_paths: List[Union[str, Path]], max_workers: int = 4
-    ) -> List[ProcessingResult]:
+        self, file_paths: list[str | Path], max_workers: int = 4
+    ) -> list[ProcessingResult]:
         """Asynchronous wrapper for :meth:`ingest_batch`."""
         return await asyncio.to_thread(self.ingest_batch, file_paths, max_workers)
 
@@ -518,7 +519,7 @@ class DataIngestionService:
             return result
 
         except Exception as e:
-            error_msg = f"Failed to ingest dictionary '{source_name}': {str(e)}"
+            error_msg = f"Failed to ingest dictionary '{source_name}': {e!s}"
             logger.error(error_msg)
             return self._create_error_result(
                 start_time,
@@ -548,7 +549,7 @@ class DataIngestionService:
         return config
 
     def enable_security(
-        self, security_level: Union[SecurityLevel, str] = SecurityLevel.STANDARD
+        self, security_level: SecurityLevel | str = SecurityLevel.STANDARD
     ) -> None:
         """Enable security gateway for data processing.
 
@@ -611,8 +612,8 @@ class DataIngestionService:
         error_msg: str,
         source_path: Path,
         *,
-        security_info: Optional[Mapping[str, Any]] = None,
-        correlation_id: Optional[str] = None,
+        security_info: Mapping[str, Any] | None = None,
+        correlation_id: str | None = None,
     ) -> ProcessingResult:
         """Create error processing result with optional security context."""
         # Create metadata for the error result
@@ -666,7 +667,7 @@ class DataIngestionService:
         if cached is not None:
             return cached
 
-        with open(file_path, "r", encoding="utf-8") as handle:
+        with open(file_path, encoding="utf-8") as handle:
             content = handle.read()
 
         self._content_cache.cache_content(file_path, content)

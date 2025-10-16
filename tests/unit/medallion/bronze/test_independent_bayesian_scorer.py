@@ -23,7 +23,7 @@ class TestIndependentBayesianScorer(unittest.TestCase):
 
     def test_parameter_validation(self):
         """Parameters should be mathematically valid."""
-        self.assertTrue(self.scorer.parameters.validate())
+        assert self.scorer.parameters.validate()
 
     def test_likelihood_bounds(self):
         """Likelihood calculations should stay within [0,1] bounds."""
@@ -37,11 +37,11 @@ class TestIndependentBayesianScorer(unittest.TestCase):
         for metrics in test_cases:
             with self.subTest(metrics=metrics):
                 likelihood = self.scorer.calculate_likelihood(metrics)
-                self.assertGreaterEqual(
-                    likelihood, 0.0, f"Likelihood should be >= 0.0, got {likelihood}"
+                assert likelihood >= 0.0, (
+                    f"Likelihood should be >= 0.0, got {likelihood}"
                 )
-                self.assertLessEqual(
-                    likelihood, 1.0, f"Likelihood should be <= 1.0, got {likelihood}"
+                assert likelihood <= 1.0, (
+                    f"Likelihood should be <= 1.0, got {likelihood}"
                 )
 
     def test_independence_assumption_discrimination(self):
@@ -72,10 +72,8 @@ class TestIndependentBayesianScorer(unittest.TestCase):
         format_likelihood = self.scorer.calculate_likelihood(format_metrics)
 
         # Format-specific data should have higher likelihood
-        self.assertGreater(
-            format_likelihood,
-            generic_likelihood,
-            f"Format ({format_likelihood:.3f}) > generic ({generic_likelihood:.3f})",
+        assert format_likelihood > generic_likelihood, (
+            f"Format ({format_likelihood:.3f}) > generic ({generic_likelihood:.3f})"
         )
 
     def test_uniqueness_discriminative_power(self):
@@ -95,10 +93,8 @@ class TestIndependentBayesianScorer(unittest.TestCase):
             unique_likelihood / base_likelihood if base_likelihood > 0 else float("inf")
         )
 
-        self.assertGreater(
-            likelihood_ratio,
-            1.5,
-            f"High uniqueness should provide >=1.5x boost, got {likelihood_ratio:.2f}",
+        assert likelihood_ratio > 1.5, (
+            f"High uniqueness should provide >=1.5x boost, got {likelihood_ratio:.2f}"
         )
 
     def test_numerical_stability(self):
@@ -117,9 +113,9 @@ class TestIndependentBayesianScorer(unittest.TestCase):
             with self.subTest(metrics=metrics):
                 try:
                     likelihood = self.scorer.calculate_likelihood(metrics)
-                    self.assertIsInstance(likelihood, float)
-                    self.assertFalse(math.isnan(likelihood))
-                    self.assertFalse(math.isinf(likelihood))
+                    assert isinstance(likelihood, float)
+                    assert not math.isnan(likelihood)
+                    assert not math.isinf(likelihood)
                 except (OverflowError, ValueError) as e:
                     self.fail(f"Edge case raised exception: {e}")
 
@@ -139,23 +135,21 @@ class TestIndependentBayesianScorer(unittest.TestCase):
         # Check all expected components are present
         expected_components = {"completeness", "quality", "uniqueness", "overall"}
         for component in expected_components:
-            self.assertIn(component, components)
-            self.assertIsInstance(components[component], float)
-            self.assertGreaterEqual(components[component], 0.0)
+            assert component in components
+            assert isinstance(components[component], float)
+            assert components[component] >= 0.0
 
             # Individual Beta PDF components can be > 1.0 (mathematically correct)
             # Overall likelihood should be normalized to [0, 1]
             if component == "overall":
-                self.assertLessEqual(components[component], 1.0)
+                assert components[component] <= 1.0
 
         # Verify component values are reasonable for Beta PDFs
         # Beta PDFs can be > 1.0 but should be finite
         for component in ["completeness", "quality", "uniqueness"]:
-            self.assertFalse(math.isnan(components[component]))
-            self.assertFalse(math.isinf(components[component]))
-            self.assertLess(
-                components[component], 10.0
-            )  # Reasonable upper bound for PDFs
+            assert not math.isnan(components[component])
+            assert not math.isinf(components[component])
+            assert components[component] < 10.0  # Reasonable upper bound for PDFs
 
     def test_metric_likelihood_monotonicity(self):
         """Higher evidence inputs should never reduce component likelihood."""
@@ -183,10 +177,8 @@ class TestIndependentBayesianScorer(unittest.TestCase):
         base_score = self.scorer.calculate_discriminative_score(base_metrics)
         high_score = self.scorer.calculate_discriminative_score(high_uniqueness)
 
-        self.assertGreater(
-            high_score,
-            base_score,
-            f"High uniqueness score ({high_score:.3f}) > base ({base_score:.3f})",
+        assert high_score > base_score, (
+            f"High uniqueness score ({high_score:.3f}) > base ({base_score:.3f})"
         )
 
     def test_posterior_bayesian_update(self):
@@ -217,10 +209,10 @@ class TestIndependentBayesianScorer(unittest.TestCase):
             (high_prior_posterior, "high prior"),
         ]:
             with self.subTest(prior_type=name):
-                self.assertGreaterEqual(posterior, 0.0)
-                self.assertLessEqual(posterior, 1.0)
+                assert posterior >= 0.0
+                assert posterior <= 1.0
 
-        self.assertGreater(high_prior_posterior, low_prior_posterior)
+        assert high_prior_posterior > low_prior_posterior
 
     def test_strong_evidence_confidence_threshold(self):
         """Strong evidence should produce a high-confidence posterior."""
@@ -240,7 +232,7 @@ class TestIndependentBayesianScorer(unittest.TestCase):
             metrics,
         )
 
-        self.assertGreaterEqual(posterior, 0.7)
+        assert posterior >= 0.7
 
     def test_mathematical_coherence(self):
         """Mathematical properties should be coherent and consistent.
@@ -314,11 +306,9 @@ class TestIndependentBayesianScorer(unittest.TestCase):
                 msg="Conservative mapping makes likelihoods equal",
             )
         else:
-            self.assertGreater(
-                low_beta_likelihood,
-                high_beta_likelihood,
+            assert low_beta_likelihood > high_beta_likelihood, (
                 "Low beta should increase high uniqueness likelihood: "
-                f"{low_beta_likelihood:.3f} > {high_beta_likelihood:.3f}",
+                f"{low_beta_likelihood:.3f} > {high_beta_likelihood:.3f}"
             )
 
     def test_business_requirements_compliance(self):
@@ -375,8 +365,8 @@ class TestIndependentBayesianScorer(unittest.TestCase):
         self.assertAlmostEqual(sum(distribution.values()), 1.0, places=9)
         for name, posterior in distribution.items():
             with self.subTest(format=name):
-                self.assertGreaterEqual(posterior, 0.0)
-                self.assertLessEqual(posterior, 1.0)
+                assert posterior >= 0.0
+                assert posterior <= 1.0
 
 
 if __name__ == "__main__":

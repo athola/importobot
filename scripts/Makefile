@@ -53,10 +53,24 @@ demo-non-interactive:  ## Run the demo in non-interactive mode
 	@echo "==================== Running non-interactive demo ===================="
 	uv run interactive-demo --non-interactive
 
+generate-enterprise-tests:  ## Generate enterprise example test suites
+	@echo "==================== Generating enterprise test suites ===================="
+	uv run generate-enterprise-tests
+
+generate-zephyr-tests:  ## Generate Zephyr example test suites
+	@echo "==================== Generating Zephyr test suites ===================="
+	uv run generate-zephyr-tests
+
 generate-tests:  ## Generate test cases
 	@echo "==================== Generating test cases ===================="
-	uv run generate-enterprise-tests
-	uv run generate-zephyr-tests
+	$(MAKE) generate-enterprise-tests
+	$(MAKE) generate-zephyr-tests
+
+MCP_ARGS ?=
+
+mcp:  ## Launch the Importobot MCP CLI (set MCP_ARGS=\"--help\" etc.)
+	@echo "==================== Launching Importobot MCP CLI ===================="
+	uv run importobot-mcp $(MCP_ARGS)
 
 all:  ## Run all checks (lint, test, format)
 	$(MAKE) lint

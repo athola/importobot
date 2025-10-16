@@ -2,13 +2,13 @@
 
 import re
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from importobot.core.constants import ROBOT_FRAMEWORK_ARGUMENT_SEPARATOR
 
 
 def convert_parameters_to_robot_variables(
-    text: str, parameters: Optional[list[dict[str, Any]]] = None
+    text: str, parameters: list[dict[str, Any]] | None = None
 ) -> str:
     """Convert parameter placeholders {param} to Robot Framework variables ${param}.
 

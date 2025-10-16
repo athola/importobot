@@ -12,7 +12,7 @@ from importobot.medallion.bronze.raw_data_processor import RawDataProcessor
 from importobot.medallion.bronze.validation import BronzeValidator
 
 __all__ = [
-    "RawDataProcessor",
     "BronzeValidator",
     "FormatDetector",
+    "RawDataProcessor",
 ]

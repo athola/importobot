@@ -121,12 +121,14 @@ class TestConstantIntegration:
         # Expected results should have both camelCase and snake_case
         has_camel_case = any("Result" in name for name in EXPECTED_RESULT_FIELD_NAMES)
         has_snake_case = any("_result" in name for name in EXPECTED_RESULT_FIELD_NAMES)
-        assert has_camel_case and has_snake_case
+        assert has_camel_case
+        assert has_snake_case
 
         # Test data should have both camelCase and snake_case
         has_camel_case = any("Data" in name for name in TEST_DATA_FIELD_NAMES)
         has_snake_case = any("_data" in name for name in TEST_DATA_FIELD_NAMES)
-        assert has_camel_case and has_snake_case
+        assert has_camel_case
+        assert has_snake_case
 
         # Step description should have both camelCase and snake_case
         has_camel_case = any(
@@ -135,4 +137,5 @@ class TestConstantIntegration:
         has_snake_case = any(
             "_description" in name for name in STEP_DESCRIPTION_FIELD_NAMES
         )
-        assert has_camel_case and has_snake_case
+        assert has_camel_case
+        assert has_snake_case

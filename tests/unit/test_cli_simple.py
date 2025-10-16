@@ -148,11 +148,15 @@ class TestCLIUserWorkflows:
 
             # Run CLI command with --files flag (multiple arguments,
             # not comma-separated)
-            cmd = (
-                ["python", "-m", "importobot", "--files"]
-                + input_files
-                + ["--output", str(output_dir)]
-            )
+            cmd = [
+                "python",
+                "-m",
+                "importobot",
+                "--files",
+                *input_files,
+                "--output",
+                str(output_dir),
+            ]
             result = subprocess.run(cmd, capture_output=True, text=True, check=False)
 
             # User should get successful conversion
@@ -245,7 +249,8 @@ class TestCLIUserErrorScenarios:
             assert result.returncode != 0
 
             # User should see the location of the error
-            assert "line" in result.stderr and "column" in result.stderr
+            assert "line" in result.stderr
+            assert "column" in result.stderr
 
             # User should get helpful guidance about what to do
             assert (
@@ -341,11 +346,15 @@ class TestCLIUserErrorScenarios:
             output_dir = temp_path / "output"
             output_dir.mkdir()
 
-            cmd = (
-                ["python", "-m", "importobot", "--files"]
-                + input_files
-                + ["--output", str(output_dir)]
-            )
+            cmd = [
+                "python",
+                "-m",
+                "importobot",
+                "--files",
+                *input_files,
+                "--output",
+                str(output_dir),
+            ]
             result = subprocess.run(cmd, capture_output=True, text=True, check=False)
 
             # User should get feedback about batch processing
@@ -403,7 +412,7 @@ class TestErrorHandling:
             check=False,
         )
         # Focus on user value: clear error message, not specific exit code
-        assert not result.returncode == 0  # Should fail
+        assert result.returncode != 0  # Should fail
         assert "non_existent.json" in result.stderr  # Should mention the file
         assert (
             "No matching files found" in result.stderr
@@ -423,7 +432,7 @@ class TestErrorHandling:
                 check=False,
             )
             # User should understand this is about the file, not the directory
-            assert not result.returncode == 0
+            assert result.returncode != 0
             assert "missing.json" in result.stderr
             assert (
                 "No matching files found" in result.stderr

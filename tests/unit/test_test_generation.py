@@ -55,7 +55,7 @@ class TestCategoryEnumEnum:
             CategoryEnum.from_string("invalid")
 
     @pytest.mark.parametrize(
-        "category_str,expected_enum",
+        ("category_str", "expected_enum"),
         [
             ("regression", CategoryEnum.REGRESSION),
             ("smoke", CategoryEnum.SMOKE),
@@ -134,7 +134,7 @@ class EnterpriseTestGeneratorWeights:
         assert sum(distribution.values()) == 100
 
     @pytest.mark.parametrize(
-        "total_tests,weights,expected",
+        ("total_tests", "weights", "expected"),
         [
             (100, {"regression": 0.6, "smoke": 0.4}, {"regression": 60, "smoke": 40}),
             (50, {"regression": 0.8, "smoke": 0.2}, {"regression": 40, "smoke": 10}),
@@ -427,7 +427,7 @@ class EnterpriseTestGeneratorCore:
         assert criticality in ["critical", "high", "medium", "low"]
 
     @pytest.mark.parametrize(
-        "description,expected_types",
+        ("description", "expected_types"),
         [
             ("Navigate to login page", ["navigation", "action"]),
             ("Click login button", ["action", "authentication"]),
@@ -445,7 +445,7 @@ class EnterpriseTestGeneratorCore:
         assert step_type in expected_types
 
     @pytest.mark.parametrize(
-        "description,expected_criticality_options",
+        ("description", "expected_criticality_options"),
         [
             ("Authenticate user", ["critical", "high"]),
             ("Click submit button", ["high", "medium"]),
@@ -564,7 +564,7 @@ class TestConvenienceWrapperFunctions:
         assert any("Selenium" in lib for lib in libraries)
 
     @pytest.mark.parametrize(
-        "total_tests,category_weights",
+        ("total_tests", "category_weights"),
         [
             (10, {CategoryEnum.SMOKE: 1.0}),
             (25, {CategoryEnum.REGRESSION: 0.8, CategoryEnum.SMOKE: 0.2}),
@@ -592,7 +592,7 @@ class TestConvenienceWrapperFunctions:
             assert sum(counts.values()) == total_tests
 
             # All specified categories should be present
-            for category_enum in category_weights.keys():
+            for category_enum in category_weights:
                 assert category_enum.value in counts
                 assert counts[category_enum.value] > 0
 
@@ -758,7 +758,7 @@ class TestErrorHandlingAndEdgeCases:
             assert categories == {"regression", "smoke"}
 
             for sample in generated_files[:5]:
-                with open(sample, "r", encoding="utf-8") as handle:
+                with open(sample, encoding="utf-8") as handle:
                     json.load(handle)
 
     def test_empty_weights_dict(self, generator):

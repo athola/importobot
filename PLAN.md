@@ -1,12 +1,14 @@
 # Importobot Project Plan
 
-This outline enforces the roadmap: what to ship next, what is parked, and which ideas still require further proof-of-concept.
+Roadmap of upcoming features, parked items, and ideas requiring proof-of-concept development.
 
 ### Latest engineering update (October 2025)
-- **✅ MATHEMATICALLY RIGOROUS BAYESIAN CONFIDENCE**: The weighted evidence shim is gone; the independent scorer now owns confidence calculations. Evidence flows through `EvidenceMetrics`, missing unique indicators are penalised, and ambiguous inputs are capped at a 1.5:1 likelihood ratio. The new regression suite (`tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`) locks these behaviours down.
-- Conversion invariants are stable again after teaching the formatter to leave comment placeholders untouched and to surface both raw and normalized names for auditing.
-- Selenium integration coverage now runs entirely in dry-run mode without the old `robot.utils` shim, so CI remains free of legacy deprecation noise.
-- Property-based tests retain literal step bodies, which keeps Hypothesis satisfied while still exercising the parameter conversion logic.
+- **✅ Bayesian confidence scoring**: Replaced weighted evidence with independent scorer. Evidence flows through `EvidenceMetrics`, missing indicators are penalized, ambiguous inputs capped at 1.5:1 likelihood ratio. Regression tests in `test_bayesian_ratio_constraints.py`.
+- **✅ Configuration parsing**: Enhanced project identifier parsing for control characters and whitespace inputs. CLI arguments that don't parse to valid identifiers fall back to environment variables.
+- **✅ Test coverage**: Fixed Zephyr client discovery test with proper mocking. All 1,941 tests pass with 0 skips.
+- Fixed formatter to preserve comment placeholders and show both raw/normalized names for auditing
+- Selenium tests run in dry-run mode without `robot.utils` shim, removing deprecation warnings
+- Property-based tests keep literal step bodies for Hypothesis while testing parameter conversion
 
 ## Roadmap
 
@@ -244,28 +246,24 @@ Gold Layer (Consumption): Optimization → Organization → Export
 - **Memory usage monitoring**: Tests to track memory consumption during large conversions
 - **Concurrent processing**: Tests for handling multiple simultaneous conversion requests
 
-## Test Suite Quality Improvement Plan
+## Test Suite Quality Improvements
 
-### Executive Summary
+Review of 90 test files identified opportunities to improve maintainability and TDD adherence. Current suite has 1537+ passing tests with good coverage but needs structural improvements.
 
-Comprehensive review of 90 test files revealed systematic opportunities to improve test quality, maintainability, and adherence to TDD principles. Current test suite has 1537+ passing tests with good coverage but requires structural improvements for maintainability.
+**Current status:**
+- Good coverage (1537+ tests)
+- Clear organization (unit/integration/invariant/generative)
+- Shared test data and fixtures exist
+- Edge case testing in distributions, security, SSH modules
+- Property-based testing with Hypothesis
 
-### Current Test Suite Status
-
-**Strengths:**
-✅ Good test coverage (1537+ tests)
-✅ Clear test organization (unit/integration/invariant/generative)
-✅ Existing shared test data and fixtures
-✅ Comprehensive edge case testing in some areas (distributions, security, SSH)
-✅ Use of hypothesis for property-based testing (invariant tests)
-
-**Areas for Improvement:**
-⚠️ 150+ hard-coded magic numbers without named constants
-⚠️ 13 files manually create temp directories instead of using fixtures
-⚠️ 862 duplicate test data declarations
-⚠️ 87 test files lack explicit AAA (Arrange-Act-Assert) structure
-⚠️ 100+ weak assertion messages
-⚠️ 20+ missed parametrization opportunities
+**Issues found:**
+- 150+ hard-coded magic numbers without constants
+- 13 files manually create temp directories instead of using fixtures
+- 862 duplicate test data declarations
+- 87 files lack explicit AAA structure
+- 100+ weak assertion messages
+- 20+ missed parametrization opportunities
 
 ### Completed Improvements
 
@@ -312,24 +310,24 @@ Comprehensive review of 90 test files revealed systematic opportunities to impro
 
 ### Implementation Phases
 
-**Phase 1: Quick Wins (Week 1)**
+**Phase 1 (Week 1)**
 - ✅ Create `test_constants.py`
 - ✅ Enhance `shared_test_data.py`
-- ⏳ Convert 5 key test files to use constants
-- ⏳ Convert temp directory creation to fixtures (13 files)
+- Convert 5 key test files to use constants
+- Convert temp directory creation to fixtures (13 files)
 
-**Phase 2: Quality Improvements (Week 2)**
-- ⏳ Add parametrization to security, distribution, and parser tests
-- ⏳ Add AAA comments to 20 most complex tests
-- ⏳ Improve assertion messages in 50 key assertions
+**Phase 2 (Week 2)**
+- Add parametrization to security, distribution, and parser tests
+- Add AAA comments to 20 most complex tests
+- Improve assertion messages in 50 key assertions
 
-**Phase 3: Structural Improvements (Week 3)**
-- ⏳ Expand shared test data usage
-- ⏳ Split 5-10 multi-behavior tests
-- ⏳ Add missing edge case tests
+**Phase 3 (Week 3)**
+- Expand shared test data usage
+- Split 5-10 multi-behavior tests
+- Add missing edge case tests
 
-**Success Metrics**
-- Reduce hard-coded values by 80% (from 150+ to <30)
-- Reduce duplicate test data by 50% (from 862 to <450)
+**Target metrics:**
+- Reduce hard-coded values by 80% (150+ → <30)
+- Reduce duplicate test data by 50% (862 → <450)
 - 100% of complex tests have AAA structure
 - 80% of assertions have descriptive failure messages

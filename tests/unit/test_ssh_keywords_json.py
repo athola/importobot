@@ -28,7 +28,7 @@ def ssh_keywords_data():
         / "keywords"
         / "ssh.json"
     )
-    with open(ssh_json_path, "r", encoding="utf-8") as f:
+    with open(ssh_json_path, encoding="utf-8") as f:
         return json.load(f)
 
 

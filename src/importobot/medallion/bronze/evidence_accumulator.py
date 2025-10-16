@@ -14,7 +14,7 @@ Key principles:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from importobot.medallion.interfaces.enums import EvidenceSource, SupportedFormat
 from importobot.utils.logging import setup_logger
@@ -65,12 +65,10 @@ class FormatEvidenceProfile:
     """Complete evidence profile for a format detection attempt."""
 
     format_name: str
-    evidence_items: List[EvidenceItem]
+    evidence_items: list[EvidenceItem]
     total_possible_weight: float
-    complexity_metrics: Optional[ComplexityMetrics] = (
-        None  # Complexity analysis results
-    )
-    original_data: Optional[Dict[str, Any]] = (
+    complexity_metrics: ComplexityMetrics | None = None  # Complexity analysis results
+    original_data: dict[str, Any] | None = (
         None  # Original test data for complexity analysis
     )
 
@@ -125,7 +123,7 @@ class EvidenceAccumulator:
 
     def __init__(self) -> None:
         """Initialize the evidence accumulator with empty evidence profiles."""
-        self.evidence_profiles: Dict[str, FormatEvidenceProfile] = {}
+        self.evidence_profiles: dict[str, FormatEvidenceProfile] = {}
         # Initialize Independent Bayesian scorer (mathematically rigorous approach)
         self.bayesian_scorer = IndependentBayesianScorer(
             format_priors=self.FORMAT_PRIORS
@@ -133,7 +131,7 @@ class EvidenceAccumulator:
         # Initialize complexity analyzer for enhanced evidence weighting
         self.complexity_analyzer = TestCaseComplexityAnalyzer()
         # Store original data for complexity analysis
-        self.original_test_data: Dict[str, Any] = {}
+        self.original_test_data: dict[str, Any] = {}
 
     def add_evidence(self, format_name: str, evidence: EvidenceItem) -> None:
         """Add a piece of evidence for a format."""
@@ -147,7 +145,7 @@ class EvidenceAccumulator:
     def set_total_possible_weight(self, format_name: str, weight: float) -> None:
         """Set the total possible weight for a format."""
         if format_name not in self.evidence_profiles:
-            original_data: Optional[Dict[str, Any]] = None
+            original_data: dict[str, Any] | None = None
             if self.original_test_data:
                 original_data = self.original_test_data.copy()
 
@@ -173,13 +171,13 @@ class EvidenceAccumulator:
         else:
             self.evidence_profiles[format_name].total_possible_weight = weight
 
-    def set_test_data(self, test_data: Dict[str, Any]) -> None:
+    def set_test_data(self, test_data: dict[str, Any]) -> None:
         """Store original test data for complexity analysis."""
         self.original_test_data = test_data.copy()
 
-    def analyze_complexity_for_all_formats(self) -> Dict[str, ComplexityMetrics]:
+    def analyze_complexity_for_all_formats(self) -> dict[str, ComplexityMetrics]:
         """Analyze complexity for all formats using stored test data."""
-        complexity_results: Dict[str, ComplexityMetrics] = {}
+        complexity_results: dict[str, ComplexityMetrics] = {}
 
         if not self.original_test_data:
             return complexity_results
@@ -224,7 +222,7 @@ class EvidenceAccumulator:
 
         return likelihood
 
-    def calculate_all_format_likelihoods(self) -> Dict[str, float]:
+    def calculate_all_format_likelihoods(self) -> dict[str, float]:
         """Calculate likelihoods for all formats with research-backed ratio capping.
 
         This method implements the hybrid approach from research:
@@ -375,7 +373,7 @@ class EvidenceAccumulator:
             penalty_factor=penalty_factor,
         )
 
-    def optimize_parameters(self, training_data: List[Tuple[str, float]]) -> None:
+    def optimize_parameters(self, training_data: list[tuple[str, float]]) -> None:
         """Optimize weighted evidence parameters using training data.
 
         Args:
@@ -398,11 +396,11 @@ class EvidenceAccumulator:
                 "for IndependentBayesianScorer"
             )
 
-    def get_parameter_summary(self) -> Dict[str, Any]:
+    def get_parameter_summary(self) -> dict[str, Any]:
         """Get summary of optimized weighted evidence parameters."""
         return self.bayesian_scorer.get_parameter_summary()
 
-    def get_detection_confidence(self, format_name: str) -> Dict[str, Any]:
+    def get_detection_confidence(self, format_name: str) -> dict[str, Any]:
         """Get comprehensive confidence metrics using weighted evidence approach."""
         if format_name not in self.evidence_profiles:
             return {
@@ -459,8 +457,8 @@ class EvidenceAccumulator:
         return result
 
     def handle_ties(
-        self, format_scores: Dict[str, float]
-    ) -> Tuple[str, float, Dict[str, str]]:
+        self, format_scores: dict[str, float]
+    ) -> tuple[str, float, dict[str, str]]:
         """Handle tie-breaking between formats with similar scores.
 
         Returns:
@@ -497,7 +495,7 @@ class EvidenceAccumulator:
 
     def _apply_tie_breaking_rules(
         self, format1: str, format2: str, confidence: float
-    ) -> Dict:
+    ) -> dict:
         """Apply tie-breaking rules when formats have similar confidence."""
         reasons = []
 

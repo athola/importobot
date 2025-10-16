@@ -194,7 +194,7 @@ class TestKeywordLibraryLoader:
             test_file.write_text('{"test": "data"}')
 
             # Mock open to raise IOError
-            with patch("builtins.open", side_effect=IOError("Permission denied")):
+            with patch("builtins.open", side_effect=OSError("Permission denied")):
                 with patch.object(loader.logger, "error") as mock_error:
                     result = loader.load_library("BuiltIn")
 
@@ -274,7 +274,7 @@ class TestKeywordLibraryLoader:
 
             def mock_open(*args, **kwargs):
                 if "test.json" in str(args[0]):
-                    raise IOError("Permission denied")
+                    raise OSError("Permission denied")
                 return original_open(*args, **kwargs)
 
             with patch("builtins.open", side_effect=mock_open):

@@ -15,7 +15,7 @@ Mathematical Principle:
 """
 
 import unittest
-from typing import Any, Dict
+from typing import Any
 
 from importobot.medallion.bronze.format_detector import FormatDetector
 
@@ -88,14 +88,12 @@ class TestDiscriminativeEvidenceCollection(unittest.TestCase):
             else float("inf")
         )
 
-        self.assertGreaterEqual(
-            likelihood_ratio,
-            1.3,
+        assert likelihood_ratio >= 1.3, (
             "Zephyr unique fields should produce >=1.3x likelihood ratio "
             "(conservative). "
             f"Got: ZEPHYR={zephyr_likelihood:.3f}, "
             f"max_other={max_other_likelihood:.3f}, "
-            f"ratio={likelihood_ratio:.2f}. All likelihoods: {likelihoods}",
+            f"ratio={likelihood_ratio:.2f}. All likelihoods: {likelihoods}"
         )
 
     def test_jira_xray_unique_fields_produce_high_likelihood_ratio(self):
@@ -142,14 +140,12 @@ class TestDiscriminativeEvidenceCollection(unittest.TestCase):
             else float("inf")
         )
 
-        self.assertGreaterEqual(
-            likelihood_ratio,
-            1.1,
+        assert likelihood_ratio >= 1.1, (
             "JIRA/Xray unique fields should produce >=1.1x likelihood ratio "
             "(conservative). "
             f"Got: JIRA_XRAY={jira_likelihood:.3f}, "
             f"max_other={max_other_likelihood:.3f}, "
-            f"ratio={likelihood_ratio:.2f}. All likelihoods: {likelihoods}",
+            f"ratio={likelihood_ratio:.2f}. All likelihoods: {likelihoods}"
         )
 
     def test_testlink_unique_structure_produces_high_likelihood_ratio(self):
@@ -194,14 +190,12 @@ class TestDiscriminativeEvidenceCollection(unittest.TestCase):
             else float("inf")
         )
 
-        self.assertGreaterEqual(
-            likelihood_ratio,
-            1.3,
+        assert likelihood_ratio >= 1.3, (
             "TestLink unique structure should produce >=1.3x likelihood ratio "
             "(conservative). "
             f"Got: TESTLINK={testlink_likelihood:.3f}, "
             f"max_other={max_other_likelihood:.3f}, "
-            f"ratio={likelihood_ratio:.2f}. All likelihoods: {likelihoods}",
+            f"ratio={likelihood_ratio:.2f}. All likelihoods: {likelihoods}"
         )
 
     def test_ambiguous_data_produces_similar_likelihoods(self):
@@ -236,12 +230,10 @@ class TestDiscriminativeEvidenceCollection(unittest.TestCase):
             min_lik = min(non_zero_likelihoods)
             ratio = max_lik / min_lik
 
-            self.assertLess(
-                ratio,
-                1.8,
+            assert ratio < 1.8, (
                 "Ambiguous data should have similar likelihoods (ratio < 1.8, "
                 "conservative). "
-                f"Got ratio={ratio:.2f}. Likelihoods: {likelihoods}",
+                f"Got ratio={ratio:.2f}. Likelihoods: {likelihoods}"
             )
 
     def test_wrong_format_data_produces_low_likelihood(self):
@@ -266,13 +258,11 @@ class TestDiscriminativeEvidenceCollection(unittest.TestCase):
         zephyr_lik = likelihoods.get("ZEPHYR", 0.0)
         testlink_lik = likelihoods.get("TESTLINK", 0.0)
 
-        self.assertLess(
-            testlink_lik,
-            zephyr_lik * 0.7,
+        assert testlink_lik < zephyr_lik * 0.7, (
             f"Wrong format (TestLink) should have <70% likelihood "
             f"of correct format (Zephyr), conservative approach. "
             f"Got: TESTLINK={testlink_lik:.3f}, ZEPHYR={zephyr_lik:.3f}. "
-            f"All likelihoods: {likelihoods}",
+            f"All likelihoods: {likelihoods}"
         )
 
     def test_multi_class_posterior_ranks_correct_format_highest(self):
@@ -287,7 +277,7 @@ class TestDiscriminativeEvidenceCollection(unittest.TestCase):
         Mathematical Property:
             P(H_correct|E) >= P(H_i|E) for all i != correct
         """
-        test_cases: list[tuple[str, Dict[str, Any]]] = [
+        test_cases: list[tuple[str, dict[str, Any]]] = [
             (
                 "Zephyr",
                 {
@@ -328,18 +318,16 @@ class TestDiscriminativeEvidenceCollection(unittest.TestCase):
 
                 # Correct format should be highest (allow 1% tolerance
                 # for floating point)
-                self.assertGreaterEqual(
-                    actual_confidence,
-                    max_confidence * 0.99,
+                assert actual_confidence >= max_confidence * 0.99, (
                     f"{format_name} data should rank {expected_format} highest. "
                     f"Got: {expected_format}={actual_confidence:.4f}, "
                     f"max is {max_format_name}={max_confidence:.4f}. "
-                    f"All: {sorted(all_confidences.items(), key=lambda x: -x[1])}",
+                    f"All: {sorted(all_confidences.items(), key=lambda x: -x[1])}"
                 )
 
     # Helper methods
 
-    def _extract_likelihoods(self, data: Dict) -> Dict[str, float]:
+    def _extract_likelihoods(self, data: dict) -> dict[str, float]:
         """Extract research-backed likelihoods with ratio capping for all formats."""
         # Clear all existing evidence profiles
         self.detector.evidence_accumulator.evidence_profiles.clear()

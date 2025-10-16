@@ -12,4 +12,4 @@ from importobot.utils.validation import (
     validate_safe_path,
 )
 
-__all__ = ["validate_json_dict", "validate_safe_path", "ValidationError"]
+__all__ = ["ValidationError", "validate_json_dict", "validate_safe_path"]

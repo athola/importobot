@@ -6,7 +6,7 @@
 | Package | [![PyPI Version](https://img.shields.io/pypi/v/importobot.svg)](https://pypi.org/project/importobot/) [![PyPI Downloads](https://img.shields.io/pypi/dm/importobot.svg)](https://pypi.org/project/importobot/) |
 | Meta | [![License](https://img.shields.io/pypi/l/importobot.svg)](./LICENSE) [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/) [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff) [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv) |
 
-Importobot converts structured test exports (Zephyr, TestLink, Xray) into Robot Framework files. It eliminates the manual work of copying test cases while preserving step order, metadata, and traceability.
+Importobot converts structured test exports (Zephyr, TestLink, Xray) into Robot Framework files. The converter processes entire directories, maintains the original step order, and preserves metadata for audit trails.
 
 ```python
 >>> import importobot
@@ -17,13 +17,13 @@ Importobot converts structured test exports (Zephyr, TestLink, Xray) into Robot 
 
 ## Features
 
-- Convert Zephyr, TestLink, and Xray JSON exports to Robot Framework.
-- Process entire directories recursively so large imports stay hands-off.
-- Preserve descriptions, steps, tags, and priorities for auditors.
-- Validate inputs and flag suspicious data before generating Robot code.
-- Provide a Python API for CI/CD integration and scripted workflows.
-- Use an independent Bayesian scorer with explicit ratio caps to keep ambiguous evidence honest.
-- Ship with roughly 1,800 unit and integration tests (currently 1,813; `uv run pytest`).
+- Convert Zephyr, TestLink, and Xray JSON exports to Robot Framework
+- Process entire directories recursively for bulk conversions
+- Preserve descriptions, steps, tags, and priorities for audit trails
+- Validate JSON structure and flag format mismatches before conversion
+- Python API for CI/CD pipelines and automated workflows
+- Bayesian format detection with 1.5:1 likelihood ratio caps for ambiguous data
+- Test suite with 1,941 tests covering conversion paths and edge cases
 
 ## Installation
 
@@ -33,7 +33,7 @@ Install via pip:
 $ pip install importobot
 ```
 
-For advanced optimization features and uncertainty quantification, install the optional dependencies:
+For optimization features with SciPy-based uncertainty quantification:
 
 ```console
 $ pip install "importobot[advanced]"
@@ -105,6 +105,50 @@ User Login Functionality
     Textfield Value Should Be    id=username    testuser
 ```
 
+## API Retrieval
+
+Importobot fetches test suites directly from supported platforms, then converts them using the standard pipeline. The Zephyr client discovers working API patterns and adapts to different server configurations.
+
+- Fetch and convert in one step:
+  ```console
+  $ uv run importobot \
+      --fetch-format testrail \
+      --api-url https://testrail.example/api/v2/get_runs/42 \
+      --api-user automation@example.com \
+      --tokens api-token-value \
+      --project QA \
+      --output suite.robot
+  ```
+- Zephyr with automatic discovery:
+  ```console
+  $ uv run importobot \
+      --fetch-format zephyr \
+      --api-url https://your-zephyr.example.com \
+      --tokens your-api-token \
+      --project PROJECT_KEY \
+      --output converted.robot
+  ```
+- Fetch only (the payload is stored in the current directory unless `--input-dir`
+  is provided):
+  ```console
+  $ uv run importobot \
+      --fetch-format jira_xray \
+      --api-url https://jira.example/rest/api/2/search \
+      --tokens jira-api-token \
+      --project ENG-QA
+  Saved API payload to ./jira_xray-eng-qa-20250314-103205.json
+  ```
+- Tokens can be supplied as repeated flags (`--tokens alpha --tokens beta`) or as a
+  comma-separated list (`--tokens alpha,beta`).
+- `--project` accepts either a human-readable project name (e.g., `QA`) or a numeric
+  project ID (e.g., `12345`); Importobot automatically detects which form you provided.
+
+### Zephyr Client Features
+
+The Zephyr client automatically discovers working API configurations and adapts to different server setups. See [User Guide](wiki/User-Guide.md) for detailed features and usage examples.
+
+Environment variables mirror CLI flags with format-specific prefixes. CLI arguments take precedence. See [User Guide](wiki/User-Guide.md) for complete configuration reference and examples.
+
 ## Examples
 
 - Convert an entire directory while preserving structure:
@@ -125,46 +169,29 @@ User Login Functionality
 
 ## Confidence Scoring
 
-Importobot uses an independent Bayesian scorer to detect file formats:
+Importobot uses Bayesian inference to detect input formats:
 
 ```
 P(H|E) = P(E|H) × P(H) / [P(E|H) × P(H) + P(E|¬H) × P(¬H)]
 ```
 
-Key details:
+Implementation details:
 
-- Likelihood mapping: `P = 0.05 + 0.85 × value`, which keeps weak evidence near zero and caps strong evidence at 0.9 before amplification.
-- Quadratic decay for wrong-format estimates: `P(E|¬H) = 0.01 + 0.49 × (1 - likelihood)²`.
-- Ambiguous evidence is clamped to a 1.5:1 likelihood ratio; confident samples can reach 3:1 against the nearest competitor.
-- Dedicated tests in `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py` prevent regressions in these guarantees.
+- Likelihood mapping: `P = 0.05 + 0.85 × value` keeps weak evidence near zero, caps strong evidence at 0.9
+- Wrong-format penalty: `P(E|¬H) = 0.01 + 0.49 × (1 - likelihood)²`
+- Ambiguous evidence capped at 1.5:1 likelihood ratio; strong evidence can reach 3:1
+- Regression tests in `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py` enforce these constraints
 
-Format-specific adjustments keep things realistic—XML-heavy TestLink data tolerates a little more ambiguity, while JSON-first TestRail requires explicit IDs.
+Format-specific adjustments:
+- TestLink (XML): Higher ambiguity tolerance
+- TestRail (JSON): Stricter ID requirements
+- Generic formats: Higher ambiguity factors
 
-For complete mathematical details, see [Mathematical Foundations](https://github.com/athola/importobot/wiki/Mathematical-Foundations).
+See [Mathematical Foundations](https://github.com/athola/importobot/wiki/Mathematical-Foundations) for complete details.
 
 ## Migration Notes
 
-The 0.1.2 release retires the weighted evidence scorer in favour of the independent
-Bayesian pipeline. If you previously imported
-`importobot.medallion.bronze.weighted_evidence_bayesian_confidence`, switch to the
-runtime-facing `FormatDetector` or use
-`importobot.medallion.bronze.independent_bayesian_scorer.IndependentBayesianScorer`
-directly. The regression tests in
-`tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py` illustrate the new
-behaviour and are a good starting point when adjusting custom integrations.
-
-Rate limiting at the security gateway gained exponential backoff. Existing
-environments continue to work without changes, but you can tune the behaviour with:
-
-```bash
-export IMPORTOBOT_SECURITY_RATE_MAX_QUEUE=256
-export IMPORTOBOT_SECURITY_RATE_BACKOFF_BASE=2.0
-export IMPORTOBOT_SECURITY_RATE_BACKOFF_MAX=8.0
-```
-
-With these defaults we observed average detection latency of ~0.055 s per request
-and no loss of throughput compared to 0.1.1 when benchmarking 200 conversions on a
-single core.
+See [User Guide](wiki/User-Guide.md#migration-from-012) for migration details from version 0.1.2, including the weighted evidence scorer replacement and new rate limiting controls.
 
 ## Documentation
 
@@ -173,7 +200,7 @@ Documentation is available on the [project wiki](https://github.com/athola/impor
 - [User Guide and Medallion workflow](https://github.com/athola/importobot/wiki/User-Guide)
 - [Migration guide](https://github.com/athola/importobot/wiki/Migration-Guide)
 - [Performance benchmarks](https://github.com/athola/importobot/wiki/Performance-Benchmarks)
-- [Architecture decisions](https://github.com/athola/importobot/wiki/architecture)
+- [Architecture decisions](https://github.com/athola/importobot/wiki/architecture/ADR-0001-medallion-architecture)
 - [Deployment guide](https://github.com/athola/importobot/wiki/Deployment-Guide)
 
 ## Contributing

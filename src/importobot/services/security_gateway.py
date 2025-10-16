@@ -14,18 +14,12 @@ import re
 import threading
 import time
 from collections import deque
+from collections.abc import Mapping
 from pathlib import Path
+from re import Pattern
 from typing import (
     Any,
-    Deque,
-    Dict,
-    List,
-    Mapping,
-    Optional,
-    Pattern,
-    Tuple,
     TypedDict,
-    Union,
 )
 
 from importobot.services.security_types import SecurityLevel
@@ -94,7 +88,7 @@ class _SecurityRateLimiter:
         max_calls: int,
         interval: float,
         *,
-        max_queue_size: Optional[int] = None,
+        max_queue_size: int | None = None,
         backoff_base: float = 2.0,
         max_backoff_multiplier: float = 8.0,
     ) -> None:
@@ -103,8 +97,8 @@ class _SecurityRateLimiter:
         self._max_queue_size = max_queue_size or max_calls
         self._backoff_base = backoff_base
         self._max_backoff_multiplier = max_backoff_multiplier
-        self._events: Dict[str, Deque[float]] = {}
-        self._backoff_state: Dict[str, float] = {}
+        self._events: dict[str, deque[float]] = {}
+        self._backoff_state: dict[str, float] = {}
         self._lock = threading.Lock()
 
     def try_acquire(self, bucket: str) -> tuple[bool, float]:
@@ -140,11 +134,11 @@ class SanitizationResult(TypedDict, total=False):
 
     is_safe: bool
     sanitized_data: Any
-    security_issues: List[str]
-    validation_issues: List[str]
+    security_issues: list[str]
+    validation_issues: list[str]
     security_level: str
     input_type: str
-    correlation_id: Optional[str]
+    correlation_id: str | None
 
 
 class FileOperationResult(TypedDict, total=False):
@@ -153,22 +147,22 @@ class FileOperationResult(TypedDict, total=False):
     is_safe: bool
     file_path: str
     operation: str
-    security_issues: List[str]
+    security_issues: list[str]
     normalized_path: str
-    correlation_id: Optional[str]
+    correlation_id: str | None
 
 
 class SecurityGateway:
     """Centralized security gateway for API input validation and sanitization."""
 
-    _rate_limiter: Optional[_SecurityRateLimiter]
+    _rate_limiter: _SecurityRateLimiter | None
 
     def __init__(
         self,
-        security_level: Union[SecurityLevel, str] = SecurityLevel.STANDARD,
+        security_level: SecurityLevel | str = SecurityLevel.STANDARD,
         *,
-        rate_limit_max_calls: Optional[int] = None,
-        rate_limit_interval_seconds: Optional[float] = None,
+        rate_limit_max_calls: int | None = None,
+        rate_limit_interval_seconds: float | None = None,
     ):
         """Initialize security gateway.
 
@@ -227,7 +221,7 @@ class SecurityGateway:
         # their own validators.
 
     @staticmethod
-    def _build_dangerous_patterns() -> List[Tuple[re.Pattern[str], str]]:
+    def _build_dangerous_patterns() -> list[tuple[re.Pattern[str], str]]:
         """Compile dangerous pattern catalogue with case-insensitive coverage."""
         return [
             (re.compile(r"<\s*script\b", re.IGNORECASE), "Script tag detected"),
@@ -286,7 +280,7 @@ class SecurityGateway:
         ]
 
     @staticmethod
-    def _build_suspicious_patterns() -> List[Tuple[Pattern[str], str]]:
+    def _build_suspicious_patterns() -> list[tuple[Pattern[str], str]]:
         """Compile universal security checks once for reuse."""
         return [
             (re.compile(r"eval\s*\(", re.IGNORECASE), "JavaScript eval detected"),
@@ -301,7 +295,7 @@ class SecurityGateway:
         ]
 
     @staticmethod
-    def _build_traversal_patterns() -> List[Pattern[str]]:
+    def _build_traversal_patterns() -> list[Pattern[str]]:
         """Compile common path traversal expressions."""
         return [
             re.compile(r"\.\.[\\/]"),
@@ -329,7 +323,7 @@ class SecurityGateway:
         self,
         data: Any,
         input_type: str = "json",
-        context: Optional[Mapping[str, Any]] = None,
+        context: Mapping[str, Any] | None = None,
     ) -> SanitizationResult:
         """Sanitize and validate API input data.
 
@@ -343,7 +337,7 @@ class SecurityGateway:
             SecurityError: If input fails security validation
         """
         self._enforce_rate_limit(f"sanitize_{input_type}")
-        context_dict: Dict[str, Any] = dict(context or {})
+        context_dict: dict[str, Any] = dict(context or {})
         correlation_id = self._extract_correlation_id(context_dict)
         log_extra = self._build_log_extra(correlation_id)
         sanitized_data = data
@@ -396,10 +390,10 @@ class SecurityGateway:
 
     def validate_file_operation(
         self,
-        file_path: Union[str, Path],
+        file_path: str | Path,
         operation: str = "read",
         *,
-        correlation_id: Optional[str] = None,
+        correlation_id: str | None = None,
     ) -> FileOperationResult:
         """Validate file operations with comprehensive security checks.
 
@@ -443,7 +437,7 @@ class SecurityGateway:
                 "correlation_id": correlation_id,
             }
 
-    def create_secure_json_parser(self, max_size_mb: int = 10) -> Dict[str, Any]:
+    def create_secure_json_parser(self, max_size_mb: int = 10) -> dict[str, Any]:
         """Create a secure JSON parser configuration.
 
         Args:
@@ -460,7 +454,7 @@ class SecurityGateway:
             "validate_before_parse": True,
         }
 
-    def _sanitize_json_input(self, data: Any) -> tuple[Any, List[str]]:
+    def _sanitize_json_input(self, data: Any) -> tuple[Any, list[str]]:
         """Sanitize JSON input data."""
         issues = []
         try:
@@ -482,7 +476,7 @@ class SecurityGateway:
             issues.append(f"JSON validation failed: {e}")
             return None, issues
 
-    def _sanitize_file_path(self, path: Union[str, Path]) -> tuple[str, List[str]]:
+    def _sanitize_file_path(self, path: str | Path) -> tuple[str, list[str]]:
         """Sanitize file path input."""
         issues = []
         path_str = str(path)
@@ -501,9 +495,9 @@ class SecurityGateway:
             issues.append(f"Path normalization failed: {e}")
             return path_str, issues
 
-    def _sanitize_string_input(self, data: str) -> tuple[str, List[str]]:
+    def _sanitize_string_input(self, data: str) -> tuple[str, list[str]]:
         """Sanitize string input."""
-        issues: List[str] = []
+        issues: list[str] = []
         seen: set[str] = set()
         original = data
 
@@ -545,11 +539,11 @@ class SecurityGateway:
         return sanitized_string, issues
 
     def _sanitize_dict_values(
-        self, data: Dict[str, Any]
-    ) -> tuple[Dict[str, Any], List[str]]:
+        self, data: dict[str, Any]
+    ) -> tuple[dict[str, Any], list[str]]:
         """Recursively sanitize dictionary values."""
-        issues: List[str] = []
-        sanitized: Dict[str, Any] = {}
+        issues: list[str] = []
+        sanitized: dict[str, Any] = {}
         for key, value in data.items():
             if isinstance(value, str):
                 str_value, string_issues = self._sanitize_string_input(value)
@@ -567,10 +561,10 @@ class SecurityGateway:
                 sanitized[key] = value
         return sanitized, issues
 
-    def _sanitize_list_values(self, data: List[Any]) -> tuple[List[Any], List[str]]:
+    def _sanitize_list_values(self, data: list[Any]) -> tuple[list[Any], list[str]]:
         """Recursively sanitize list values."""
-        issues: List[str] = []
-        sanitized: List[Any] = []
+        issues: list[str] = []
+        sanitized: list[Any] = []
         for item in data:
             if isinstance(item, str):
                 str_item, string_issues = self._sanitize_string_input(item)
@@ -588,7 +582,7 @@ class SecurityGateway:
                 sanitized.append(item)
         return sanitized, issues
 
-    def _perform_universal_security_checks(self, data: Any) -> List[str]:
+    def _perform_universal_security_checks(self, data: Any) -> list[str]:
         """Perform universal security checks on any data type."""
         issues = []
         # Convert to string for pattern matching
@@ -599,7 +593,7 @@ class SecurityGateway:
                 issues.append(message)
         return issues
 
-    def _check_path_traversal(self, path: str) -> List[str]:
+    def _check_path_traversal(self, path: str) -> list[str]:
         """Check for path traversal attempts."""
         issues = []
         for pattern in self._path_traversal_patterns:
@@ -609,7 +603,7 @@ class SecurityGateway:
         return issues
 
     @staticmethod
-    def _extract_correlation_id(context: Mapping[str, Any]) -> Optional[str]:
+    def _extract_correlation_id(context: Mapping[str, Any]) -> str | None:
         """Return correlation identifier from context if present."""
         value = context.get("correlation_id")
         if value is None:
@@ -617,7 +611,7 @@ class SecurityGateway:
         return str(value)
 
     @staticmethod
-    def _build_log_extra(correlation_id: Optional[str]) -> Dict[str, str]:
+    def _build_log_extra(correlation_id: str | None) -> dict[str, str]:
         """Prepare structured logging extras with correlation metadata."""
         if correlation_id:
             return {"correlation_id": correlation_id}

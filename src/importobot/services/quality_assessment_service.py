@@ -254,7 +254,7 @@ class QualityAssessmentService:
         field_count = len(data)
 
         for value in data.values():
-            if isinstance(value, (list, tuple)) and value:
+            if isinstance(value, list | tuple) and value:
                 # Check type consistency in lists
                 first_type = type(value[0])
                 consistent = all(isinstance(item, first_type) for item in value)

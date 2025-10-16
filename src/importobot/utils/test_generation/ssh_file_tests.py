@@ -1,6 +1,6 @@
 """SSH file test generation module."""
 
-from typing import Any, Dict, List
+from typing import Any
 
 from .ssh_base import BaseSSHTestGenerator
 
@@ -11,7 +11,7 @@ class SSHFileTestGenerator(BaseSSHTestGenerator):
     def __init__(self) -> None:
         """Initialize the SSH file test generator."""
 
-    def generate_file_upload_tests(self, config: Dict[str, Any]) -> List[str]:
+    def generate_file_upload_tests(self, config: dict[str, Any]) -> list[str]:
         """Generate file upload test cases.
 
         Args:

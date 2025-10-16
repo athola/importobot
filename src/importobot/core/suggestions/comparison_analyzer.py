@@ -36,50 +36,16 @@ class ComparisonAnalyzer:
         test_index: int,
         changes_made: list[dict[str, Any]],
     ) -> None:
-        """Automatically add comparison steps for similar commands."""
-        if len(steps) < 2:
-            return
+        """Automatically add comparison steps for similar commands.
 
-        command_steps = self._collect_command_steps(steps)
-        hash_commands = self._group_hash_commands(command_steps)
-
-        # Add comparison step if we have multiple hash commands
-        if len(hash_commands) >= 2:
-            script_field, script_data = TEST_SCRIPT_FIELDS.find_first(test_case)
-            if not script_field or not isinstance(script_data, dict):
-                script_field = TEST_SCRIPT_FIELDS.fields[0]
-                script_data = {STEPS_FIELD_NAME: []}
-                test_case[script_field] = script_data
-
-            steps_container = script_data.get(STEPS_FIELD_NAME)
-            if not isinstance(steps_container, list):
-                steps_container = []
-                script_data[STEPS_FIELD_NAME] = steps_container
-
-            last_step_index = 0
-            for existing_step in steps_container:
-                if isinstance(existing_step, dict) and "index" in existing_step:
-                    try:
-                        last_step_index = max(
-                            last_step_index, int(existing_step["index"])
-                        )
-                    except (ValueError, TypeError):
-                        continue
-
-            next_index = last_step_index + 1
-
-            comparison_step = self._create_comparison_step(test_index, next_index)
-            change_info = {
-                "location": f"test_case_{test_index}_step_{next_index}",
-                "test_case_index": test_index,
-                "step_index": next_index,
-            }
-            self._add_comparison_step_to_test_case(
-                test_case=test_case,
-                comparison_step=comparison_step,
-                change_info=change_info,
-                changes_made=changes_made,
-            )
+        Note: Comparison steps are complex Robot Framework keywords that don't
+        fit the CLI command pattern. They're better left as suggestions for
+        users to add manually with proper context and variable names.
+        """
+        # Disabled: Automatic comparison steps generate invalid syntax
+        # when rendered through CLI blueprints. Users should add these
+        # manually based on suggestions.
+        return
 
     def _collect_command_steps(
         self, steps: list[dict[str, Any]]

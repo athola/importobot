@@ -20,7 +20,7 @@ class FieldGroup:
     def find_first(self, data: dict) -> tuple[str | None, Any]:
         """Find the first matching field in data and return (field_name, value)."""
         for field in self.fields:
-            if field in data and data[field]:
+            if data.get(field):
                 return field, data[field]
         return None, None
 
@@ -73,6 +73,38 @@ STEP_EXPECTED_FIELDS = FieldGroup(
     description="Step expected result",
 )
 
+# Zephyr-specific field groups
+ZEPHYR_DETAILS_FIELDS = FieldGroup(
+    fields=("status", "priority", "component", "owner", "estimatedTime", "folder"),
+    description="Zephyr test case details and metadata",
+)
+
+ZEPHYR_PRECONDITION_FIELDS = FieldGroup(
+    fields=("precondition", "preconditions", "setup", "requirements"),
+    description="Test setup requirements and preconditions",
+)
+
+ZEPHYR_TRACEABILITY_FIELDS = FieldGroup(
+    fields=("issues", "confluence", "webLinks", "linkedCRS", "requirements"),
+    description="Test case traceability and requirement links",
+)
+
+ZEPHYR_LEVEL_FIELDS = FieldGroup(
+    fields=("testLevel", "level", "importance", "criticality"),
+    description="Test level and importance classification",
+)
+
+ZEPHYR_PLATFORM_FIELDS = FieldGroup(
+    fields=("supportedPlatforms", "platforms", "targets"),
+    description="Supported target platforms and architectures",
+)
+
+# Enhanced step structure for Zephyr's three-segment approach
+ZEPHYR_STEP_STRUCTURE_FIELDS = FieldGroup(
+    fields=("step", "testData", "expectedResult", "description", "actual"),
+    description="Zephyr step structure with action, data, and expected result",
+)
+
 # Test structure indicators
 TEST_INDICATORS = frozenset(
     [
@@ -84,6 +116,11 @@ TEST_INDICATORS = frozenset(
         "summary",
         "title",
         "testname",
+        "precondition",
+        "testLevel",
+        "supportedPlatforms",
+        "status",
+        "priority",
     ]
 )
 
@@ -170,8 +207,31 @@ def detect_libraries_from_text(text: str) -> set[str]:
     return detected_libraries
 
 
+# Zephyr-specific indicators
+ZEPHYR_TEST_INDICATORS = frozenset(
+    ["testscript", "precondition", "testlevel", "supportedplatforms", "objective"]
+)
+
+
 def is_test_case(data: Any) -> bool:
     """Check if data looks like a test case."""
     if not isinstance(data, dict):
         return False
-    return bool(TEST_INDICATORS & {key.lower() for key in data.keys()})
+    return bool(TEST_INDICATORS & {key.lower() for key in data})
+
+
+def is_zephyr_test_case(data: Any) -> bool:
+    """Check if data follows Zephyr test case structure."""
+    if not isinstance(data, dict):
+        return False
+
+    zephyr_indicators = {
+        "testscript",
+        "precondition",
+        "testlevel",
+        "supportedplatforms",
+        "objective",
+    }
+
+    data_keys = {key.lower() for key in data}
+    return bool(zephyr_indicators & data_keys)

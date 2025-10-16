@@ -48,7 +48,7 @@ class TestIntegration:
             convert_file(input_filename, output_filename)
 
             # Verify output
-            with open(output_filename, "r", encoding="utf-8") as f:
+            with open(output_filename, encoding="utf-8") as f:
                 content = f.read()
                 assert "*** Test Cases ***" in content
                 assert "Login Test" in content

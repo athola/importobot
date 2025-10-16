@@ -4,12 +4,12 @@ import json
 import logging
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Union
+from typing import Any
 
 
 def create_enhanced_json_error_message(
     error: json.JSONDecodeError,
-    file_path: Union[str, Path] | None = None,
+    file_path: str | Path | None = None,
     context: str = "JSON parsing",
 ) -> str:
     """Create enhanced error message for JSON decode errors.
@@ -41,7 +41,7 @@ def create_enhanced_json_error_message(
 
 def create_enhanced_io_error_message(
     error: IOError,
-    file_path: Union[str, Path] | None = None,
+    file_path: str | Path | None = None,
     context: str = "file operation",
 ) -> str:
     """Create enhanced error message for IO errors.
@@ -146,7 +146,7 @@ class EnhancedErrorLogger:
     def log_json_error(
         self,
         error: json.JSONDecodeError,
-        file_path: Union[str, Path] | None = None,
+        file_path: str | Path | None = None,
         level: int = logging.ERROR,
     ) -> None:
         """Log JSON decode error with enhanced context."""
@@ -158,7 +158,7 @@ class EnhancedErrorLogger:
     def log_io_error(
         self,
         error: IOError,
-        file_path: Union[str, Path] | None = None,
+        file_path: str | Path | None = None,
         operation: str = "file operation",
         level: int = logging.ERROR,
     ) -> None:
@@ -175,7 +175,7 @@ class EnhancedErrorLogger:
         level: int = logging.ERROR,
     ) -> None:
         """Log general error with enhanced context."""
-        message = f"{self.component_name} {context}: {str(error)}"
+        message = f"{self.component_name} {context}: {error!s}"
         self.logger.log(level, message)
 
     def log_missing_resource(
@@ -206,7 +206,7 @@ class EnhancedErrorLogger:
 
 
 def safe_json_load(
-    file_path: Union[str, Path],
+    file_path: str | Path,
     logger: logging.Logger | None = None,
     component_name: str = "component",
 ) -> dict[str, Any] | None:
@@ -223,7 +223,7 @@ def safe_json_load(
     error_logger = EnhancedErrorLogger(logger, component_name)
 
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             data = json.load(f)
         if isinstance(data, dict):
             return data
@@ -235,14 +235,14 @@ def safe_json_load(
     except json.JSONDecodeError as e:
         error_logger.log_json_error(e, file_path)
         return None
-    except IOError as e:
+    except OSError as e:
         error_logger.log_io_error(e, file_path, "JSON file loading")
         return None
 
 
 def safe_file_operation(
     operation_func: Callable,
-    file_path: Union[str, Path],
+    file_path: str | Path,
     logger: logging.Logger | None = None,
     component_name: str = "component",
     operation_name: str = "file operation",
@@ -263,7 +263,7 @@ def safe_file_operation(
 
     try:
         return operation_func()
-    except IOError as e:
+    except OSError as e:
         error_logger.log_io_error(e, file_path, operation_name)
         return None
     except Exception as e:

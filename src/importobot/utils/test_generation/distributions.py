@@ -1,11 +1,9 @@
 """Distribution and weight management for test generation."""
 
-from typing import Union
-
 from importobot.utils.test_generation.categories import CategoryEnum
 
 # Type aliases for flexibility in weight specification
-WeightsDict = Union[dict[CategoryEnum, float], dict[str, float]]
+WeightsDict = dict[CategoryEnum, float] | dict[str, float]
 DistributionDict = dict[str, int]
 
 
@@ -120,7 +118,7 @@ class DistributionManager:
         if remainder > 0:
             fractional_parts = [
                 (k, (total_tests * normalized_weights[k]) % 1)
-                for k in computed_distribution.keys()
+                for k in computed_distribution
             ]
             fractional_parts.sort(key=lambda x: x[1], reverse=True)
 

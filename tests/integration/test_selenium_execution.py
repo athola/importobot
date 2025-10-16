@@ -9,8 +9,9 @@ This test validates that we can:
 
 import json
 import threading
+from collections.abc import Callable
 from http.server import HTTPServer
-from typing import Callable, cast
+from typing import cast
 
 import pytest
 import robot

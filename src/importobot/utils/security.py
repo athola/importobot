@@ -5,7 +5,7 @@ import logging
 import re
 import time
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, ClassVar
 
 from importobot.utils.string_cache import data_to_lower_cached
 
@@ -48,7 +48,7 @@ class SecurityValidator:
     """
 
     # Default dangerous command patterns
-    DEFAULT_DANGEROUS_PATTERNS = [
+    DEFAULT_DANGEROUS_PATTERNS: ClassVar[list[str]] = [
         r"rm\s+-rf",
         r"sudo\s+",
         r"chmod\s+777",
@@ -75,7 +75,7 @@ class SecurityValidator:
     ]
 
     # Default sensitive path patterns
-    DEFAULT_SENSITIVE_PATHS = [
+    DEFAULT_SENSITIVE_PATHS: ClassVar[list[str]] = [
         r"/etc/passwd",
         r"/etc/shadow",
         r"/home/[^/]+/\.ssh",

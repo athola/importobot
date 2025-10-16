@@ -599,13 +599,15 @@ class TestEdgeCases:
 
     def test_sanitize_api_input_exception_handling(self, standard_security_gateway):
         """Test exception handling in sanitize_api_input."""
-        with patch.object(
-            standard_security_gateway,
-            "_sanitize_json_input",
-            side_effect=Exception("Test error"),
+        with (
+            patch.object(
+                standard_security_gateway,
+                "_sanitize_json_input",
+                side_effect=Exception("Test error"),
+            ),
+            pytest.raises(SecurityError),
         ):
-            with pytest.raises(SecurityError):
-                standard_security_gateway.sanitize_api_input({"test": "data"}, "json")
+            standard_security_gateway.sanitize_api_input({"test": "data"}, "json")
 
     def test_edge_cases(self, standard_security_gateway):
         """Test edge cases and boundary conditions."""

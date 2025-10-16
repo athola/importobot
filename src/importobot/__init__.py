@@ -62,15 +62,15 @@ api = _api
 __all__ = [
     # Core business functionality
     "JsonToRobotConverter",
+    # Public API toolkit
+    "api",
     # Configuration management
     "config",
     # Error handling
     "exceptions",
-    # Public API toolkit
-    "api",
 ]
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 # Clean up namespace - remove internal imports from dir()
 del _config, _exceptions, _api

@@ -8,9 +8,10 @@ preparation.
 from __future__ import annotations
 
 import warnings
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 from importobot.medallion.base_layers import BaseMedallionLayer
 from importobot.medallion.interfaces.data_models import (
@@ -52,8 +53,8 @@ class GoldLayer(BaseMedallionLayer, PlaceholderMixin):
 
     def __init__(
         self,
-        storage_path: Optional[Path] = None,
-        optimization_service: Optional[OptimizationService] = None,
+        storage_path: Path | None = None,
+        optimization_service: OptimizationService | None = None,
     ) -> None:
         """Initialize the Gold layer."""
         super().__init__("gold", storage_path)
@@ -128,11 +129,11 @@ class GoldLayer(BaseMedallionLayer, PlaceholderMixin):
         """Process data with format detection (to be implemented in MR3)."""
         raise self._not_implemented_error("ingest_with_detection", "MR3")
 
-    def get_record_metadata(self, record_id: str) -> Optional[RecordMetadata]:
+    def get_record_metadata(self, record_id: str) -> RecordMetadata | None:
         """Retrieve record metadata (to be implemented in MR3)."""
         return self._placeholder_record_metadata(record_id)
 
-    def get_record_lineage(self, record_id: str) -> Optional[DataLineage]:
+    def get_record_lineage(self, record_id: str) -> DataLineage | None:
         """Retrieve record lineage information (to be implemented in MR3)."""
         return self._placeholder_record_lineage(record_id)
 
@@ -142,8 +143,8 @@ class GoldLayer(BaseMedallionLayer, PlaceholderMixin):
 
     def get_bronze_records(
         self,
-        filter_criteria: Optional[dict[str, Any]] = None,
-        limit: Optional[int] = None,
+        filter_criteria: dict[str, Any] | None = None,
+        limit: int | None = None,
     ) -> list[BronzeRecord]:
         """Retrieve bronze records for gold processing (to be implemented in MR3)."""
         return self._placeholder_get_bronze_records(filter_criteria, limit)
@@ -153,7 +154,7 @@ class GoldLayer(BaseMedallionLayer, PlaceholderMixin):
         self,
         data: Any,
         metadata: LayerMetadata,
-    ) -> Optional[OptimizationOutcome]:
+    ) -> OptimizationOutcome | None:
         """Trigger a lightweight optimization preview when configured.
 
         The upcoming Gold layer implementation will feed real objectives and
@@ -203,7 +204,7 @@ class GoldLayer(BaseMedallionLayer, PlaceholderMixin):
 
     @staticmethod
     def _build_placeholder_details(
-        optimization_preview: Optional[OptimizationOutcome],
+        optimization_preview: OptimizationOutcome | None,
     ) -> dict[str, Any]:
         details: dict[str, Any] = {}
         if optimization_preview:
@@ -274,7 +275,7 @@ class GoldLayer(BaseMedallionLayer, PlaceholderMixin):
         if isinstance(parameter_bounds, dict):
             normalized_bounds = {}
             for key, value in parameter_bounds.items():
-                if isinstance(value, (list, tuple)) and len(value) == 2:
+                if isinstance(value, list | tuple) and len(value) == 2:
                     normalized_bounds[key] = (float(value[0]), float(value[1]))
             if normalized_bounds:
                 return normalized_bounds

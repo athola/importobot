@@ -9,7 +9,7 @@ from .format_validation import FormatValidationStrategy
 from .json_validation import JsonValidationStrategy
 
 __all__ = [
-    "JsonValidationStrategy",
     "FileValidationStrategy",
     "FormatValidationStrategy",
+    "JsonValidationStrategy",
 ]

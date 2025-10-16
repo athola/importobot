@@ -1,0 +1,131 @@
+[
+    {
+        "owner": "JIRAUSER10907",
+        "updatedBy": "JIRAUSER10411",
+        "customFields": {
+            "Supported Platforms": "All Platforms",
+            "Automated": false,
+            "Test Level": "Minimum Viable",
+	    "cycle": "all target"
+        },
+        "precondition": "YJ Installed; Agent deployed; CLI connected to active agent connection; create a non-empty file on host",
+        "updatedOn": "2025-08-29T17:27:06.945Z",
+        "priority": "Normal",
+        "createdOn": "2024-03-04T14:46:01.268Z",
+        "objective": "Verify the file placed on the target and the original file are identical",
+        "labels": [
+            "Requirement"
+        ],
+        "projectKey": "ABC",
+        "folder": "/Tests/'Tasks Tests'",
+        "latestVersion": true,
+        "createdBy": "JIRAUSER11600",
+        "testScript": {
+            "id": 11595,
+            "type": "STEP_BY_STEP",
+            "steps": [
+                {
+                    "testData": "On TARGET: sha256sum {PATH_TO_FILE}/t166.txt",
+                    "expectedResult": "sha matches from step 1",
+                    "index": 2,
+                    "description": "verify the sha is the same on the new file as from step 1",
+                    "id": 77135
+                },
+                {
+                    "testData": "On HOST: sha256sum /tmp/t166.txt",
+                    "expectedResult": "sha256 grabbed",
+                    "index": 0,
+                    "description": "grab the sha256sum of file on host before put",
+                    "id": 77133
+                },
+                {
+                    "testData": "On CLI: put -F /tmp/t166.txt {PATH_TO_FILE}/t166.txt",
+                    "expectedResult": "completed successfully",
+                    "index": 1,
+                    "description": "move the small file to the target with put",
+                    "id": 77134
+                }
+            ]
+        },
+        "issueLinks": [
+            "Link1",
+            "Link2"
+        ],
+        "lastTestResultStatus": "Success",
+        "name": "put small file",
+        "parameters": {
+            "variables": [],
+            "entries": []
+        },
+        "key": "ABC-T452",
+        "status": "Approved"
+    },
+    {
+        "owner": "JIRAUSER10907",
+        "updatedBy": "JIRAUSER10411",
+        "customFields": {
+            "Supported Platforms": "All Platforms",
+            "Automated": false,
+            "Test Level": "Edge Case",
+	    "cycle": "all target"
+        },
+        "precondition": "YJ Installed; Agent deployed; CLI connected to active agent connection",
+        "updatedOn": "2025-08-29T17:27:06.945Z",
+        "priority": "Normal",
+        "createdOn": "2024-03-04T14:46:01.268Z",
+        "objective": "Verify the put task behavior when using --offset flag and we are not overwriting an existing file.",
+        "labels": [
+            "Requirement"
+        ],
+        "projectKey": "ABC",
+        "folder": "/Tests/'Tasks Tests'",
+        "latestVersion": true,
+        "createdBy": "JIRAUSER11600",
+        "testScript": {
+            "id": 11902,
+            "type": "STEP_BY_STEP",
+            "steps": [
+                {
+                    "testData": "On TARGET: cat -v /tmp/t297.put",
+                    "expectedResult": "^@^@hello t297",
+                    "index": 3,
+                    "description": "cat the new file on the target and compare with the original output on the host. Ensure the new file is larger than the original file by the offset number of bytes, checked with stat",
+                    "id": 84857
+                },
+                {
+                    "testData": "On CLI: put -F --offset 2 /tmp/t297.txt /tmp/t297-put",
+                    "expectedResult": "Put task completed successfully.",
+                    "index": 2,
+                    "description": "Use the put task on the CLI. If the /tmp/ directory is not available, use the directory that the agent was ran from.",
+                    "id": 84856
+                },
+                {
+                    "testData": "On HOST: cat -v /tmp/t297.txt",
+                    "expectedResult": "hello t297",
+                    "index": 1,
+                    "description": "get the local file contents by using the cat command on the host",
+                    "id": 92037
+                },
+                {
+                    "testData": "On HOST: echo \"hello t297\" &gt; /tmp/t297.txt",
+                    "expectedResult": "File t297.txt created.",
+                    "index": 0,
+                    "description": "on the host create a test file named t297.txt",
+                    "id": 98489
+                }
+            ]
+        },
+        "issueLinks": [
+            "Link1",
+            "Link2"
+        ],
+        "lastTestResultStatus": "Success",
+        "name": "put --offset",
+        "parameters": {
+            "variables": [],
+            "entries": []
+        },
+        "key": "ABC-T297",
+        "status": "Approved"
+    }
+]

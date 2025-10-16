@@ -10,7 +10,7 @@ testing across different test suites while maintaining consistency.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
@@ -38,7 +38,7 @@ class FormatTestDataGenerator:
         steps_count: int = 3,
         with_execution: bool = True,
         with_cycle: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a Zephyr test case with configurable parameters."""
         test_case = {
             "key": test_key,
@@ -82,7 +82,7 @@ class FormatTestDataGenerator:
         suite_name: str = "Test Suite",
         test_cases_count: int = 3,
         with_execution_results: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a TestLink test suite with configurable parameters."""
         test_cases = []
         for i in range(test_cases_count):
@@ -118,9 +118,9 @@ class FormatTestDataGenerator:
         issue_key: str = "XRT-123",
         summary: str = "Test Issue",
         priority: str = "Medium",
-        labels: List[str] | None = None,
+        labels: list[str] | None = None,
         with_executions: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a JIRA/Xray issue with configurable parameters."""
         if labels is None:
             labels = ["test", "automation"]
@@ -165,7 +165,7 @@ class FormatTestDataGenerator:
         runs_count: int = 1,
         tests_count: int = 3,
         cases_count: int = 3,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create TestRail data with configurable parameters."""
         runs = []
         for i in range(runs_count):
@@ -235,7 +235,7 @@ class FormatTestDataGenerator:
     def create_generic_test_data(
         structure_type: str = "simple",
         test_count: int = 3,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create generic test data with various structures."""
         if structure_type == "simple":
             return {
@@ -283,7 +283,7 @@ class FormatTestScenarios:
     """Predefined test scenarios covering various edge cases and typical use cases."""
 
     @staticmethod
-    def get_minimal_format_examples() -> Dict[SupportedFormat, Dict[str, Any]]:
+    def get_minimal_format_examples() -> dict[SupportedFormat, dict[str, Any]]:
         """Get minimal valid examples for each format."""
         return {
             SupportedFormat.ZEPHYR: FormatTestDataGenerator.create_zephyr_test_case(
@@ -306,7 +306,7 @@ class FormatTestScenarios:
         }
 
     @staticmethod
-    def get_standard_format_examples() -> Dict[SupportedFormat, Dict[str, Any]]:
+    def get_standard_format_examples() -> dict[SupportedFormat, dict[str, Any]]:
         """Get standard examples for each format with typical complexity."""
         return {
             SupportedFormat.ZEPHYR: FormatTestDataGenerator.create_zephyr_test_case(
@@ -329,7 +329,7 @@ class FormatTestScenarios:
         }
 
     @staticmethod
-    def get_complex_format_examples() -> Dict[SupportedFormat, Dict[str, Any]]:
+    def get_complex_format_examples() -> dict[SupportedFormat, dict[str, Any]]:
         """Get complex examples for each format with maximum features."""
         return {
             SupportedFormat.ZEPHYR: FormatTestDataGenerator.create_zephyr_test_case(
@@ -364,7 +364,7 @@ class FormatTestScenarios:
         }
 
     @staticmethod
-    def get_ambiguous_examples() -> List[Dict[str, Any]]:
+    def get_ambiguous_examples() -> list[dict[str, Any]]:
         """Get examples that could match multiple formats."""
         return [
             # Could be Zephyr or JIRA/Xray
@@ -383,7 +383,7 @@ class FormatTestScenarios:
         ]
 
     @staticmethod
-    def get_malformed_examples() -> List[Any]:
+    def get_malformed_examples() -> list[Any]:
         """Get malformed examples that should be handled gracefully."""
         return [
             None,
@@ -407,7 +407,7 @@ class ConfidenceTestScenarios:
     """Test scenarios specifically for confidence scoring validation."""
 
     @staticmethod
-    def get_perfect_evidence_scenarios() -> Dict[str, Any]:
+    def get_perfect_evidence_scenarios() -> dict[str, Any]:
         """Get scenarios with perfect evidence that should produce high confidence."""
         return {
             "zephyr_perfect": FormatTestDataGenerator.create_zephyr_test_case(
@@ -434,7 +434,7 @@ class ConfidenceTestScenarios:
         }
 
     @staticmethod
-    def get_zero_evidence_scenarios() -> Dict[str, Any]:
+    def get_zero_evidence_scenarios() -> dict[str, Any]:
         """Get scenarios with no evidence that should produce very low confidence."""
         return {
             "empty_dict": {},
@@ -448,7 +448,7 @@ class ConfidenceTestScenarios:
         }
 
     @staticmethod
-    def get_weak_evidence_scenarios() -> Dict[str, Any]:
+    def get_weak_evidence_scenarios() -> dict[str, Any]:
         """Get scenarios with weak evidence that should produce moderate confidence."""
         return {
             "zephyr_weak": FormatTestDataGenerator.create_zephyr_test_case(

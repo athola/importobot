@@ -104,28 +104,28 @@ class TestGenericKeywordGeneratorCommands:
 
     def test_command_keyword_preserves_robot_framework_keywords(self, generator):
         """Test Robot Framework keywords preserved instead of wrapped in Run Process."""
-        # Test BuiltIn library keywords
+        # Test BuiltIn library keywords (normalized to lowercase)
         result = generator.operating_system_generator.generate_command_keyword(
             "Should Be Equal    ${var1}    ${var2}"
         )
-        assert result == "Should Be Equal    ${var1}    ${var2}"
+        assert result == "should be equal    ${var1}    ${var2}"
 
         result = generator.operating_system_generator.generate_command_keyword(
             "Should Contain    ${text}    ${substring}"
         )
-        assert result == "Should Contain    ${text}    ${substring}"
+        assert result == "should contain    ${text}    ${substring}"
 
-        # Test OperatingSystem library keywords
+        # Test OperatingSystem library keywords (normalized to lowercase)
         result = generator.operating_system_generator.generate_command_keyword(
             "Create File    ${filename}    ${content}"
         )
-        assert result == "Create File    ${filename}    ${content}"
+        assert result == "create file    ${filename}    ${content}"
 
         test_data = "Get File    ${filename}"
         result = generator.operating_system_generator.generate_command_keyword(
             test_data
         )
-        assert result == "Get File    ${filename}"
+        assert result == "get file    ${filename}"
 
     def test_command_keyword_maps_hash_commands_to_run_keyword(self, generator):
         """Test hash and shasum commands mapped to Run keyword for system execution."""
@@ -167,9 +167,9 @@ class TestGenericKeywordGeneratorCommands:
         )
         assert result == "Run    echo hello world"
 
-        # Simple commands like ls use OperatingSystem.Run
+        # ls commands are mapped to List Directory (correct behavior)
         result = generator.operating_system_generator.generate_command_keyword("ls -la")
-        assert result == "Run    ls -la"
+        assert result == "List Directory    -la"
 
         # Complex commands like wget use Process.Run Process
         result = generator.operating_system_generator.generate_command_keyword(

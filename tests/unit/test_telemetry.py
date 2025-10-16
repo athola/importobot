@@ -11,7 +11,6 @@ Following TDD principles, these tests verify:
 
 import json
 import threading
-from typing import List, Tuple
 from unittest.mock import Mock, patch
 
 import pytest
@@ -63,7 +62,8 @@ class TestEnvironmentParsing:
         assert _float_from_env("TEST_FLOAT", default=3.14) == 3.14
 
     @pytest.mark.parametrize(
-        "value,expected", [("1.5", 1.5), ("0.0", 0.0), ("-2.5", -2.5), ("100", 100.0)]
+        ("value", "expected"),
+        [("1.5", 1.5), ("0.0", 0.0), ("-2.5", -2.5), ("100", 100.0)],
     )
     def test_float_from_env_valid(self, monkeypatch, value, expected):
         """Valid numeric strings should parse correctly."""
@@ -82,7 +82,7 @@ class TestEnvironmentParsing:
         assert _int_from_env("TEST_INT", default=10) == 10
 
     @pytest.mark.parametrize(
-        "value,expected", [("42", 42), ("0", 0), ("-10", -10), ("1000", 1000)]
+        ("value", "expected"), [("42", 42), ("0", 0), ("-10", -10), ("1000", 1000)]
     )
     def test_int_from_env_valid(self, monkeypatch, value, expected):
         """Valid integer strings should parse correctly."""
@@ -224,7 +224,7 @@ class TestCacheMetricsRecording:
         )
         client.clear_exporters()
 
-        events: List[Tuple[str, TelemetryPayload]] = []
+        events: list[tuple[str, TelemetryPayload]] = []
         client.register_exporter(lambda name, payload: events.append((name, payload)))
 
         client.record_cache_metrics("test_cache", hits=80, misses=20)
@@ -246,7 +246,7 @@ class TestCacheMetricsRecording:
         )
         client.clear_exporters()
 
-        events: List[Tuple[str, TelemetryPayload]] = []
+        events: list[tuple[str, TelemetryPayload]] = []
         client.register_exporter(lambda name, payload: events.append((name, payload)))
 
         # 100% hit rate
@@ -268,7 +268,7 @@ class TestCacheMetricsRecording:
         )
         client.clear_exporters()
 
-        events: List[Tuple[str, TelemetryPayload]] = []
+        events: list[tuple[str, TelemetryPayload]] = []
         client.register_exporter(lambda name, payload: events.append((name, payload)))
 
         client.record_cache_metrics("empty_cache", hits=0, misses=0)
@@ -282,7 +282,7 @@ class TestCacheMetricsRecording:
         )
         client.clear_exporters()
 
-        events: List[Tuple[str, TelemetryPayload]] = []
+        events: list[tuple[str, TelemetryPayload]] = []
         client.register_exporter(lambda name, payload: events.append((name, payload)))
 
         extras: dict[str, object] = {"cache_size": 500, "max_size": 1000}
@@ -302,7 +302,7 @@ class TestCacheMetricsRecording:
         )
         client.clear_exporters()
 
-        events: List[Tuple[str, TelemetryPayload]] = []
+        events: list[tuple[str, TelemetryPayload]] = []
         client.register_exporter(lambda name, payload: events.append((name, payload)))
 
         # First call should emit
@@ -324,7 +324,7 @@ class TestCacheMetricsRecording:
         )
         client.clear_exporters()
 
-        events: List[Tuple[str, TelemetryPayload]] = []
+        events: list[tuple[str, TelemetryPayload]] = []
         client.register_exporter(lambda name, payload: events.append((name, payload)))
 
         base_time = 1000.0
@@ -351,7 +351,7 @@ class TestCacheMetricsRecording:
         )
         client.clear_exporters()
 
-        events: List[Tuple[str, TelemetryPayload]] = []
+        events: list[tuple[str, TelemetryPayload]] = []
         client.register_exporter(lambda name, payload: events.append((name, payload)))
 
         client.record_cache_metrics("cache1", hits=10, misses=5)
@@ -485,7 +485,7 @@ class TestThreadSafety:
         )
         client.clear_exporters()
 
-        events: List[Tuple[str, TelemetryPayload]] = []
+        events: list[tuple[str, TelemetryPayload]] = []
         lock = threading.Lock()
 
         def thread_safe_exporter(name, payload):

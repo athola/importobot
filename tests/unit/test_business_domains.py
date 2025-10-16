@@ -33,8 +33,8 @@ class TestBusinessDomainTemplatesStructure:
         bt = BusinessDomainTemplates()
         scenarios = bt.enterprise_scenarios
 
-        for _category, category_scenarios in scenarios.items():
-            for _scenario_name, scenario_data in category_scenarios.items():
+        for category_scenarios in scenarios.values():
+            for scenario_data in category_scenarios.values():
                 assert "description" in scenario_data
                 assert "complexity" in scenario_data
                 assert "steps_count" in scenario_data
@@ -42,7 +42,7 @@ class TestBusinessDomainTemplatesStructure:
 
                 assert isinstance(scenario_data["description"], str)
                 assert scenario_data["complexity"] in ["high", "very_high"]
-                assert isinstance(scenario_data["steps_count"], (tuple, list))
+                assert isinstance(scenario_data["steps_count"], tuple | list)
                 assert len(scenario_data["steps_count"]) == 2
                 assert isinstance(scenario_data["templates"], list)
                 assert len(scenario_data["templates"]) > 0
@@ -56,7 +56,7 @@ class TestBusinessDomainTemplatesStructure:
         assert len(data_pools) > 0
 
         # Check that all values are lists
-        for _pool_name, pool_data in data_pools.items():
+        for pool_data in data_pools.values():
             assert isinstance(pool_data, list)
             assert len(pool_data) > 0
 
@@ -65,7 +65,7 @@ class TestBusinessDomainTemplatesStructure:
         requirements = BusinessDomainTemplates.ENVIRONMENT_REQUIREMENTS
 
         assert isinstance(requirements, dict)
-        for _category, reqs in requirements.items():
+        for reqs in requirements.values():
             assert isinstance(reqs, list)
             assert len(reqs) > 0
 
@@ -74,7 +74,7 @@ class TestBusinessDomainTemplatesStructure:
         requirements = BusinessDomainTemplates.COMPLIANCE_REQUIREMENTS
 
         assert isinstance(requirements, dict)
-        for _category, reqs in requirements.items():
+        for reqs in requirements.values():
             assert isinstance(reqs, list)
             assert len(reqs) > 0
 
@@ -83,7 +83,7 @@ class TestBusinessDomainTemplatesStructure:
         instructions = BusinessDomainTemplates.SETUP_INSTRUCTIONS
 
         assert isinstance(instructions, dict)
-        for _category, instrs in instructions.items():
+        for instrs in instructions.values():
             assert isinstance(instrs, list)
             assert len(instrs) > 0
 
@@ -92,7 +92,7 @@ class TestBusinessDomainTemplatesStructure:
         instructions = BusinessDomainTemplates.TEARDOWN_INSTRUCTIONS
 
         assert isinstance(instructions, dict)
-        for _category, instrs in instructions.items():
+        for instrs in instructions.values():
             assert isinstance(instrs, list)
             assert len(instrs) > 0
 
@@ -328,7 +328,7 @@ class TestTestCaseTemplates:
         assert len(classifications) > 0
 
         # Check that all values are strings
-        for _category, classification in classifications.items():
+        for classification in classifications.values():
             assert isinstance(classification, str)
 
     def test_get_available_structures_returns_copy(self):

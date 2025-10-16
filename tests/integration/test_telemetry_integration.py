@@ -8,7 +8,6 @@ These tests verify end-to-end telemetry behavior when integrated with:
 """
 
 import time
-from typing import List, Tuple
 from unittest.mock import Mock
 
 from importobot.services.data_ingestion_service import (
@@ -282,7 +281,7 @@ class TestTelemetryRateLimitingIntegration:
         reset_telemetry_client()
 
         # Re-register exporter after reset
-        events: List[Tuple[str, TelemetryPayload]] = []
+        events: list[tuple[str, TelemetryPayload]] = []
 
         def capture_exporter(name, payload):
             events.append((name, payload))
@@ -307,7 +306,7 @@ class TestTelemetryRateLimitingIntegration:
         monkeypatch.setenv("IMPORTOBOT_TELEMETRY_MIN_INTERVAL_SECONDS", "5")
         reset_telemetry_client()
 
-        events: List[Tuple[str, TelemetryPayload]] = []
+        events: list[tuple[str, TelemetryPayload]] = []
         clear_telemetry_exporters()
         register_telemetry_exporter(lambda n, p: events.append((n, p)))
 
@@ -388,7 +387,7 @@ class TestTelemetryLifecycle:
 
     def test_exporter_registration_survives_operations(self):
         """Custom exporters should persist through cache operations."""
-        custom_events: List[Tuple[str, TelemetryPayload]] = []
+        custom_events: list[tuple[str, TelemetryPayload]] = []
 
         def custom_exporter(name, payload):
             custom_events.append((name, payload))

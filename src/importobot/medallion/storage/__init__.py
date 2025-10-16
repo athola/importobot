@@ -9,7 +9,7 @@ from importobot.medallion.storage.config import StorageConfig
 from importobot.medallion.storage.local import LocalStorageBackend
 
 __all__ = [
-    "StorageBackend",
     "LocalStorageBackend",
+    "StorageBackend",
     "StorageConfig",
 ]

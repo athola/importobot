@@ -31,12 +31,14 @@ from .records import (
 )
 
 __all__ = [
-    # Enums
-    "DataQuality",
-    "ProcessingStatus",
-    "SupportedFormat",
+    # Records
+    "BronzeRecord",
+    # Abstract interfaces
+    "DataLayer",
     # Data models
     "DataLineage",
+    # Enums
+    "DataQuality",
     "DataQualityMetrics",
     "FormatDetectionResult",
     "LayerData",
@@ -44,10 +46,8 @@ __all__ = [
     "LayerQuery",
     "LineageInfo",
     "ProcessingResult",
-    # Records
-    "BronzeRecord",
+    "ProcessingStatus",
     "RecordMetadata",
-    # Abstract interfaces
-    "DataLayer",
     "StorageBackend",
+    "SupportedFormat",
 ]

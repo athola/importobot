@@ -198,6 +198,18 @@ class TestGenerateStepKeywords:
         test_step = {"step": "step with user details and multiple data parts"}
         result = generator.generate_step_keywords(test_step)
         assert isinstance(result, list)
+
+    def test_generate_command_execution_keyword(self):
+        """Filesystem/CLI commands should map to Run keyword instead of No Operation."""
+        generator = GenericKeywordGenerator()
+        step = {
+            "description": "CLI: Call chmod on the test file",
+            "testData": "chmod 777 /tmp/test_file",
+            "expectedResult": "Permissions updated successfully",
+        }
+
+        result = generator.generate_step_keywords(step)
+        assert any("Run    chmod 777 /tmp/test_file" in line for line in result)
         assert len(result) > 0
 
 

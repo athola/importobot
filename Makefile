@@ -1,5 +1,7 @@
 # Development tasks
 
+export UV_CACHE_DIR := $(CURDIR)/.uv-cache
+
 # Define newline variable for use in info messages
 define NEWLINE
 
@@ -11,10 +13,11 @@ help:
 	@echo "Available targets:"
 	@echo "  help         - Show this help menu"
 	@echo "  init         - Install dependencies"
+	@echo "  sync         - Sync environment and install dev dependencies"
 	@echo "  test         - Run tests (~2 minutes)"
 	@echo "  coverage     - Run tests with coverage"
 	@echo "  lint         - Run all linting checks (~2 minutes)"
-	@echo "  lint-fast    - Run fast linting (skip pylint, ~10 seconds)"
+
 	@echo "  format       - Format code"
 	@echo "  typecheck    - Run type checking (~5 seconds)"
 	@echo "  validate     - Validate PR readiness (~5 minutes total)"
@@ -83,29 +86,12 @@ coverage:
 	$(info $(NEWLINE)==================== Running tests with coverage ====================$(NEWLINE))
 	uv run coverage run -m pytest && uv run coverage report
 
-# Linting (full suite, ~2 minutes total)
-# Breakdown: ruff <1s, pylint ~95s, pycodestyle ~4s, pydocstyle ~3s
+# Linting
 .PHONY: lint
 lint:
 	$(info $(NEWLINE)==================== Running linting ====================$(NEWLINE))
 	@echo "→ Running ruff (fast)..."
 	@uv run ruff check .
-	@echo "→ Running pylint (this may take 90-120 seconds)..."
-	@uv run pylint .
-	@echo "→ Running pycodestyle..."
-	@uv run pycodestyle .
-	@echo "→ Running pydocstyle..."
-	@uv run pydocstyle .
-
-# Fast linting (skips pylint, ~10 seconds total)
-# Use for quick checks before committing
-.PHONY: lint-fast
-lint-fast:
-	$(info $(NEWLINE)==================== Running fast linting (no pylint) ====================$(NEWLINE))
-	@echo "→ Running ruff..."
-	@uv run ruff check .
-	@echo "→ Running pycodestyle..."
-	@uv run pycodestyle .
 	@echo "→ Running pydocstyle..."
 	@uv run pydocstyle .
 
@@ -127,12 +113,12 @@ typecheck:
 
 # Validate PR readiness
 # Expected timing breakdown (~5 minutes total):
-#   - lint: ~120s (pylint is 95% of this)
+#   - lint: ~115s (ruff + pydocstyle)
 #   - typecheck: ~5s
-#   - test: ~100s (1833 tests)
+#   - test: ~100s (1941 tests)
 #   - detect-secrets: ~10s
 #   - bandit: ~5s
-#   - Total: ~240s (4 minutes)
+#   - Total: ~235s (4 minutes)
 .PHONY: validate
 validate: lint typecheck test
 	$(info $(NEWLINE)==================== Validating PR readiness ====================$(NEWLINE))
@@ -176,7 +162,7 @@ examples: example-basic example-login example-suggestions example-user-registrat
 example-basic:
 	$(info $(NEWLINE)==================== Running basic login example ====================$(NEWLINE))
 	@cat examples/json/basic_login.json
-	uv run importobot examples/json/basic_login.json examples/robot/basic_example.robot
+	uv run importobot --robot-template examples/resources/ examples/json/basic_login.json examples/robot/basic_example.robot
 	@cat examples/robot/basic_example.robot
 	uv run robot --dryrun examples/robot/basic_example.robot
 
@@ -184,25 +170,61 @@ example-basic:
 example-login:
 	$(info $(NEWLINE)==================== Running browser login example ====================$(NEWLINE))
 	@cat examples/json/browser_login.json
-	uv run importobot examples/json/browser_login.json examples/robot/login_example.robot
+	uv run importobot --robot-template examples/resources/ examples/json/browser_login.json examples/robot/login_example.robot
 	@cat examples/robot/login_example.robot
 	uv run robot --dryrun examples/robot/login_example.robot
 
 .PHONY: example-suggestions
 example-suggestions:
-	$(info $(NEWLINE)==================== Running hash file example with suggestions ====================$(NEWLINE))
+	$(info $(NEWLINE)==================== Running suggestions showcase examples ====================$(NEWLINE))
+	@printf '---- hash_file suggestions ----\n'
 	@cat examples/json/hash_file.json
 	uv run importobot examples/json/hash_file.json examples/robot/hash_example.robot
 	@cat examples/robot/hash_example.robot
-	uv run importobot --apply-suggestions examples/json/hash_file.json examples/robot/hash_applied.robot
+	uv run importobot --apply-suggestions --robot-template examples/resources/ examples/json/hash_file.json examples/robot/hash_applied.robot
 	@cat examples/robot/hash_applied.robot
 	uv run robot --dryrun examples/robot/hash_applied.robot
+	@printf '\n---- cat_small_file suggestions ----\n'
+	@cat examples/json/cat_small_file.json
+	uv run importobot examples/json/cat_small_file.json examples/robot/cat_small_file_example.robot
+	@cat examples/robot/cat_small_file_example.robot
+	uv run importobot --apply-suggestions --robot-template examples/resources/ examples/json/cat_small_file.json examples/robot/cat_small_file_applied.robot
+	@cat examples/robot/cat_small_file_applied.robot
+	uv run robot --dryrun examples/robot/cat_small_file_applied.robot
+	@printf '\n---- chmod_file suggestions ----\n'
+	@cat examples/json/chmod_file.json
+	uv run importobot examples/json/chmod_file.json examples/robot/chmod_file_example.robot
+	@cat examples/robot/chmod_file_example.robot
+	uv run importobot --apply-suggestions --robot-template examples/resources/ examples/json/chmod_file.json examples/robot/chmod_file_applied.robot
+	@cat examples/robot/chmod_file_applied.robot
+	uv run robot --dryrun examples/robot/chmod_file_applied.robot
+	@printf '\n---- cp_file suggestions ----\n'
+	@cat examples/json/cp_file.json
+	uv run importobot examples/json/cp_file.json examples/robot/cp_file_example.robot
+	@cat examples/robot/cp_file_example.robot
+	uv run importobot --apply-suggestions --robot-template examples/resources/ examples/json/cp_file.json examples/robot/cp_file_applied.robot
+	@cat examples/robot/cp_file_applied.robot
+	uv run robot --dryrun examples/robot/cp_file_applied.robot
+	@printf '\n---- mkdir suggestions ----\n'
+	@cat examples/json/mkdir.json
+	uv run importobot examples/json/mkdir.json examples/robot/mkdir_example.robot
+	@cat examples/robot/mkdir_example.robot
+	uv run importobot --apply-suggestions --robot-template examples/resources/ examples/json/mkdir.json examples/robot/mkdir_applied.robot
+	@cat examples/robot/mkdir_applied.robot
+	uv run robot --dryrun examples/robot/mkdir_applied.robot
+	@printf '\n---- rm_file suggestions ----\n'
+	@cat examples/json/rm_file.json
+	uv run importobot examples/json/rm_file.json examples/robot/rm_file_example.robot
+	@cat examples/robot/rm_file_example.robot
+	uv run importobot --apply-suggestions --robot-template examples/resources/ examples/json/rm_file.json examples/robot/rm_file_applied.robot
+	@cat examples/robot/rm_file_applied.robot
+	uv run robot --dryrun examples/robot/rm_file_applied.robot
 
 .PHONY: example-user-registration
 example-user-registration:
 	$(info $(NEWLINE)==================== Running web form automation example ====================$(NEWLINE))
 	@cat examples/json/user_registration.json
-	uv run importobot examples/json/user_registration.json examples/robot/user_registration.robot
+	uv run importobot --robot-template examples/resources/ examples/json/user_registration.json examples/robot/user_registration.robot
 	@cat examples/robot/user_registration.robot
 	uv run robot --dryrun examples/robot/user_registration.robot
 
@@ -210,7 +232,7 @@ example-user-registration:
 example-file-transfer:
 	$(info $(NEWLINE)==================== Running SSH file transfer example ====================$(NEWLINE))
 	@cat examples/json/ssh_file_transfer.json
-	uv run importobot examples/json/ssh_file_transfer.json examples/robot/ssh_file_transfer.robot
+	uv run importobot --robot-template examples/resources/ examples/json/ssh_file_transfer.json examples/robot/ssh_file_transfer.robot
 	@cat examples/robot/ssh_file_transfer.robot
 	uv run robot --dryrun examples/robot/ssh_file_transfer.robot
 
@@ -218,7 +240,7 @@ example-file-transfer:
 example-database-api:
 	$(info $(NEWLINE)==================== Running database and API testing example ====================$(NEWLINE))
 	@cat examples/json/database_api_test.json
-	uv run importobot examples/json/database_api_test.json examples/robot/database_api_test.robot
+	uv run importobot --robot-template examples/resources/ examples/json/database_api_test.json examples/robot/database_api_test.robot
 	@cat examples/robot/database_api_test.robot
 	uv run robot --dryrun examples/robot/database_api_test.robot
 
@@ -226,7 +248,7 @@ example-database-api:
 example-parameters:
 	$(info $(NEWLINE)==================== Running parameter mapping example ====================$(NEWLINE))
 	@cat examples/json/cat_file.json
-	uv run importobot examples/json/cat_file.json examples/robot/cat_file.robot
+	uv run importobot --robot-template examples/resources/ examples/json/cat_file.json examples/robot/cat_file.robot
 	@cat examples/robot/cat_file.robot
 	uv run robot --dryrun examples/robot/cat_file.robot
 
@@ -290,7 +312,7 @@ enterprise-demo:
 	@echo "Generating test files..."
 	uv run generate-enterprise-tests --output-dir zephyr-tests --count 800
 	@echo "Converting to Robot Framework..."
-	uv run importobot --directory zephyr-tests --output robot-tests
+	uv run importobot --robot-template examples/resources/ --directory zephyr-tests --output robot-tests
 	@echo "Conversion complete: $(find robot-tests -name '*.robot' | wc -l | tr -d ' ') files generated"
 
 # Scripts subproject commands

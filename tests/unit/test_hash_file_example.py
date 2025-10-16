@@ -154,7 +154,7 @@ class TestHashFileExample:
     def test_hash_file_json_structure_validation(self, hash_file_fixture):
         """Tests that hash_file.json has expected structure."""
 
-        with open(hash_file_fixture, "r", encoding="utf-8") as f:
+        with open(hash_file_fixture, encoding="utf-8") as f:
             data = json.load(f)
 
         # Validate top-level structure (it's an array with one test case)
@@ -187,7 +187,7 @@ class TestHashFileExample:
         """Tests that hash_file.json generates valid Robot Framework content."""
 
         # Read the JSON file and extract the first test case
-        with open(hash_file_fixture, "r", encoding="utf-8") as f:
+        with open(hash_file_fixture, encoding="utf-8") as f:
             data = json.load(f)
 
         # The file contains an array, extract the first test case
@@ -209,7 +209,7 @@ class TestHashFileExample:
         assert output_robot_file.exists(), "Output robot file was not created"
 
         # Read the generated content
-        with open(output_robot_file, "r", encoding="utf-8") as f:
+        with open(output_robot_file, encoding="utf-8") as f:
             content = f.read()
 
         # Validate Robot Framework structure
@@ -220,14 +220,14 @@ class TestHashFileExample:
         # Validate specific content from hash_file.json
         assert "hash" in content  # Test case name
         assert "Verify hashes match" in content  # Objective
-        assert "# Step: In the target machine's terminal, create a file" in content
+        assert "# In the target machine's terminal, create a file" in content
         assert (
-            "# Step: In target machine's terminal, get the sha of new file" in content
+            "# In target machine's terminal, get the sha of new file" in content
         )
-        assert "# Step: Use the hash command on the CLI" in content
+        assert "# Use the hash command on the CLI" in content
 
-        # Validate that Process library is imported (for echo command)
-        assert "Library    Process" in content
+        # Validate that SSHLibrary is imported (for CLI commands)
+        assert "Library             SSHLibrary" in content
 
     # pylint: disable=redefined-outer-name
     def test_hash_file_robot_content_executes_without_syntax_errors(
@@ -237,7 +237,7 @@ class TestHashFileExample:
         errors."""
 
         # Read the JSON file and extract the first test case
-        with open(hash_file_fixture, "r", encoding="utf-8") as f:
+        with open(hash_file_fixture, encoding="utf-8") as f:
             data = json.load(f)
 
         # The file contains an array, extract the first test case
@@ -271,7 +271,7 @@ class TestHashFileExample:
         """Tests that the generated Robot Framework file contains expected keywords."""
 
         # Read the JSON file and extract the first test case
-        with open(hash_file_fixture, "r", encoding="utf-8") as f:
+        with open(hash_file_fixture, encoding="utf-8") as f:
             data = json.load(f)
 
         # The file contains an array, extract the first test case
@@ -290,7 +290,7 @@ class TestHashFileExample:
         convert_file(str(temp_json_file), str(output_robot_file))
 
         # Read the generated content
-        with open(output_robot_file, "r", encoding="utf-8") as f:
+        with open(output_robot_file, encoding="utf-8") as f:
             content = f.read()
 
         # Should contain Run keywords for the echo and hash commands
@@ -339,7 +339,7 @@ class TestHashFileExample:
         """Tests that conversion suggestions are displayed in the correct
         numerical order, even when there are 10 or more steps."""
 
-        with open(steps_file_fixture, "r", encoding="utf-8") as f:
+        with open(steps_file_fixture, encoding="utf-8") as f:
             test_case = json.load(f)
 
         # Get conversion suggestions

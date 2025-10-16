@@ -13,7 +13,6 @@ from .templates import TemplateManager
 
 __all__ = [
     "EnterpriseTestGenerator",
-    "TemplateManager",
     "SSHAuthenticationTestGenerator",
     "SSHCommandTestGenerator",
     "SSHConnectionTestGenerator",
@@ -22,4 +21,5 @@ __all__ = [
     "SSHInteractiveTestGenerator",
     "SSHLoggingTestGenerator",
     "SSHTestDataGenerator",
+    "TemplateManager",
 ]

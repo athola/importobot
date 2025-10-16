@@ -7,7 +7,7 @@ to replace or validate the hardcoded quadratic decay formula.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import numpy as np
 
@@ -35,7 +35,7 @@ except ImportError:
 class PENotHParameters:
     """Parameters for P(E|¬H) estimation.
 
-    The formula is: P(E|¬H) = a + b × (1 - L)^c
+    The formula is: P(E|¬H) = a + b * (1 - L) ** c
 
     where:
         a: minimum P(E|¬H) for perfect evidence (L=1.0)
@@ -66,10 +66,7 @@ class PENotHParameters:
             return False
 
         # c must be positive (decay exponent)
-        if not 0.5 <= self.c <= 3.0:
-            return False
-
-        return True
+        return 0.5 <= self.c <= 3.0
 
 
 class PENotHLearner:
@@ -78,10 +75,10 @@ class PENotHLearner:
     def __init__(self) -> None:
         """Initialize learner with default hardcoded parameters."""
         self.parameters = PENotHParameters()
-        self.training_data: List[Tuple[float, float]] = []
+        self.training_data: list[tuple[float, float]] = []
 
     def learn_from_cross_format_data(
-        self, cross_format_observations: List[Tuple[float, float]]
+        self, cross_format_observations: list[tuple[float, float]]
     ) -> PENotHParameters:
         """Learn P(E|¬H) parameters from cross-format likelihood observations.
 
@@ -98,7 +95,7 @@ class PENotHLearner:
         2. Measure likelihood L for detecting F_target (where F_target != F_true)
         3. This likelihood represents P(E_target|¬F_target) empirically
         4. Fit parameters (a, b, c) to minimize MSE between:
-           - Predicted: a + b × (1-L)^c
+           - Predicted: a + b * (1 - L) ** c
            - Observed: empirical P(E|¬H)
         """
         self.training_data = cross_format_observations
@@ -114,7 +111,7 @@ class PENotHLearner:
         return self._learn_with_scipy(cross_format_observations)
 
     def _learn_with_scipy(
-        self, observations: List[Tuple[float, float]]
+        self, observations: list[tuple[float, float]]
     ) -> PENotHParameters:
         """Learn parameters using scipy optimization."""
 
@@ -160,7 +157,7 @@ class PENotHLearner:
         return self.parameters
 
     def _learn_with_heuristics(
-        self, observations: List[Tuple[float, float]]
+        self, observations: list[tuple[float, float]]
     ) -> PENotHParameters:
         """Learn parameters using simple heuristics without scipy."""
         likelihoods = np.array([L for L, _ in observations])
@@ -213,8 +210,8 @@ class PENotHLearner:
         return self.parameters
 
     def compare_with_hardcoded(
-        self, cross_format_observations: List[Tuple[float, float]]
-    ) -> Dict[str, float]:
+        self, cross_format_observations: list[tuple[float, float]]
+    ) -> dict[str, float]:
         """Compare learned vs hardcoded parameters.
 
         Returns:
@@ -258,7 +255,7 @@ class PENotHLearner:
         }
 
 
-def load_test_data_for_learning() -> List[Tuple[Dict[str, Any], Any]]:
+def load_test_data_for_learning() -> list[tuple[dict[str, Any], Any]]:
     """Load labeled test data from integration test fixtures.
 
     Returns:
@@ -288,4 +285,4 @@ def load_test_data_for_learning() -> List[Tuple[Dict[str, Any], Any]]:
     return labeled_samples
 
 
-__all__ = ["PENotHParameters", "PENotHLearner", "load_test_data_for_learning"]
+__all__ = ["PENotHLearner", "PENotHParameters", "load_test_data_for_learning"]

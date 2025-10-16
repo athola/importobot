@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from importobot.medallion.interfaces.data_models import (
     DataLineage,
@@ -47,7 +47,7 @@ class MetadataService:
             record_count=count_data_elements(data),
         )
 
-    def get_record_metadata(self, record_id: str) -> Optional[RecordMetadata]:
+    def get_record_metadata(self, record_id: str) -> RecordMetadata | None:
         """Retrieve metadata for a specific record.
 
         Args:
@@ -68,7 +68,7 @@ class MetadataService:
         self._metadata_store[record_id] = metadata
         logger.debug("Stored metadata for record %s", record_id)
 
-    def get_record_lineage(self, record_id: str) -> Optional[DataLineage]:
+    def get_record_lineage(self, record_id: str) -> DataLineage | None:
         """Retrieve lineage information for a specific record.
 
         Args:

@@ -4,7 +4,8 @@ This module analyzes multiple test steps to identify patterns and suggest
 missing setup, cleanup, or verification steps.
 """
 
-from typing import Any, Callable, Dict, List
+from collections.abc import Callable
+from typing import Any
 
 from importobot.utils.field_extraction import extract_field
 from importobot.utils.ssh_patterns import (
@@ -19,9 +20,9 @@ class ContextAnalyzer:
     def __init__(self) -> None:
         """Initialize the context analyzer."""
 
-    def analyze_step_context(self, steps: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def analyze_step_context(self, steps: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Analyze context across multiple steps for intelligent suggestions."""
-        suggestions: List[Dict[str, Any]] = []
+        suggestions: list[dict[str, Any]] = []
 
         # Check for various patterns
         suggestions.extend(self.detect_missing_setup(steps))
@@ -31,9 +32,9 @@ class ContextAnalyzer:
 
         return suggestions
 
-    def detect_missing_setup(self, steps: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def detect_missing_setup(self, steps: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Detect missing setup steps."""
-        suggestions: List[Dict[str, Any]] = []
+        suggestions: list[dict[str, Any]] = []
 
         # Check for SSH operations without connection
         ssh_operations = []
@@ -92,10 +93,10 @@ class ContextAnalyzer:
         return suggestions
 
     def detect_missing_cleanup(
-        self, steps: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, steps: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Detect missing cleanup steps."""
-        suggestions: List[Dict[str, Any]] = []
+        suggestions: list[dict[str, Any]] = []
 
         # Check for SSH connection without disconnect
         self._check_connection_cleanup(
@@ -126,12 +127,12 @@ class ContextAnalyzer:
     def _check_connection_cleanup(
         self,
         *,
-        steps: List[Dict[str, Any]],
+        steps: list[dict[str, Any]],
         context_check_func: Callable[[str, str], bool],
         suggestion_type: str,
         description: str,
-        suggested_step: Dict[str, Any] | None,
-        suggestions: List[Dict[str, Any]],
+        suggested_step: dict[str, Any] | None,
+        suggestions: list[dict[str, Any]],
     ) -> None:
         """Check for connection cleanup issues."""
         connection_found = False
@@ -153,7 +154,7 @@ class ContextAnalyzer:
                     disconnect_found = True
 
         if connection_found and not disconnect_found:
-            suggestion: Dict[str, Any] = {
+            suggestion: dict[str, Any] = {
                 "type": suggestion_type,
                 "description": description,
                 "position": "after_last_step",
@@ -163,10 +164,10 @@ class ContextAnalyzer:
             suggestions.append(suggestion)
 
     def detect_missing_verification(
-        self, steps: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, steps: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Detect missing verification steps."""
-        suggestions: List[Dict[str, Any]] = []
+        suggestions: list[dict[str, Any]] = []
 
         # Check for hash calculation patterns
         hash_steps = []
@@ -218,10 +219,10 @@ class ContextAnalyzer:
         return suggestions
 
     def detect_transaction_patterns(
-        self, steps: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, steps: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Detect database transaction patterns."""
-        suggestions: List[Dict[str, Any]] = []
+        suggestions: list[dict[str, Any]] = []
 
         # Check for multiple database modification operations
         modification_steps = []
@@ -265,7 +266,7 @@ class ContextAnalyzer:
 
         return suggestions
 
-    def _extract_field(self, data: Dict[str, Any], field_names: List[str]) -> str:
+    def _extract_field(self, data: dict[str, Any], field_names: list[str]) -> str:
         """Extract value from first matching field name."""
         return extract_field(data, field_names)
 
@@ -284,14 +285,13 @@ class ContextAnalyzer:
             return True
 
         # Check for file paths combined with upload/download context
-        if any(path in combined for path in SSH_FILE_PATH_INDICATORS):
-            if any(
+        return bool(
+            any(path in combined for path in SSH_FILE_PATH_INDICATORS)
+            and any(
                 word in description.lower()
                 for word in ["upload", "download", "transfer", "copy"]
-            ):
-                return True
-
-        return False
+            )
+        )
 
     def _is_database_context(self, description: str, test_data: str) -> bool:
         """Check if the operation is in database context."""

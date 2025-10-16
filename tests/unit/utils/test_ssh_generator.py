@@ -8,7 +8,7 @@ from importobot.utils.test_generation.ssh_generator import SSHKeywordTestGenerat
 class TestSSHLoggingGeneration:
     """Validate SSH logging scenario generation."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def ssh_generator(self) -> SSHKeywordTestGenerator:
         """Provide a reusable SSH keyword generator instance for tests."""
         return SSHKeywordTestGenerator()

@@ -91,10 +91,10 @@ PRIORITY_MULTIPLIERS = {
 #
 # Modes:
 # - "hardcoded": Use the empirically validated quadratic decay formula
-#   P(E|¬H) = 0.01 + 0.49 × (1-L)²
+#   P(E|¬H) = 0.01 + 0.49 * (1 - L) ** 2
 #
 # - "learned": Use parameters learned from cross-format training data
-#   P(E|¬H) = a + b × (1-L)^c where (a, b, c) are learned
+#   P(E|¬H) = a + b * (1 - L) ** c where (a, b, c) are learned
 #
 # Default: "hardcoded" (proven to work well, mathematically rigorous)
 P_E_NOT_H_MODE = "hardcoded"

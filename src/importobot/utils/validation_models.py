@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List
+from typing import Any
 
 
 class ValidationSeverity(Enum):
@@ -27,7 +27,7 @@ class QualitySeverity(Enum):
     CRITICAL = "critical"
 
     @classmethod
-    def from_counts(cls, error_count: int, warning_count: int) -> "QualitySeverity":
+    def from_counts(cls, error_count: int, warning_count: int) -> QualitySeverity:
         """Determine severity based on error and warning counts.
 
         Args:
@@ -61,14 +61,14 @@ class ValidationResult:
     severity: ValidationSeverity | QualitySeverity
 
     # Operational validation fields (services)
-    messages: List[str] = field(default_factory=list)
-    context: Dict[str, Any] = field(default_factory=dict)
+    messages: list[str] = field(default_factory=list)
+    context: dict[str, Any] = field(default_factory=dict)
 
     # Data quality validation fields (medallion)
     error_count: int = 0
     warning_count: int = 0
-    issues: List[str] = field(default_factory=list)
-    details: Dict[str, Any] = field(default_factory=dict)
+    issues: list[str] = field(default_factory=list)
+    details: dict[str, Any] = field(default_factory=dict)
     validation_timestamp: datetime = field(default_factory=datetime.now)
 
     def __post_init__(self) -> None:
@@ -96,13 +96,13 @@ class ValidationResult:
 
 def create_validation_result(
     *,
-    messages: List[str] | None = None,
+    messages: list[str] | None = None,
     severity: ValidationSeverity | QualitySeverity | None = None,
-    context: Dict[str, Any] | None = None,
+    context: dict[str, Any] | None = None,
     error_count: int = 0,
     warning_count: int = 0,
-    issues: List[str] | None = None,
-    details: Dict[str, Any] | None = None,
+    issues: list[str] | None = None,
+    details: dict[str, Any] | None = None,
 ) -> ValidationResult:
     """Create a ValidationResult with consistent pattern.
 
@@ -124,12 +124,7 @@ def create_validation_result(
     issues = issues or []
 
     # Determine validity based on pattern
-    if messages:
-        # Service pattern: valid if no messages
-        is_valid = len(messages) == 0
-    else:
-        # Medallion pattern: valid if no errors
-        is_valid = error_count == 0
+    is_valid = len(messages) == 0 if messages else error_count == 0
 
     # Use provided severity or infer from errors
     if severity is None:

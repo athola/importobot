@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from importobot.medallion.interfaces.data_models import (
     LayerData,
@@ -47,7 +47,7 @@ class StorageBackend(ABC):
     @abstractmethod
     def retrieve_data(
         self, layer_name: str, data_id: str
-    ) -> Optional[tuple[dict[str, Any], LayerMetadata]]:
+    ) -> tuple[dict[str, Any], LayerMetadata] | None:
         """Retrieve specific data from the layer.
 
         Args:

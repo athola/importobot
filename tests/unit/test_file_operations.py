@@ -33,7 +33,7 @@ class TestTemporaryJsonFile:
             assert temp_filename.endswith(".json")
 
             # Verify the content is correct
-            with open(temp_filename, "r", encoding="utf-8") as f:
+            with open(temp_filename, encoding="utf-8") as f:
                 loaded_data = json.load(f)
             assert loaded_data == test_data
 
@@ -45,7 +45,7 @@ class TestTemporaryJsonFile:
         test_data = {"unicode": "Test with ñ, é, 中文", "special": "Test with ♠"}
 
         with temporary_json_file(test_data) as temp_filename:
-            with open(temp_filename, "r", encoding="utf-8") as f:
+            with open(temp_filename, encoding="utf-8") as f:
                 loaded_data = json.load(f)
             assert loaded_data == test_data
 
@@ -83,6 +83,41 @@ class TestLoadJsonFile:
         try:
             result = load_json_file(temp_filename)
             assert result == test_data
+        finally:
+            os.unlink(temp_filename)
+
+    def test_load_json_file_single_test_case_array_unwraps(self) -> None:
+        """Arrays with a single test case are unwrapped to a dictionary."""
+        test_data = [{"name": "Login flow", "steps": []}]
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, encoding="utf-8"
+        ) as f:
+            json.dump(test_data, f)
+            temp_filename = f.name
+
+        try:
+            result = load_json_file(temp_filename)
+            assert result == test_data[0]
+        finally:
+            os.unlink(temp_filename)
+
+    def test_load_json_file_multiple_test_cases_array_wraps(self) -> None:
+        """Arrays with multiple test cases are wrapped for downstream parsing."""
+        test_data = [
+            {"name": "Login flow", "steps": []},
+            {"name": "Logout flow", "steps": []},
+        ]
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, encoding="utf-8"
+        ) as f:
+            json.dump(test_data, f)
+            temp_filename = f.name
+
+        try:
+            result = load_json_file(temp_filename)
+            assert result == {"testCases": test_data}
         finally:
             os.unlink(temp_filename)
 
@@ -209,7 +244,7 @@ class TestSaveImprovedJsonAndConvert:
             assert os.path.exists(json_file)
 
             # Verify JSON content
-            with open(json_file, "r", encoding="utf-8") as f:
+            with open(json_file, encoding="utf-8") as f:
                 saved_data = json.load(f)
             assert saved_data == improved_data
 
@@ -278,7 +313,7 @@ class TestDisplaySuggestionChanges:
         captured = capsys.readouterr()
 
         # Check that changes are displayed in sorted order
-        assert "📋 Applied Suggestions:" in captured.out
+        assert "Applied Suggestions:" in captured.out
         # Both changes should be present in the output
         assert "Test Case 1, Step 2 - description" in captured.out  # (0,1) change
         assert "Test Case 2, Step 3 - testData" in captured.out  # (1,2) change
@@ -296,7 +331,7 @@ class TestDisplaySuggestionChanges:
         display_suggestion_changes([], mock_args)
 
         captured = capsys.readouterr()
-        assert "ℹ️  No automatic improvements could be applied." in captured.out
+        assert "INFO: No automatic improvements could be applied." in captured.out
         assert "The JSON data is already in good shape!" in captured.out
 
     def test_respects_no_suggestions_flag(self, capsys: Any) -> None:

@@ -1,0 +1,54 @@
+[
+    {
+        "owner": "JIRAUSER10907",
+        "updatedBy": "JIRAUSER10411",
+        "customFields": {
+            "Supported Platforms": "All Platforms",
+            "Test Level": "Minimum Viable"
+        },
+        "precondition": "CLI is open and connected to an agent. Test file should be present on target machine.",
+        "updatedOn": "2025-08-29T17:27:06.945Z",
+        "priority": "Normal",
+        "createdOn": "2024-03-04T14:46:01.268Z",
+        "objective": "Verify the `cp` command passes and returns the correct information",
+        "labels": [
+            "Requirement"
+        ],
+        "projectKey": "ABC",
+        "folder": "/Tests/'Tasks Tests'",
+        "latestVersion": true,
+        "createdBy": "JIRAUSER11600",
+        "testScript": {
+            "id": 12510,
+            "type": "STEP_BY_STEP",
+            "steps": [
+                {
+                    "testData": "cp { /tmp/testdir/test_file } { /tmp/test_file }",
+                    "expectedResult": "completed successfully",
+                    "index": 0,
+                    "description": "Call `cp` on the test file and copy it to its parent directory",
+                    "id": 116346
+                },
+                {
+                    "testData": "ln -ls { /tmp/test_file }",
+                    "expectedResult": "The file is in the new (destination) location",
+                    "index": 1,
+                    "description": "Call 'ls -ln' on the target file on the target machine",
+                    "id": 99330
+                }
+            ]
+        },
+        "issueLinks": [
+            "Link1",
+            "Link2"
+        ],
+        "lastTestResultStatus": "Fail",
+        "name": "cp",
+        "parameters": {
+            "variables": [],
+            "entries": []
+        },
+        "key": "ABC-567",
+        "status": "Review"
+    }
+]

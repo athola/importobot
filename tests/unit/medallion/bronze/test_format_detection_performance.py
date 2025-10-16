@@ -28,7 +28,7 @@ import os
 import threading
 import time
 import unittest
-from typing import Any, Dict
+from typing import Any
 
 from importobot.medallion.bronze.format_detector import FormatDetector
 from importobot.medallion.interfaces.enums import SupportedFormat
@@ -64,7 +64,7 @@ class TestFormatDetectionPerformance(unittest.TestCase):
         self.process = psutil.Process(os.getpid())
 
         # Base data templates for scaling
-        self.zephyr_template: Dict[str, Any] = {
+        self.zephyr_template: dict[str, Any] = {
             "project": {"key": "PERF", "name": "Performance Test Project"},
             "testCase": {
                 "key": "PERF-TC-{0}",
@@ -99,7 +99,7 @@ class TestFormatDetectionPerformance(unittest.TestCase):
 
     def _create_large_zephyr_dataset(
         self, num_test_cases: int, steps_per_case: int = 10
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create large Zephyr dataset for performance testing."""
         large_dataset = self.zephyr_template.copy()
 
@@ -149,7 +149,7 @@ class TestFormatDetectionPerformance(unittest.TestCase):
 
         return large_dataset
 
-    def _create_large_xray_dataset(self, num_issues: int) -> Dict[str, Any]:
+    def _create_large_xray_dataset(self, num_issues: int) -> dict[str, Any]:
         """Create large Xray dataset for performance testing."""
         large_dataset = self.xray_template.copy()
 
@@ -217,7 +217,7 @@ class TestFormatDetectionPerformance(unittest.TestCase):
 
     def _create_large_testrail_dataset(
         self, num_runs: int, num_tests: int, num_cases: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create large TestRail dataset for performance testing."""
         large_dataset = self.testrail_template.copy()
 
@@ -317,12 +317,9 @@ class TestFormatDetectionPerformance(unittest.TestCase):
         memory_after = self.process.memory_info().rss / 1024 / 1024  # MB
         memory_used = memory_after - memory_before
 
-        self.assertEqual(detected_format, SupportedFormat.ZEPHYR)
-        self.assertGreaterEqual(
-            confidence,
-            MIN_FORMAT_CONFIDENCE_HIGH_QUALITY,
-            "Confidence should remain high for large datasets "
-            "per business requirements",
+        assert detected_format == SupportedFormat.ZEPHYR
+        assert confidence >= MIN_FORMAT_CONFIDENCE_HIGH_QUALITY, (
+            "Confidence should remain high for large datasets per business requirements"
         )
         self.assertLess(
             detection_time,
@@ -330,7 +327,7 @@ class TestFormatDetectionPerformance(unittest.TestCase):
             "Medium dataset should detect within reasonable time "
             "per business requirements",
         )
-        self.assertLess(memory_used, 50, "Memory usage should be reasonable")
+        assert memory_used < 50, "Memory usage should be reasonable"
 
     def test_large_dataset_performance(self):
         """Test performance with large datasets (enterprise scale)."""
@@ -346,17 +343,15 @@ class TestFormatDetectionPerformance(unittest.TestCase):
         memory_after = self.process.memory_info().rss / 1024 / 1024  # MB
         memory_used = memory_after - memory_before
 
-        self.assertEqual(detected_format, SupportedFormat.ZEPHYR)
+        assert detected_format == SupportedFormat.ZEPHYR
         self.assertLess(
             detection_time,
             MAX_FORMAT_DETECTION_TIME * 15,  # Allow 15x for very large datasets
             "Large dataset should detect within reasonable time "
             "per business requirements",
         )
-        self.assertLess(
-            memory_used,
-            MAX_MEMORY_USAGE_LARGE_DATASET * 50,
-            "Memory usage should remain reasonable per business requirements",
+        assert memory_used < MAX_MEMORY_USAGE_LARGE_DATASET * 50, (
+            "Memory usage should remain reasonable per business requirements"
         )
 
     def test_very_large_xray_dataset_performance(self):
@@ -368,7 +363,7 @@ class TestFormatDetectionPerformance(unittest.TestCase):
         detected_format = self.detector.detect_format(very_large_xray)
         detection_time = time.time() - start_time
 
-        self.assertEqual(detected_format, SupportedFormat.JIRA_XRAY)
+        assert detected_format == SupportedFormat.JIRA_XRAY
         self.assertLess(
             detection_time,
             MAX_FORMAT_DETECTION_TIME * 15,  # Allow 15x for very large datasets
@@ -397,14 +392,12 @@ class TestFormatDetectionPerformance(unittest.TestCase):
 
             results.append(detection_time)
 
-            self.assertEqual(detected_format, SupportedFormat.TESTRAIL)
+            assert detected_format == SupportedFormat.TESTRAIL
 
         # Performance should scale reasonably per business
         # requirements (not exponentially)
-        self.assertLess(
-            results[2] / results[0],
-            MIN_BULK_PROCESSING_SPEEDUP,
-            "Performance scaling should meet business requirements for bulk processing",
+        assert results[2] / results[0] < MIN_BULK_PROCESSING_SPEEDUP, (
+            "Performance scaling should meet business requirements for bulk processing"
         )
 
     def test_concurrent_detection_performance(self):
@@ -444,26 +437,21 @@ class TestFormatDetectionPerformance(unittest.TestCase):
 
         # All detections should complete
         # Updated for reduced thread count
-        self.assertEqual(len(results), 3)
+        assert len(results) == 3
 
         # Should complete in reasonable time with concurrency per business requirements
-        self.assertLess(
-            total_time,
-            MAX_FORMAT_DETECTION_TIME * 20,
+        assert total_time < MAX_FORMAT_DETECTION_TIME * 20, (
             "Concurrent detections should complete within "
-            "reasonable time per business requirements",
+            "reasonable time per business requirements"
         )
 
         # All detections should be correct
         for detected_format, detection_time in results:
-            self.assertIn(
-                detected_format,
-                [
-                    SupportedFormat.ZEPHYR,
-                    SupportedFormat.JIRA_XRAY,
-                    SupportedFormat.TESTRAIL,
-                ],
-            )
+            assert detected_format in [
+                SupportedFormat.ZEPHYR,
+                SupportedFormat.JIRA_XRAY,
+                SupportedFormat.TESTRAIL,
+            ]
             self.assertLess(
                 detection_time,
                 MAX_FORMAT_DETECTION_TIME * 5,  # Allow 5x for concurrent operations
@@ -492,7 +480,7 @@ class TestFormatDetectionPerformance(unittest.TestCase):
 
             memory_measurements.append(memory_used)
 
-            self.assertEqual(detected_format, SupportedFormat.ZEPHYR)
+            assert detected_format == SupportedFormat.ZEPHYR
 
             # Clean up
             del large_dataset
@@ -500,10 +488,8 @@ class TestFormatDetectionPerformance(unittest.TestCase):
 
         # Memory usage should not grow exponentially (handle zero baseline)
         if memory_measurements[0] > 0:
-            self.assertLess(
-                memory_measurements[-1] / memory_measurements[0],
-                50,
-                "Memory usage should not grow exponentially with dataset size",
+            assert memory_measurements[-1] / memory_measurements[0] < 50, (
+                "Memory usage should not grow exponentially with dataset size"
             )
         else:
             # If baseline is zero, just check that largest measurement is reasonable
@@ -534,16 +520,14 @@ class TestFormatDetectionPerformance(unittest.TestCase):
         detected_format_dict = self.detector.detect_format(large_dataset)
         detection_time_dict = time.time() - start_time
 
-        self.assertEqual(detected_format, detected_format_dict)
-        self.assertEqual(detected_format, SupportedFormat.ZEPHYR)
+        assert detected_format == detected_format_dict
+        assert detected_format == SupportedFormat.ZEPHYR
 
         # JSON parsing should not significantly impact detection
         # performance per business requirements
-        self.assertLess(
-            abs(detection_time_json - detection_time_dict),
-            MAX_FORMAT_DETECTION_TIME,
-            "JSON vs dict detection time should be similar per business requirements",
-        )
+        assert (
+            abs(detection_time_json - detection_time_dict) < MAX_FORMAT_DETECTION_TIME
+        ), "JSON vs dict detection time should be similar per business requirements"
 
     def test_repeated_detection_performance_consistency(self):
         """Test that repeated detections maintain consistent performance."""
@@ -559,16 +543,14 @@ class TestFormatDetectionPerformance(unittest.TestCase):
             detection_time = time.time() - start_time
 
             detection_times.append(detection_time)
-            self.assertEqual(detected_format, SupportedFormat.ZEPHYR)
+            assert detected_format == SupportedFormat.ZEPHYR
 
         # Performance should be consistent across runs
         avg_time = sum(detection_times) / len(detection_times)
         max_deviation = max(abs(time - avg_time) for time in detection_times)
 
-        self.assertLess(
-            max_deviation,
-            avg_time * 0.5,
-            "Detection time should be consistent across repeated runs",
+        assert max_deviation < avg_time * 0.5, (
+            "Detection time should be consistent across repeated runs"
         )
         self.assertLess(
             avg_time,
@@ -601,13 +583,11 @@ class TestFormatDetectionPerformance(unittest.TestCase):
             detection_time = time.time() - start_time
 
             detection_times.append(detection_time)
-            self.assertEqual(detected_format, SupportedFormat.ZEPHYR)
+            assert detected_format == SupportedFormat.ZEPHYR
 
         # Deeply nested structures should not cause exponential performance degradation
-        self.assertLess(
-            detection_times[-1] / detection_times[0],
-            5,
-            "Deep nesting should not cause severe performance degradation",
+        assert detection_times[-1] / detection_times[0] < 5, (
+            "Deep nesting should not cause severe performance degradation"
         )
 
 

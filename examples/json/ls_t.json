@@ -1,0 +1,68 @@
+[
+    {
+        "owner": "JIRAUSER10907",
+        "updatedBy": "JIRAUSER10411",
+        "customFields": {
+            "Supported Platforms": "All Platforms",
+            "Test Level": "Minimum Viable"
+        },
+        "precondition": "YJ Installed; Agent deployed; CLI connected to active agent connection",
+        "updatedOn": "2025-08-29T17:27:06.945Z",
+        "priority": "Normal",
+        "createdOn": "2024-03-04T14:46:01.268Z",
+        "objective": "Evaluate the functional completeness of the ls task with the -t option",
+        "labels": [
+            "Requirement"
+        ],
+        "projectKey": "ABC",
+        "folder": "/Tests/'Tasks Tests'",
+        "latestVersion": true,
+        "createdBy": "JIRAUSER11600",
+        "testScript": {
+            "id": 15791,
+            "type": "STEP_BY_STEP",
+            "steps": [
+                {
+                    "testData": "CLI: ls -t",
+                    "expectedResult": "The output matches that observed in step 3",
+                    "index": 3,
+                    "description": "In the CLI, run the ls task with the -t option",
+                    "id": 116456
+                },
+                {
+                    "testData": "TGT: ls -t",
+                    "expectedResult": "Operation successful. The file created in Step 2, latest-file, is at the top of the output list.",
+                    "index": 2,
+                    "description": "On the target, run the ls command with the -t option",
+                    "id": 116455
+                },
+                {
+                    "testData": "TGT: touch latest-file",
+                    "expectedResult": "Operation successful.",
+                    "index": 1,
+                    "description": "On the target, create another file.",
+                    "id": 116454
+                },
+                {
+                    "testData": "TGT: touch a-file",
+                    "expectedResult": "Operation successful.",
+                    "index": 0,
+                    "description": "On the target, create a file",
+                    "id": 116453
+                }
+            ]
+        },
+        "issueLinks": [
+            "Link1",
+            "Link2"
+        ],
+        "lastTestResultStatus": "Success",
+        "name": "ls -t",
+        "parameters": {
+            "variables": [],
+            "entries": []
+        },
+        "key": "ABC-T2297",
+        "status": "Approved"
+    }
+]

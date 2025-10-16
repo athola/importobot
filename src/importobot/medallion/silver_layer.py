@@ -10,7 +10,7 @@ from __future__ import annotations
 import warnings
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from importobot.medallion.base_layers import BaseMedallionLayer
 from importobot.medallion.interfaces.data_models import (
@@ -45,7 +45,7 @@ class SilverLayer(BaseMedallionLayer, PlaceholderMixin):
     - Rollback mechanisms for data quality issues
     """
 
-    def __init__(self, storage_path: Optional[Path] = None) -> None:
+    def __init__(self, storage_path: Path | None = None) -> None:
         """Initialize the Silver layer."""
         super().__init__("silver", storage_path)
         warnings.warn(
@@ -115,11 +115,11 @@ class SilverLayer(BaseMedallionLayer, PlaceholderMixin):
         """Process data with format detection (to be implemented in MR2)."""
         raise self._not_implemented_error("ingest_with_detection", "MR2")
 
-    def get_record_metadata(self, record_id: str) -> Optional[RecordMetadata]:
+    def get_record_metadata(self, record_id: str) -> RecordMetadata | None:
         """Retrieve record metadata (to be implemented in MR2)."""
         return self._placeholder_record_metadata(record_id)
 
-    def get_record_lineage(self, record_id: str) -> Optional[DataLineage]:
+    def get_record_lineage(self, record_id: str) -> DataLineage | None:
         """Retrieve record lineage information (to be implemented in MR2)."""
         return self._placeholder_record_lineage(record_id)
 
@@ -129,8 +129,8 @@ class SilverLayer(BaseMedallionLayer, PlaceholderMixin):
 
     def get_bronze_records(
         self,
-        filter_criteria: Optional[dict[str, Any]] = None,
-        limit: Optional[int] = None,
+        filter_criteria: dict[str, Any] | None = None,
+        limit: int | None = None,
     ) -> list[BronzeRecord]:
         """Retrieve bronze records for silver processing (to be implemented in MR2)."""
         return self._placeholder_get_bronze_records(filter_criteria, limit)

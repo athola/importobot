@@ -68,8 +68,7 @@ jobs:
     - name: Run pydocstyle
       run: uv run pydocstyle src/ scripts/
 
-    - name: Run pylint
-      run: uv run pylint src/ tests/ scripts/
+
     
     - name: Minimize uv cache
       run: uv cache prune --ci

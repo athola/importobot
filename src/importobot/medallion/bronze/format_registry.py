@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Dict, Optional
-
 from importobot.medallion.interfaces.enums import SupportedFormat
 from importobot.utils.logging import setup_logger
 
@@ -25,7 +23,7 @@ class FormatRegistry:
 
     def __init__(self) -> None:
         """Initialize format registry with built-in formats."""
-        self._formats: Dict[SupportedFormat, FormatDefinition] = {}
+        self._formats: dict[SupportedFormat, FormatDefinition] = {}
         self._load_built_in_formats()
 
     def register_format(self, format_def: FormatDefinition) -> None:
@@ -41,11 +39,11 @@ class FormatRegistry:
             "Registered format: %s (%s)", format_def.name, format_def.format_type.value
         )
 
-    def get_format(self, format_type: SupportedFormat) -> Optional[FormatDefinition]:
+    def get_format(self, format_type: SupportedFormat) -> FormatDefinition | None:
         """Get format definition by type."""
         return self._formats.get(format_type)
 
-    def get_all_formats(self) -> Dict[SupportedFormat, FormatDefinition]:
+    def get_all_formats(self) -> dict[SupportedFormat, FormatDefinition]:
         """Get all registered format definitions."""
         return self._formats.copy()
 

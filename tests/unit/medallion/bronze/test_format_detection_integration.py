@@ -277,7 +277,7 @@ class TestFormatDetectionIntegration(unittest.TestCase):
 
         result = self.detector.detect_format(test_data)
 
-        self.assertEqual(result, SupportedFormat.ZEPHYR)
+        assert result == SupportedFormat.ZEPHYR
 
     def test_end_to_end_xray_detection(self):
         """Test complete Xray format detection workflow."""
@@ -285,7 +285,7 @@ class TestFormatDetectionIntegration(unittest.TestCase):
 
         result = self.detector.detect_format(test_data)
 
-        self.assertEqual(result, SupportedFormat.JIRA_XRAY)
+        assert result == SupportedFormat.JIRA_XRAY
 
     def test_end_to_end_testrail_detection(self):
         """Test complete TestRail format detection workflow."""
@@ -293,7 +293,7 @@ class TestFormatDetectionIntegration(unittest.TestCase):
 
         result = self.detector.detect_format(test_data)
 
-        self.assertEqual(result, SupportedFormat.TESTRAIL)
+        assert result == SupportedFormat.TESTRAIL
 
     def test_end_to_end_testlink_detection(self):
         """Test complete TestLink format detection workflow."""
@@ -301,7 +301,7 @@ class TestFormatDetectionIntegration(unittest.TestCase):
 
         result = self.detector.detect_format(test_data)
 
-        self.assertEqual(result, SupportedFormat.TESTLINK)
+        assert result == SupportedFormat.TESTLINK
 
     def test_ambiguous_data_handling(self):
         """Test handling of ambiguous or unclear data."""
@@ -310,7 +310,7 @@ class TestFormatDetectionIntegration(unittest.TestCase):
         result = self.detector.detect_format(test_data)
 
         # Should still return a result but likely UNKNOWN or GENERIC
-        self.assertIn(result, [SupportedFormat.UNKNOWN, SupportedFormat.GENERIC])
+        assert result in [SupportedFormat.UNKNOWN, SupportedFormat.GENERIC]
 
     def test_malformed_data_handling(self):
         """Test handling of malformed or incomplete data."""
@@ -319,8 +319,8 @@ class TestFormatDetectionIntegration(unittest.TestCase):
         result = self.detector.detect_format(test_data)
 
         # Should handle gracefully without crashing
-        self.assertIsNotNone(result)
-        self.assertIn(result, list(SupportedFormat))
+        assert result is not None
+        assert result in list(SupportedFormat)
 
     @patch("importobot.medallion.bronze.format_detector.FormatRegistry")
     def test_registry_integration(self, mock_registry):
@@ -357,7 +357,7 @@ class TestFormatDetectionIntegration(unittest.TestCase):
         # Verify registry was called
         mock_registry_instance.get_all_formats.assert_called()
         # Note: With empty mock formats, detection may fall back to UNKNOWN
-        self.assertIn(result, [SupportedFormat.ZEPHYR, SupportedFormat.UNKNOWN])
+        assert result in [SupportedFormat.ZEPHYR, SupportedFormat.UNKNOWN]
 
     def test_performance_acceptability(self):
         """Test that detection performance is acceptable for Bronze layer."""
@@ -371,8 +371,8 @@ class TestFormatDetectionIntegration(unittest.TestCase):
         detection_time = end_time - start_time
 
         # Should complete in under 1 second for Bronze layer
-        self.assertLess(detection_time, 1.0)
-        self.assertIsNotNone(result)
+        assert detection_time < 1.0
+        assert result is not None
 
 
 @unittest.skipUnless(FormatDetector is not None, "numpy dependency required")
@@ -387,8 +387,8 @@ class TestFormatDetectionBoundaryConditions(unittest.TestCase):
         """Test handling of completely empty data."""
         result = self.detector.detect_format({})
 
-        self.assertIsNotNone(result)
-        self.assertIn(result, list(SupportedFormat))
+        assert result is not None
+        assert result in list(SupportedFormat)
 
     def test_extremely_large_data_handling(self):
         """Test handling of extremely large data structures."""
@@ -407,8 +407,8 @@ class TestFormatDetectionBoundaryConditions(unittest.TestCase):
 
         result = self.detector.detect_format(large_data)
 
-        self.assertIsNotNone(result)
-        self.assertIn(result, list(SupportedFormat))
+        assert result is not None
+        assert result in list(SupportedFormat)
 
     def test_deeply_nested_data_handling(self):
         """Test handling of deeply nested data structures."""
@@ -431,8 +431,8 @@ class TestFormatDetectionBoundaryConditions(unittest.TestCase):
 
         result = self.detector.detect_format(deeply_nested)
 
-        self.assertIsNotNone(result)
-        self.assertIn(result, list(SupportedFormat))
+        assert result is not None
+        assert result in list(SupportedFormat)
 
     def test_unicode_and_special_characters(self):
         """Test handling of Unicode and special characters."""
@@ -452,5 +452,5 @@ class TestFormatDetectionBoundaryConditions(unittest.TestCase):
 
         result = self.detector.detect_format(unicode_data)
 
-        self.assertIsNotNone(result)
-        self.assertIn(result, list(SupportedFormat))
+        assert result is not None
+        assert result in list(SupportedFormat)

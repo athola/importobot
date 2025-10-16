@@ -1,7 +1,7 @@
 """Interfaces for modular test conversion components."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Union
+from typing import Any
 
 
 class TestFileParser(ABC):
@@ -41,16 +41,14 @@ class SuggestionEngine(ABC):
     """Interface for generating improvement suggestions for test files."""
 
     @abstractmethod
-    def get_suggestions(
-        self, json_data: Union[dict[str, Any], list[Any], Any]
-    ) -> list[str]:
+    def get_suggestions(self, json_data: dict[str, Any] | list[Any] | Any) -> list[str]:
         """Generate suggestions for improving JSON test data."""
         raise NotImplementedError
 
     @abstractmethod
     def apply_suggestions(
-        self, json_data: Union[dict[str, Any], list[Any]]
-    ) -> tuple[Union[dict[str, Any], list[Any]], list[dict[str, Any]]]:
+        self, json_data: dict[str, Any] | list[Any]
+    ) -> tuple[dict[str, Any] | list[Any], list[dict[str, Any]]]:
         """Apply automatic improvements to JSON test data."""
         raise NotImplementedError
 

@@ -6,7 +6,7 @@ Provides specialized format detection and confidence scoring capabilities.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, cast
+from typing import Any, cast
 
 from importobot.medallion.bronze.format_detector import FormatDetector
 from importobot.medallion.interfaces.data_models import (
@@ -53,7 +53,7 @@ class FormatDetectionService:
 
     def get_all_format_scores(
         self, data: dict[str, Any]
-    ) -> Dict[SupportedFormat, float]:
+    ) -> dict[SupportedFormat, float]:
         """Get confidence scores for all supported formats.
 
         Args:
@@ -66,7 +66,7 @@ class FormatDetectionService:
         # Return a dict with the detected format having score 1.0, others 0.0
         scores = dict.fromkeys(SupportedFormat, 0.0)
         # Type assertion for fromkeys - it returns the correct type
-        scores = cast(Dict[SupportedFormat, float], scores)
+        scores = cast(dict[SupportedFormat, float], scores)
         scores[detected_format] = 1.0
         return scores
 

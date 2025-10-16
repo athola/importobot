@@ -5,7 +5,6 @@ Robot Framework commands, enabling more sophisticated test automation scenarios.
 """
 
 import re
-from typing import Dict, List
 
 
 class MultiCommandParser:
@@ -15,7 +14,7 @@ class MultiCommandParser:
     Robot Framework commands, enabling more sophisticated test automation scenarios.
     """
 
-    def parse_test_data(self, test_data: str) -> Dict[str, str]:
+    def parse_test_data(self, test_data: str) -> dict[str, str]:
         """Parse test data string into key-value pairs."""
         if not test_data:
             return {}
@@ -46,7 +45,7 @@ class MultiCommandParser:
         return parsed
 
     def should_generate_multiple_commands(
-        self, description: str, parsed_data: Dict[str, str]
+        self, description: str, parsed_data: dict[str, str]
     ) -> bool:
         """Determine if multiple commands should be generated from parsed data."""
         # Check for form filling scenarios
@@ -56,14 +55,11 @@ class MultiCommandParser:
             input_fields = ["email", "password", "username", "name", "phone", "address"]
             field_count = 0
 
-            for field_name in parsed_data.keys():
+            for field_name in parsed_data:
                 field_lower = field_name.lower()
                 # Check for flexible matching including variations
                 # with underscores, etc.
-                if any(inp in field_lower for inp in input_fields):
-                    field_count += 1
-                # Also check for common variations
-                elif any(
+                if any(inp in field_lower for inp in input_fields) or any(
                     variation in field_lower
                     for variation in [
                         "mail",
@@ -92,14 +88,11 @@ class MultiCommandParser:
             return True
 
         # Check for file operations with verification
-        if "upload" in description.lower() and "verify" in description.lower():
-            return True
-
-        return False
+        return bool("upload" in description.lower() and "verify" in description.lower())
 
     def generate_multiple_robot_keywords(
-        self, description: str, parsed_data: Dict[str, str], expected: str
-    ) -> List[str]:
+        self, description: str, parsed_data: dict[str, str], expected: str
+    ) -> list[str]:
         """Generate multiple Robot Framework keywords from parsed data."""
         keywords = []
 
@@ -123,7 +116,7 @@ class MultiCommandParser:
         return keywords
 
     def _is_form_filling_operation(
-        self, description: str, parsed_data: Dict[str, str]
+        self, description: str, parsed_data: dict[str, str]
     ) -> bool:
         """Check if this is a form filling operation."""
         # parsed_data parameter is kept for interface consistency
@@ -146,7 +139,7 @@ class MultiCommandParser:
         """Check if this is a file upload operation."""
         return "upload" in description.lower() and "verify" in description.lower()
 
-    def _generate_form_filling_keywords(self, parsed_data: Dict[str, str]) -> List[str]:
+    def _generate_form_filling_keywords(self, parsed_data: dict[str, str]) -> list[str]:
         """Generate form filling keywords from parsed data."""
         keywords = []
 
@@ -181,8 +174,8 @@ class MultiCommandParser:
         return keywords
 
     def _generate_database_keywords(
-        self, description: str, parsed_data: Dict[str, str], expected: str
-    ) -> List[str]:
+        self, description: str, parsed_data: dict[str, str], expected: str
+    ) -> list[str]:
         """Generate database operation keywords."""
         # description parameter is kept for interface consistency
         # but not used in this implementation
@@ -213,8 +206,8 @@ class MultiCommandParser:
         return keywords
 
     def _generate_api_keywords(
-        self, description: str, parsed_data: Dict[str, str], expected: str
-    ) -> List[str]:
+        self, description: str, parsed_data: dict[str, str], expected: str
+    ) -> list[str]:
         """Generate API operation keywords."""
         # description parameter is kept for interface consistency
         # but not used in this implementation
@@ -251,8 +244,8 @@ class MultiCommandParser:
         return keywords
 
     def _generate_file_upload_keywords(
-        self, parsed_data: Dict[str, str], expected: str
-    ) -> List[str]:
+        self, parsed_data: dict[str, str], expected: str
+    ) -> list[str]:
         """Generate file upload keywords."""
         keywords = []
 
@@ -267,7 +260,7 @@ class MultiCommandParser:
 
         return keywords
 
-    def _generate_generic_keywords(self, parsed_data: Dict[str, str]) -> List[str]:
+    def _generate_generic_keywords(self, parsed_data: dict[str, str]) -> list[str]:
         """Generate generic keywords for unrecognized patterns."""
         keywords = []
 
@@ -277,11 +270,11 @@ class MultiCommandParser:
 
         return keywords
 
-    def detect_field_types(self, parsed_data: Dict[str, str]) -> Dict[str, str]:
+    def detect_field_types(self, parsed_data: dict[str, str]) -> dict[str, str]:
         """Detect input field types from parsed data."""
         field_types = {}
 
-        for field, _value in parsed_data.items():
+        for field in parsed_data:
             field_lower = field.lower()
 
             if "password" in field_lower or "pass" in field_lower:
@@ -298,8 +291,8 @@ class MultiCommandParser:
         return field_types
 
     def generate_robot_commands(
-        self, parsed_data: Dict[str, str], field_types: Dict[str, str]
-    ) -> List[str]:
+        self, parsed_data: dict[str, str], field_types: dict[str, str]
+    ) -> list[str]:
         """Generate Robot Framework commands from parsed data and field types."""
         commands = []
 

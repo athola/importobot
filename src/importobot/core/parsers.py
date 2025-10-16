@@ -40,10 +40,13 @@ class GenericTestFileParser(TestFileParser):
             key_lower = key.lower()
             if isinstance(value, list) and key_lower in TEST_CONTAINER_FIELD_NAMES:
                 tests.extend([t for t in value if isinstance(t, dict)])
-            elif key_lower in TEST_CASE_WRAPPER_FIELD_NAMES and isinstance(value, dict):
+            elif (
+                key_lower in TEST_CASE_WRAPPER_FIELD_NAMES
+                and isinstance(value, dict)
+                and is_test_case(value)
+            ):
                 # Strategy 3: Look inside test_case/testCase key
-                if is_test_case(value):
-                    tests.append(value)
+                tests.append(value)
 
         # Strategy 2: Single test case (has name + steps or testScript)
         if not tests and is_test_case(data):

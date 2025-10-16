@@ -389,8 +389,8 @@ class TestSSHComprehensiveCoverage:
                 ("SSH Configuration", ["Set Client Configuration"]),
                 (
                     "Command Execution",
-                    ["Execute Command", "Run Process"],
-                ),  # May use either SSH or Process library
+                    ["Execute Command", "Run Process", "List Directory", "Run"],
+                ),  # May use SSH, Process, or OperatingSystem library
                 ("File Transfer", ["Put File"]),
                 ("Directory Creation", ["Create Directory"]),
                 ("File Verification", ["File Should Exist"]),

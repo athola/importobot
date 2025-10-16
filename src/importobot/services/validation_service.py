@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import math
 import statistics
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Any, Protocol
 
 from importobot.services.strategies import (
     FileValidationStrategy,
@@ -24,7 +24,7 @@ from importobot.utils.validation_models import ValidationResult, ValidationSever
 class ValidationStrategy(Protocol):
     """Protocol for domain-specific validation strategies."""
 
-    def validate(self, data: Any, context: Dict[str, Any]) -> ValidationResult:
+    def validate(self, data: Any, context: dict[str, Any]) -> ValidationResult:
         """Validate data according to strategy."""
         ...  # pylint: disable=unnecessary-ellipsis
 
@@ -46,7 +46,7 @@ class ValidationService:
             security_level: Security level for validation (standard, strict, etc.)
         """
         self.security_level = security_level
-        self._strategy_cache: Dict[str, ValidationStrategy] = {}
+        self._strategy_cache: dict[str, ValidationStrategy] = {}
         self._register_default_strategies()
 
     def _register_default_strategies(self) -> None:
@@ -67,7 +67,7 @@ class ValidationService:
         self,
         data: Any,
         strategy_name: str = "json",
-        context: Optional[Dict[str, Any]] = None,
+        context: dict[str, Any] | None = None,
     ) -> ValidationResult:
         """Perform validation using specified strategy.
 
@@ -93,8 +93,8 @@ class ValidationService:
         return strategy.validate(data, context)
 
     def validate_multiple(
-        self, data: Any, strategies: List[str], context: Optional[Dict[str, Any]] = None
-    ) -> List[ValidationResult]:
+        self, data: Any, strategies: list[str], context: dict[str, Any] | None = None
+    ) -> list[ValidationResult]:
         """Validate data using multiple strategies.
 
         Args:
@@ -115,13 +115,13 @@ class ValidationService:
         self,
         data: Any,
         strategy_name: str = "json",
-        context: Optional[Dict[str, Any]] = None,
+        context: dict[str, Any] | None = None,
     ) -> bool:
         """Quick validation check returning boolean result."""
         result = self.validate(data, strategy_name, context)
         return result.is_valid
 
-    def get_validation_summary(self, results: List[ValidationResult]) -> Dict[str, Any]:
+    def get_validation_summary(self, results: list[ValidationResult]) -> dict[str, Any]:
         """Get summary of multiple validation results."""
         total_results = len(results)
         valid_count = sum(1 for r in results if r.is_valid)
@@ -135,14 +135,13 @@ class ValidationService:
                 # Handle different severity types
                 if isinstance(result.severity, ValidationSeverity):
                     max_severity = result.severity
-                else:
-                    # Map other severity types to ValidationSeverity
-                    if result.severity.value >= ValidationSeverity.CRITICAL.value:
-                        max_severity = ValidationSeverity.CRITICAL
-                    elif result.severity.value >= ValidationSeverity.ERROR.value:
-                        max_severity = ValidationSeverity.ERROR
-                    elif result.severity.value >= ValidationSeverity.WARNING.value:
-                        max_severity = ValidationSeverity.WARNING
+                # Map other severity types to ValidationSeverity
+                elif result.severity.value >= ValidationSeverity.CRITICAL.value:
+                    max_severity = ValidationSeverity.CRITICAL
+                elif result.severity.value >= ValidationSeverity.ERROR.value:
+                    max_severity = ValidationSeverity.ERROR
+                elif result.severity.value >= ValidationSeverity.WARNING.value:
+                    max_severity = ValidationSeverity.WARNING
 
         return {
             "total_validations": total_results,
@@ -156,10 +155,10 @@ class ValidationService:
     def cross_validate(
         self,
         data: Any,
-        strategies: List[str],
+        strategies: list[str],
         k_folds: int = 5,
-        context: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        context: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Perform k-fold cross-validation on data using multiple strategies.
 
         This method implements statistical cross-validation to assess the
@@ -207,9 +206,9 @@ class ValidationService:
             ),
         }
 
-    def _validate_cross_validation_inputs(self, data: Any, k_folds: int) -> List[Any]:
+    def _validate_cross_validation_inputs(self, data: Any, k_folds: int) -> list[Any]:
         """Validate inputs for cross-validation."""
-        if not hasattr(data, "__iter__") or isinstance(data, (str, bytes)):
+        if not hasattr(data, "__iter__") or isinstance(data, str | bytes):
             raise ValueError("Data must be iterable for cross-validation")
 
         if k_folds < 2 or k_folds > 10:
@@ -225,15 +224,15 @@ class ValidationService:
 
     def _perform_k_fold_validation(
         self,
-        data_list: List[Any],
-        strategies: List[str],
+        data_list: list[Any],
+        strategies: list[str],
         k_folds: int,
-        context: Optional[Dict[str, Any]],
-    ) -> tuple[List[Dict[str, Any]], Dict[str, List[float]]]:
+        context: dict[str, Any] | None,
+    ) -> tuple[list[dict[str, Any]], dict[str, list[float]]]:
         """Perform k-fold validation and return results."""
         fold_size = len(data_list) // k_folds
         fold_results = []
-        strategy_scores: Dict[str, List[float]] = {
+        strategy_scores: dict[str, list[float]] = {
             strategy: [] for strategy in strategies
         }
 
@@ -269,8 +268,8 @@ class ValidationService:
         return fold_results, strategy_scores
 
     def _calculate_strategy_consistency(
-        self, strategy_scores: Dict[str, List[float]]
-    ) -> Dict[str, Any]:
+        self, strategy_scores: dict[str, list[float]]
+    ) -> dict[str, Any]:
         """Calculate consistency metrics for each strategy."""
         strategy_consistency = {}
         for strategy, scores in strategy_scores.items():
@@ -304,7 +303,7 @@ class ValidationService:
         return strategy_consistency
 
     def _calculate_overall_reliability(
-        self, strategy_consistency: Dict[str, Any]
+        self, strategy_consistency: dict[str, Any]
     ) -> float:
         """Calculate overall reliability score."""
         return (
@@ -318,8 +317,8 @@ class ValidationService:
         )
 
     def _calculate_confidence_interval(
-        self, values: List[float], confidence: float
-    ) -> List[float]:
+        self, values: list[float], confidence: float
+    ) -> list[float]:
         """Calculate confidence interval for a list of values using t-distribution.
 
         Args:
@@ -344,7 +343,7 @@ class ValidationService:
         return [mean - margin_of_error, mean + margin_of_error]
 
     def _get_cross_validation_recommendation(
-        self, reliability: float, consistency: Dict[str, Any]
+        self, reliability: float, consistency: dict[str, Any]
     ) -> str:
         """Generate recommendation based on cross-validation results."""
         if reliability >= 0.9:

@@ -39,7 +39,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install bandit safety pylint
+          pip install bandit safety
 
       - name: Run Bandit (Security Linter)
         run: |

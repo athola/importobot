@@ -577,15 +577,11 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
                     example, SupportedFormat.ZEPHYR
                 )
 
-                self.assertEqual(
-                    detected_format,
-                    SupportedFormat.ZEPHYR,
-                    f"Failed to detect Zephyr format in example {i}",
+                assert detected_format == SupportedFormat.ZEPHYR, (
+                    f"Failed to detect Zephyr format in example {i}"
                 )
-                self.assertGreaterEqual(
-                    confidence,
-                    MIN_FORMAT_CONFIDENCE_STANDARD,
-                    f"Low confidence ({confidence}) for Zephyr example {i}",
+                assert confidence >= MIN_FORMAT_CONFIDENCE_STANDARD, (
+                    f"Low confidence ({confidence}) for Zephyr example {i}"
                 )
 
     def test_zephyr_key_indicators_recognition(self):
@@ -593,12 +589,12 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
         # Test with minimal Zephyr structure
         minimal_zephyr = {"testCase": {"key": "TEST-1"}, "execution": {}}
         detected = self.detector.detect_format(minimal_zephyr)
-        self.assertEqual(detected, SupportedFormat.ZEPHYR)
+        assert detected == SupportedFormat.ZEPHYR
 
         # Test with cycle information
         cycle_zephyr = {"cycle": {"name": "Sprint 1"}, "testCase": {}}
         detected = self.detector.detect_format(cycle_zephyr)
-        self.assertEqual(detected, SupportedFormat.ZEPHYR)
+        assert detected == SupportedFormat.ZEPHYR
 
     # Test 2: TestLink format detection accuracy
     def test_testlink_format_detection_high_confidence(self):
@@ -610,36 +606,26 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
                     example, SupportedFormat.TESTLINK
                 )
 
-                self.assertEqual(
-                    detected_format,
-                    SupportedFormat.TESTLINK,
-                    f"Failed to detect TestLink format in example {i}",
+                assert detected_format == SupportedFormat.TESTLINK, (
+                    f"Failed to detect TestLink format in example {i}"
                 )
-                self.assertGreaterEqual(
-                    confidence,
-                    MIN_FORMAT_CONFIDENCE_STANDARD,
-                    f"Low confidence ({confidence}) for TestLink example {i}",
+                assert confidence >= MIN_FORMAT_CONFIDENCE_STANDARD, (
+                    f"Low confidence ({confidence}) for TestLink example {i}"
                 )
 
     def test_testlink_variations_detection(self):
         """Test detection of various TestLink structural variations."""
         # Single testsuite
         single_suite = {"testsuite": {"name": "Test", "testcase": []}}
-        self.assertEqual(
-            self.detector.detect_format(single_suite), SupportedFormat.TESTLINK
-        )
+        assert self.detector.detect_format(single_suite) == SupportedFormat.TESTLINK
 
         # Multiple testsuites
         multi_suites = {"testsuites": [{"testsuite": {"name": "Test"}}]}
-        self.assertEqual(
-            self.detector.detect_format(multi_suites), SupportedFormat.TESTLINK
-        )
+        assert self.detector.detect_format(multi_suites) == SupportedFormat.TESTLINK
 
         # JUnit-style structure (should still be TestLink)
         junit_style = {"testsuite": {"tests": "10", "failures": "1", "testcase": []}}
-        self.assertEqual(
-            self.detector.detect_format(junit_style), SupportedFormat.TESTLINK
-        )
+        assert self.detector.detect_format(junit_style) == SupportedFormat.TESTLINK
 
     # Test 3: JIRA/Xray format detection accuracy
     def test_jira_xray_format_detection_high_confidence(self):
@@ -651,15 +637,11 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
                     example, SupportedFormat.JIRA_XRAY
                 )
 
-                self.assertEqual(
-                    detected_format,
-                    SupportedFormat.JIRA_XRAY,
-                    f"Failed to detect JIRA/Xray format in example {i}",
+                assert detected_format == SupportedFormat.JIRA_XRAY, (
+                    f"Failed to detect JIRA/Xray format in example {i}"
                 )
-                self.assertGreaterEqual(
-                    confidence,
-                    MIN_FORMAT_CONFIDENCE_STANDARD,
-                    f"Low confidence ({confidence}) for JIRA/Xray example {i}",
+                assert confidence >= MIN_FORMAT_CONFIDENCE_STANDARD, (
+                    f"Low confidence ({confidence}) for JIRA/Xray example {i}"
                 )
 
     def test_jira_key_pattern_recognition(self):
@@ -674,7 +656,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
             "issues": [{"key": "PROJ-123", "fields": {"issuetype": {"name": "Test"}}}]
         }
         detected = self.detector.detect_format(jira_with_key)
-        self.assertEqual(detected, SupportedFormat.JIRA_XRAY)
+        assert detected == SupportedFormat.JIRA_XRAY
 
         # Valid key pattern should produce very high confidence
         valid_confidence = self.detector.get_format_confidence(
@@ -686,7 +668,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
         invalid_confidence = self.detector.get_format_confidence(
             invalid_key, SupportedFormat.JIRA_XRAY
         )
-        self.assertLess(invalid_confidence, valid_confidence)
+        assert invalid_confidence < valid_confidence
 
     # Test 4: TestRail format detection accuracy
     def test_testrail_format_detection_high_confidence(self):
@@ -698,16 +680,12 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
                     example, SupportedFormat.TESTRAIL
                 )
 
-                self.assertEqual(
-                    detected_format,
-                    SupportedFormat.TESTRAIL,
-                    f"Failed to detect TestRail format in example {i}",
+                assert detected_format == SupportedFormat.TESTRAIL, (
+                    f"Failed to detect TestRail format in example {i}"
                 )
                 # Remove debug prints for cleaner output
-                self.assertGreaterEqual(
-                    confidence,
-                    MIN_FORMAT_CONFIDENCE_STANDARD,
-                    f"Low confidence ({confidence}) for TestRail example {i}",
+                assert confidence >= MIN_FORMAT_CONFIDENCE_STANDARD, (
+                    f"Low confidence ({confidence}) for TestRail example {i}"
                 )
 
     def test_testrail_api_structure_recognition(self):
@@ -719,7 +697,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
             "project_id": 456,
         }
         detected = self.detector.detect_format(testrail_cases)
-        self.assertEqual(detected, SupportedFormat.TESTRAIL)
+        assert detected == SupportedFormat.TESTRAIL
 
         # Test with run structure
         testrail_runs = {
@@ -727,7 +705,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
             "milestone_id": 789,
         }
         detected = self.detector.detect_format(testrail_runs)
-        self.assertEqual(detected, SupportedFormat.TESTRAIL)
+        assert detected == SupportedFormat.TESTRAIL
 
     # Test 5: Generic format detection
     def test_generic_format_detection_fallback(self):
@@ -745,15 +723,11 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
                     example, SupportedFormat.GENERIC
                 )
 
-                self.assertEqual(
-                    detected_format,
-                    SupportedFormat.GENERIC,
-                    f"Failed to detect generic format in example {i}",
+                assert detected_format == SupportedFormat.GENERIC, (
+                    f"Failed to detect generic format in example {i}"
                 )
-                self.assertGreaterEqual(
-                    confidence,
-                    MIN_GENERIC_FORMAT_CONFIDENCE,
-                    f"Low confidence ({confidence}) for generic example {i}",
+                assert confidence >= MIN_GENERIC_FORMAT_CONFIDENCE, (
+                    f"Low confidence ({confidence}) for generic example {i}"
                 )
 
     # Test 6: Format disambiguation
@@ -765,23 +739,15 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
             "issues": [{"key": "TEST-1", "fields": {"issuetype": {"name": "Test"}}}]
         }
 
-        self.assertEqual(
-            self.detector.detect_format(zephyr_data), SupportedFormat.ZEPHYR
-        )
-        self.assertEqual(
-            self.detector.detect_format(jira_data), SupportedFormat.JIRA_XRAY
-        )
+        assert self.detector.detect_format(zephyr_data) == SupportedFormat.ZEPHYR
+        assert self.detector.detect_format(jira_data) == SupportedFormat.JIRA_XRAY
 
         # TestLink vs Generic disambiguation
         testlink_data = {"testsuite": {"testcase": [{"name": "Test"}]}}
         generic_data = {"tests": [{"name": "Test"}]}
 
-        self.assertEqual(
-            self.detector.detect_format(testlink_data), SupportedFormat.TESTLINK
-        )
-        self.assertEqual(
-            self.detector.detect_format(generic_data), SupportedFormat.GENERIC
-        )
+        assert self.detector.detect_format(testlink_data) == SupportedFormat.TESTLINK
+        assert self.detector.detect_format(generic_data) == SupportedFormat.GENERIC
 
     def test_confidence_relative_scoring(self):
         """Test that confidence scores correctly rank format likelihood."""
@@ -813,18 +779,15 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
         # Allow for UNKNOWN if no format reaches threshold
         if detected != SupportedFormat.UNKNOWN:
             # The detected format should have non-zero confidence
-            self.assertGreater(confidences[detected], 0.0)
+            assert confidences[detected] > 0.0
             # And it should be a reasonable choice
             # (not necessarily the max individual confidence)
-            self.assertIn(
-                detected,
-                [
-                    SupportedFormat.ZEPHYR,
-                    SupportedFormat.TESTRAIL,
-                    SupportedFormat.GENERIC,
-                    max_confidence_format,
-                ],
-            )
+            assert detected in [
+                SupportedFormat.ZEPHYR,
+                SupportedFormat.TESTRAIL,
+                SupportedFormat.GENERIC,
+                max_confidence_format,
+            ]
 
     # Test 7: Edge cases and error handling
     def test_unknown_format_handling(self):
@@ -833,7 +796,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
             detected_format = self.detector.detect_format(example)
 
             # Should either detect a valid format or return UNKNOWN
-            self.assertIn(detected_format, list(SupportedFormat))
+            assert detected_format in list(SupportedFormat)
 
             # Confidence for wrong format should be low
             if detected_format != SupportedFormat.UNKNOWN:
@@ -850,9 +813,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
                         f"Too high confidence ({confidence}) for "
                         f"wrong format {wrong_format}"
                     )
-                    self.assertLess(
-                        confidence, MIN_FORMAT_CONFIDENCE_STANDARD, error_msg
-                    )
+                    assert confidence < MIN_FORMAT_CONFIDENCE_STANDARD, error_msg
 
     def test_malformed_data_resilience(self):
         """Test resilience against malformed or unexpected data."""
@@ -875,7 +836,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
                 detected = self.detector.detect_format(example)
                 # Should handle gracefully, return UNKNOWN for non-dict types
                 if not isinstance(example, dict):
-                    self.assertEqual(detected, SupportedFormat.UNKNOWN)
+                    assert detected == SupportedFormat.UNKNOWN
             except Exception as e:
                 error_msg = (
                     f"Format detection crashed on malformed data {type(example)}: {e}"
@@ -895,7 +856,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
         for example in empty_examples:
             detected = self.detector.detect_format(example)
             # Should not crash and should return a valid format type
-            self.assertIn(detected, list(SupportedFormat))
+            assert detected in list(SupportedFormat)
 
     # Test 8: Performance requirements
     def test_format_detection_performance(self):
@@ -919,9 +880,9 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
         detection_time = time.time() - start_time
 
         # Should detect correctly and quickly
-        self.assertEqual(detected, SupportedFormat.ZEPHYR)
-        self.assertLess(
-            detection_time, MAX_FORMAT_DETECTION_TIME, "Format detection took too long"
+        assert detected == SupportedFormat.ZEPHYR
+        assert detection_time < MAX_FORMAT_DETECTION_TIME, (
+            "Format detection took too long"
         )
 
     def test_confidence_calculation_performance(self):
@@ -936,12 +897,10 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
             )
         calculation_time = time.time() - start_time
 
-        self.assertLess(
-            calculation_time,
-            MAX_CONFIDENCE_CALCULATION_TIME,
-            "Confidence calculation too slow",
+        assert calculation_time < MAX_CONFIDENCE_CALCULATION_TIME, (
+            "Confidence calculation too slow"
         )
-        self.assertGreaterEqual(confidence, MIN_FORMAT_CONFIDENCE_HIGH_QUALITY)
+        assert confidence >= MIN_FORMAT_CONFIDENCE_HIGH_QUALITY
 
     # Test 9: Extensibility and configuration
     def test_supported_formats_enumeration(self):
@@ -957,7 +916,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
         ]
 
         for expected_format in expected_formats:
-            self.assertIn(expected_format, supported_formats)
+            assert expected_format in supported_formats
 
     def test_format_patterns_completeness(self):
         """Test that format patterns cover all expected scenarios."""
@@ -972,10 +931,8 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
             test_data = getattr(self, f"{format_type.value}_examples")[0]
             confidence = self.detector.get_format_confidence(test_data, format_type)
 
-            self.assertGreaterEqual(
-                confidence,
-                MIN_FORMAT_CONFIDENCE_STANDARD,
-                f"Format {format_type} should have high confidence on its own examples",
+            assert confidence >= MIN_FORMAT_CONFIDENCE_STANDARD, (
+                f"Format {format_type} should have high confidence on its own examples"
             )
 
     # Test 10: Real-world validation
@@ -995,7 +952,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
         }
 
         detected = self.detector.detect_format(real_world_zephyr)
-        self.assertEqual(detected, SupportedFormat.ZEPHYR)
+        assert detected == SupportedFormat.ZEPHYR
 
         # Test with legacy TestLink structure
         legacy_testlink = {
@@ -1011,7 +968,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
         }
 
         detected = self.detector.detect_format(legacy_testlink)
-        self.assertEqual(detected, SupportedFormat.TESTLINK)
+        assert detected == SupportedFormat.TESTLINK
 
 
 if __name__ == "__main__":

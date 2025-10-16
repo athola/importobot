@@ -1,6 +1,6 @@
 """SSH logging test generation module."""
 
-from typing import Any, Dict, List
+from typing import Any
 
 
 class SSHLoggingTestGenerator:
@@ -9,7 +9,7 @@ class SSHLoggingTestGenerator:
     def __init__(self) -> None:
         """Initialize the SSH logging test generator."""
 
-    def generate_log_capture_tests(self, config: Dict[str, Any]) -> List[str]:
+    def generate_log_capture_tests(self, config: dict[str, Any]) -> list[str]:
         """Generate log capture test cases.
 
         Args:
@@ -21,7 +21,7 @@ class SSHLoggingTestGenerator:
         _ = config  # Unused parameter
         return []
 
-    def generate_log_verification_tests(self, config: Dict[str, Any]) -> List[str]:
+    def generate_log_verification_tests(self, config: dict[str, Any]) -> list[str]:
         """Generate log verification test cases.
 
         Args:
@@ -33,7 +33,7 @@ class SSHLoggingTestGenerator:
         _ = config  # Unused parameter
         return []
 
-    def generate_log_analysis_tests(self, config: Dict[str, Any]) -> List[str]:
+    def generate_log_analysis_tests(self, config: dict[str, Any]) -> list[str]:
         """Generate log analysis test cases.
 
         Args:

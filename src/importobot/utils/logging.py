@@ -39,7 +39,7 @@ def log_exception(
         exception: Exception to log
         context: Additional context information
     """
-    message = f"Exception occurred: {type(exception).__name__}: {str(exception)}"
+    message = f"Exception occurred: {type(exception).__name__}: {exception!s}"
     if context:
         message = f"{context} - {message}"
     logger.exception(message)

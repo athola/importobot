@@ -227,9 +227,7 @@ class TestDistributionManagerWeightedDistribution:
         base_counts = {k: int(raw_counts[k]) for k in weights}
         remainder = total_tests - sum(base_counts.values())
 
-        fractional_parts = [
-            (k, (total_tests * normalized[k]) % 1) for k in weights.keys()
-        ]
+        fractional_parts = [(k, (total_tests * normalized[k]) % 1) for k in weights]
         fractional_parts.sort(key=lambda item: item[1], reverse=True)
         expected_recipients = {k for k, _ in fractional_parts[:remainder]}
         actual_recipients = {k for k in weights if result[k] > base_counts[k]}

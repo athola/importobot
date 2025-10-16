@@ -5,12 +5,12 @@ architecture and supporting services.
 
 ```mermaid
 flowchart TD
-    ext[External Sources<br/>(API, CLI, Connectors)]
-    sec[SecurityGateway<br/>- XSS sanitization<br/>- DoS rate limiting]
-    bronze[Bronze Layer<br/>- Raw ingestion<br/>- Metadata capture<br/>- Lineage seeds]
-    silver[Silver Layer<br/>- Validation rules<br/>- Quality scoring<br/>- Normalization]
-    gold[Gold Layer<br/>- Optimization service<br/>- Export adapters<br/>- Final lineage]
-    targets[Target Systems<br/>(Robot, Zephyr, TestRail, ...)]
+    ext["External Sources<br/>API, CLI, Connectors"]
+    sec["SecurityGateway<br/>- XSS sanitization<br/>- DoS rate limiting"]
+    bronze["Bronze Layer<br/>- Raw ingestion<br/>- Metadata capture<br/>- Lineage seeds"]
+    silver["Silver Layer<br/>- Validation rules<br/>- Quality scoring<br/>- Normalization"]
+    gold["Gold Layer<br/>- Optimization service<br/>- Export adapters<br/>- Final lineage"]
+    targets["Target Systems<br/>Robot, Zephyr, TestRail, ..."]
 
     ext --> sec --> bronze --> silver --> gold --> targets
 

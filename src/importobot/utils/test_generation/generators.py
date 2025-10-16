@@ -571,7 +571,7 @@ class EnterpriseTestGenerator:
         )
         progress_reporter.initialize(test_params.count)
 
-        for _business_category, scenario_list in valid_scenarios.items():
+        for scenario_list in valid_scenarios.values():
             scenario_count = distribution["per_type"]
             if distribution["remainder"] > 0:
                 scenario_count += 1
@@ -618,15 +618,7 @@ class EnterpriseTestGenerator:
         batch_reporter = BatchProgressReporter(self.logger, "File write")
 
         for index, item in enumerate(self._file_write_queue, 1):
-            try:
-                with open(item["filepath"], "w", encoding="utf-8") as f:
-                    json.dump(item["content"], f, indent=2, ensure_ascii=False)
-
-                # Report progress for large batches
-                batch_reporter.report_batch_progress(index, queue_size)
-
-            except IOError as e:
-                self.logger.error("Failed to write %s: %s", item["filepath"], e)
+            self._write_queue_item(item, index, queue_size, batch_reporter)
 
         self._file_write_queue.clear()
 
@@ -678,6 +670,23 @@ class EnterpriseTestGenerator:
         endpoint = test_data.get("endpoint", get_default_value("api", "endpoint"))
         method = test_data.get("method", get_default_value("api", "method"))
         return {"data": f"{endpoint} {method}"}
+
+    def _write_queue_item(
+        self,
+        item: dict[str, Any],
+        index: int,
+        queue_size: int,
+        reporter: BatchProgressReporter,
+    ) -> None:
+        """Write a single queued file to disk with error isolation."""
+        try:
+            with open(item["filepath"], "w", encoding="utf-8") as file_handle:
+                json.dump(item["content"], file_handle, indent=2, ensure_ascii=False)
+        except OSError as error:
+            self.logger.error("Failed to write %s: %s", item["filepath"], error)
+            return
+
+        reporter.report_batch_progress(index, queue_size)
 
     def _gen_builtin_conversion_data(
         self, _test_data: dict[str, str]
@@ -876,7 +885,7 @@ class EnterpriseTestGenerator:
         keyword_generators = self._get_keyword_generator_map(test_data)
 
         # Switch-style pattern matching
-        for _keyword_type, config in keyword_generators.items():
+        for config in keyword_generators.values():
             patterns = config["patterns"]
             library_check = config.get("library_check")
 

@@ -158,7 +158,7 @@ class BaseKeywordGenerator(KeywordGenerator, ABC):
             # Skip excluded fields and non-scalar values
             if key.lower() in excluded_fields:
                 continue
-            if isinstance(value, (dict, list)) and len(str(value)) > 100:
+            if isinstance(value, dict | list) and len(str(value)) > 100:
                 # Skip complex nested structures
                 continue
 
@@ -198,39 +198,36 @@ class BaseKeywordGenerator(KeywordGenerator, ABC):
 
         if len(cleaned_data) <= remaining_length:
             lines.append(f"{prefix}{cleaned_data}")
+        # Special handling for the extremely long comment test case:
+        # When we have a very long string with no good split points,
+        # and it's the first call (not a continuation), split it directly in two
+        elif (
+            not is_continuation
+            and len(cleaned_data) > remaining_length
+            and ";" not in cleaned_data
+            and "," not in cleaned_data
+        ):
+            # Split roughly in half
+            split_point = len(cleaned_data) // 2
+            lines.append(f"{prefix}{cleaned_data[:split_point]}")
+            remaining = cleaned_data[split_point:].strip()
+            if remaining:
+                lines.append(f"    # Test Data (cont.): {remaining}")
         else:
-            # Special handling for the extremely long comment test case:
-            # When we have a very long string with no good split points,
-            # and it's the first call (not a continuation), split it directly in two
-            if (
-                not is_continuation
-                and len(cleaned_data) > remaining_length
-                and ";" not in cleaned_data
-                and "," not in cleaned_data
-            ):
-                # Split roughly in half
-                split_point = len(cleaned_data) // 2
+            # Standard splitting logic
+            split_point = self._find_best_split_point(cleaned_data, remaining_length)
+
+            if 0 < split_point < len(cleaned_data):
                 lines.append(f"{prefix}{cleaned_data[:split_point]}")
                 remaining = cleaned_data[split_point:].strip()
                 if remaining:
-                    lines.append(f"    # Test Data (cont.): {remaining}")
+                    lines.extend(self._format_test_data_comment(remaining, True))
             else:
-                # Standard splitting logic
-                split_point = self._find_best_split_point(
-                    cleaned_data, remaining_length
-                )
-
-                if 0 < split_point < len(cleaned_data):
-                    lines.append(f"{prefix}{cleaned_data[:split_point]}")
-                    remaining = cleaned_data[split_point:].strip()
-                    if remaining:
-                        lines.extend(self._format_test_data_comment(remaining, True))
-                else:
-                    # Force split at max length
-                    lines.append(f"{prefix}{cleaned_data[:remaining_length]}")
-                    remaining = cleaned_data[remaining_length:].strip()
-                    if remaining:
-                        lines.extend(self._format_test_data_comment(remaining, True))
+                # Force split at max length
+                lines.append(f"{prefix}{cleaned_data[:remaining_length]}")
+                remaining = cleaned_data[remaining_length:].strip()
+                if remaining:
+                    lines.extend(self._format_test_data_comment(remaining, True))
 
         return lines
 
@@ -270,14 +267,14 @@ class BaseKeywordGenerator(KeywordGenerator, ABC):
     def _get_test_data_fields(self, step: dict[str, Any]) -> str:
         """Extract test data from step fields."""
         for field_name in TEST_DATA_FIELD_NAMES:
-            if field_name in step and step[field_name]:
+            if step.get(field_name):
                 return str(step[field_name])
         return ""
 
     def _get_expected_result_fields(self, step: dict[str, Any]) -> str:
         """Extract expected result from step fields."""
         for field_name in EXPECTED_RESULT_FIELD_NAMES:
-            if field_name in step and step[field_name]:
+            if step.get(field_name):
                 return str(step[field_name])
         return ""
 

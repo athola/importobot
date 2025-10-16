@@ -71,15 +71,15 @@ class TestBronzeRecordsRetrieval(unittest.TestCase):
 
         records = bronze_layer_no_storage.get_bronze_records()
 
-        self.assertEqual(len(records), 0)
-        self.assertIsInstance(records, list)
+        assert len(records) == 0
+        assert isinstance(records, list)
 
     def test_get_bronze_records_returns_empty_list_when_no_data(self):
         """Test that get_bronze_records returns empty list when no data stored."""
         records = self.bronze_layer.get_bronze_records()
 
-        self.assertEqual(len(records), 0)
-        self.assertIsInstance(records, list)
+        assert len(records) == 0
+        assert isinstance(records, list)
 
     def test_get_bronze_records_retrieves_single_record(self):
         """Test retrieving a single bronze record from storage."""
@@ -91,16 +91,16 @@ class TestBronzeRecordsRetrieval(unittest.TestCase):
         )
         result = self.bronze_layer.ingest(self.test_data_1, metadata)
 
-        self.assertEqual(result.success_count, 1)
+        assert result.success_count == 1
 
         # Retrieve records
         records = self.bronze_layer.get_bronze_records()
 
-        self.assertEqual(len(records), 1)
-        self.assertEqual(records[0].data["testCase"]["name"], "Login Test")
-        self.assertIsNotNone(records[0].metadata)
-        self.assertIsNotNone(records[0].format_detection)
-        self.assertIsNotNone(records[0].lineage)
+        assert len(records) == 1
+        assert records[0].data["testCase"]["name"] == "Login Test"
+        assert records[0].metadata is not None
+        assert records[0].format_detection is not None
+        assert records[0].lineage is not None
 
     def test_get_bronze_records_retrieves_multiple_records(self):
         """Test retrieving multiple bronze records from storage."""
@@ -122,10 +122,10 @@ class TestBronzeRecordsRetrieval(unittest.TestCase):
         # Retrieve records
         records = self.bronze_layer.get_bronze_records()
 
-        self.assertEqual(len(records), 2)
+        assert len(records) == 2
         record_names = [r.data["testCase"]["name"] for r in records]
-        self.assertIn("Login Test", record_names)
-        self.assertIn("Logout Test", record_names)
+        assert "Login Test" in record_names
+        assert "Logout Test" in record_names
 
     def test_get_bronze_records_with_limit(self):
         """Test retrieving bronze records with limit parameter."""
@@ -147,7 +147,7 @@ class TestBronzeRecordsRetrieval(unittest.TestCase):
         # Retrieve with limit
         records = self.bronze_layer.get_bronze_records(limit=3)
 
-        self.assertEqual(len(records), 3)
+        assert len(records) == 3
 
     def test_get_bronze_records_with_filter_criteria(self):
         """Test retrieving bronze records with filter criteria."""
@@ -168,7 +168,7 @@ class TestBronzeRecordsRetrieval(unittest.TestCase):
 
         # Retrieve all records first to verify ingestion
         all_records = self.bronze_layer.get_bronze_records()
-        self.assertEqual(len(all_records), 2)
+        assert len(all_records) == 2
 
         # Note: Filter criteria works on metadata-level filters
         # Format-based filtering would require custom filter implementation
@@ -188,12 +188,12 @@ class TestBronzeRecordsRetrieval(unittest.TestCase):
         # Retrieve and verify metadata
         records = self.bronze_layer.get_bronze_records()
 
-        self.assertEqual(len(records), 1)
+        assert len(records) == 1
         record = records[0]
 
         # Verify metadata fields are populated
-        self.assertIsNotNone(record.metadata.ingestion_timestamp)
-        self.assertIsInstance(record.metadata.ingestion_timestamp, datetime)
+        assert record.metadata.ingestion_timestamp is not None
+        assert isinstance(record.metadata.ingestion_timestamp, datetime)
 
     def test_get_bronze_records_includes_format_detection(self):
         """Test that retrieved records include format detection information."""
@@ -208,13 +208,13 @@ class TestBronzeRecordsRetrieval(unittest.TestCase):
         # Retrieve and verify format detection
         records = self.bronze_layer.get_bronze_records()
 
-        self.assertEqual(len(records), 1)
+        assert len(records) == 1
         record = records[0]
 
-        self.assertIsNotNone(record.format_detection)
-        self.assertIsInstance(record.format_detection.detected_format, SupportedFormat)
-        self.assertGreater(record.format_detection.confidence_score, 0)
-        self.assertIsInstance(record.format_detection.evidence_details, dict)
+        assert record.format_detection is not None
+        assert isinstance(record.format_detection.detected_format, SupportedFormat)
+        assert record.format_detection.confidence_score > 0
+        assert isinstance(record.format_detection.evidence_details, dict)
 
     def test_get_bronze_records_includes_lineage(self):
         """Test that retrieved records include lineage information."""
@@ -229,13 +229,13 @@ class TestBronzeRecordsRetrieval(unittest.TestCase):
         # Retrieve and verify lineage
         records = self.bronze_layer.get_bronze_records()
 
-        self.assertEqual(len(records), 1)
+        assert len(records) == 1
         record = records[0]
 
-        self.assertIsNotNone(record.lineage)
-        self.assertIsNotNone(record.lineage.source_id)
-        self.assertIsNotNone(record.lineage.source_type)
-        self.assertIsNotNone(record.lineage.source_location)
+        assert record.lineage is not None
+        assert record.lineage.source_id is not None
+        assert record.lineage.source_type is not None
+        assert record.lineage.source_location is not None
 
     def test_get_bronze_records_handles_storage_errors(self):
         """Test that get_bronze_records handles storage errors gracefully."""
@@ -252,8 +252,8 @@ class TestBronzeRecordsRetrieval(unittest.TestCase):
         # Should return empty list on error, not raise exception
         records = bronze_layer_corrupted.get_bronze_records()
 
-        self.assertEqual(len(records), 0)
-        self.assertIsInstance(records, list)
+        assert len(records) == 0
+        assert isinstance(records, list)
 
     def test_get_bronze_records_returns_bronze_record_objects(self):
         """Test that get_bronze_records returns proper BronzeRecord objects."""
@@ -267,15 +267,15 @@ class TestBronzeRecordsRetrieval(unittest.TestCase):
 
         records = self.bronze_layer.get_bronze_records()
 
-        self.assertEqual(len(records), 1)
-        self.assertIsInstance(records[0], BronzeRecord)
+        assert len(records) == 1
+        assert isinstance(records[0], BronzeRecord)
 
         # Verify BronzeRecord properties
         record = records[0]
-        self.assertIsInstance(record.data, dict)
-        self.assertIsNotNone(record.metadata)
-        self.assertIsNotNone(record.format_detection)
-        self.assertIsNotNone(record.lineage)
+        assert isinstance(record.data, dict)
+        assert record.metadata is not None
+        assert record.format_detection is not None
+        assert record.lineage is not None
 
     def test_get_bronze_records_default_limit(self):
         """Test that get_bronze_records applies default limit of 1000."""
@@ -296,7 +296,7 @@ class TestBronzeRecordsRetrieval(unittest.TestCase):
         records = self.bronze_layer.get_bronze_records()
 
         # Should get all 3 records (less than default limit)
-        self.assertEqual(len(records), 3)
+        assert len(records) == 3
 
     def test_get_bronze_records_with_zero_limit(self):
         """Test that get_bronze_records with limit=0 returns empty list.
@@ -316,7 +316,7 @@ class TestBronzeRecordsRetrieval(unittest.TestCase):
         records = self.bronze_layer.get_bronze_records(limit=0)
 
         # Should return exactly 0 records
-        self.assertEqual(len(records), 0)
+        assert len(records) == 0
 
 
 if __name__ == "__main__":

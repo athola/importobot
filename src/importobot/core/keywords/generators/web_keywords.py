@@ -96,10 +96,7 @@ class WebKeywordGenerator(BaseKeywordGenerator):
         else:
             # Try to extract from common patterns
             value_match = re.search(r"(?:text|message)[:\s=]+([^,\s]+)", test_data)
-            if value_match:
-                text_to_verify = value_match.group(1)
-            else:
-                text_to_verify = "expected content"
+            text_to_verify = value_match.group(1) if value_match else "expected content"
 
         return f"Page Should Contain    {text_to_verify}"
 

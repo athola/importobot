@@ -1,0 +1,48 @@
+[
+    {
+        "owner": "JIRAUSER10907",
+        "updatedBy": "JIRAUSER10411",
+        "customFields": {
+            "Supported Platforms": "All Platforms",
+            "Automated": false,
+            "Test Level": "Regression"
+        },
+        "precondition": "YJ Installed; Agent deployed; CLI connected to active agent connection",
+        "updatedOn": "2025-08-29T17:27:06.945Z",
+        "priority": "Normal",
+        "createdOn": "2024-03-04T14:46:01.268Z",
+        "objective": "Verify the error message is correct when no arguments are provided to a chown task.",
+        "labels": [
+            "Requirement"
+        ],
+        "projectKey": "ABC",
+        "folder": "/Tests/'Tasks Tests'",
+        "latestVersion": true,
+        "createdBy": "JIRAUSER11600",
+        "testScript": {
+            "id": 11635,
+            "type": "STEP_BY_STEP",
+            "steps": [
+                {
+                    "testData": "chown",
+                    "expectedResult": "Error: the following arguments are required: user, paths",
+                    "index": 0,
+                    "description": "Enter the invalid command",
+                    "id": 77337
+                }
+            ]
+        },
+        "issueLinks": [
+            "Link1",
+            "Link2"
+        ],
+        "lastTestResultStatus": "Success",
+        "name": "chown no args",
+        "parameters": {
+            "variables": [],
+            "entries": []
+        },
+        "key": "ABC-T206",
+        "status": "Approved"
+    }
+]
