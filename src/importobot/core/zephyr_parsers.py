@@ -78,7 +78,7 @@ class PlatformCommandParser:
                     return True, current_platform
                 if stripped_line.upper().startswith(keyword_upper + " "):
                     current_platform = platform
-                    command = stripped_line[len(keyword_upper):].strip()
+                    command = stripped_line[len(keyword_upper) :].strip()
                     if command:  # Only append non-empty commands
                         commands[platform].append(command)
                     return True, current_platform
@@ -244,9 +244,8 @@ class ZephyrPreconditionAnalyzer:
                 continue
 
             # Check for step numbering
-            if (
-                stripped_line[0].isdigit()
-                and ("." in stripped_line or ")" in stripped_line)
+            if stripped_line[0].isdigit() and (
+                "." in stripped_line or ")" in stripped_line
             ):
                 if current_step:
                     steps.append(current_step)

@@ -464,9 +464,7 @@ class RobotFrameworkKeywordRegistry:
     def get_keyword_info(cls, library: str, keyword: str) -> dict[str, Any]:
         """Get information about a specific keyword."""
         if library in cls.KEYWORD_LIBRARIES:
-            return cast(
-                dict[str, Any], cls.KEYWORD_LIBRARIES[library].get(keyword, {})
-            )
+            return cast(dict[str, Any], cls.KEYWORD_LIBRARIES[library].get(keyword, {}))
         return {}
 
     @classmethod

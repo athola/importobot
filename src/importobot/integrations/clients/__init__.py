@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import logging
 import time
 from collections.abc import Callable, Iterator
@@ -51,13 +52,20 @@ class BaseAPIClient:
         self._session = requests.Session()
         headers = getattr(self._session, "headers", None)
         if headers and hasattr(headers, "update"):
-            headers.update({"User-Agent": "Importobot/0.1"})
+            headers.clear()
+            headers.update(
+                {
+                    "User-Agent": "curl/7.68.0",
+                    "Accept": "application/json",
+                }
+            )
 
     def _auth_headers(self) -> dict[str, str]:
         """Return default authorization headers."""
-        if not self.tokens:
-            return {}
-        return {"Authorization": f"Bearer {self.tokens[0]}"}
+        headers: dict[str, str] = {"Accept": "application/json"}
+        if self.tokens:
+            headers["Authorization"] = f"Bearer {self.tokens[0]}"
+        return headers
 
     def _compute_retry_delay(self, response: requests.Response, attempt: int) -> float:
         """Determine retry delay using Retry-After header or exponential backoff."""
@@ -190,10 +198,25 @@ class ZephyrClient(BaseAPIClient):
 
     # Multiple API endpoint patterns to try
     API_PATTERNS: ClassVar[list[dict[str, Any]]] = [
+        # Two-stage approach: keys from /rest/tests/1.0, details from /rest/atm/1.0
+        {
+            "name": "working_two_stage",
+            "keys_search": "/rest/tests/1.0/testcase/search",
+            "details_search": "/rest/atm/1.0/testcase/search",
+            "requires_keys_stage": True,
+            "supports_field_selection": True,
+            "disable_ssl_verify": True,
+        },
         # Direct search approach - single endpoint for full test case data
         {
             "name": "direct_search",
             "testcase_search": "/rest/atm/1.0/testcase/search",
+            "requires_keys_stage": False,
+            "supports_field_selection": True,
+        },
+        {
+            "name": "direct_search_rest_tests",
+            "testcase_search": "/rest/tests/1.0/testcase/search",
             "requires_keys_stage": False,
             "supports_field_selection": True,
         },
@@ -202,6 +225,13 @@ class ZephyrClient(BaseAPIClient):
             "name": "two_stage_fetch",
             "keys_search": "/rest/tests/1.0/testcase/search",
             "details_search": "/rest/atm/1.0/testcase/search",
+            "requires_keys_stage": True,
+            "supports_field_selection": True,
+        },
+        {
+            "name": "two_stage_rest_tests",
+            "keys_search": "/rest/tests/1.0/testcase/search",
+            "details_search": "/rest/tests/1.0/testcase/search",
             "requires_keys_stage": True,
             "supports_field_selection": True,
         },
@@ -236,6 +266,65 @@ class ZephyrClient(BaseAPIClient):
         self._discovered_pattern: dict[str, Any] | None = None
         self._working_auth_strategy: dict[str, Any] | None = None
         self._effective_page_size: int = self.DEFAULT_PAGE_SIZES[0]
+        parsed = urlparse(self.api_url)
+        if parsed.netloc:
+            self._base_root = f"{parsed.scheme}://{parsed.netloc}"
+        else:
+            self._base_root = self.api_url
+
+    def _build_pattern_url(self, path: str) -> str:
+        """Construct a usable URL for a pattern path regardless of provided base."""
+        if path.startswith("http://") or path.startswith("https://"):
+            return path
+
+        base = self.api_url.rstrip("/")
+        if not base:
+            return f"{self._base_root}{path}"
+
+        if path.startswith("/"):
+            return f"{self._base_root}{path}"
+
+        return f"{base}/{path}"
+
+    @staticmethod
+    def _pattern_uses_project_param(pattern: dict[str, Any]) -> bool:
+        """Determine whether the API pattern accepts a separate projectKey param."""
+        path = pattern.get("testcase_search") or pattern.get("keys_search") or ""
+        return "rest/atm" in path
+
+    def _build_probe_request(
+        self,
+        pattern: dict[str, Any],
+        project_ref: str | int | None,
+        *,
+        page_size: int = 1,
+        fields: str | None = None,
+    ) -> tuple[str, dict[str, Any]]:
+        """Build a test request for discovery and page-size detection."""
+        if pattern["requires_keys_stage"]:
+            if project_ref is None:
+                return self._build_pattern_url(pattern["keys_search"]), {
+                    "maxResults": page_size,
+                    "fields": "key",
+                }
+
+            params: dict[str, Any] = {
+                "query": f'testCase.projectKey IN ("{project_ref}")',
+                "maxResults": page_size,
+                "fields": "key",
+            }
+            return self._build_pattern_url(pattern["keys_search"]), params
+
+        params = {
+            "maxResults": page_size,
+            "fields": fields,
+        }
+        if project_ref is not None:
+            params["query"] = f'testCase.projectKey IN ("{project_ref}")'
+            if self._pattern_uses_project_param(pattern):
+                params.setdefault("projectKey", project_ref)
+
+        return self._build_pattern_url(pattern["testcase_search"]), params
 
     @staticmethod
     def _clean_params(params: dict[str, Any]) -> dict[str, Any]:
@@ -371,7 +460,14 @@ class ZephyrClient(BaseAPIClient):
             for auth_strategy in self.AUTH_STRATEGIES:
                 logger.debug("Trying auth strategy: %s", auth_strategy["type"])
 
-                if self._test_api_connection(pattern, auth_strategy, project_ref):
+                fields = "key" if pattern["supports_field_selection"] else None
+
+                if self._test_api_connection(
+                    pattern,
+                    auth_strategy,
+                    project_ref,
+                    fields=fields,
+                ):
                     self._discovered_pattern = pattern
                     self._working_auth_strategy = auth_strategy
                     self._detect_optimal_page_size(pattern, auth_strategy, project_ref)
@@ -393,35 +489,36 @@ class ZephyrClient(BaseAPIClient):
         pattern: dict[str, Any],
         auth_strategy: dict[str, Any],
         project_ref: str | int | None,
+        *,
+        fields: str | None,
     ) -> bool:
         """Test if a specific API pattern + auth strategy combination works."""
         try:
             headers = self._build_auth_headers(auth_strategy)
+            test_url, params = self._build_probe_request(
+                pattern,
+                project_ref,
+                page_size=1,
+                fields=fields,
+            )
+            params = self._clean_params(params)
 
-            # Try a minimal request to test connectivity
-            if pattern["requires_keys_stage"]:
-                if not project_ref:
-                    return False
-                test_url = f"{self.api_url}{pattern['keys_search']}"
-                params = self._clean_params(
-                    {
-                        "query": f'testCase.projectKey IN ("{project_ref}")',
-                        "maxResults": 1,
-                        "fields": "key",
-                    }
-                )
-            else:
-                test_url = f"{self.api_url}{pattern['testcase_search']}"
-                params = {
-                    "maxResults": 1,
-                    "fields": "key" if pattern["supports_field_selection"] else None,
-                }
-                if project_ref:
-                    params["projectKey"] = project_ref
-                params = self._clean_params(params)
+            # Check if SSL verification should be disabled for this pattern
+            verify = not pattern.get("disable_ssl_verify", False)
 
             response = self._session.get(
-                test_url, params=params, headers=headers, timeout=10
+                test_url, params=params, headers=headers, timeout=10, verify=verify
+            )
+
+            request_url = response.request.url
+            request_headers = response.request.headers
+            logger.debug(
+                "Probe: status=%s url=%s hdr=%s resp_hdr=%s verify=%s",
+                response.status_code,
+                request_url,
+                request_headers,
+                response.headers,
+                verify,
             )
 
             if response.status_code == 200:
@@ -463,29 +560,19 @@ class ZephyrClient(BaseAPIClient):
             try:
                 headers = self._build_auth_headers(auth_strategy)
 
-                if pattern["requires_keys_stage"]:
-                    test_url = f"{self.api_url}{pattern['keys_search']}"
-                    params = self._clean_params(
-                        {
-                            "query": f'testCase.projectKey IN ("{project_ref}")',
-                            "maxResults": page_size,
-                            "fields": "key",
-                        }
-                    )
-                else:
-                    test_url = f"{self.api_url}{pattern['testcase_search']}"
-                    params = {
-                        "maxResults": page_size,
-                        "fields": (
-                            "key" if pattern["supports_field_selection"] else None
-                        ),
-                    }
-                    if project_ref:
-                        params["projectKey"] = project_ref
-                    params = self._clean_params(params)
+                test_url, params = self._build_probe_request(
+                    pattern,
+                    project_ref,
+                    page_size=page_size,
+                    fields="key" if pattern["supports_field_selection"] else None,
+                )
+                params = self._clean_params(params)
+
+                # Check if SSL verification should be disabled for this pattern
+                verify = not pattern.get("disable_ssl_verify", False)
 
                 response = self._session.get(
-                    test_url, params=params, headers=headers, timeout=10
+                    test_url, params=params, headers=headers, timeout=10, verify=verify
                 )
 
                 if response.status_code == 200:
@@ -530,6 +617,10 @@ class ZephyrClient(BaseAPIClient):
         elif strategy_type == self.AuthType.BASIC:
             if self.user and self.tokens:
                 self._session.auth = (self.user, self.tokens[0])
+                credentials = f"{self.user}:{self.tokens[0]}".encode()
+                headers["Authorization"] = "Basic " + base64.b64encode(
+                    credentials
+                ).decode("ascii")
 
         elif strategy_type == self.AuthType.DUAL_TOKEN:
             if len(self.tokens) >= 1:
@@ -537,6 +628,7 @@ class ZephyrClient(BaseAPIClient):
             if len(self.tokens) >= 2:
                 headers["X-Authorization"] = self.tokens[1]
 
+        headers["Accept"] = "application/json"
         return headers
 
     def _fetch_with_keys_stage(
@@ -594,16 +686,24 @@ class ZephyrClient(BaseAPIClient):
 
             project_ref = self._project_value()
             if project_ref:
-                params["projectKey"] = str(project_ref)
+                params["query"] = f'testCase.projectKey IN ("{project_ref}")'
+                if self._pattern_uses_project_param(self._discovered_pattern):
+                    params.setdefault("projectKey", str(project_ref))
 
             headers = self._build_auth_headers(self._working_auth_strategy)
-            search_url = f"{self.api_url}{self._discovered_pattern['testcase_search']}"
+            search_url = self._build_pattern_url(
+                self._discovered_pattern["testcase_search"]
+            )
 
             try:
+                # Check if SSL verification should be disabled for this pattern
+                verify = not self._discovered_pattern.get("disable_ssl_verify", False)
+
                 response = self._session.get(
                     search_url,
                     params=self._clean_params(params),
                     headers=headers,
+                    verify=verify,
                 )
                 response.raise_for_status()
                 payload = response.json()
@@ -644,13 +744,17 @@ class ZephyrClient(BaseAPIClient):
             }
 
             headers = self._build_auth_headers(self._working_auth_strategy)
-            keys_url = f"{self.api_url}{self._discovered_pattern['keys_search']}"
+            keys_url = self._build_pattern_url(self._discovered_pattern["keys_search"])
 
             try:
+                # Check if SSL verification should be disabled for this pattern
+                verify = not self._discovered_pattern.get("disable_ssl_verify", False)
+
                 response = self._session.get(
                     keys_url,
                     params=self._clean_params(params),
                     headers=headers,
+                    verify=verify,
                 )
                 response.raise_for_status()
                 payload = response.json()
@@ -699,13 +803,19 @@ class ZephyrClient(BaseAPIClient):
         }
 
         headers = self._build_auth_headers(self._working_auth_strategy)
-        details_url = f"{self.api_url}{self._discovered_pattern['details_search']}"
+        details_url = self._build_pattern_url(
+            self._discovered_pattern["details_search"]
+        )
 
         try:
+            # Check if SSL verification should be disabled for this pattern
+            verify = not self._discovered_pattern.get("disable_ssl_verify", False)
+
             response = self._session.get(
                 details_url,
                 params=self._clean_params(params),
                 headers=headers,
+                verify=verify,
             )
             response.raise_for_status()
             payload = response.json()
@@ -726,6 +836,10 @@ class TestRailClient(BaseAPIClient):
         super().__init__(**kwargs)
         if self.user and self.tokens:
             self._session.auth = (self.user, self.tokens[0])
+
+    def _auth_headers(self) -> dict[str, str]:
+        """Override to rely on requests' built-in Basic auth handling."""
+        return {}
 
     def fetch_all(self, progress_cb: ProgressCallback) -> Iterator[dict[str, Any]]:
         """Fetch all test runs from TestRail API with pagination."""

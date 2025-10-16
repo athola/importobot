@@ -1,0 +1,56 @@
+[
+    {
+        "owner": "JIRAUSER10907",
+        "updatedBy": "JIRAUSER10411",
+        "customFields": {
+            "Supported Platforms": "All Platforms",
+            "Automated": false,
+            "Test Level": "Minimum Viable",
+	    "cycle": "all target"
+        },
+        "precondition": "YJ Installed; Agent deployed; CLI connected to active agent connection",
+        "updatedOn": "2025-08-29T17:27:06.945Z",
+        "priority": "Normal",
+        "createdOn": "2024-03-04T14:46:01.268Z",
+        "objective": "Verify behavior of ip addr task is similar to ip addr command",
+        "labels": [
+            "Requirement"
+        ],
+        "projectKey": "ABC",
+        "folder": "/Tests/'Tasks Tests'",
+        "latestVersion": true,
+        "createdBy": "JIRAUSER11600",
+        "testScript": {
+            "id": 12561,
+            "type": "STEP_BY_STEP",
+            "steps": [
+                {
+                    "testData": "TARGET: ip addr",
+                    "expectedResult": "agent1: output should closely match step1, omitting any interfaces that do not have an address. agent2: Should include all interfaces and their type, mac address, ipv4/6 addresses",
+                    "index": 1,
+                    "description": "On the target machine's terminal run ip addr.",
+                    "id": 84632
+                },
+                {
+                    "testData": "CLI: ip addr",
+                    "expectedResult": "a table is returned with entries for network ips/interfaces. the rows in the CLI are formatted like this: ens160: 192.168.10.109",
+                    "index": 0,
+                    "description": "Run the ip task on the CLI.",
+                    "id": 84633
+                }
+            ]
+        },
+        "issueLinks": [
+            "Link1",
+            "Link2"
+        ],
+        "lastTestResultStatus": "Success",
+        "name": "ip addr",
+        "parameters": {
+            "variables": [],
+            "entries": []
+        },
+        "key": "ABC-T464",
+        "status": "Approved"
+    }
+]

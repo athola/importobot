@@ -1,0 +1,57 @@
+[
+    {
+        "owner": "JIRAUSER10907",
+        "updatedBy": "JIRAUSER10411",
+        "customFields": {
+            "Supported Platforms": "All Platforms",
+            "Automated": false,
+            "Test Level": "Minimum Viable",
+	    "cycle": "all target",
+	    "Notes": "2.5, 3.8"
+        },
+        "precondition": "YJ Installed; Agent deployed; CLI connected to active agent connection",
+        "updatedOn": "2025-08-29T17:27:06.945Z",
+        "priority": "Normal",
+        "createdOn": "2024-03-04T14:46:01.268Z",
+        "objective": "Controller installed and spun up, agents are created, and an agent is connected and you are in a session.",
+        "labels": [
+            "Requirement"
+        ],
+        "projectKey": "ABC",
+        "folder": "/Tests/'Tasks Tests'",
+        "latestVersion": true,
+        "createdBy": "JIRAUSER11600",
+        "testScript": {
+            "id": 12775,
+            "type": "STEP_BY_STEP",
+            "steps": [
+                {
+                    "testData": "On target: ps -ely | grep mycustomname",
+                    "expectedResult": "mycustomname found",
+                    "index": 1,
+                    "description": "On the target, check for the new process name",
+                    "id": 86286
+                },
+                {
+                    "testData": "On CLI: setconfig --proc_name mycustomname",
+                    "expectedResult": "no task errors",
+                    "index": 0,
+                    "description": "change the process name with set config",
+                    "id": 86285
+                }
+            ]
+        },
+        "issueLinks": [
+            "Link1",
+            "Link2"
+        ],
+        "lastTestResultStatus": "Success",
+        "name": "setconfig task execution",
+        "parameters": {
+            "variables": [],
+            "entries": []
+        },
+        "key": "ABC-T632",
+        "status": "Approved"
+    }
+]

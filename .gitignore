@@ -28,11 +28,13 @@ venv/
 coverage.xml
 htmlcov/
 *.bak
+
 robot-tests/
 zephyr-tests/
 tests/unit/test_data/
 examples/json/*improved.json
 examples/output/
+examples/robot/templates/
 
 # Robot Framework output files
 log.html
