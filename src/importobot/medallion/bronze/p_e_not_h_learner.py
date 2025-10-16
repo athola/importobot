@@ -35,7 +35,7 @@ except ImportError:
 class PENotHParameters:
     """Parameters for P(E|¬H) estimation.
 
-    The formula is: P(E|¬H) = a + b × (1 - L)^c
+    The formula is: P(E|¬H) = a + b * (1 - L) ** c
 
     where:
         a: minimum P(E|¬H) for perfect evidence (L=1.0)
@@ -95,7 +95,7 @@ class PENotHLearner:
         2. Measure likelihood L for detecting F_target (where F_target != F_true)
         3. This likelihood represents P(E_target|¬F_target) empirically
         4. Fit parameters (a, b, c) to minimize MSE between:
-           - Predicted: a + b × (1-L)^c
+           - Predicted: a + b * (1 - L) ** c
            - Observed: empirical P(E|¬H)
         """
         self.training_data = cross_format_observations

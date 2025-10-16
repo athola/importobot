@@ -329,7 +329,7 @@ _global_cache: PerformanceCache | None = None
 
 def get_performance_cache() -> PerformanceCache:
     """Get the global performance cache instance."""
-    global _global_cache  # pylint: disable=global-statement
+    global _global_cache  # pylint: disable=global-statement  # noqa: PLW0603
     if _global_cache is None:
         _global_cache = PerformanceCache()
     return _global_cache

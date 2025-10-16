@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
 from re import Pattern
-from typing import Any
+from typing import Any, ClassVar
 
 from importobot.utils.defaults import PROGRESS_CONFIG
 from importobot.utils.step_processing import combine_step_text
@@ -706,7 +706,7 @@ class LibraryDetector:
     """Unified library detection based on text patterns."""
 
     # Library detection patterns consolidated from keywords_registry
-    LIBRARY_PATTERNS = {
+    LIBRARY_PATTERNS: ClassVar[dict[str, str]] = {
         "SeleniumLibrary": (
             r"\b(?:browser|navigate|click|input|page|web|url|login|button|element"
             r"|selenium|page.*should.*contain|should.*contain.*page|verify.*content"

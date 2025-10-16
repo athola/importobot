@@ -164,9 +164,9 @@ class GradientDescentOptimizer:
         self, gradients: dict[str, float], parameters: dict[str, float]
     ) -> None:
         """Apply L2 regularization to gradients."""
-        for param in parameters:
+        for param, value in parameters.items():
             if param in gradients:
-                gradients[param] += self.config.regularization * parameters[param]
+                gradients[param] += self.config.regularization * value
 
     def _update_parameters_with_momentum(
         self,
@@ -502,13 +502,13 @@ class GeneticAlgorithmOptimizer:  # pylint: disable=too-many-positional-argument
         self, parent1: dict[str, float], parent2: dict[str, float]
     ) -> dict[str, float]:
         """Perform crossover between two parents."""
-        child = {}
-        for param in parent1:
+        child: dict[str, float] = {}
+        for param, value in parent1.items():
             if param in parent2:
                 # Uniform crossover
-                child[param] = random.choice([parent1[param], parent2[param]])
+                child[param] = random.choice([value, parent2[param]])
             else:
-                child[param] = parent1[param]
+                child[param] = value
         return child
 
     def _mutate(

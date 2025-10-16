@@ -5,7 +5,7 @@ and intent recognition patterns used throughout the conversion system.
 """
 
 import re
-from typing import Any
+from typing import Any, ClassVar, cast
 
 from importobot.core.pattern_matcher import IntentType, PatternMatcher
 from importobot.utils.security import SSH_SECURITY_GUIDELINES, extract_security_warnings
@@ -15,7 +15,7 @@ class RobotFrameworkKeywordRegistry:
     """Centralized registry of Robot Framework keywords across major libraries."""
 
     # Comprehensive Robot Framework library coverage
-    KEYWORD_LIBRARIES = {
+    KEYWORD_LIBRARIES: ClassVar[dict[str, Any]] = {
         # BuiltIn Library (always available)
         "builtin": {
             "Log": {"args": ["message", "level=INFO"], "description": "Log a message"},
@@ -355,7 +355,7 @@ class RobotFrameworkKeywordRegistry:
         },
     }
     # Intent to library keyword mapping
-    INTENT_TO_LIBRARY_KEYWORDS = {
+    INTENT_TO_LIBRARY_KEYWORDS: ClassVar[dict[str, tuple[str, str]]] = {
         # File operations
         "file_create": ("OperatingSystem", "Create File"),
         "file_remove": ("OperatingSystem", "Remove File"),
@@ -464,7 +464,9 @@ class RobotFrameworkKeywordRegistry:
     def get_keyword_info(cls, library: str, keyword: str) -> dict[str, Any]:
         """Get information about a specific keyword."""
         if library in cls.KEYWORD_LIBRARIES:
-            return cls.KEYWORD_LIBRARIES[library].get(keyword, {})
+            return cast(
+                dict[str, Any], cls.KEYWORD_LIBRARIES[library].get(keyword, {})
+            )
         return {}
 
     @classmethod
@@ -554,7 +556,7 @@ class RobotFrameworkKeywordRegistry:
 class IntentRecognitionEngine:
     """Centralized intent recognition using PatternMatcher."""
 
-    _pattern_matcher = PatternMatcher()
+    _pattern_matcher: ClassVar[PatternMatcher] = PatternMatcher()
 
     @classmethod
     def recognize_intent(cls, text: str) -> IntentType | None:

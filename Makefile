@@ -11,6 +11,7 @@ help:
 	@echo "Available targets:"
 	@echo "  help         - Show this help menu"
 	@echo "  init         - Install dependencies"
+	@echo "  sync         - Sync environment and install dev dependencies"
 	@echo "  test         - Run tests (~2 minutes)"
 	@echo "  coverage     - Run tests with coverage"
 	@echo "  lint         - Run all linting checks (~2 minutes)"
@@ -89,8 +90,6 @@ lint:
 	$(info $(NEWLINE)==================== Running linting ====================$(NEWLINE))
 	@echo "→ Running ruff (fast)..."
 	@uv run ruff check .
-	@echo "→ Running pycodestyle..."
-	@uv run pycodestyle .
 	@echo "→ Running pydocstyle..."
 	@uv run pydocstyle .
 
@@ -112,12 +111,12 @@ typecheck:
 
 # Validate PR readiness
 # Expected timing breakdown (~5 minutes total):
-#   - lint: ~120s (pylint is 95% of this)
+#   - lint: ~115s (ruff + pydocstyle)
 #   - typecheck: ~5s
-#   - test: ~100s (1833 tests)
+#   - test: ~100s (1941 tests)
 #   - detect-secrets: ~10s
 #   - bandit: ~5s
-#   - Total: ~240s (4 minutes)
+#   - Total: ~235s (4 minutes)
 .PHONY: validate
 validate: lint typecheck test
 	$(info $(NEWLINE)==================== Validating PR readiness ====================$(NEWLINE))

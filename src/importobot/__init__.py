@@ -70,7 +70,7 @@ __all__ = [
     "exceptions",
 ]
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 # Clean up namespace - remove internal imports from dir()
 del _config, _exceptions, _api

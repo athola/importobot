@@ -19,11 +19,12 @@ def combine_step_text(steps: list[dict[str, Any]]) -> str:
     Returns:
         Combined lowercase text from all step values
     """
-    combined_text = []
-    for step in steps:
-        for value in step.values():
-            if isinstance(value, str):
-                combined_text.append(value.lower())
+    combined_text = [
+        value.lower()
+        for step in steps
+        for value in step.values()
+        if isinstance(value, str)
+    ]
     return " ".join(combined_text)
 
 

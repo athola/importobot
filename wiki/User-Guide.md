@@ -76,8 +76,19 @@ python scripts/generate_enterprise_tests.py
 python scripts/generate_zephyr_tests.py
 ```
 
-## Migration from 0.1.1
+## Migration from 0.1.2
 
+Version 0.1.3 adds configuration resilience improvements and achieves complete test coverage. No breaking changes were introduced.
+
+**Configuration improvements:**
+- Enhanced project identifier parsing to handle control characters and whitespace-only inputs gracefully
+- Improved fallback logic ensures CLI arguments that don't parse to valid identifiers fall back to environment variables
+
+**Test coverage:**
+- Unskipped and completely rewrote the Zephyr client discovery test
+- All 1,941 tests now pass with 0 skips
+
+For legacy migration notes from 0.1.1:
 Version 0.1.2 removes the legacy `WeightedEvidenceBayesianScorer`. If you imported it
 directly, switch to `FormatDetector` or the new
 `importobot.medallion.bronze.independent_bayesian_scorer.IndependentBayesianScorer`.

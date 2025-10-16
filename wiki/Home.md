@@ -1,6 +1,6 @@
 # Importobot Wiki
 
-This wiki collects the working notes for Importobot—the tool we built to convert Zephyr, Xray, TestLink, and similar exports into Robot Framework suites. It began as a weekend script to dodge manual copy/paste work and grew into something teams run in CI.
+Documentation for Importobot, a tool that converts Zephyr, Xray, TestLink exports into Robot Framework suites. Started as a script to avoid manual copy/paste work, now used in team CI pipelines.
 
 If you are new, start with Getting Started. The other pages cover the conversion workflow, medallion layers, and production chores such as security, deployment, and benchmarks.
 
@@ -27,9 +27,9 @@ If you are new, start with Getting Started. The other pages cover the conversion
 
 ## Why Importobot?
 
-Before Importobot, teams either retyped Zephyr cases by hand or maintaind brittle internal scripts. Importobot provides a structured approach: it converts test suite exports with one command, keeps descriptions and tags intact, and flags the handful of steps that still need human judgment.
+Teams previously retyped Zephyr cases manually or maintained brittle scripts. Importobot converts test suite exports with one command, preserves descriptions and tags, and flags steps needing human judgment.
 
-The codebase grew out of TDD runs on real customer data, so the philosophy is practical—validate inputs early, preserve traceability, and ship Robot suites that run without edits. The suggestion engine and extra keyword libraries landed because testers asked for them while reviewing generated files.
+Built with TDD on real customer data. Philosophy: validate early, preserve traceability, generate Robot files that run without edits. Added suggestion engine and keyword libraries based on tester feedback.
 
 ## Quick Start
 

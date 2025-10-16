@@ -618,15 +618,7 @@ class EnterpriseTestGenerator:
         batch_reporter = BatchProgressReporter(self.logger, "File write")
 
         for index, item in enumerate(self._file_write_queue, 1):
-            try:
-                with open(item["filepath"], "w", encoding="utf-8") as f:
-                    json.dump(item["content"], f, indent=2, ensure_ascii=False)
-
-                # Report progress for large batches
-                batch_reporter.report_batch_progress(index, queue_size)
-
-            except OSError as e:
-                self.logger.error("Failed to write %s: %s", item["filepath"], e)
+            self._write_queue_item(item, index, queue_size, batch_reporter)
 
         self._file_write_queue.clear()
 
@@ -678,6 +670,23 @@ class EnterpriseTestGenerator:
         endpoint = test_data.get("endpoint", get_default_value("api", "endpoint"))
         method = test_data.get("method", get_default_value("api", "method"))
         return {"data": f"{endpoint} {method}"}
+
+    def _write_queue_item(
+        self,
+        item: dict[str, Any],
+        index: int,
+        queue_size: int,
+        reporter: BatchProgressReporter,
+    ) -> None:
+        """Write a single queued file to disk with error isolation."""
+        try:
+            with open(item["filepath"], "w", encoding="utf-8") as file_handle:
+                json.dump(item["content"], file_handle, indent=2, ensure_ascii=False)
+        except OSError as error:
+            self.logger.error("Failed to write %s: %s", item["filepath"], error)
+            return
+
+        reporter.report_batch_progress(index, queue_size)
 
     def _gen_builtin_conversion_data(
         self, _test_data: dict[str, str]

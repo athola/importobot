@@ -103,17 +103,19 @@ class ParameterAnalyzer:
 
     def _extract_text_sources(self, test_case: dict[str, Any]) -> list[str]:
         """Extract text sources from test case steps."""
-        text_sources = []
+        text_sources: list[str] = []
         # Use field definitions to access test script
         script_field, script_data = TEST_SCRIPT_FIELDS.find_first(test_case)
         if script_field and isinstance(script_data, dict):
             steps = script_data.get(STEPS_FIELD_NAME, [])
-            for step in steps:
-                if isinstance(step, dict):
-                    field_names = TEST_DATA_FIELD_NAMES + STEP_DESCRIPTION_FIELD_NAMES
-                    for field_name in field_names:
-                        if field_name in step and isinstance(step[field_name], str):
-                            text_sources.append(step[field_name])
+            field_names = TEST_DATA_FIELD_NAMES + STEP_DESCRIPTION_FIELD_NAMES
+            text_sources.extend(
+                step[field_name]
+                for step in steps
+                if isinstance(step, dict)
+                for field_name in field_names
+                if isinstance(step.get(field_name), str)
+            )
         return text_sources
 
     def _get_existing_parameters(self, test_case: dict[str, Any]) -> list:
@@ -201,23 +203,27 @@ class ParameterAnalyzer:
         self, test_case: dict[str, Any], steps: list[dict[str, Any]]
     ) -> list[str]:
         """Collect all text from test case that might contain parameters."""
-        text_sources = []
+        text_sources: list[str] = []
 
         # From test case itself
-        for field in ["name", "description", "summary"]:
-            if field in test_case and isinstance(test_case[field], str):
-                text_sources.append(test_case[field])
+        text_sources.extend(
+            test_case[field]
+            for field in ["name", "description", "summary"]
+            if isinstance(test_case.get(field), str)
+        )
 
-        # From steps
-        for step in steps:
-            if isinstance(step, dict):
-                for field_name in (
-                    TEST_DATA_FIELD_NAMES
-                    + STEP_DESCRIPTION_FIELD_NAMES
-                    + EXPECTED_RESULT_FIELD_NAMES
-                ):
-                    if field_name in step and isinstance(step[field_name], str):
-                        text_sources.append(step[field_name])
+        relevant_fields = (
+            TEST_DATA_FIELD_NAMES
+            + STEP_DESCRIPTION_FIELD_NAMES
+            + EXPECTED_RESULT_FIELD_NAMES
+        )
+        text_sources.extend(
+            step[field_name]
+            for step in steps
+            if isinstance(step, dict)
+            for field_name in relevant_fields
+            if isinstance(step.get(field_name), str)
+        )
 
         return text_sources
 

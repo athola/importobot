@@ -22,20 +22,20 @@ class ContextSearcher:
                 "context_info": "at root level (TestLink XML export)",
             }
 
-        if key == "testsuite":
+        if (
+            key == "testsuite"
+            and "testsuites" in data
+            and isinstance(data["testsuites"], list)
+        ):
             # Look for testsuite nested under testsuites
-            if "testsuites" in data and isinstance(data["testsuites"], list):
-                for suite_container in data["testsuites"]:
-                    if (
-                        isinstance(suite_container, dict)
-                        and "testsuite" in suite_container
-                    ):
-                        return {
-                            "found": True,
-                            "at_root": False,
-                            "appropriate_nesting": True,
-                            "context_info": "nested under testsuites (TestLink XML)",
-                        }
+            for suite_container in data["testsuites"]:
+                if isinstance(suite_container, dict) and "testsuite" in suite_container:
+                    return {
+                        "found": True,
+                        "at_root": False,
+                        "appropriate_nesting": True,
+                        "context_info": "nested under testsuites (TestLink XML)",
+                    }
 
         # Generic search for other TestLink keys
         return ContextSearcher.search_with_generic_context(data, key)

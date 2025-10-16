@@ -47,8 +47,8 @@ class TokenListAction(argparse.Action):
         raw_segments = values if isinstance(values, list) else [values]
 
         for segment in raw_segments:
-            for token in segment.split(","):
-                token = token.strip()
+            for raw_token in segment.split(","):
+                token = raw_token.strip()
                 if token:
                     tokens.append(token)
 

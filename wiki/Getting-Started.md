@@ -45,7 +45,7 @@ cd importobot
 # Install project dependencies
 uv sync --dev
 
-# Sanity-check the install
+# Sanity-check the install (1,941 tests should pass with 0 skips)
 uv run pytest
 ```
 

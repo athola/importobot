@@ -2,7 +2,7 @@
 
 import os
 import re
-from typing import Any
+from typing import Any, ClassVar
 
 from importobot.core.keywords.base_generator import BaseKeywordGenerator
 from importobot.utils.pattern_extraction import extract_pattern
@@ -20,7 +20,7 @@ def _safe_home_path(name: str) -> str:
 class OperatingSystemKeywordGenerator(BaseKeywordGenerator):
     """Generates OperatingSystem library Robot Framework keywords."""
 
-    BINARY_EXTENSIONS = {
+    BINARY_EXTENSIONS: ClassVar[set[str]] = {
         ".zip",
         ".tar",
         ".gz",
@@ -59,7 +59,7 @@ class OperatingSystemKeywordGenerator(BaseKeywordGenerator):
         ".dat",
     }
 
-    COMMAND_TO_KEYWORD = {
+    COMMAND_TO_KEYWORD: ClassVar[dict[str, str]] = {
         "cat": "Get File",
         "ls": "List Directory",
         "mkdir": "Create Directory",

@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, ClassVar
 
 from importobot.utils.logging import setup_logger
 
@@ -85,7 +85,7 @@ class HierarchicalClassifier:
     FAST_PATH_UNIQUE_INDICATORS = 2  # Number of UNIQUE indicators for Stage 2 fast pass
 
     # Format-specific unique field combinations (for Stage 2 fast path)
-    FORMAT_UNIQUE_COMBINATIONS = {
+    FORMAT_UNIQUE_COMBINATIONS: ClassVar[dict[str, list[set[str]]]] = {
         "ZEPHYR": [{"testCase", "execution", "cycle"}],
         "JIRA_XRAY": [{"testExecutions", "xrayInfo"}, {"issues", "testInfo"}],
         "TESTLINK": [{"testsuites", "testsuite"}],
@@ -93,7 +93,7 @@ class HierarchicalClassifier:
     }
 
     # Test data validation indicators (generic across all test formats)
-    TEST_DATA_INDICATORS = [
+    TEST_DATA_INDICATORS: ClassVar[list[str]] = [
         # Test identification fields (common to all formats)
         "test",
         "testcase",
@@ -269,19 +269,17 @@ class HierarchicalClassifier:
         key_tokens = self._collect_key_tokens(all_keys)
 
         # Check for generic test data indicators
-        evidence_items: list[EvidenceItem] = []
-
-        for indicator in self._stage1_indicator_tokens:
-            if indicator in key_tokens:
-                evidence_items.append(
-                    EvidenceItem(
-                        source=EvidenceSource.TEST_DATA_INDICATOR,
-                        weight=EvidenceWeight.MODERATE,  # Generic
-                        # indicators are moderate
-                        confidence=1.0,
-                        details=f"Found test data indicator: {indicator}",
-                    )
-                )
+        # Generic indicators provide moderate evidence for test data
+        evidence_items: list[EvidenceItem] = [
+            EvidenceItem(
+                source=EvidenceSource.TEST_DATA_INDICATOR,
+                weight=EvidenceWeight.MODERATE,
+                confidence=1.0,
+                details=f"Found test data indicator: {indicator}",
+            )
+            for indicator in self._stage1_indicator_tokens
+            if indicator in key_tokens
+        ]
 
         # Calculate completeness: how many indicators found?
         total_indicators = len(self._stage1_indicator_tokens)
@@ -433,10 +431,10 @@ class HierarchicalClassifier:
 
         # Split snake_case or kebab-case segments
         normalized = re.sub(r"[-\s]+", "_", key)
-        for part in normalized.split("_"):
-            part = part.strip()
-            if part:
-                token_set.add(part.lower())
+        for segment in normalized.split("_"):
+            stripped_segment = segment.strip()
+            if stripped_segment:
+                token_set.add(stripped_segment.lower())
 
         # Split camelCase or PascalCase segments
         camel_parts = re.findall(r"[A-Z]?[a-z]+|[A-Z]+(?=[A-Z]|$)", key)

@@ -7,6 +7,11 @@ from importobot.core.keywords.generators.ssh_keywords import SSHKeywordGenerator
 from importobot.core.keywords.generators.web_keywords import WebKeywordGenerator
 
 
+def _var_message(prefix: str, suffix: str, result: str) -> str:
+    """Build an assertion helper message for variable validation."""
+    return f"{prefix} {suffix} {result}"
+
+
 class TestAutomationPhilosophyCompliance:
     """Verify code follows automation principles from CLAUDE.md."""
 
@@ -108,7 +113,8 @@ class TestAutomationPhilosophyCompliance:
                 ):
                     method = getattr(generator, method_name)
 
-                    # Skip methods that require specific parameters or special signatures
+                    # Skip methods that require specific parameters
+                    # or special signatures
                     if method_name in [
                         "generate_file_transfer_keyword",
                         "generate_directory_operations_keyword",
@@ -120,32 +126,36 @@ class TestAutomationPhilosophyCompliance:
                         # This method expects a dictionary, not a string
                         for test_data in test_cases:
                             try:
-                                # Use a sample dictionary that matches expected step format
+                                # Use a sample dictionary matching expected step format
                                 step_dict = {
                                     "description": test_data,
                                     "test_data": test_data,
                                 }
                                 result = method(step_dict)
 
-                                # Find all variable references
                                 variables = re.findall(r"\$\{([^}]+)\}", result)
 
                                 for var in variables:
-                                    # Must be uppercase Robot Framework convention
-                                    assert var.isupper(), (
-                                        f"Variable ${{{var}}} should be uppercase in "
-                                        f"{result}"
+                                    message_prefix = f"Variable ${{{var}}}"
+                                    upper_error = _var_message(
+                                        message_prefix,
+                                        "should be uppercase in",
+                                        result,
                                     )
-                                    # Must not contain spaces
-                                    assert " " not in var, (
-                                        f"Variable ${{{var}}} should not contain spaces "
-                                        f"in {result}"
+                                    no_space_error = _var_message(
+                                        message_prefix,
+                                        "should not contain spaces in",
+                                        result,
                                     )
-                                    # Must be descriptive
-                                    assert len(var) > 1, (
-                                        f"Variable ${{{var}}} should be descriptive in "
-                                        f"{result}"
+                                    descriptive_error = _var_message(
+                                        message_prefix,
+                                        "should be descriptive in",
+                                        result,
                                     )
+
+                                    assert var.isupper(), upper_error
+                                    assert " " not in var, no_space_error
+                                    assert len(var) > 1, descriptive_error
 
                             except TypeError:
                                 # Skip methods with different signatures

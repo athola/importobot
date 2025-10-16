@@ -1,11 +1,9 @@
 """Distribution and weight management for test generation."""
 
-from typing import Union
-
 from importobot.utils.test_generation.categories import CategoryEnum
 
 # Type aliases for flexibility in weight specification
-WeightsDict = Union[dict[CategoryEnum, float], dict[str, float]]
+WeightsDict = dict[CategoryEnum, float] | dict[str, float]
 DistributionDict = dict[str, int]
 
 

@@ -86,7 +86,7 @@ def display_suggestion_changes(changes_made: list[dict[str, Any]], args: Any) ->
             ),
         )
 
-        print("\n📋 Applied Suggestions:")
+        print("\nApplied Suggestions:")
         print("=" * 60)
         for index, change in enumerate(sorted_changes, start=1):
             test_case_num = change.get("test_case_index", 0) + 1
@@ -101,7 +101,7 @@ def display_suggestion_changes(changes_made: list[dict[str, Any]], args: Any) ->
             print(f"     Reason: {change.get('reason', '')}")
             print()
     else:
-        print("\nℹ️  No automatic improvements could be applied.")
+        print("\nINFO: No automatic improvements could be applied.")
         print("   The JSON data is already in good shape!")
 
 

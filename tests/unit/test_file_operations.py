@@ -278,7 +278,7 @@ class TestDisplaySuggestionChanges:
         captured = capsys.readouterr()
 
         # Check that changes are displayed in sorted order
-        assert "📋 Applied Suggestions:" in captured.out
+        assert "Applied Suggestions:" in captured.out
         # Both changes should be present in the output
         assert "Test Case 1, Step 2 - description" in captured.out  # (0,1) change
         assert "Test Case 2, Step 3 - testData" in captured.out  # (1,2) change
@@ -296,7 +296,7 @@ class TestDisplaySuggestionChanges:
         display_suggestion_changes([], mock_args)
 
         captured = capsys.readouterr()
-        assert "ℹ️  No automatic improvements could be applied." in captured.out
+        assert "INFO: No automatic improvements could be applied." in captured.out
         assert "The JSON data is already in good shape!" in captured.out
 
     def test_respects_no_suggestions_flag(self, capsys: Any) -> None:

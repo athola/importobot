@@ -2,17 +2,27 @@
 
 from __future__ import annotations
 
+import importlib
 import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from importobot import exceptions
 from importobot.medallion.interfaces.enums import SupportedFormat
 
 if TYPE_CHECKING:  # pragma: no cover - circular import guard for type checking
     from importobot.medallion.storage.config import StorageConfig
+else:  # pragma: no cover - runtime fallback to satisfy type check references
+    StorageConfig = Any  # type: ignore[assignment]
+
+
+def _load_storage_config_cls() -> type[Any]:
+    """Dynamically import StorageConfig to avoid circular import at module load."""
+    module = importlib.import_module("importobot.medallion.storage.config")
+    return cast(type[Any], module.StorageConfig)
+
 
 # Module-level logger for configuration warnings
 logger = logging.getLogger(__name__)
@@ -27,6 +37,9 @@ TEST_SERVER_URL = os.getenv("IMPORTOBOT_TEST_SERVER_URL", DEFAULT_TEST_SERVER_UR
 # Test-specific URLs
 LOGIN_PAGE_PATH = "/login.html"
 TEST_LOGIN_URL = f"{TEST_SERVER_URL}{LOGIN_PAGE_PATH}"
+
+# Authentication requirements
+ZEPHYR_MIN_TOKEN_COUNT = 2
 
 # Chrome options for headless browser testing
 CHROME_OPTIONS = [
@@ -171,7 +184,7 @@ def _parse_project_identifier(value: str | None) -> tuple[str | None, int | None
     if not value:
         return None, None
     raw = value.strip()
-    if not raw:
+    if not raw or raw.isspace():
         return None, None
     if raw.isdigit():
         try:
@@ -198,8 +211,15 @@ def resolve_api_ingest_config(args: Any) -> APIIngestConfig:
         list(cli_tokens) if cli_tokens else _split_tokens(fetch_env(f"{prefix}_TOKENS"))
     )
     api_user = getattr(args, "api_user", None) or fetch_env(f"{prefix}_API_USER")
-    project_raw = getattr(args, "project", None) or fetch_env(f"{prefix}_PROJECT")
-    project_name, project_id = _parse_project_identifier(project_raw)
+
+    # Handle project resolution with fallback logic
+    cli_project = getattr(args, "project", None)
+    project_name, project_id = _parse_project_identifier(cli_project)
+
+    # If CLI project doesn't parse to a valid identifier, fall back to environment
+    if project_name is None and project_id is None:
+        env_project = fetch_env(f"{prefix}_PROJECT")
+        project_name, project_id = _parse_project_identifier(env_project)
 
     output_dir = _resolve_output_dir(getattr(args, "input_dir", None))
     max_concurrency = _resolve_max_concurrency(getattr(args, "max_concurrency", None))
@@ -220,7 +240,7 @@ def resolve_api_ingest_config(args: Any) -> APIIngestConfig:
 
     assert api_url is not None, "URL should be validated by now"
 
-    if fetch_format is SupportedFormat.ZEPHYR and len(tokens) < 2:
+    if fetch_format is SupportedFormat.ZEPHYR and len(tokens) < ZEPHYR_MIN_TOKEN_COUNT:
         logger.debug(
             "Zephyr configured with %s token(s); dual-token authentication can be "
             "enabled by providing multiple --tokens values.",
@@ -246,13 +266,11 @@ def update_medallion_config(
 
     Uses lazy import to avoid circular dependency with medallion.storage.config.
     """
-    # Import moved inside function to break circular dependency
-    # pylint: disable=import-outside-toplevel
-    from importobot.medallion.storage.config import StorageConfig
+    storage_config_cls = cast(type[StorageConfig], _load_storage_config_cls())
 
     # Placeholder implementation for testing
     if config is None:
-        config = StorageConfig()
+        config = storage_config_cls()
 
     # kwargs used for potential future configuration updates
     _ = kwargs  # Mark as used for linting
