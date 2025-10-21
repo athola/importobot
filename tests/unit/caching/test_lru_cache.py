@@ -352,6 +352,7 @@ class TestTelemetryIntegration:
 
         cache.set("key", "value")
         cache.get("key")
+        cache.flush_metrics()
 
         # Verify telemetry events were recorded
         assert len(telemetry_events) > 0
@@ -366,6 +367,7 @@ class TestTelemetryIntegration:
         cache = LRUCache[str, str]()
         cache.set("key", "value")
         cache.get("key")
+        cache.flush_metrics()
 
         # Find cache_metrics events
         cache_events = [e for e in telemetry_events if e[0] == "cache_metrics"]

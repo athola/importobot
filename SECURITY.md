@@ -69,6 +69,30 @@ continue to use parameterized queries and schema validation in those systems.
   so bursts of malicious requests surface as rate-limit errors instead of
   exhausting CPU.
 
+  Example hardening profile for CI environments:
+
+  ```bash
+  export IMPORTOBOT_SECURITY_RATE_LIMIT=40                # max 40 guarded ops
+  export IMPORTOBOT_SECURITY_RATE_INTERVAL_SECONDS=60     # per 60-second window
+  export IMPORTOBOT_SECURITY_RATE_MAX_QUEUE=20            # queued requests before drop
+  export IMPORTOBOT_SECURITY_RATE_BACKOFF_BASE=2          # exponential backoff base
+  export IMPORTOBOT_SECURITY_RATE_BACKOFF_MAX=8           # cap in seconds
+  ```
+
+  For on-prem deployments, settings can also be persisted in `.env`:
+
+  ```ini
+  # security.env
+  IMPORTOBOT_SECURITY_RATE_LIMIT=25
+  IMPORTOBOT_SECURITY_RATE_INTERVAL_SECONDS=30
+  IMPORTOBOT_SECURITY_RATE_MAX_QUEUE=10
+  IMPORTOBOT_SECURITY_RATE_BACKOFF_BASE=2
+  IMPORTOBOT_SECURITY_RATE_BACKOFF_MAX=6
+  ```
+
+  Load the profile with `dotenv` tooling or by sourcing the file prior to
+  launching Importobot services to ensure consistent throttling across hosts.
+
 ### Schema and Template Hardening
 
 Schema ingestion and template rendering accept user-supplied files. As of

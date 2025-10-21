@@ -129,7 +129,7 @@ class _SecurityRateLimiter:
         return True, 0.0
 
 
-class SanitizationResult(TypedDict, total=False):
+class SanitizationResult(TypedDict):
     """Structured result returned from sanitize_api_input."""
 
     is_safe: bool
@@ -141,7 +141,7 @@ class SanitizationResult(TypedDict, total=False):
     correlation_id: str | None
 
 
-class FileOperationResult(TypedDict, total=False):
+class FileOperationResult(TypedDict):
     """Structured result returned from validate_file_operation."""
 
     is_safe: bool

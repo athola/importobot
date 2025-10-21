@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import sys
 import time
 from dataclasses import dataclass
 from typing import Any, Generic, TypeVar
@@ -37,6 +38,9 @@ class CacheEntry(Generic[V]):
 class LRUCache(CacheStrategy[K, V]):
     """Unified LRU cache with TTL and security features."""
 
+    TELEMETRY_BATCH_SIZE = 20
+    TELEMETRY_FLUSH_SECONDS = 5.0
+
     def __init__(
         self,
         config: CacheConfig | None = None,
@@ -56,6 +60,8 @@ class LRUCache(CacheStrategy[K, V]):
         self._misses = 0
         self._evictions = 0
         self._rejections = 0
+        self._pending_metric_events = 0
+        self._last_metrics_emit = time.time()
 
     def __len__(self) -> int:
         """Return the number of cached entries."""
@@ -71,13 +77,13 @@ class LRUCache(CacheStrategy[K, V]):
 
         if entry is None:
             self._misses += 1
-            self._emit_metrics()
+            self._record_metric_event()
             return None
 
         if self._is_expired(entry.timestamp):
             self.delete(key)
             self._misses += 1
-            self._emit_metrics()
+            self._record_metric_event()
             return None
 
         entry.access_count += 1
@@ -85,7 +91,7 @@ class LRUCache(CacheStrategy[K, V]):
         self._cache[key] = self._cache.pop(key)
 
         self._hits += 1
-        self._emit_metrics()
+        self._record_metric_event()
         return entry.value
 
     def set(self, key: K, value: V) -> None:
@@ -133,7 +139,7 @@ class LRUCache(CacheStrategy[K, V]):
 
         self._cache[key] = CacheEntry(value=value, timestamp=time.time())
         self._total_size += content_size
-        self._emit_metrics()
+        self._record_metric_event()
 
     def delete(self, key: K) -> None:
         """Remove entry from cache."""
@@ -156,7 +162,7 @@ class LRUCache(CacheStrategy[K, V]):
         self._misses = 0
         self._evictions = 0
         self._rejections = 0
-        self._emit_metrics()
+        self._emit_metrics(force=True)
 
     def get_stats(self) -> dict[str, Any]:
         """Get cache statistics."""
@@ -180,6 +186,10 @@ class LRUCache(CacheStrategy[K, V]):
         """Alias helper to align with legacy cache API."""
         return self.get_stats()
 
+    def flush_metrics(self) -> None:
+        """Force emission of any pending telemetry events."""
+        self._emit_metrics(force=True)
+
     def _evict_lru(self) -> None:
         """Evict least recently used entry."""
         if self._cache:
@@ -196,25 +206,37 @@ class LRUCache(CacheStrategy[K, V]):
     def _hash_key(self, key: K) -> str:
         """Generate hash for collision tracking."""
         key_str = str(key)
+        # BLAKE2b offers strong collision resistance with lower CPU cost than
+        # SHA-256, keeping per-request hashing fast while still guarding
+        # against crafted collisions.
         return hashlib.blake2b(key_str.encode(), digest_size=16).hexdigest()
 
     def _estimate_size(self, value: V) -> int:
         """Estimate content size in bytes."""
         try:
-            if isinstance(value, str):
-                return len(value.encode("utf-8"))
-            elif isinstance(value, bytes):
-                return len(value)
-            elif isinstance(value, int | float):
-                return 8
-            else:
-                return len(str(value).encode("utf-8"))
-        except (TypeError, AttributeError):
+            return sys.getsizeof(value)
+        except (TypeError, AttributeError) as exc:
+            logger.debug("Failed to estimate cache entry size for %r: %s", value, exc)
             return 0
 
-    def _emit_metrics(self) -> None:
+    def _record_metric_event(self) -> None:
+        if not self.config.enable_telemetry or self._telemetry is None:
+            return
+        self._pending_metric_events += 1
+        now = time.time()
+        if (
+            self._pending_metric_events >= self.TELEMETRY_BATCH_SIZE
+            or now - self._last_metrics_emit >= self.TELEMETRY_FLUSH_SECONDS
+        ):
+            self._emit_metrics(now=now)
+
+    def _emit_metrics(self, *, now: float | None = None, force: bool = False) -> None:
         """Emit telemetry metrics."""
         if not self.config.enable_telemetry or self._telemetry is None:
+            self._pending_metric_events = 0
+            self._last_metrics_emit = time.time()
+            return
+        if not force and self._pending_metric_events == 0:
             return
 
         self._telemetry.record_cache_metrics(
@@ -229,6 +251,8 @@ class LRUCache(CacheStrategy[K, V]):
                 "ttl_seconds": self.config.ttl_seconds or 0,
             },
         )
+        self._pending_metric_events = 0
+        self._last_metrics_emit = now if now is not None else time.time()
 
 
 __all__ = ["LRUCache", "SecurityPolicy"]

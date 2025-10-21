@@ -114,6 +114,7 @@ class PENotHLearner:
         self, observations: list[tuple[float, float]]
     ) -> PENotHParameters:
         """Learn parameters using scipy optimization."""
+        assert optimize is not None
 
         def objective(params: np.ndarray) -> float:
             a, b, c = params
@@ -123,14 +124,10 @@ class PENotHLearner:
                 mse += (predicted - observed_p) ** 2
             return mse / len(observations)
 
-        # Constraints
-        constraints = [
-            {"type": "ineq", "fun": lambda x: x[0]},  # a >= 0
-            {"type": "ineq", "fun": lambda x: x[1]},  # b >= 0
-            {"type": "ineq", "fun": lambda x: 1.0 - (x[0] + x[1])},  # a+b <= 1
-            {"type": "ineq", "fun": lambda x: x[2] - 0.5},  # c >= 0.5
-            {"type": "ineq", "fun": lambda x: 3.0 - x[2]},  # c <= 3.0
-        ]
+        # Constraint to ensure a + b <= 1
+        sum_constraint = optimize.NonlinearConstraint(
+            lambda x: x[0] + x[1], -np.inf, 1.0
+        )
 
         # Bounds
         bounds = [
@@ -143,7 +140,11 @@ class PENotHLearner:
         x0 = np.array([self.parameters.a, self.parameters.b, self.parameters.c])
 
         result = optimize.minimize(  # type: ignore[call-overload]
-            objective, x0, method="SLSQP", bounds=bounds, constraints=constraints
+            objective,
+            x0,
+            method="SLSQP",
+            bounds=bounds,
+            constraints=(sum_constraint,),
         )
 
         if result.success:

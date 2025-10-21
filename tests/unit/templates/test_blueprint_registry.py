@@ -12,6 +12,11 @@ from importobot.core.templates.blueprints import registry
 
 
 @pytest.fixture(autouse=True)
+def _restrict_cwd(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+
+
+@pytest.fixture(autouse=True)
 def reset_registry_state() -> Iterator[None]:
     registry.TEMPLATE_REGISTRY.clear()
     registry.KNOWLEDGE_BASE.clear()
@@ -104,6 +109,57 @@ def test_configure_template_sources_rejects_binary_file(tmp_path: Path) -> None:
     registry.configure_template_sources([str(binary_file)])
 
     assert registry.get_template("binary") is None
+
+
+def test_configure_template_sources_rejects_outside_cwd(tmp_path: Path) -> None:
+    outside = tmp_path.parent / "outside.robot"
+    content = "*** Test Cases ***\nCase\n    Log    Outside\n"
+    outside.write_text(content, encoding="utf-8")
+
+    registry.configure_template_sources([str(outside)])
+
+    assert registry.get_template("outside") is None
+
+
+def test_configure_template_sources_rejects_parent_directory_reference(
+    tmp_path: Path,
+) -> None:
+    """Explicit '..' path entries should be treated as traversal and skipped."""
+    escape_target = tmp_path.parent / "escape.robot"
+    escape_target.write_text(
+        "*** Test Cases ***\nCase\n    Log    Escaped\n", encoding="utf-8"
+    )
+
+    registry.configure_template_sources([str(Path("..") / "escape.robot")])
+
+    assert registry.get_template("escape") is None
+
+
+def test_configure_template_sources_handles_unreadable_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Unreadable files should trigger a warning and be skipped."""
+    template_file = tmp_path / "unreadable.robot"
+    template_file.write_text(
+        "*** Test Cases ***\nCase\n    Log    Unreadable\n", encoding="utf-8"
+    )
+
+    original_read = Path.read_text
+
+    def fake_read(
+        self: Path, encoding: str | None = None, errors: str | None = None
+    ) -> str:
+        if self == template_file:
+            raise OSError("Permission denied")
+        return original_read(self, encoding=encoding, errors=errors)
+
+    monkeypatch.setattr(Path, "read_text", fake_read)
+
+    with caplog.at_level("WARNING"):
+        registry.configure_template_sources([str(template_file)])
+
+    assert registry.get_template("unreadable") is None
+    assert any("Failed to read template" in message for message in caplog.messages)
 
 
 def test_configure_template_sources_rejects_inline_python(tmp_path: Path) -> None:

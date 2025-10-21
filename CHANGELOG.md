@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Configuration Resilience**: Enhanced `_parse_project_identifier()` to handle control characters and whitespace-only inputs
 - **Project Resolution Defaults**: Improved default-selection logic so CLI arguments that don't parse to valid identifiers use environment variables instead
 - **Blueprint Learning Tests**: Fixed test issues with blueprint template system
-- **Test Coverage**: Achieved 1,941 tests passing with 0 skips after rewriting Zephyr client discovery test
+- **Test Coverage**: Achieved 1,946 tests passing with 0 skips after rewriting Zephyr client discovery test
 
 ### Changed
 - **Removed Pylint**: Dropped pylint from project, now using ruff/mypy only for streamlined linting
@@ -62,7 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Enhanced CLI Interface** with `--fetch-format` parameter and shared credential flags for seamless API integration
 - **Improved Documentation** across README.md, User Guide, and Deployment Guide with comprehensive API integration examples
 - **Extended Public API** with programmatic access to platform clients via `importobot.integrations.clients`
-- Split `blueprints.py` into modular components (`registry.py`, `models.py`, `utils.py`, `cli.py`, `render.py`) with hardened ingestion error reporting.
+- Split `blueprints.py` into modular components (`registry.py`, `models.py`, `utils.py`, `cli_builder.py`, `render.py`) with hardened ingestion error reporting.
 - Renamed helper APIs from “fallback” to “default/secondary” to keep terminology consistent with configuration defaults.
 
 ### Removed

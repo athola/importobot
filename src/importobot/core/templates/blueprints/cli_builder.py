@@ -5,24 +5,25 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from importobot.utils.validation import sanitize_robot_string
-
+from .default_render import (
+    build_suite_documentation,
+    format_test_name,
+    render_cli_task_metadata,
+    render_cli_task_settings,
+)
+from .expectations import render_expectation
 from .models import BlueprintResult, MatchContext, Step
+from .pattern_application import (
+    apply_cli_pattern,
+    apply_host_pattern,
+    apply_target_pattern,
+)
 from .registry import (
-    StepPattern,
     find_step_pattern,
     get_resource_imports,
     template_name_candidates,
 )
-from .utils import (
-    build_suite_documentation as _build_suite_documentation,
-)
-from .utils import (
-    format_test_name as _format_test_name,
-)
-from .utils import (
-    resolve_cli_command as _resolve_cli_command,
-)
+from .utils import resolve_cli_command as _resolve_cli_command
 
 
 class RenderState:
@@ -51,7 +52,7 @@ def _build_cli_task_suite(
         commands.append(command)
         proc_names.append(context.get("proc_name") if context else None)
 
-    suite_doc = _build_suite_documentation(commands)
+    suite_doc = build_suite_documentation(commands)
     default_rendering = _render_cli_task_default(
         test_cases, step_groups, commands, proc_names, suite_doc
     )
@@ -61,7 +62,7 @@ def _build_cli_task_suite(
 
     substitutions = {
         "command": primary_command,
-        "test_name": _format_test_name(test_cases[0]),
+        "test_name": format_test_name(test_cases[0]),
         "suite_doc": suite_doc,
         "test_doc": f"{primary_command} --proc_name task.",
         "proc_value": primary_proc,
@@ -84,124 +85,6 @@ def _build_cli_task_suite(
     )
 
 
-# ---------------------------------------------------------------------------
-
-# Helpers for default rendering
-# ---------------------------------------------------------------------------
-
-
-def _render_cli_task_settings(suite_doc: str, resource_imports: list[str]) -> list[str]:
-    """Render the Settings section of a CLI task."""
-    lines: list[str] = []
-    lines.append("*** Settings ***")
-    lines.append(f"Documentation       {suite_doc}")
-    lines.append("")
-    lines.append("# ``SSHLibrary`` keywords:")
-    lines.append("# ``Close All Connections``")
-    lines.append("# ``Switch Connection``")
-    lines.append("# ``Read Until Regexp``")
-    lines.append("# ``Write``")
-    lines.append("Library             SSHLibrary")
-
-    if resource_imports:
-        lines.append("# Resource imports discovered from templates:")
-        lines.extend(
-            f"Resource            {resource_path}" for resource_path in resource_imports
-        )
-    else:
-        lines.append(
-            "# No resource imports discovered; add Robot resources via "
-            "--robot-template."
-        )
-    lines.append("")
-    lines.append("Suite Setup         Run Keywords")
-    lines.append("...                     Connect Hosts SSH")
-    lines.append("...                     CLI Entry")
-    lines.append("Suite Teardown      Run Keywords")
-    lines.append("...                     Quit CLI")
-    lines.append("...                     Close All Connections")
-    lines.append("")
-    lines.append("")
-    return lines
-
-
-def _render_cli_task_documentation(test_case: dict[str, Any], command: str) -> str:
-    """Generate documentation string for a CLI task."""
-    objective = (
-        test_case.get("objective")
-        or test_case.get("summary")
-        or test_case.get("description")
-    )
-    default_text = objective or test_case.get("name") or f"``{command}`` task"
-    test_doc = sanitize_robot_string(default_text)
-    if not test_doc:
-        test_doc = f"``{command}`` task"
-    return test_doc
-
-
-def _render_cli_task_tags(test_case: dict[str, Any]) -> list[str]:
-    """Extract tags from test case metadata."""
-    tags: list[str] = []
-    if test_case.get("priority"):
-        tags.append(str(test_case["priority"]))
-    if test_case.get("category"):
-        tags.append(str(test_case["category"]))
-    # Combine labels and tags fields
-    for field_name in ("labels", "tags"):
-        field_value = test_case.get(field_name)
-        if isinstance(field_value, list):
-            tags.extend(str(tag) for tag in field_value if tag)
-        elif isinstance(field_value, str) and field_value.strip():
-            tags.append(field_value)
-    return tags
-
-
-def _render_cli_task_metadata_comments(test_case: dict[str, Any]) -> list[str]:
-    """Generate metadata comment lines for traceability."""
-    lines: list[str] = []
-    metadata_fields = {
-        "requirement": "Requirement",
-        "test_suite": "Test Suite",
-        "evidences": "Evidence Files",
-    }
-    for field_key, field_label in metadata_fields.items():
-        field_value = test_case.get(field_key)
-        if field_value:
-            if isinstance(field_value, list):
-                items = ", ".join(str(item) for item in field_value if item)
-                if items:
-                    lines.append(f"    # {field_label}: {items}")
-            elif isinstance(field_value, str) and field_value.strip():
-                lines.append(f"    # {field_label}: {field_value}")
-    return lines
-
-
-def _render_cli_task_metadata(
-    test_case: dict[str, Any], command: str, proc_name: str | None
-) -> list[str]:
-    """Render metadata fields (tags, documentation, etc.) for a CLI task."""
-    lines: list[str] = []
-
-    # Documentation
-    test_doc = _render_cli_task_documentation(test_case, command)
-    lines.append(f"    [Documentation]    {test_doc}")
-
-    # Tags
-    tags = _render_cli_task_tags(test_case)
-    if tags:
-        tags_str = "    ".join(tags)
-        lines.append(f"    [Tags]    {tags_str}")
-
-    # Metadata comments
-    lines.extend(_render_cli_task_metadata_comments(test_case))
-
-    # Process name variable
-    if proc_name:
-        lines.append(f"    VAR    ${{proc_name}}    {proc_name}")
-
-    return lines
-
-
 def _render_cli_task_default(
     test_cases: list[dict[str, Any]],
     step_groups: list[list[Step]],
@@ -213,7 +96,7 @@ def _render_cli_task_default(
 
     # Settings section
     resource_imports = get_resource_imports()
-    lines.extend(_render_cli_task_settings(suite_doc, resource_imports))
+    lines.extend(render_cli_task_settings(suite_doc, resource_imports))
 
     lines.append("*** Test Cases ***")
 
@@ -223,11 +106,11 @@ def _render_cli_task_default(
         if index > 0:
             lines.append("")
 
-        test_name = _format_test_name(test_case)
+        test_name = format_test_name(test_case)
         lines.append(test_name)
 
         # Metadata
-        lines.extend(_render_cli_task_metadata(test_case, command, proc_name))
+        lines.extend(render_cli_task_metadata(test_case, command, proc_name))
 
         # Steps
         state = RenderState()
@@ -339,7 +222,7 @@ def _render_cli_location(
         pattern = find_step_pattern("cli", command.lower(), allow_generic=True)
 
     if pattern:
-        return _apply_cli_pattern(
+        return apply_cli_pattern(
             pattern,
             normalized_cmd,
             command_token,
@@ -347,6 +230,9 @@ def _render_cli_location(
             state,
             connection_override or "Controller",
             step_index,
+            replace_connection=_replace_connection,
+            extract_assigned_variable=_extract_assigned_variable,
+            var_token=_var_token,
         )
 
     _ensure_connection(step_lines, state, connection_override or "Controller")
@@ -358,7 +244,7 @@ def _render_cli_location(
     if state.last_target_var:
         step_lines.append(f"    Should Contain    {cli_var}    {state.last_target_var}")
     step_lines.extend(
-        _render_expectation(expected, cli_var, step_index=step_index, state=state)
+        render_expectation(expected, cli_var, step_index=step_index, state=state)
     )
     return step_lines
 
@@ -376,7 +262,7 @@ def _render_target_location(
     command_token = (command_exec.split() or [command])[0].lower()
     pattern = find_step_pattern("target", command_token)
     if pattern:
-        return _apply_target_pattern(
+        return apply_target_pattern(
             pattern,
             command_exec,
             command_token,
@@ -385,6 +271,9 @@ def _render_target_location(
             state,
             connection_override or "Target",
             step_index,
+            replace_connection=_replace_connection,
+            extract_assigned_variable=_extract_assigned_variable,
+            var_token=_var_token,
         )
 
     connection_name = connection_override or "Target"
@@ -395,7 +284,7 @@ def _render_target_location(
     step_lines.append(f"    {target_var}=    Execute Command    {command_exec}")
     state.outputs[step_index] = target_var
     step_lines.extend(
-        _render_expectation(expected, target_var, step_index=step_index, state=state)
+        render_expectation(expected, target_var, step_index=step_index, state=state)
     )
     step_lines.extend([f"    # {note}" for note in notes])
     return step_lines
@@ -414,7 +303,7 @@ def _render_host_location(
     command_token = (command_exec.split() or [command])[0].lower()
     pattern = find_step_pattern("host", command_token)
     if pattern:
-        return _apply_host_pattern(
+        return apply_host_pattern(
             pattern,
             command_exec,
             command_token,
@@ -423,6 +312,9 @@ def _render_host_location(
             state,
             connection_override or "Controller",
             step_index,
+            replace_connection=_replace_connection,
+            extract_assigned_variable=_extract_assigned_variable,
+            var_token=_var_token,
         )
 
     _ensure_connection(step_lines, state, connection_override or "Controller")
@@ -430,7 +322,7 @@ def _render_host_location(
     step_lines.append(f"    {host_var}=    Execute Command    {command_exec}")
     state.outputs[step_index] = host_var
     step_lines.extend(
-        _render_expectation(expected, host_var, step_index=step_index, state=state)
+        render_expectation(expected, host_var, step_index=step_index, state=state)
     )
     step_lines.extend([f"    # {note}" for note in notes])
     return step_lines
@@ -553,188 +445,6 @@ def _split_command_and_notes(command_text: str) -> tuple[str, list[str]]:
     return primary, notes
 
 
-def _apply_cli_pattern(
-    pattern: StepPattern,
-    command_line: str,
-    command_token: str,
-    expected: str | None,
-    state: RenderState,
-    connection_override: str,
-    step_index: int,
-) -> list[str]:
-    replacements = {
-        "{{COMMAND_LINE}}": command_line,
-        "{{COMMAND}}": command_token,
-        "{{COMMAND_UPPER}}": command_token.upper(),
-    }
-    lines: list[str] = []
-    cli_var: str | None = None
-
-    for template_line in pattern.lines:
-        new_line = _substitute_placeholders(template_line, replacements)
-
-        lines.append(new_line)
-        stripped = new_line.strip()
-        if stripped.startswith("Switch Connection"):
-            new_line = _replace_connection(new_line, connection_override)
-            state.current_connection = connection_override
-        lines[-1] = new_line
-        stripped = new_line.strip()
-        assigned = _extract_assigned_variable(stripped)
-        if assigned and "Read" in stripped:
-            cli_var = assigned
-
-    if cli_var is None:
-        auto_var = _var_token(f"{command_token}_cli")
-        for idx, line in enumerate(lines):
-            if "Read Until" in line:
-                indent = line.split("Read Until", 1)[0]
-                remainder = line[line.index("Read Until") :]
-                lines[idx] = f"{indent}{auto_var}=    {remainder}"
-                cli_var = auto_var
-                break
-
-    if state.last_target_var and cli_var:
-        lines.append(f"    Should Contain    {cli_var}    {state.last_target_var}")
-
-    if cli_var:
-        state.outputs[step_index] = cli_var
-
-    expectation_lines = _render_expectation(
-        expected,
-        cli_var,
-        step_index=step_index,
-        state=state,
-    )
-    lines.extend(expectation_lines)
-
-    return lines
-
-
-def _apply_target_pattern(
-    pattern: StepPattern,
-    command_line: str,
-    command_token: str,
-    expected: str | None,
-    notes: list[str],
-    state: RenderState,
-    connection_override: str,
-    step_index: int,
-) -> list[str]:
-    replacements = {
-        "{{COMMAND_LINE}}": command_line,
-        "{{COMMAND}}": command_token,
-        "{{COMMAND_UPPER}}": command_token.upper(),
-    }
-    lines: list[str] = []
-    assigned_var: str | None = None
-
-    for template_line in pattern.lines:
-        new_line = _substitute_placeholders(template_line, replacements)
-        lines.append(new_line)
-        stripped = new_line.strip()
-        if stripped.startswith("Switch Connection"):
-            new_line = _replace_connection(new_line, connection_override)
-            state.current_connection = connection_override
-        lines[-1] = new_line
-        stripped = new_line.strip()
-        assigned = _extract_assigned_variable(stripped)
-        if assigned and "Execute Command" in stripped:
-            assigned_var = assigned
-            state.last_target_var = assigned_var
-
-    if assigned_var is None:
-        auto_var = _var_token(f"{command_token}_remote")
-        for idx, line in enumerate(lines):
-            if "Execute Command" in line:
-                indent = line.split("Execute Command", 1)[0]
-                remainder = line[line.index("Execute Command") :]
-                lines[idx] = f"{indent}{auto_var}=    {remainder}"
-                assigned_var = auto_var
-                state.last_target_var = assigned_var
-                break
-
-    lines.extend([f"    # {note}" for note in notes])
-
-    if assigned_var:
-        state.outputs[step_index] = assigned_var
-
-    expectation_lines = _render_expectation(
-        expected,
-        assigned_var,
-        step_index=step_index,
-        state=state,
-    )
-    lines.extend(expectation_lines)
-
-    return lines
-
-
-def _apply_host_pattern(
-    pattern: StepPattern,
-    command_line: str,
-    command_token: str,
-    expected: str | None,
-    notes: list[str],
-    state: RenderState,
-    connection_override: str,
-    step_index: int,
-) -> list[str]:
-    replacements = {
-        "{{COMMAND_LINE}}": command_line,
-        "{{COMMAND}}": command_token,
-        "{{COMMAND_UPPER}}": command_token.upper(),
-    }
-    lines: list[str] = []
-    assigned_var: str | None = None
-
-    for template_line in pattern.lines:
-        new_line = _substitute_placeholders(template_line, replacements)
-        lines.append(new_line)
-        stripped = new_line.strip()
-        if stripped.startswith("Switch Connection"):
-            new_line = _replace_connection(new_line, connection_override)
-            state.current_connection = connection_override
-        lines[-1] = new_line
-        stripped = new_line.strip()
-        assigned = _extract_assigned_variable(stripped)
-        if assigned and "Execute Command" in stripped:
-            assigned_var = assigned
-
-    if assigned_var is None:
-        auto_var = _var_token(f"{command_token}_host")
-        for idx, line in enumerate(lines):
-            if "Execute Command" in line:
-                indent = line.split("Execute Command", 1)[0]
-                remainder = line[line.index("Execute Command") :]
-                lines[idx] = f"{indent}{auto_var}=    {remainder}"
-                assigned_var = auto_var
-                break
-
-    lines.extend([f"    # {note}" for note in notes])
-
-    if assigned_var:
-        state.outputs[step_index] = assigned_var
-
-    expectation_lines = _render_expectation(
-        expected,
-        assigned_var,
-        step_index=step_index,
-        state=state,
-    )
-    lines.extend(expectation_lines)
-
-    return lines
-
-
-def _substitute_placeholders(line: str, replacements: dict[str, str]) -> str:
-    result = line
-    for placeholder, value in replacements.items():
-        result = result.replace(placeholder, value)
-    result = result.replace("$$", "$")
-    return result
-
-
 def _extract_assigned_variable(stripped_line: str) -> str | None:
     if "=" not in stripped_line:
         return None
@@ -751,83 +461,10 @@ def _replace_connection(line: str, connection_name: str) -> str:
     return f"{prefix}Switch Connection    {connection_name}"
 
 
-def _render_expectation(
-    expected: str | None,
-    var_token: str | None,
-    *,
-    step_index: int,
-    state: RenderState,
-) -> list[str]:
-    if not expected:
-        return []
-
-    expectation = expected.strip()
-    if not expectation:
-        return []
-
-    lowered = expectation.lower()
-    lines: list[str] = []
-
-    # Always log the expected result for traceability
-    lines.append(f"    Log    Expected: {expectation}")
-
-    # Add comparison/containment checks if detected
-    target_step = _extract_step_reference(lowered)
-    if target_step is not None and var_token:
-        ref_var = state.outputs.get(target_step)
-        if ref_var:
-            lines.append(f"    Should Be Equal As Strings    {var_token}    {ref_var}")
-
-    literal_match = _extract_literal(lowered, ["should include", "contains"])
-    if var_token and literal_match:
-        lines.append(f"    Should Contain    {var_token}    {literal_match}")
-
-    if var_token:
-        state.outputs.setdefault(step_index, var_token)
-
-    return lines
-
-
-def _literal_expectation(text: str) -> str | None:
-    lowered = text.lower()
-    if any(
-        lowered.startswith(prefix)
-        for prefix in ("verify", "ensure", "no ", "completed")
-    ):
-        return None
-    if len(text.split()) > 12:
-        return None
-    return text
-
-
 def _ensure_connection(lines: list[str], state: RenderState, connection: str) -> None:
     if state.current_connection != connection:
         lines.append(f"    Switch Connection    {connection}")
         state.current_connection = connection
-
-
-def _extract_step_reference(text: str) -> int | None:
-    match = re.search(r"step\s*(\d+)", text)
-    if match:
-        try:
-            return max(int(match.group(1)) - 1, 0)
-        except ValueError:
-            return None
-    if "step1" in text:
-        return 0
-    if "step2" in text:
-        return 1
-    return None
-
-
-def _extract_literal(text: str, triggers: list[str]) -> str | None:
-    for trigger in triggers:
-        if trigger in text:
-            start = text.find(trigger) + len(trigger)
-            literal = text[start:].strip().strip(". ")
-            if literal:
-                return literal
-    return None
 
 
 def _command_to_identifier(command_text: str) -> str:

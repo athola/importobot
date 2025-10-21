@@ -31,11 +31,16 @@ from importobot.medallion.interfaces.data_models import (
     ProcessingResult,
 )
 from importobot.medallion.interfaces.enums import ProcessingStatus, SupportedFormat
-from importobot.services.security_gateway import SecurityGateway
+from importobot.services.security_gateway import (
+    FileOperationResult,
+    SanitizationResult,
+    SecurityGateway,
+)
 from importobot.services.security_types import SecurityLevel
 from importobot.telemetry import TelemetryClient, get_telemetry_client
 from importobot.utils.logging import setup_logger
 from importobot.utils.validation import (
+    ValidationError,
     validate_file_path,
     validate_json_dict,
     validate_json_size,
@@ -250,81 +255,36 @@ class DataIngestionService:
         correlation_id = str(uuid4())
 
         try:
-            # Optional security validation for file path
-            if self.enable_security_gateway and self.security_gateway is not None:
-                file_validation = self.security_gateway.validate_file_operation(
-                    file_path, "read", correlation_id=correlation_id
-                )
-                if not file_validation["is_safe"]:
-                    error_msg = (
-                        f"File path security validation failed: "
-                        f"{file_validation['security_issues']}"
-                    )
-                    logger.warning(error_msg)
-                    return self._create_error_result(
-                        start_time,
-                        error_msg,
-                        file_path,
-                        security_info=file_validation,
-                        correlation_id=correlation_id,
-                    )
+            file_validation, early_result = self._validate_file_security(
+                file_path, correlation_id, start_time
+            )
+            if early_result is not None:
+                return early_result
 
-            # Standard file validation
             validate_file_path(str(file_path))
-
-            # Read file content (with caching)
             content = self._read_file_content(file_path)
 
-            # Process content (with optional security validation)
-            if self.enable_security_gateway and self.security_gateway is not None:
-                json_validation = self.security_gateway.sanitize_api_input(
-                    content,
-                    input_type="json",
-                    context={
-                        "source": str(file_path),
-                        "correlation_id": correlation_id,
-                    },
-                )
-                if not json_validation["is_safe"]:
-                    error_msg = (
-                        f"JSON content security validation failed: "
-                        f"{json_validation['security_issues']}"
-                    )
-                    logger.warning(error_msg)
-                    return self._create_error_result(
-                        start_time,
-                        error_msg,
-                        file_path,
-                        security_info=json_validation,
-                        correlation_id=correlation_id,
-                    )
-                data = json_validation["sanitized_data"]
-            else:
-                # Standard JSON validation with size check
-                validate_json_size(content, max_size_mb=10)
-                data = json.loads(content)
-                validate_json_dict(data)
+            data, json_validation, early_result = self._process_file_content(
+                content, file_path, correlation_id, start_time
+            )
+            if early_result is not None:
+                return early_result
 
-            # Create metadata
             metadata = self._create_metadata(file_path, data)
-
-            # Add security information if available
-            if self.enable_security_gateway:
+            if self.enable_security_gateway and json_validation is not None:
                 metadata.custom_metadata["security_validation"] = json_validation
                 metadata.custom_metadata["security_level"] = self.security_level.value
                 metadata.custom_metadata["correlation_id"] = correlation_id
 
-            # Ingest data into Bronze layer
             result = self.bronze_layer.ingest(data, metadata)
 
-            # Add security information to result if available
             if self.enable_security_gateway:
-                result.details["security_info"] = {
-                    "file_validation": file_validation,
-                    "json_validation": json_validation,
-                    "security_level": self.security_level.value,
-                    "correlation_id": correlation_id,
-                }
+                self._attach_security_info(
+                    result,
+                    file_validation=file_validation,
+                    json_validation=json_validation,
+                    correlation_id=correlation_id,
+                )
 
             logger.info("Successfully ingested file %s into Bronze layer", file_path)
             return result
@@ -343,12 +303,101 @@ class DataIngestionService:
                 start_time, error_msg, file_path, correlation_id=correlation_id
             )
 
-        except Exception as e:
+        except Exception as e:  # pragma: no cover - defensive fallback
             error_msg = f"Failed to ingest file {file_path}: {e!s}"
             logger.error(error_msg)
             return self._create_error_result(
                 start_time, error_msg, file_path, correlation_id=correlation_id
             )
+
+    def _validate_file_security(
+        self,
+        file_path: Path,
+        correlation_id: str,
+        start_time: datetime,
+    ) -> tuple[FileOperationResult | None, ProcessingResult | None]:
+        if not self.enable_security_gateway or self.security_gateway is None:
+            return None, None
+
+        validation = self.security_gateway.validate_file_operation(
+            file_path, "read", correlation_id=correlation_id
+        )
+        if bool(validation.get("is_safe", False)):
+            return validation, None
+
+        issues = validation.get("security_issues", [])
+        error_msg = f"File path security validation failed: {issues}"
+        logger.warning(error_msg)
+        result = self._create_error_result(
+            start_time,
+            error_msg,
+            file_path,
+            security_info=validation,
+            correlation_id=correlation_id,
+        )
+        return validation, result
+
+    def _process_file_content(
+        self,
+        content: str,
+        file_path: Path,
+        correlation_id: str,
+        start_time: datetime,
+    ) -> tuple[Any, SanitizationResult | None, ProcessingResult | None]:
+        if not self.enable_security_gateway or self.security_gateway is None:
+            validate_json_size(content, max_size_mb=10)
+            data = json.loads(content)
+            validate_json_dict(data)
+            return data, None, None
+
+        json_validation = self.security_gateway.sanitize_api_input(
+            content,
+            input_type="json",
+            context={
+                "source": str(file_path),
+                "correlation_id": correlation_id,
+            },
+        )
+
+        if not bool(json_validation.get("is_safe", False)):
+            issues = json_validation.get("security_issues", [])
+            error_msg = f"JSON content security validation failed: {issues}"
+            logger.warning(error_msg)
+            result = self._create_error_result(
+                start_time,
+                error_msg,
+                file_path,
+                security_info=json_validation,
+                correlation_id=correlation_id,
+            )
+            return {}, json_validation, result
+
+        sanitized_data = json_validation.get("sanitized_data")
+        if sanitized_data is None:
+            raise ValidationError(
+                "Sanitized data missing from security gateway response"
+            )
+
+        return sanitized_data, json_validation, None
+
+    def _attach_security_info(
+        self,
+        result: ProcessingResult,
+        *,
+        file_validation: FileOperationResult | None,
+        json_validation: SanitizationResult | None,
+        correlation_id: str,
+    ) -> None:
+        payload: dict[str, Any] = {
+            "security_level": self.security_level.value,
+            "correlation_id": correlation_id,
+        }
+        if file_validation is not None:
+            payload["file_validation"] = file_validation
+        if json_validation is not None:
+            payload["json_validation"] = json_validation
+
+        result.details["security_info"] = payload
 
     async def ingest_file_async(self, file_path: str | Path) -> ProcessingResult:
         """Asynchronous wrapper for :meth:`ingest_file`."""
@@ -370,6 +419,7 @@ class DataIngestionService:
         correlation_id = str(uuid4())
 
         try:
+            json_validation: SanitizationResult | None = None
             # Process JSON string (with optional security validation)
             if self.enable_security_gateway and self.security_gateway is not None:
                 json_validation = self.security_gateway.sanitize_api_input(
@@ -380,11 +430,9 @@ class DataIngestionService:
                         "correlation_id": correlation_id,
                     },
                 )
-                if not json_validation["is_safe"]:
-                    error_msg = (
-                        f"JSON string security validation failed: "
-                        f"{json_validation['security_issues']}"
-                    )
+                if not bool(json_validation.get("is_safe", False)):
+                    issues = json_validation.get("security_issues", [])
+                    error_msg = f"JSON string security validation failed: {issues}"
                     logger.warning(error_msg)
                     return self._create_error_result(
                         start_time,
@@ -393,7 +441,12 @@ class DataIngestionService:
                         security_info=json_validation,
                         correlation_id=correlation_id,
                     )
-                data = json_validation["sanitized_data"]
+                sanitized_payload = json_validation.get("sanitized_data")
+                if sanitized_payload is None:
+                    raise ValidationError(
+                        "Sanitized data missing from security gateway response"
+                    )
+                data = sanitized_payload
             else:
                 # Standard JSON validation with size check
                 validate_json_size(json_string, max_size_mb=10)
@@ -405,7 +458,7 @@ class DataIngestionService:
             metadata = self._create_metadata(source_path, data)
 
             # Add security information if available
-            if self.enable_security_gateway:
+            if self.enable_security_gateway and json_validation is not None:
                 metadata.custom_metadata["security_validation"] = json_validation
                 metadata.custom_metadata["security_level"] = self.security_level.value
                 metadata.custom_metadata["correlation_id"] = correlation_id
@@ -415,11 +468,12 @@ class DataIngestionService:
 
             # Add security information to result if available
             if self.enable_security_gateway:
-                result.details["security_info"] = {
-                    "json_validation": json_validation,
-                    "security_level": self.security_level.value,
-                    "correlation_id": correlation_id,
-                }
+                security_payload: dict[str, Any] = {}
+                if json_validation is not None:
+                    security_payload["json_validation"] = json_validation
+                security_payload["security_level"] = self.security_level.value
+                security_payload["correlation_id"] = correlation_id
+                result.details["security_info"] = security_payload
 
             logger.info(
                 "Successfully ingested JSON string '%s' into Bronze layer", source_name
@@ -482,6 +536,7 @@ class DataIngestionService:
 
         try:
             # Process dictionary data (with optional security validation)
+            dict_validation: SanitizationResult | None = None
             if self.enable_security_gateway and self.security_gateway is not None:
                 dict_validation = self.security_gateway.sanitize_api_input(
                     data,
@@ -491,11 +546,9 @@ class DataIngestionService:
                         "correlation_id": correlation_id,
                     },
                 )
-                if not dict_validation["is_safe"]:
-                    error_msg = (
-                        f"Dictionary data security validation failed: "
-                        f"{dict_validation['security_issues']}"
-                    )
+                if not bool(dict_validation.get("is_safe", False)):
+                    issues = dict_validation.get("security_issues", [])
+                    error_msg = f"Dictionary data security validation failed: {issues}"
                     logger.warning(error_msg)
                     return self._create_error_result(
                         start_time,
@@ -504,7 +557,12 @@ class DataIngestionService:
                         security_info=dict_validation,
                         correlation_id=correlation_id,
                     )
-                sanitized_data = dict_validation["sanitized_data"]
+                sanitized_value = dict_validation.get("sanitized_data")
+                if sanitized_value is None:
+                    raise ValidationError(
+                        "Sanitized data missing from security gateway response"
+                    )
+                sanitized_data = sanitized_value
             else:
                 sanitized_data = data
 
@@ -513,7 +571,7 @@ class DataIngestionService:
             metadata = self._create_metadata(source_path, sanitized_data)
 
             # Add security information if available
-            if self.enable_security_gateway:
+            if self.enable_security_gateway and dict_validation is not None:
                 metadata.custom_metadata["security_validation"] = dict_validation
                 metadata.custom_metadata["security_level"] = self.security_level.value
                 metadata.custom_metadata["correlation_id"] = correlation_id
@@ -523,11 +581,12 @@ class DataIngestionService:
 
             # Add security information to result if available
             if self.enable_security_gateway:
-                result.details["security_info"] = {
-                    "dict_validation": dict_validation,
-                    "security_level": self.security_level.value,
-                    "correlation_id": correlation_id,
-                }
+                security_payload: dict[str, Any] = {}
+                if dict_validation is not None:
+                    security_payload["dict_validation"] = dict_validation
+                security_payload["security_level"] = self.security_level.value
+                security_payload["correlation_id"] = correlation_id
+                result.details["security_info"] = security_payload
 
             logger.info(
                 "Successfully ingested dictionary '%s' into Bronze layer", source_name

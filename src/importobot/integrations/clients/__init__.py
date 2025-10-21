@@ -1,4 +1,49 @@
-"""HTTP clients for ingesting test suites from platform APIs."""
+"""HTTP clients for ingesting test suites from platform APIs.
+
+This module provides clients for fetching test data directly from test management
+systems via their REST APIs. Each client handles authentication, pagination, and
+payload parsing specific to its platform.
+
+Example usage:
+
+    from importobot.integrations.clients import get_api_client, SupportedFormat
+
+    # Zephyr client with automatic discovery
+    client = get_api_client(
+        SupportedFormat.ZEPHYR,
+        api_url="https://your-zephyr.example.com",
+        tokens=["your-api-token"],
+        project_name="PROJECT",
+    )
+
+    # Fetch all test cases
+    for payload in client.fetch_all():
+        print(f"Fetched {len(payload.get('testCases', []))} test cases")
+
+    # TestRail client
+    client = get_api_client(
+        SupportedFormat.TESTRAIL,
+        api_url="https://testrail.example.com/api/v2",
+        tokens=["api-token"],
+        user="automation@example.com",
+        project_name="QA",
+    )
+
+    # JIRA/Xray client
+    client = get_api_client(
+        SupportedFormat.JIRA_XRAY,
+        api_url="https://jira.example.com/rest/api/2/search",
+        tokens=["jira-token"],
+        project_name="ENG-QA",
+    )
+
+All clients support:
+- Automatic API discovery and authentication strategy selection
+- Configurable pagination with rate limiting
+- Progress callbacks for large fetch operations
+- Error handling with exponential backoff
+- Flexible configuration via environment variables or constructor arguments
+"""
 
 from __future__ import annotations
 
@@ -11,14 +56,31 @@ from urllib.parse import parse_qs, urlparse
 
 import requests
 
+try:  # pragma: no cover - fallback for older Python
+    from importlib import metadata
+except ImportError:  # pragma: no cover
+    import importlib_metadata as metadata  # type: ignore
+
 from importobot.medallion.interfaces.enums import SupportedFormat
 from importobot.utils.logging import get_logger
 from importobot.utils.rate_limiter import RateLimiter
 
 logger = get_logger()
 
+BACKOFF_BASE = 2.0
+MAX_RETRY_DELAY_SECONDS = 30.0
+
 
 ProgressCallback = Callable[..., None]
+
+
+def _default_user_agent() -> str:
+    """Return a descriptive User-Agent for outbound API calls."""
+    try:
+        version = metadata.version("importobot")
+    except metadata.PackageNotFoundError:
+        version = "dev"
+    return f"importobot-client/{version}"
 
 
 class APISource(Protocol):
@@ -26,6 +88,7 @@ class APISource(Protocol):
 
     def fetch_all(self, progress_cb: ProgressCallback) -> Iterator[dict[str, Any]]:
         """Yield paginated payloads while reporting progress."""
+        ...
 
 
 class BaseAPIClient:
@@ -42,6 +105,7 @@ class BaseAPIClient:
         project_name: str | None,
         project_id: int | None,
         max_concurrency: int | None,
+        verify_ssl: bool,
     ) -> None:
         """Initialize BaseAPIClient with API connection parameters."""
         self.api_url = api_url
@@ -50,15 +114,22 @@ class BaseAPIClient:
         self.project_name = project_name
         self.project_id = project_id
         self.max_concurrency = max_concurrency
+        self._verify_ssl = verify_ssl
         self._session = requests.Session()
+        self._session.verify = verify_ssl
         headers = getattr(self._session, "headers", None)
         if headers and hasattr(headers, "update"):
             headers.clear()
             headers.update(
                 {
-                    "User-Agent": "curl/7.68.0",
+                    "User-Agent": _default_user_agent(),
                     "Accept": "application/json",
                 }
+            )
+        if not verify_ssl:
+            logger.warning(
+                "TLS certificate verification disabled for client targeting %s",
+                api_url,
             )
         self._rate_limiter = RateLimiter(max_calls=100, time_window=60.0)
 
@@ -79,10 +150,14 @@ class BaseAPIClient:
                     return value
             except ValueError:
                 logger.debug("Invalid Retry-After header %s", retry_after)
-        return float(min(2**attempt, 30))
+        return float(min(BACKOFF_BASE**attempt, MAX_RETRY_DELAY_SECONDS))
 
     def _sleep(self, seconds: float) -> None:
-        """Sleep helper to aid testing."""
+        """Sleep for specified number of seconds.
+
+        Args:
+            seconds: Number of seconds to sleep
+        """
         time.sleep(seconds)
 
     def _project_value(self) -> str | int | None:
@@ -104,11 +179,11 @@ class BaseAPIClient:
     ) -> requests.Response:
         """Perform HTTP request with basic retry semantics."""
         headers = headers or {}
-        attempt = 0
-        while attempt <= self._max_retries:
+        for attempt in range(self._max_retries + 1):
             response = self._dispatch_request(
                 method, url, params=params, headers=headers, json=json
             )
+
             if response.status_code == 429 and attempt < self._max_retries:
                 delay = self._compute_retry_delay(response, attempt)
                 logger.info(
@@ -119,10 +194,11 @@ class BaseAPIClient:
                     delay,
                 )
                 self._sleep(delay)
-                attempt += 1
                 continue
 
             response.raise_for_status()
+            if response.status_code == 429:
+                break
             return response
 
         raise RuntimeError(f"Exceeded retry budget for {url}")
@@ -208,7 +284,6 @@ class ZephyrClient(BaseAPIClient):
             "details_search": "/rest/atm/1.0/testcase/search",
             "requires_keys_stage": True,
             "supports_field_selection": True,
-            "disable_ssl_verify": True,
         },
         # Direct search approach - single endpoint for full test case data
         {
@@ -265,7 +340,8 @@ class ZephyrClient(BaseAPIClient):
 
     def __init__(self, **kwargs: Any) -> None:
         """Initialize ZephyrClient with API connection parameters."""
-        super().__init__(**kwargs)
+        verify_ssl = kwargs.pop("verify_ssl", True)
+        super().__init__(verify_ssl=verify_ssl, **kwargs)
         self._discovered_pattern: dict[str, Any] | None = None
         self._working_auth_strategy: dict[str, Any] | None = None
         self._effective_page_size: int = self.DEFAULT_PAGE_SIZES[0]
@@ -434,8 +510,9 @@ class ZephyrClient(BaseAPIClient):
         )
         if requires_keys_stage:
             yield from self._fetch_with_keys_stage(progress_cb)
-        else:
-            yield from self._fetch_direct_search(progress_cb)
+            return
+
+        yield from self._fetch_direct_search(progress_cb)
 
     def _discover_working_configuration(self) -> bool:
         """
@@ -448,7 +525,31 @@ class ZephyrClient(BaseAPIClient):
 
         project_ref = self._project_value()
 
-        # Try each API pattern
+        for pattern in self._candidate_patterns(project_ref):
+            discovery = self._try_pattern(pattern, project_ref)
+            if discovery is not None:
+                auth_strategy = discovery
+                self._discovered_pattern = pattern
+                self._working_auth_strategy = auth_strategy
+                self._detect_optimal_page_size(pattern, auth_strategy, project_ref)
+
+                logger.info(
+                    (
+                        "Discovered working configuration: API pattern=%s, Auth=%s, "
+                        "Page size=%d"
+                    ),
+                    pattern["name"],
+                    str(auth_strategy["type"]),
+                    self._effective_page_size,
+                )
+                return True
+
+        logger.error("Failed to discover working Zephyr API configuration")
+        return False
+
+    def _candidate_patterns(
+        self, project_ref: str | int | None
+    ) -> Iterator[dict[str, Any]]:
         for pattern in self.API_PATTERNS:
             if pattern.get("requires_keys_stage") and not project_ref:
                 logger.debug(
@@ -456,36 +557,24 @@ class ZephyrClient(BaseAPIClient):
                     pattern["name"],
                 )
                 continue
-
             logger.debug("Trying API pattern: %s", pattern["name"])
+            yield pattern
 
-            # Try each authentication strategy
-            for auth_strategy in self.AUTH_STRATEGIES:
-                logger.debug("Trying auth strategy: %s", auth_strategy["type"])
+    def _try_pattern(
+        self, pattern: dict[str, Any], project_ref: str | int | None
+    ) -> dict[str, Any] | None:
+        fields = "key" if pattern["supports_field_selection"] else None
 
-                fields = "key" if pattern["supports_field_selection"] else None
-
-                if self._test_api_connection(
-                    pattern,
-                    auth_strategy,
-                    project_ref,
-                    fields=fields,
-                ):
-                    self._discovered_pattern = pattern
-                    self._working_auth_strategy = auth_strategy
-                    self._detect_optimal_page_size(pattern, auth_strategy, project_ref)
-
-                    logger.info(
-                        "Discovered working configuration: API pattern=%s, Auth=%s, "
-                        "Page size=%d",
-                        pattern["name"],
-                        str(auth_strategy["type"]),
-                        self._effective_page_size,
-                    )
-                    return True
-
-        logger.error("Failed to discover working Zephyr API configuration")
-        return False
+        for auth_strategy in self.AUTH_STRATEGIES:
+            logger.debug("Trying auth strategy: %s", auth_strategy["type"])
+            if self._test_api_connection(
+                pattern,
+                auth_strategy,
+                project_ref,
+                fields=fields,
+            ):
+                return auth_strategy
+        return None
 
     def _test_api_connection(
         self,
@@ -506,11 +595,12 @@ class ZephyrClient(BaseAPIClient):
             )
             params = self._clean_params(params)
 
-            # Check if SSL verification should be disabled for this pattern
-            verify = not pattern.get("disable_ssl_verify", False)
-
             response = self._session.get(
-                test_url, params=params, headers=headers, timeout=10, verify=verify
+                test_url,
+                params=params,
+                headers=headers,
+                timeout=10,
+                verify=self._verify_ssl,
             )
 
             request_url = response.request.url
@@ -521,7 +611,7 @@ class ZephyrClient(BaseAPIClient):
                 request_url,
                 request_headers,
                 response.headers,
-                verify,
+                self._verify_ssl,
             )
 
             if response.status_code == 200:
@@ -571,11 +661,12 @@ class ZephyrClient(BaseAPIClient):
                 )
                 params = self._clean_params(params)
 
-                # Check if SSL verification should be disabled for this pattern
-                verify = not pattern.get("disable_ssl_verify", False)
-
                 response = self._session.get(
-                    test_url, params=params, headers=headers, timeout=10, verify=verify
+                    test_url,
+                    params=params,
+                    headers=headers,
+                    timeout=10,
+                    verify=self._verify_ssl,
                 )
 
                 if response.status_code == 200:
@@ -699,14 +790,11 @@ class ZephyrClient(BaseAPIClient):
             )
 
             try:
-                # Check if SSL verification should be disabled for this pattern
-                verify = not self._discovered_pattern.get("disable_ssl_verify", False)
-
                 response = self._session.get(
                     search_url,
                     params=self._clean_params(params),
                     headers=headers,
-                    verify=verify,
+                    verify=self._verify_ssl,
                 )
                 response.raise_for_status()
                 payload = response.json()
@@ -750,14 +838,11 @@ class ZephyrClient(BaseAPIClient):
             keys_url = self._build_pattern_url(self._discovered_pattern["keys_search"])
 
             try:
-                # Check if SSL verification should be disabled for this pattern
-                verify = not self._discovered_pattern.get("disable_ssl_verify", False)
-
                 response = self._session.get(
                     keys_url,
                     params=self._clean_params(params),
                     headers=headers,
-                    verify=verify,
+                    verify=self._verify_ssl,
                 )
                 response.raise_for_status()
                 payload = response.json()
@@ -811,14 +896,11 @@ class ZephyrClient(BaseAPIClient):
         )
 
         try:
-            # Check if SSL verification should be disabled for this pattern
-            verify = not self._discovered_pattern.get("disable_ssl_verify", False)
-
             response = self._session.get(
                 details_url,
                 params=self._clean_params(params),
                 headers=headers,
-                verify=verify,
+                verify=self._verify_ssl,
             )
             response.raise_for_status()
             payload = response.json()
@@ -919,6 +1001,7 @@ def get_api_client(
     project_name: str | None,
     project_id: int | None,
     max_concurrency: int | None,
+    verify_ssl: bool,
 ) -> APISource:
     """Create platform-specific API clients."""
     mapping = {
@@ -937,6 +1020,7 @@ def get_api_client(
         project_name=project_name,
         project_id=project_id,
         max_concurrency=max_concurrency,
+        verify_ssl=verify_ssl,
     )
     return client
 

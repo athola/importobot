@@ -4,26 +4,57 @@ from __future__ import annotations
 
 import importlib
 import os
-import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from importobot import exceptions
 from importobot.cli.constants import FETCHABLE_FORMATS, SUPPORTED_FETCH_FORMATS
 from importobot.medallion.interfaces.enums import SupportedFormat
 from importobot.utils.logging import get_logger
 
-if TYPE_CHECKING:  # pragma: no cover - circular import guard for type checking
-    from importobot.medallion.storage.config import StorageConfig
-else:  # pragma: no cover - runtime default to satisfy type check references
-    StorageConfig = Any  # type: ignore[assignment]
+
+class StorageConfigProtocol(Protocol):
+    """Minimal protocol for storage configuration objects."""
+
+    backend_type: str
+    base_path: Path
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a serialisable representation of the configuration."""
+        ...
+
+    def validate(self) -> list[str]:
+        """Validate the configuration and return a list of issues."""
+        ...
 
 
-def _load_storage_config_cls() -> type[Any]:
+if TYPE_CHECKING:  # pragma: no cover
+    from importobot.medallion.storage.config import (
+        StorageConfig as StorageConfigRuntime,
+    )
+else:  # pragma: no cover
+
+    class _StorageConfigStub:
+        backend_type: str = "local"
+        base_path: Path = Path("./medallion_data")
+
+        def to_dict(self) -> dict[str, Any]:
+            raise NotImplementedError("StorageConfig not available at runtime")
+
+        def validate(self) -> list[str]:
+            raise NotImplementedError("StorageConfig not available at runtime")
+
+    StorageConfigRuntime = _StorageConfigStub
+
+
+StorageConfig = StorageConfigRuntime
+
+
+def _load_storage_config_cls() -> type[StorageConfigProtocol]:
     """Dynamically import StorageConfig to avoid circular import at module load."""
     module = importlib.import_module("importobot.medallion.storage.config")
-    return cast(type[Any], module.StorageConfig)
+    return cast(type[StorageConfigProtocol], module.StorageConfig)
 
 
 # Module-level logger for configuration warnings
@@ -53,9 +84,6 @@ CHROME_OPTIONS = [
     "--allow-running-insecure-content",
 ]
 
-# Configuration for maximum file sizes (in MB)
-MAX_JSON_SIZE_MB = int(os.getenv("IMPORTOBOT_MAX_JSON_SIZE_MB", "10"))
-
 
 def _int_from_env(var_name: str, default: int, *, minimum: int | None = None) -> int:
     """Parse integer environment variable with validation."""
@@ -79,6 +107,33 @@ def _int_from_env(var_name: str, default: int, *, minimum: int | None = None) ->
         )
         return default
     return value
+
+
+def _flag_from_env(var_name: str, default: bool = False) -> bool:
+    """Parse boolean environment variable."""
+    raw_value = os.getenv(var_name)
+    if raw_value is None:
+        return default
+    return raw_value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+# Configuration for maximum file sizes (in MB / bytes)
+MAX_JSON_SIZE_MB = int(os.getenv("IMPORTOBOT_MAX_JSON_SIZE_MB", "10"))
+MAX_SCHEMA_FILE_SIZE_BYTES = _int_from_env(
+    "IMPORTOBOT_MAX_SCHEMA_BYTES",
+    1 * 1024 * 1024,
+    minimum=1024,
+)
+MAX_TEMPLATE_FILE_SIZE_BYTES = _int_from_env(
+    "IMPORTOBOT_MAX_TEMPLATE_BYTES",
+    2 * 1024 * 1024,
+    minimum=1024,
+)
+MAX_CACHE_CONTENT_SIZE_BYTES = _int_from_env(
+    "IMPORTOBOT_MAX_CACHE_CONTENT_BYTES",
+    50_000,
+    minimum=1024,
+)
 
 
 DETECTION_CACHE_MAX_SIZE = _int_from_env(
@@ -146,6 +201,7 @@ class APIIngestConfig:
     project_id: int | None
     output_dir: Path
     max_concurrency: int | None
+    insecure: bool
 
 
 def _split_tokens(raw_tokens: str | None) -> list[str]:
@@ -184,6 +240,36 @@ def _resolve_max_concurrency(cli_value: int | None) -> int | None:
     return value if value > 0 else None
 
 
+def _resolve_insecure_flag(args: Any, prefix: str) -> bool:
+    """Resolve TLS verification flag from CLI arguments and environment."""
+    cli_insecure = bool(getattr(args, "insecure", False))
+    env_insecure = _flag_from_env(f"{prefix}_INSECURE", False)
+    return cli_insecure or env_insecure
+
+
+def _validate_required_fields(
+    *,
+    fetch_format: SupportedFormat,
+    api_url: str | None,
+    tokens: list[str],
+    api_user: str | None,
+) -> None:
+    """Validate that required API configuration fields are present."""
+    missing: list[str] = []
+    if not api_url:
+        missing.append("API URL")
+    if not tokens:
+        missing.append("authentication tokens")
+    if fetch_format is SupportedFormat.TESTRAIL and not api_user:
+        missing.append("API user")
+    if missing:
+        missing_fields = ", ".join(missing)
+        raise exceptions.ConfigurationError(
+            f"Missing {missing_fields} for {fetch_format.value} API ingestion "
+            f"(tokens={_mask(tokens)})"
+        )
+
+
 def _parse_project_identifier(value: str | None) -> tuple[str | None, int | None]:
     """Split project identifier into name or numeric ID."""
     if not value:
@@ -192,16 +278,20 @@ def _parse_project_identifier(value: str | None) -> tuple[str | None, int | None
     if not raw or raw.isspace():
         return None, None
     if raw.isdigit():
-        # Try direct int conversion first for ASCII digits
-        try:
-            return None, int(raw)
-        except ValueError:
-            # Handle unicode digits like superscript numbers
+        if raw.isascii():
             try:
-                numeric_value = unicodedata.numeric(raw)
-                return None, int(numeric_value)
-            except (TypeError, ValueError):
+                return None, int(raw)
+            except ValueError:
+                logger.warning(
+                    "Numeric project identifier %s failed to parse; treating as name",
+                    raw,
+                )
                 return raw, None
+        logger.warning(
+            "Non-ASCII numeric project identifier %s treated as project name",
+            raw,
+        )
+        return raw, None
     return raw, None
 
 
@@ -242,32 +332,51 @@ def resolve_api_ingest_config(args: Any) -> APIIngestConfig:
     # If CLI project doesn't parse to a valid identifier, fall back to environment
     if project_name is None and project_id is None:
         env_project = fetch_env(f"{prefix}_PROJECT")
+        if env_project:
+            logger.debug(
+                (
+                    "CLI project identifier missing; falling back to %s_PROJECT=%s "
+                    "for %s ingestion"
+                ),
+                prefix,
+                env_project,
+                fetch_format.value,
+            )
         project_name, project_id = _parse_project_identifier(env_project)
+        if project_name is None and project_id is None and env_project:
+            raise exceptions.ConfigurationError(
+                f"Invalid project identifier '{env_project}' for {fetch_format.value}"
+            )
 
     output_dir = _resolve_output_dir(getattr(args, "input_dir", None))
     max_concurrency = _resolve_max_concurrency(getattr(args, "max_concurrency", None))
+    insecure = _resolve_insecure_flag(args, prefix)
 
-    missing: list[str] = []
-    if not api_url:
-        missing.append("API URL")
-    if not tokens:
-        missing.append("authentication tokens")
-    if fetch_format is SupportedFormat.TESTRAIL and not api_user:
-        missing.append("API user")
-    if missing:
-        missing_fields = ", ".join(missing)
+    _validate_required_fields(
+        fetch_format=fetch_format,
+        api_url=api_url,
+        tokens=tokens,
+        api_user=api_user,
+    )
+
+    if api_url is None:
         raise exceptions.ConfigurationError(
-            f"Missing {missing_fields} for {fetch_format.value} API ingestion "
-            f"(tokens={_mask(tokens)})"
+            f"API ingestion requires an API URL for {fetch_format.value}; "
+            "validation should have raised earlier."
         )
-
-    assert api_url is not None, "URL should be validated by now"
 
     if fetch_format is SupportedFormat.ZEPHYR and len(tokens) < ZEPHYR_MIN_TOKEN_COUNT:
         logger.debug(
             "Zephyr configured with %s token(s); dual-token authentication can be "
             "enabled by providing multiple --tokens values.",
             len(tokens),
+        )
+
+    if insecure:
+        logger.warning(
+            "TLS certificate verification disabled for %s API requests. "
+            "Only use --insecure with trusted endpoints.",
+            fetch_format.value,
         )
 
     return APIIngestConfig(
@@ -279,17 +388,18 @@ def resolve_api_ingest_config(args: Any) -> APIIngestConfig:
         project_id=project_id,
         output_dir=output_dir,
         max_concurrency=max_concurrency,
+        insecure=insecure,
     )
 
 
 def update_medallion_config(
-    config: StorageConfig | None = None, **kwargs: Any
-) -> StorageConfig:
+    config: StorageConfigProtocol | None = None, **kwargs: Any
+) -> StorageConfigProtocol:
     """Update medallion configuration placeholder.
 
     Uses lazy import to avoid circular dependency with medallion.storage.config.
     """
-    storage_config_cls = cast(type[StorageConfig], _load_storage_config_cls())
+    storage_config_cls = _load_storage_config_cls()
 
     # Placeholder implementation for testing
     if config is None:
@@ -300,7 +410,7 @@ def update_medallion_config(
     return config
 
 
-def validate_medallion_config(_config: StorageConfig) -> bool:
+def validate_medallion_config(_config: StorageConfigProtocol) -> bool:
     """Validate medallion configuration placeholder."""
     # Placeholder implementation for testing
     return True

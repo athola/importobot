@@ -5,7 +5,11 @@ from argparse import Namespace
 import pytest
 
 from importobot import exceptions
-from importobot.config import APIIngestConfig, resolve_api_ingest_config
+from importobot.config import (
+    APIIngestConfig,
+    _parse_project_identifier,
+    resolve_api_ingest_config,
+)
 from importobot.medallion.interfaces.enums import SupportedFormat
 
 
@@ -19,6 +23,7 @@ def make_args(**overrides: object) -> Namespace:
         "project": None,
         "input_dir": None,
         "max_concurrency": None,
+        "insecure": False,
     }
     defaults.update(overrides)
     return Namespace(**defaults)
@@ -45,6 +50,7 @@ def test_cli_overrides_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     assert config.project_name == "CLI"
     assert config.project_id is None
     assert str(config.output_dir).endswith("cli-downloads")
+    assert config.insecure is False
 
 
 def test_environment_used_when_cli_missing(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -64,6 +70,7 @@ def test_environment_used_when_cli_missing(monkeypatch: pytest.MonkeyPatch) -> N
     assert config.project_name == "ZEPHYR"
     assert config.project_id is None
     assert config.max_concurrency == 5
+    assert config.insecure is False
 
 
 def test_missing_required_values_raise_configuration_error(
@@ -96,3 +103,50 @@ def test_project_id_parsing(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert config.project_id == 12345
     assert config.project_name is None
+    assert config.insecure is False
+
+
+def test_cli_insecure_flag_sets_configuration() -> None:
+    """The --insecure flag should disable TLS verification in the config."""
+    args = make_args(
+        api_url="https://testrail.example/api",
+        api_tokens=["token"],
+        api_user="cli-user",
+        insecure=True,
+    )
+
+    config = resolve_api_ingest_config(args)
+
+    assert config.insecure is True
+
+
+def test_environment_insecure_flag(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Environment toggle should disable TLS verification when set."""
+    monkeypatch.setenv("IMPORTOBOT_TESTRAIL_API_URL", "https://env.example/api")
+    monkeypatch.setenv("IMPORTOBOT_TESTRAIL_TOKENS", "env-token")
+    monkeypatch.setenv("IMPORTOBOT_TESTRAIL_API_USER", "env-user")
+    monkeypatch.setenv("IMPORTOBOT_TESTRAIL_INSECURE", "true")
+
+    args = make_args()
+
+    config = resolve_api_ingest_config(args)
+
+    assert config.insecure is True
+
+
+def test_parse_project_identifier_trims_ascii_name() -> None:
+    """Explicit regression: ASCII name survives stripping."""
+    name, project_id = _parse_project_identifier("  PRJ-42  ")
+
+    assert name == "PRJ-42"
+    assert project_id is None
+
+
+def test_parse_project_identifier_handles_unicode_digits() -> None:
+    """Explicit regression: Non-ASCII numerals treated as name."""
+    unicode_digits = "１２３４５"
+
+    name, project_id = _parse_project_identifier(unicode_digits)
+
+    assert name == unicode_digits
+    assert project_id is None

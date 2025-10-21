@@ -5,8 +5,38 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from .cli import _build_cli_task_suite
+from .cli_builder import _build_cli_task_suite
 from .models import Blueprint
+
+CLI_COMMANDS: tuple[str, ...] = (
+    "touch",
+    "rm",
+    "ls",
+    "cat",
+    "mkdir",
+    "cp",
+    "mv",
+    "chmod",
+    "chown",
+    "echo",
+    "grep",
+    "find",
+    "ps",
+    "kill",
+    "ping",
+    "wget",
+    "curl",
+    "tar",
+    "gzip",
+    "gunzip",
+    "df",
+    "du",
+    "free",
+    "top",
+    "netstat",
+)
+
+CLI_COMMAND_REGEX = "|".join(CLI_COMMANDS)
 
 BLUEPRINTS: tuple[Blueprint, ...] = (
     Blueprint(
@@ -18,7 +48,7 @@ BLUEPRINTS: tuple[Blueprint, ...] = (
                 re.IGNORECASE,
             ),
             re.compile(
-                r"(?P<command>touch|rm|ls|cat|mkdir|cp|mv|chmod|chown|echo|grep|find|ps|kill|ping|wget|curl|tar|gzip|gunzip|df|du|free|top|netstat)\s+"
+                rf"(?P<command>{CLI_COMMAND_REGEX})\s+"
                 r"(?:[\s\S]*?--proc_name\s+(?P<proc_name>[^\s]+))?",
                 re.IGNORECASE,
             ),

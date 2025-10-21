@@ -17,6 +17,7 @@ from importobot.config import (
 from importobot.config import (
     DETECTION_CACHE_TTL_SECONDS as CONFIG_TTL_SECONDS,
 )
+from importobot.config import MAX_CACHE_CONTENT_SIZE_BYTES
 from importobot.medallion.interfaces.enums import SupportedFormat
 from importobot.telemetry import TelemetryClient, get_telemetry_client
 from importobot.utils.logging import setup_logger
@@ -54,7 +55,7 @@ class DetectionCache:
     # Reject payloads over ~50 KB. Real-world JSON fixtures for test cases fall well
     # below this ceiling, so the cap provides headroom for genuine inputs while
     # discouraging memory-amplification attempts.
-    MAX_CONTENT_SIZE = 50000
+    MAX_CONTENT_SIZE = MAX_CACHE_CONTENT_SIZE_BYTES
 
     def __init__(
         self,

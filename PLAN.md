@@ -3,13 +3,15 @@
 Roadmap of upcoming features, parked items, and ideas requiring proof-of-concept development.
 
 ### Latest engineering update (October 2025)
+- **✅ Public API Formalization**: Stabilized pandas-style API surface with controlled `__all__` exports. Core implementation remains private while `importobot.api` provides enterprise toolkit.
 - **✅ JSON Template System**: Blueprint-driven Robot Framework rendering with cross-template learning. Templates learn patterns from existing Robot files and apply them consistently across conversions.
 - **✅ Schema Parser**: New field extraction from customer documentation (SOPs, READMEs) improves parsing accuracy by understanding organization-specific naming conventions.
 - **✅ Enhanced File Examples**: Expanded JSON library with realistic system administration tasks (file operations, SSH commands, validation) and comprehensive test coverage.
-- **✅ Bayesian confidence scoring**: Replaced weighted evidence with independent scorer. Evidence flows through `EvidenceMetrics`, missing indicators are penalized, ambiguous inputs capped at 1.5:1 likelihood ratio. Regression tests in `test_bayesian_ratio_constraints.py`.
+- **✅ Bayesian confidence scoring**: Replaced weighted evidence with proper Bayesian inference. Evidence flows through `EvidenceMetrics`, missing indicators are penalized, ambiguous inputs capped at 1.5:1 likelihood ratio. Regression tests in `test_bayesian_ratio_constraints.py`.
 - **✅ Configuration parsing**: Enhanced project identifier parsing for control characters and whitespace inputs. CLI arguments that don't parse to valid identifiers fall back to environment variables.
-- **✅ Test coverage**: All 1,941 tests pass with 0 skips.
-- **✅ Code quality**: Removed pylint from project, streamlined linting workflow, improved test isolation.
+- **✅ Template Learning**: New blueprint system extracts patterns from existing Robot files and applies them to conversions. Replaces hardcoded templates with learned patterns.
+- **✅ Test coverage**: All 1,946 tests pass with 0 skips.
+- **✅ Code quality**: Removed pylint from project, streamlined linting workflow, improved test isolation, and renamed blueprint file for clarity (`cli_builder.py`).
 - Fixed formatter to preserve comment placeholders and show both raw/normalized names for auditing
 - Selenium tests run in dry-run mode without `robot.utils` shim, removing deprecation warnings
 - Property-based tests keep literal step bodies for Hypothesis while testing parameter conversion
@@ -33,7 +35,7 @@ Roadmap of upcoming features, parked items, and ideas requiring proof-of-concept
 - Plugin architecture research. The goal is to let us snap in new source formats without rewriting the core converter. Need to prove abstraction on a format other than Zephyr.
 - Quality reporting. Lightweight analytics (success/error counts, skipped fields) so operations teams can spot regressions without perusing logs.
 
-- 🔜  Refactor `src/importobot/core/templates/blueprints/cli.py` into smaller helper modules
+- 🔜  Refactor `src/importobot/core/templates/blueprints/cli_builder.py` into smaller helper modules
   - Explore table-driven rendering / class-based builders after current release
 
 ### Later — stays on the backlog until we learn more

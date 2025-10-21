@@ -41,6 +41,7 @@ def make_args(tmp_path: Path) -> Namespace:
         project="TR",
         input_dir=str(tmp_path),
         max_concurrency=None,
+        insecure=False,
         no_suggestions=True,
         apply_suggestions=False,
         files=None,
@@ -67,6 +68,7 @@ def test_ingestion_then_conversion(
             project_id=None,
             output_dir=Path(args.input_dir),
             max_concurrency=None,
+            insecure=False,
         ),
     )
     monkeypatch.setattr(
@@ -123,6 +125,7 @@ def test_ingest_metadata_tracks_payloads(
             project_id=None,
             output_dir=output_dir,
             max_concurrency=None,
+            insecure=False,
         ),
     )
     monkeypatch.setattr(
@@ -138,6 +141,7 @@ def test_ingest_metadata_tracks_payloads(
         project=project_name,
         input_dir=str(output_dir),
         max_concurrency=None,
+        insecure=False,
         no_suggestions=True,
         apply_suggestions=False,
         files=None,

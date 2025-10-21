@@ -243,7 +243,7 @@ class TestGenericFormatCreator(unittest.TestCase):
 
     def test_generic_moderate_indicators(self):
         """Test Generic format focuses on moderate/weak indicators."""
-        # Generic should rely more on moderate/weak indicators since it's a default option
+        # Generic relies more on moderate/weak indicators as it's a default option
         moderate_indicators = self.format_def.moderate_indicators
         weak_indicators = self.format_def.weak_indicators
 

@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import ClassVar
 
+from importobot.config import MAX_SCHEMA_FILE_SIZE_BYTES
 from importobot.utils.logging import get_logger
 
 logger = get_logger()
@@ -57,7 +58,6 @@ class SchemaDocument:
         return None
 
 
-MAX_SCHEMA_FILE_SIZE = 1 * 1024 * 1024  # 1 MB
 MAX_SCHEMA_CONTENT_LENGTH = 2 * 1024 * 1024
 ALLOWED_SCHEMA_SUFFIXES: tuple[str, ...] = (
     ".md",
@@ -121,11 +121,11 @@ class SchemaParser:
             if not self._is_allowed_schema_file(resolved):
                 logger.warning("Schema file %s has disallowed extension", file_path)
                 return SchemaDocument(source_file=str(file_path))
-            if resolved.stat().st_size > MAX_SCHEMA_FILE_SIZE:
+            if resolved.stat().st_size > MAX_SCHEMA_FILE_SIZE_BYTES:
                 logger.warning(
                     "Schema file %s exceeds size limit (%d bytes)",
                     file_path,
-                    MAX_SCHEMA_FILE_SIZE,
+                    MAX_SCHEMA_FILE_SIZE_BYTES,
                 )
                 return SchemaDocument(source_file=str(file_path))
             content = resolved.read_text(encoding="utf-8")

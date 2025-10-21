@@ -101,7 +101,7 @@ class TestTelemetryClientInitialization:
 
     def test_disabled_client_has_no_exporters(self):
         """Test that None is returned when telemetry is disabled."""
-        # This test is now redundant since we tested this in test_singleton_disabled_by_default
+        # This test redundant since we tested this in test_singleton_disabled_by_default
         # and disabled clients are no longer created - we get None instead
         pass
 

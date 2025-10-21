@@ -364,6 +364,7 @@ class _SupportsPerformanceCache(Protocol):
     @property
     def performance_cache(self) -> PerformanceCache:
         """Return performance cache instance."""
+        ...
 
 
 def get_performance_cache() -> PerformanceCache:

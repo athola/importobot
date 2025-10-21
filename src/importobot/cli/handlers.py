@@ -41,6 +41,27 @@ class InputType(enum.Enum):
 
 logger = get_logger("importobot-cli")
 
+SUCCESS_FILE_MSG = "Successfully converted {src} to {dest}"
+SUCCESS_DIRECTORY_MSG = "Successfully converted directory {src} to {dest}"
+SUCCESS_COUNT_MSG = "Successfully converted {count} files to {dest}"
+SUGGESTIONS_POSITIVE_HEADER = "\nYour conversion is already well-structured."
+SUGGESTIONS_POSITIVE_BODY = "No suggestions for improvement."
+SUGGESTIONS_SECTION_HEADER = "\nConversion Suggestions:"
+SUGGESTIONS_SECTION_RULE = "=" * 50
+SUGGESTIONS_SECTION_FOOTER = (
+    "\nThese suggestions can improve the quality of the generated Robot Framework code."
+)
+WARNING_APPLY_SUGGESTIONS_SINGLE = (
+    "Warning: --apply-suggestions only supported for single files."
+)
+WARNING_APPLY_SUGGESTIONS_DIRECTORY = (
+    "Warning: --apply-suggestions is only supported for single file conversion."
+)
+WARNING_NORMAL_CONVERSION = "Performing normal conversion instead..."
+WARNING_NORMAL_DIRECTORY_CONVERSION = (
+    "Performing normal directory conversion instead..."
+)
+
 
 def detect_input_type(input_path: str) -> tuple[InputType, list[str]]:
     """Detect input type and return (type, files_list).
@@ -100,8 +121,18 @@ def validate_input_and_output(
 
 def collect_suggestions(json_data: object) -> list[tuple[int, int, str]]:
     """Collect suggestions from all test cases in the JSON data."""
-    all_suggestions = []
-    test_cases = json_data if isinstance(json_data, list) else [json_data]
+    all_suggestions: list[tuple[int, int, str]] = []
+
+    if isinstance(json_data, list):
+        test_cases = [case for case in json_data if isinstance(case, dict)]
+    elif isinstance(json_data, dict):
+        test_cases = [json_data]
+    else:
+        logger.debug(
+            "Skipping suggestion generation for unsupported JSON payload type: %s",
+            type(json_data).__name__,
+        )
+        return all_suggestions
 
     for i, test_case in enumerate(test_cases):
         suggestions = get_conversion_suggestions(test_case)
@@ -141,18 +172,15 @@ def print_suggestions(filtered_suggestions: list[str]) -> None:
         len(filtered_suggestions) == 1
         and "No improvements needed" in filtered_suggestions[0]
     ):
-        print("\nYour conversion is already well-structured.")
-        print("No suggestions for improvement.")
+        print(SUGGESTIONS_POSITIVE_HEADER)
+        print(SUGGESTIONS_POSITIVE_BODY)
         return
 
-    print("\nConversion Suggestions:")
-    print("=" * 50)
+    print(SUGGESTIONS_SECTION_HEADER)
+    print(SUGGESTIONS_SECTION_RULE)
     for i, suggestion in enumerate(filtered_suggestions, 1):
         print(f"  {i}. {suggestion}")
-    print(
-        "\nThese suggestions can improve the quality of the "
-        "generated Robot Framework code."
-    )
+    print(SUGGESTIONS_SECTION_FOOTER)
 
 
 def display_suggestions(json_file_path: str, no_suggestions: bool = False) -> None:
@@ -176,26 +204,26 @@ def display_suggestions(json_file_path: str, no_suggestions: bool = False) -> No
 def convert_single_file(args: argparse.Namespace) -> None:
     """Convert a single file."""
     convert_file(args.input, args.output_file)
-    print(f"Successfully converted {args.input} to {args.output_file}")
+    print(SUCCESS_FILE_MSG.format(src=args.input, dest=args.output_file))
     display_suggestions(args.input, args.no_suggestions)
 
 
 def convert_directory_handler(args: argparse.Namespace) -> None:
     """Convert all files in a directory."""
     convert_directory(args.input, args.output_file)
-    print(f"Successfully converted directory {args.input} to {args.output_file}")
+    print(SUCCESS_DIRECTORY_MSG.format(src=args.input, dest=args.output_file))
 
 
 def convert_wildcard_files(args: argparse.Namespace, detected_files: list[str]) -> None:
     """Convert files matching wildcard pattern."""
     if len(detected_files) == 1:
         convert_file(detected_files[0], args.output_file)
-        print(f"Successfully converted {detected_files[0]} to {args.output_file}")
+        print(SUCCESS_FILE_MSG.format(src=detected_files[0], dest=args.output_file))
         display_suggestions(detected_files[0], args.no_suggestions)
     else:
         convert_multiple_files(detected_files, args.output_file)
         print(
-            f"Successfully converted {len(detected_files)} files to {args.output_file}"
+            SUCCESS_COUNT_MSG.format(count=len(detected_files), dest=args.output_file)
         )
 
 
@@ -214,20 +242,20 @@ def handle_bulk_conversion_with_suggestions(
     args: argparse.Namespace, input_type: InputType, detected_files: list
 ) -> None:
     """Handle conversion for directories or multiple files with suggestions warning."""
-    print("Warning: --apply-suggestions only supported for single files.")
-    print("Performing normal conversion instead...")
+    print(WARNING_APPLY_SUGGESTIONS_SINGLE)
+    print(WARNING_NORMAL_CONVERSION)
 
     if input_type == InputType.DIRECTORY:
         convert_directory(args.input, args.output_file)
-        print(f"Successfully converted directory {args.input} to {args.output_file}")
+        print(SUCCESS_DIRECTORY_MSG.format(src=args.input, dest=args.output_file))
     elif len(detected_files) == 1:
         convert_file(detected_files[0], args.output_file)
-        print(f"Successfully converted {detected_files[0]} to {args.output_file}")
+        print(SUCCESS_FILE_MSG.format(src=detected_files[0], dest=args.output_file))
         display_suggestions(detected_files[0], args.no_suggestions)
     else:
         convert_multiple_files(detected_files, args.output_file)
         print(
-            f"Successfully converted {len(detected_files)} files to {args.output_file}"
+            SUCCESS_COUNT_MSG.format(count=len(detected_files), dest=args.output_file)
         )
 
 
@@ -246,28 +274,27 @@ def _build_payload_filename(config: Any) -> Path:
     return Path(config.output_dir) / filename
 
 
-def handle_api_ingest(args: argparse.Namespace) -> str:
-    """Fetch suites from a remote API and persist them to disk."""
-    config = resolve_api_ingest_config(args)
-    client = get_api_client(
-        config.fetch_format,
-        api_url=config.api_url,
-        tokens=config.tokens,
-        user=config.user,
-        project_name=config.project_name,
-        project_id=config.project_id,
-        max_concurrency=config.max_concurrency,
+def _warn_if_insecure(config: Any) -> None:
+    if not getattr(config, "insecure", False):
+        return
+    warning_message = (
+        "WARNING: TLS certificate verification is disabled (--insecure). "
+        "Connections may be intercepted by an attacker."
     )
+    print(warning_message)
+    logger.warning(warning_message)
 
-    config.output_dir.mkdir(parents=True, exist_ok=True)
-    payload_path = _build_payload_filename(config)
-    metadata_path = payload_path.with_suffix(".meta.json")
 
-    totals = {"progress_events": 0, "items": 0}
+def _collect_payloads(client: Any) -> tuple[list[dict[str, Any]], dict[str, int]]:
+    totals: dict[str, int] = {"progress_events": 0, "items": 0}
 
     def progress_cb(**info: Any) -> None:
         totals["progress_events"] += 1
-        totals["items"] += int(info.get("items") or 0)
+        raw_items = info.get("items")
+        try:
+            totals["items"] += int(raw_items) if raw_items is not None else 0
+        except (TypeError, ValueError):
+            logger.debug("Skipping non-numeric items value: %s", raw_items)
         total_items = info.get("total")
         if total_items:
             logger.debug(
@@ -284,22 +311,23 @@ def handle_api_ingest(args: argparse.Namespace) -> str:
             )
 
     payloads: list[dict[str, Any]] = list(client.fetch_all(progress_cb))
+    return payloads, totals
 
-    page_count = len(payloads)
 
-    if not payloads:
-        logger.warning(
-            "No data returned from %s for %s",
-            config.api_url,
-            config.fetch_format.value,
-        )
-
+def _write_payload(payload_path: Path, payloads: list[dict[str, Any]]) -> None:
+    serialisable: Any = payloads if len(payloads) != 1 else payloads[0]
     with open(payload_path, "w", encoding="utf-8") as handle:
-        serialisable = payloads if len(payloads) != 1 else payloads[0]
         json.dump(serialisable, handle, indent=2)
 
+
+def _build_metadata(
+    config: Any,
+    *,
+    page_count: int,
+    totals: dict[str, int],
+) -> dict[str, Any]:
     saved_at = dt.datetime.now(dt.timezone.utc)
-    metadata = {
+    return {
         "format": config.fetch_format.value,
         "source": config.api_url,
         "project": config.project_name or config.project_id,
@@ -310,8 +338,49 @@ def handle_api_ingest(args: argparse.Namespace) -> str:
         "items": totals["items"],
     }
 
+
+def _write_metadata(metadata_path: Path, metadata: dict[str, Any]) -> None:
     with open(metadata_path, "w", encoding="utf-8") as meta_handle:
         json.dump(metadata, meta_handle, indent=2)
+
+
+def _create_api_client(config: Any) -> Any:
+    return get_api_client(
+        config.fetch_format,
+        api_url=config.api_url,
+        tokens=config.tokens,
+        user=config.user,
+        project_name=config.project_name,
+        project_id=config.project_id,
+        max_concurrency=config.max_concurrency,
+        verify_ssl=not config.insecure,
+    )
+
+
+def handle_api_ingest(args: argparse.Namespace) -> str:
+    """Fetch suites from a remote API and persist them to disk."""
+    config = resolve_api_ingest_config(args)
+    _warn_if_insecure(config)
+    client = _create_api_client(config)
+
+    config.output_dir.mkdir(parents=True, exist_ok=True)
+    payload_path = _build_payload_filename(config)
+    metadata_path = payload_path.with_suffix(".meta.json")
+
+    payloads, totals = _collect_payloads(client)
+
+    page_count = len(payloads)
+
+    if not payloads:
+        logger.warning(
+            "No data returned from %s for %s",
+            config.api_url,
+            config.fetch_format.value,
+        )
+
+    _write_payload(payload_path, payloads)
+    metadata = _build_metadata(config, page_count=page_count, totals=totals)
+    _write_metadata(metadata_path, metadata)
 
     args.input = str(payload_path)
     args.input_dir = str(config.output_dir)
@@ -373,12 +442,12 @@ def handle_files_conversion(
     elif len(args.files) == 1:
         # Single file conversion - output should be a file
         convert_file(args.files[0], args.output)
-        print(f"Successfully converted {args.files[0]} to {args.output}")
+        print(SUCCESS_FILE_MSG.format(src=args.files[0], dest=args.output))
         display_suggestions(args.files[0], args.no_suggestions)
     else:
         # Multiple files conversion - output should be a directory
         convert_multiple_files(args.files, args.output)
-        print(f"Successfully converted {len(args.files)} files to {args.output}")
+        print(SUCCESS_COUNT_MSG.format(count=len(args.files), dest=args.output))
 
 
 def handle_directory_conversion(
@@ -389,13 +458,11 @@ def handle_directory_conversion(
         parser.error("--output is required when using --directory")
 
     if args.apply_suggestions:
-        print(
-            "Warning: --apply-suggestions is only supported for single file conversion."
-        )
-        print("Performing normal directory conversion instead...")
+        print(WARNING_APPLY_SUGGESTIONS_DIRECTORY)
+        print(WARNING_NORMAL_DIRECTORY_CONVERSION)
 
     convert_directory(args.directory, args.output)
-    print(f"Successfully converted directory {args.directory} to {args.output}")
+    print(SUCCESS_DIRECTORY_MSG.format(src=args.directory, dest=args.output))
 
 
 __all__ = [

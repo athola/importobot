@@ -16,19 +16,13 @@ Key principles from experience:
 ## Development Practices
 
 ### Test-Driven Development
-- Write failing test first, make it pass, then refactor
-- Maintain unit and integration coverage together (converter touches many layers)
-- Use fixtures and helpers instead of copying setup code
+Write failing test first, make it pass, then refactor. The converter touches many layers (parsing, validation, rendering), so maintain both unit and integration coverage. Use the existing fixtures in `tests/fixtures/` instead of copying setup code across test files.
 
 ### CI/CD Standards
-- Full test suite runs on every change; red builds block merges
-- Simple design first, refactor once tests protect the behavior
-- No module ownership - leave code cleaner than found
+The full test suite (1,946 tests) runs on every change. Red builds block merges. Start with simple design, then refactor once tests protect the behavior. No module ownership—leave the code cleaner than you found it.
 
 ### Error Handling
-- Validate JSON on load with `load_and_parse_json`, fail immediately on missing fields
-- Reject bad CLI input before starting long conversions
-- Keep configuration validation and type hints in sync for early error detection
+Validate JSON immediately with `load_and_parse_json` and fail fast on missing fields. Reject bad CLI input before starting long conversions to avoid wasting time. Keep configuration validation and type hints in sync—this catches many issues during development instead of runtime.
 
 ## Recent Improvements
 
@@ -39,16 +33,18 @@ Key principles from experience:
 - Selenium integration tests still run in deterministic dry-run mode with explicit resource cleanup, so CI remains free of WebDriver start-up flakes.
 
 ### 2025 Changes
+- **Public API Formalization (Oct 2025):** Stabilized pandas-style API surface with controlled `__all__` exports. Core implementation remains private while `importobot.api` provides enterprise toolkit.
 - **JSON Template System (Oct 2025):** Added blueprint-driven Robot Framework rendering with cross-template learning. Templates learn patterns from existing Robot files and apply them consistently across conversions.
 - **Schema Parser (Oct 2025):** New `schema_parser.py` extracts field definitions from customer documentation (SOPs, READMEs). Improves parsing accuracy by understanding organization-specific naming conventions.
 - **Enhanced File Examples (Oct 2025):** Expanded JSON example library with realistic system administration tasks (file operations, SSH commands, validation). Added comprehensive test coverage for all examples.
 - **Zephyr Client (Oct 2025):** Redesigned with adaptive API discovery, multiple authentication strategies, and robust payload handling. Works with diverse server configurations.
-- **Bayesian scoring (Oct 2025):** Replaced weighted scorer with independent model, quadratic P(E|¬H), and ratio cap tests. Strong evidence reaches 0.8 confidence without tuning.
+- **Bayesian scoring (Oct 2025):** Replaced weighted evidence with proper Bayesian inference using `P(E|H)`. Evidence flows through `EvidenceMetrics`, missing indicators are penalized, ambiguous inputs capped at 1.5:1 likelihood ratio. Regression tests in `test_bayesian_ratio_constraints.py`.
 - **Configuration parsing (Oct 2025):** Enhanced project identifier parsing for control characters and whitespace inputs. CLI arguments fall back to environment variables when invalid.
-- **Test coverage (Oct 2025):** All 1,941 tests pass with 0 skips.
+- **Template Learning (Oct 2025):** New blueprint system extracts patterns from existing Robot files and applies them to conversions. Replaces hardcoded templates with learned patterns.
+- **Test coverage (Oct 2025):** All 1,946 tests pass with 0 skips.
+- **Code quality improvements (Oct 2025):** Removed pylint from project, streamlined linting workflow, improved test isolation, and renamed blueprint file for clarity (`cli_builder.py`).
 - **September cleanup:** Removed 200+ lines of compatibility code, added `data_analysis` helper, updated `__all__` exports to match public API.
 - **Interactive demo:** Added `scripts/interactive_demo.py` for customer demonstrations, shares code with CLI.
-- **Code quality improvements:** Removed pylint from project, streamlined linting workflow, improved test isolation.
 
 ## API Integration Enhancements
 

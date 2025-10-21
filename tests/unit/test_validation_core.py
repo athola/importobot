@@ -246,7 +246,7 @@ class TestRequireValidInputDecorator:
             return f"{param1}:{param2}"
 
         with pytest.raises(ValidationError, match="param1 must be a str"):
-            test_function(42, 100)
+            test_function(42, 100)  # pyright: ignore[reportArgumentType]
 
     def test_require_valid_input_with_fewer_args_than_validations(self):
         """Test require_valid_input when fewer args provided than validations."""

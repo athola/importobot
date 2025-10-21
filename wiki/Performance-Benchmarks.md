@@ -1,14 +1,12 @@
 # Performance Benchmarks
 
-Importobot ships a benchmark harness that measures conversion throughput,
-latency, and memory usage across representative workloads. Use this guide when
-requiring evidence before merging medallion or optimizer changes.
+Importobot includes a benchmark harness that measures conversion throughput, latency, and memory usage. Run benchmarks before merging medallion or optimizer changes to catch regressions.
 
 ## When to Run Benchmarks
 
-- Before and after major refactors (e.g., OptimizedConverter rollout).
-- During release candidates to confirm no regression in conversion speed.
-- While tuning optimization settings so you can balance quality and latency.
+- Before and after major refactors (like OptimizedConverter changes)
+- During release candidates to confirm no speed regressions
+- While tuning optimization settings to balance quality and performance
 
 ## Benchmark Script
 
@@ -59,16 +57,16 @@ Sample JSON structure:
 
 ## Using Benchmark Data
 
-1. **Baseline** – Keep a known-good JSON result under version control.
-2. **Compare** – Diff each new run against the baseline.
-3. **Alert** – Flag regressions beyond the SLA (e.g., >10% slowdown) before release.
-4. **Report** – Attach the JSON when raising MRs or publishing release notes.
+1. **Baseline** – Keep a known-good JSON result under version control
+2. **Compare** – Diff each new run against the baseline
+3. **Alert** – Flag regressions beyond your SLA (e.g., >10% slowdown) before release
+4. **Report** – Attach the JSON when creating PRs or publishing release notes
 
-### Memory profiling & cache observability
+### Memory profiling and cache monitoring
 
-- When `psutil` is present the JSON adds a `memory_usage` block per scenario.
-- Pair it with `PerformanceCache().get_cache_stats()` to monitor cache fill and eviction.
-- For deeper dives, wrap the benchmark with `tracemalloc`:
+- When `psutil` is available, the JSON includes a `memory_usage` block per scenario
+- Use `PerformanceCache().get_cache_stats()` to monitor cache fill and eviction
+- For deeper analysis, wrap the benchmark with `tracemalloc`:
 
   ```python
   import tracemalloc
@@ -81,6 +79,4 @@ Sample JSON structure:
 
 ## Integration with optimization benchmarks
 
-Align the scenarios here with the optimizer plan from
-[Mathematical Foundations](Mathematical-Foundations): reuse the same
-small/medium/large suites, track optimization preview latency alongside conversion timing, and store both JSON outputs when making decisions related to the OptimizedConverter.
+Align scenarios with the optimizer plan from [Mathematical Foundations](Mathematical-Foundations): reuse the same small/medium/large suites, track optimization preview latency alongside conversion timing, and store both JSON outputs when making decisions about the OptimizedConverter.
