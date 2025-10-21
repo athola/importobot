@@ -69,6 +69,40 @@ continue to use parameterized queries and schema validation in those systems.
   so bursts of malicious requests surface as rate-limit errors instead of
   exhausting CPU.
 
+### Schema and Template Hardening
+
+Schema ingestion and template rendering accept user-supplied files. As of
+October&nbsp;2025, Importobot applies the following defenses:
+
+- **Schema parser safeguards:** Only UTF-8 text files with approved extensions
+  (`.md`, `.txt`, `.rst`, `.json`, `.yaml`) are parsed. Symbolic links, binary
+  samples, or files above 1&nbsp;MiB are rejected before reading. Each schema
+  payload is sanitized to strip control characters, capped at 2&nbsp;MiB of
+  content, and limited to 256 sections to contain DoS-style payloads.
+- **Template validation:** Template sources are scanned for inline Python
+  (`${{ ... }}`), `Evaluate` keywords, and placeholders that begin with `__`.
+  Any offending file is skipped. Templates must reside in regular files (no
+  symlinks), stay under 2&nbsp;MiB, and pass a textual sniff test before
+  ingestion.
+- **Sandboxed rendering:** All blueprint renderers now rely on a sandboxed
+  `string.Template` subclass that drops unsafe placeholders, coerces values to
+  strings, strips control characters, and truncates substitutions to 4&nbsp;KiB
+  per token. This prevents template injection through crafted test data.
+- **Resource hygiene:** Robot resource imports discovered during ingestion are
+  validated with the same controls, and binary or high-risk resources are
+  ignored.
+- **Credential handling:** Password parameters are encrypted in memory using an
+  optional Fernet key (with a logged warning fallback) to keep plaintext secrets
+  out of diagnostic logs.
+- **Secrets detection:** Test generation performs regex-based scanning of
+  templates and dynamic data, aborting when API keys, JWT tokens, or passwords
+  are detected.
+- **API rate limiting:** External API clients employ a token-bucket rate limiter
+  to stay within upstream throttling thresholds and prevent service bans.
+
+Downstream integrations that execute rendered templates should still run in
+isolated automation accounts and apply command-level allow-lists.
+
 #### Choosing a Security Level
 
 Importobot ships three levels that tune pattern matching, sensitive path lists,

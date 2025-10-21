@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import unicodedata
+
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
@@ -76,8 +78,14 @@ def test_parse_project_identifier_behaviour(value: str | None) -> None:
         except ValueError:
             # Handle cases where isdigit() returns True but int() fails
             # (e.g., for some Unicode superscript/subscript numbers)
-            assert name == stripped
-            assert project_id is None
+            try:
+                numeric_value = unicodedata.numeric(stripped)
+            except (TypeError, ValueError):
+                assert name == stripped
+                assert project_id is None
+            else:
+                assert name is None
+                assert project_id == int(numeric_value)
     else:
         assert name == stripped
         assert project_id is None

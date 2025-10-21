@@ -1,12 +1,13 @@
 """Resource management and limits for test generation operations."""
 
-import logging
 import os
 import time
 from dataclasses import dataclass
 from typing import Any
 
 import psutil
+
+from importobot.utils.logging import get_logger
 
 
 @dataclass
@@ -60,7 +61,7 @@ class ResourceManager:
             return
 
         self.limits = limits or ResourceLimits()
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger()
         # Track per-operation baselines for correct time enforcement
         self._operation_start_times: dict[str, float] = {}
         self._operation_counter: int = 0

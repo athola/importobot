@@ -8,6 +8,9 @@ EXPECTED_PUBLIC_EXPORTS = {
     "config",
     "exceptions",
     "api",
+    "convert",
+    "convert_directory",
+    "convert_file",
 }
 
 

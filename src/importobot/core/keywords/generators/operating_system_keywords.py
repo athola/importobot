@@ -12,7 +12,7 @@ _SAFE_DEFAULT_ROOT = os.path.join(os.path.expanduser("~"), "importobot")
 
 
 def _safe_home_path(name: str) -> str:
-    """Return a predictable, non-world-writable fallback path."""
+    """Return a predictable, non-world-writable default path."""
     cleaned = name.lstrip("/\\")
     return os.path.join(_SAFE_DEFAULT_ROOT, cleaned) if cleaned else _SAFE_DEFAULT_ROOT
 

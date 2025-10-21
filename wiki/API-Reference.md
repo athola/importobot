@@ -1,6 +1,8 @@
 # API Reference
 
-Reference for Importobot’s public API surface. Everything here is supported; anything under `importobot.core.*` or `importobot.medallion.*` is considered private.
+Reference for Importobot's public API surface. Everything here is supported; anything under `importobot.core.*` or `importobot.medallion.*` is considered private.
+
+**Looking for practical examples?** See [API Examples](API-Examples) for detailed usage patterns with the newest features.
 
 ## API Architecture Overview
 
@@ -11,16 +13,16 @@ Importobot exposes two layers:
 ### Design notes
 
 - Public imports stay stable; internal modules can change without notice.
-- Type hints and `TYPE_CHECKING` guards keep IDE support strong.
+- Type hints and `TYPE_CHECKING` guards provide IDE support.
 
 ## Public API Structure
 
 ```
 importobot/
 ├── JsonToRobotConverter    # Core bulk conversion class
-├── config                  # Enterprise configuration
-├── exceptions              # Comprehensive error handling
-└── api/                    # Enterprise toolkit
+├── config                  # Configuration settings
+├── exceptions              # Error handling
+└── api/                    # Advanced API utilities
     ├── converters          # Advanced conversion engines
     ├── suggestions         # QA suggestion engine
     └── validation          # CI/CD validation utilities
@@ -51,12 +53,12 @@ converter = importobot.JsonToRobotConverter()
 
 ### Configuration
 
-Access enterprise configuration settings:
+Access configuration settings:
 
 ```python
 import importobot
 
-# Enterprise configuration
+# Configuration settings
 max_size = importobot.config.MAX_JSON_SIZE_MB
 test_url = importobot.config.TEST_SERVER_URL
 chrome_options = importobot.config.CHROME_OPTIONS
@@ -97,7 +99,7 @@ Key exceptions:
 
 ### importobot.api.converters
 
-Advanced conversion engines for enterprise integration.
+Advanced conversion engines for integration.
 
 ```python
 from importobot.api import converters
@@ -119,7 +121,7 @@ converter = converters.JsonToRobotConverter()
 
 ### importobot.api.validation
 
-CI/CD pipeline validation utilities.
+CI/CD validation utilities.
 
 ```python
 from importobot.api import validation
@@ -164,7 +166,7 @@ fixes = engine.suggest_improvements(ambiguous_test_data)
 
 **`GenericSuggestionEngine`**
 - Analyzes problematic test cases
-- Provides intelligent suggestions for improvements
+- Provides suggestions for improvements
 - Handles ambiguous or incomplete test data
 
 ## Business Use Cases
@@ -174,7 +176,7 @@ fixes = engine.suggest_improvements(ambiguous_test_data)
 ```python
 import importobot
 
-# Enterprise bulk conversion
+# Bulk conversion
 converter = importobot.JsonToRobotConverter()
 results = converter.convert_directory("/zephyr/exports", "/robot/tests")
 
@@ -224,7 +226,7 @@ Following pandas-style API evolution:
 
 ## Environment Variables
 
-Enterprise configuration can be customized via environment variables:
+Configuration can be customized via environment variables:
 
 - `IMPORTOBOT_TEST_SERVER_URL`: Test server URL (default: "http://localhost:8000")
 - `IMPORTOBOT_MAX_JSON_SIZE_MB`: Maximum JSON file size in MB (default: "10")
@@ -267,7 +269,7 @@ engine: suggestions.GenericSuggestionEngine = ...
 
 ## Confidence Scoring API
 
-Importobot provides access to its Bayesian confidence scoring system for advanced use cases:
+Access the Bayesian confidence scoring system for advanced use cases:
 
 ### Bayesian Configuration
 

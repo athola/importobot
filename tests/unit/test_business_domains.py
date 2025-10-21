@@ -14,7 +14,8 @@ class TestBusinessDomainTemplatesStructure:
     def test_enterprise_scenarios_structure(self):
         """Test that enterprise_scenarios has expected structure."""
         bt = BusinessDomainTemplates()
-        scenarios = bt.enterprise_scenarios
+        raw_scenarios = bt.enterprise_scenarios
+        scenarios = {k: v for k, v in raw_scenarios.items() if not k.startswith("__")}
 
         assert isinstance(scenarios, dict)
         assert len(scenarios) > 0
@@ -31,7 +32,8 @@ class TestBusinessDomainTemplatesStructure:
     def test_enterprise_scenarios_have_required_fields(self):
         """Test that scenarios have required fields."""
         bt = BusinessDomainTemplates()
-        scenarios = bt.enterprise_scenarios
+        raw_scenarios = bt.enterprise_scenarios
+        scenarios = {k: v for k, v in raw_scenarios.items() if not k.startswith("__")}
 
         for category_scenarios in scenarios.values():
             for scenario_data in category_scenarios.values():
@@ -50,7 +52,8 @@ class TestBusinessDomainTemplatesStructure:
     def test_enterprise_data_pools_structure(self):
         """Test that enterprise_data_pools has expected structure."""
         bt = BusinessDomainTemplates()
-        data_pools = bt.enterprise_data_pools
+        raw_pools = bt.enterprise_data_pools
+        data_pools = {k: v for k, v in raw_pools.items() if not k.startswith("__")}
 
         assert isinstance(data_pools, dict)
         assert len(data_pools) > 0

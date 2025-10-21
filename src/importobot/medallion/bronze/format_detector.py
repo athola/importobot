@@ -11,7 +11,7 @@ from importobot.config import (
     FORMAT_DETECTION_FAILURE_THRESHOLD,
 )
 from importobot.medallion.interfaces.enums import SupportedFormat
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 
 from .complexity_analyzer import ComplexityAnalyzer
 from .detection_cache import DetectionCache
@@ -23,16 +23,16 @@ from .hierarchical_classifier import HierarchicalClassifier
 from .scoring_algorithms import ScoringAlgorithms, ScoringConstants
 from .shared_config import PRIORITY_MULTIPLIERS
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 class FormatDetector:
     """Main facade for format detection using modular components."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, cache: DetectionCache | None = None) -> None:
         """Initialize modular format detector with Bayesian evidence accumulation."""
         self.format_registry = FormatRegistry()
-        self.detection_cache = DetectionCache()
+        self.detection_cache = cache or DetectionCache()
         self.evidence_collector = EvidenceCollector(self.format_registry)
         self.evidence_accumulator = EvidenceAccumulator()
         self.hierarchical_classifier = HierarchicalClassifier(
@@ -69,7 +69,7 @@ class FormatDetector:
                 )
                 return cached_result
 
-            # Circuit breaker removed - fail fast instead of fallback
+            # Circuit breaker removed - fail fast instead of defaulting
             if self._is_circuit_open():
                 logger.error(
                     "Format detection circuit breaker is open; returning UNKNOWN."

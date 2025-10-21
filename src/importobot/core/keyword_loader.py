@@ -1,14 +1,14 @@
 """Keyword library loader for external configuration files."""
 
 import json
-import logging
 from pathlib import Path
 from typing import Any
 
 from importobot.utils.defaults import LIBRARY_MAPPING
+from importobot.utils.logging import get_logger
 from importobot.utils.security import extract_security_warnings
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 class KeywordLibraryLoader:

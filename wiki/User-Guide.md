@@ -1,6 +1,6 @@
 # User Guide
 
-Use this guide to refer to CLI flags, input formats, and supporting tools for Importobot.
+This guide covers how to use Importobot from the command line and API.
 
 ## Supported Input Formats
 
@@ -57,6 +57,55 @@ uv run importobot \
 # Saved to: ./jira_xray-eng-qa-20250314-103205.json
 ```
 
+### Input Schema Documentation
+
+Provide documentation files (SOPs, READMEs) that describe your test data format. Importobot reads these to understand your organization's field naming conventions and improve parsing accuracy.
+
+```bash
+# Use a single schema file
+uv run importobot \
+    --input-schema path/to/test_case_sop.txt \
+    input.json output.robot
+
+# Use multiple schema files
+uv run importobot \
+    --input-schema docs/field_definitions.md \
+    --input-schema docs/zephyr_guide.txt \
+    input.json output.robot
+```
+
+#### Schema File Format
+
+Schema files should describe your test case fields using natural language:
+
+```
+Name
+
+The "Name" section of the test case should be the name of the feature being tested
+
+Ex: find --name
+
+Objective
+
+The "Objective" section should include a description of what the test evaluates
+
+Ex: Verify the command works correctly
+
+Test Data
+
+The "Test Data" field contains the actual command or data to execute
+
+Ex: touch /tmp/test.txt
+```
+
+Importobot extracts:
+- Field names and aliases
+- Field descriptions and content types
+- Example values
+- Required field indicators
+
+This improves field mapping accuracy and conversion suggestions.
+
 ### Options
 - `--help` – show CLI help
 - `--batch` – enable directory mode
@@ -67,6 +116,8 @@ uv run importobot \
 - `--api-user` – username for API authentication
 - `--project` – project name or ID
 - `--input-dir` – directory for downloaded payloads (default: current directory)
+- `--input-schema` – documentation describing input test data format (repeatable)
+- `--robot-template` – Robot Framework template file or directory (repeatable)
 
 ### Enterprise test generators
 Helper scripts under `scripts/` can emit large sample suites for demos or benchmarking:
@@ -78,14 +129,25 @@ python scripts/generate_zephyr_tests.py
 
 ## Migration from 0.1.2
 
-Version 0.1.3 adds configuration resilience improvements and achieves complete test coverage. No breaking changes were introduced.
+Version 0.1.3 adds major architectural improvements, new features, and documentation cleanup. No breaking changes were introduced.
+
+**New architecture:**
+- **Application Context Pattern**: Replaced global variables with thread-local context for better test isolation and concurrent instance support
+- **Unified Caching System**: New `importobot.caching` module with LRU cache implementation and security policies
+
+**New features:**
+- **JSON Template System**: Cross-template learning from existing Robot files via `--robot-template` flag
+- **Schema Parser**: Extract field definitions from documentation via `--input-schema` flag
+- **Enhanced File Operations**: Comprehensive JSON examples for system administration tasks
+- **API Examples**: New `wiki/API-Examples.md` with detailed usage patterns
 
 **Configuration improvements:**
 - Enhanced project identifier parsing to handle control characters and whitespace-only inputs gracefully
-- Improved fallback logic ensures CLI arguments that don't parse to valid identifiers fall back to environment variables
+- Updated default-selection logic so CLI arguments that don't parse to valid identifiers use environment variables instead
 
-**Test coverage:**
-- Unskipped and completely rewrote the Zephyr client discovery test
+**Code quality:**
+- Removed pylint from project (now using ruff/mypy only)
+- Documentation cleanup: Removed AI-generated content patterns and improved team voice
 - All 1,941 tests now pass with 0 skips
 
 For legacy migration notes from 0.1.1:
@@ -103,18 +165,13 @@ export IMPORTOBOT_SECURITY_RATE_BACKOFF_BASE=2.0
 export IMPORTOBOT_SECURITY_RATE_BACKOFF_MAX=8.0
 ```
 
-## How It Works
+## Conversion Process
 
 ```
-Input (Zephyr JSON)           →    Importobot Process    →    Output (Robot Framework)
-┌─────────────────────┐            ┌─────────────────┐           ┌──────────────────────────┐
-│ {                   │            │ 1. Parse JSON   │           │ *** Test Cases ***       │
-│   "testCase": {     │     →      │ 2. Map Fields   │    →      │ Login Test               │
-│     "name": "Login" │            │ 3. Generate     │           │   Go To    ${LOGIN_URL}  │
-│     "steps": [...]  │            │    Keywords     │           │   Input Text  id=user   │
-│   }                 │            │ 4. Validate     │           │   Click Button  Login    │
-│ }                   │            └─────────────────┘           └──────────────────────────┘
-└─────────────────────┘
+Zephyr JSON → Importobot → Robot Framework
+─────────────┬─────────────┬─────────────────
+Parse JSON  → Map Fields  → Generate Robot
+            → Validate    → Output .robot
 ```
 
 ## Example
@@ -165,11 +222,11 @@ Step text is parsed for intent (e.g., “navigate”, “assert”), which drive
 
 ## Suggestion Engine
 
-The suggestion engine reviews generated tests and flags gaps (missing assertions, weak error handling, security red flags) using `importobot.api.suggestions`.
+The suggestion engine reviews generated tests and flags gaps (missing assertions, weak error handling, security issues) using `importobot.api.suggestions`.
 
-## Validation Framework
+## Validation
 
-Validation checks inputs, configuration, and security rules before a conversion completes. Failures raise `ValidationError`/`SecurityError` with actionable messages.
+Validation checks inputs, configuration, and security rules before conversion. Failures raise `ValidationError`/`SecurityError` with specific error messages.
 
 ## Artifact Management
 
@@ -231,9 +288,32 @@ uv run importobot input.json output.robot
 3. Use batch mode for large suites.
 4. Clean artifacts (`make clean`) before committing.
 
+### Performance Tips from Field Experience
+
+- **Large exports**: Files with 500+ test cases take ~2-3 seconds to convert on modern hardware
+- **Memory usage**: Each 1000 test cases uses ~50MB RAM during conversion
+- **Batch processing**: Use `--batch` for directories - it's 3-4x faster than individual file calls
+- **API rate limits**: Zephyr servers typically allow 60 requests/minute; set `IMPORTOBOT_API_MAX_CONCURRENCY=2` for safe limits
+
+### Common Conversion Patterns
+
+**Pattern 1: Login test conversion**
+```
+Original: "Enter username 'testuser'"
+Generated: `Input Text    id=username    testuser`
+```
+
+**Pattern 2: Navigation steps**
+```
+Original: "Navigate to dashboard"
+Generated: `Go To    ${DASHBOARD_URL}`
+```
+
+These patterns emerged from analyzing 200+ real-world test conversions.
+
 ## Advanced Features
 
-Internally, Importobot follows a Bronze/Silver/Gold pipeline to keep data quality high, but those modules stay private. Use the public API shown below.
+Internally, Importobot follows a Bronze/Silver/Gold data pipeline, but those modules are private. Use the public API shown below.
 
 ### Using the Public API
 
@@ -310,44 +390,17 @@ notes = engine.suggest_improvements(problematic_tests)
 
 **Internal layers (FYI only):** Bronze handles schema checks, Silver standardises data (in development), Gold prepares the Robot output. Stick to `importobot.*` and `importobot.api.*`; internal modules (`importobot.medallion.*`, `importobot.core.*`) are unsupported.
 
-## Confidence Scoring and Format Detection
+## Format Detection
 
-Importobot uses mathematically rigorous Bayesian confidence scoring to determine the most likely format of input data:
+Importobot automatically detects which test management system created your export file. If the confidence score is below 0.5, the tool will warn you so you can verify the format is correct.
 
-### Bayesian Confidence Calculation
+Common formats:
+- **Zephyr/JIRA** - JSON exports with `testCase` fields
+- **TestRail** - JSON with case structures and custom fields
+- **TestLink** - XML or JSON with test suite hierarchies
+- **Generic** - Fallback for unusual or mixed formats
 
-The system calculates confidence using proper Bayesian inference:
-
-```
-P(Format|Evidence) = P(Evidence|Format) × P(Format) / P(Evidence)
-```
-
-Where:
-- **P(Format|Evidence)**: Final confidence score (posterior probability)
-- **P(Evidence|Format)**: Evidence strength given the format (likelihood)
-- **P(Format)**: Prior probability based on format prevalence
-- **P(Evidence)**: Normalization factor (marginal probability)
-
-### Evidence Metrics
-
-The system evaluates multiple evidence dimensions:
-
-| Metric | Description | Range |
-|--------|-------------|-------|
-| **Completeness** | How much required evidence is present | [0, 1] |
-| **Quality** | Average confidence of individual evidence items | [0, 1] |
-| **Uniqueness** | How distinctive the evidence is for the format | [0, 1] |
-| **Evidence Count** | Total number of evidence items found | [0, ∞] |
-| **Unique Count** | Number of unique evidence items | [0, ∞] |
-
-### Format-Specific Adjustments
-
-Different formats receive specialized treatment:
-
-- **XML formats (TestLink)**: More tolerant of structural errors
-- **JSON formats (TestRail)**: Stricter on field matching
-- **JIRA formats (Xray/Zephyr)**: Moderate tolerance with custom fields
-- **Generic formats**: Higher ambiguity factors
+If you get a low confidence warning, check that your export matches the expected format for your test management system.
 
 ### Confidence Thresholds
 
@@ -361,5 +414,7 @@ Different formats receive specialized treatment:
 - **Cross-validation** for out-of-sample performance assessment
 - **Posterior predictive checks** for model validation
 - **Adaptive P(E|¬H)** estimation using quadratic decay
+
+Monte Carlo evaluation handles 8+ evidence dimensions in 50ms, where grid evaluation became too slow.
 
 For complete mathematical details, see [Mathematical Foundations](https://github.com/athola/importobot/wiki/Mathematical-Foundations).

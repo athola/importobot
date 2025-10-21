@@ -7,7 +7,7 @@ from importobot import exceptions
 from importobot.core.constants import TEST_CONTAINER_FIELD_NAMES
 from importobot.core.interfaces import SuggestionEngine
 from importobot.core.parsers import GenericTestFileParser
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 from importobot.utils.validation import FieldValidator
 
 from .builtin_analyzer import BuiltInKeywordAnalyzer
@@ -15,7 +15,7 @@ from .comparison_analyzer import ComparisonAnalyzer
 from .parameter_analyzer import ParameterAnalyzer
 from .step_analyzer import StepAnalyzer
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 class GenericSuggestionEngine(SuggestionEngine):

@@ -1,7 +1,6 @@
 """Core test generation logic and enterprise test generator."""
 
 import json
-import logging
 import random
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -15,8 +14,10 @@ from importobot.utils.defaults import (
     PROGRESS_CONFIG,
     get_default_value,
 )
+from importobot.utils.logging import get_logger
 from importobot.utils.progress_reporter import BatchProgressReporter, ProgressReporter
 from importobot.utils.resource_manager import get_resource_manager
+from importobot.utils.secrets_detector import SecretsDetector
 from importobot.utils.test_generation.categories import CategoryEnum, CategoryInfo
 from importobot.utils.test_generation.distributions import (
     DistributionDict,
@@ -81,7 +82,8 @@ class EnterpriseTestGenerator:
         self.keyword_registry = RobotFrameworkKeywordRegistry()
         self.template_manager = TemplateManager()
         self.resource_manager = get_resource_manager()
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger()
+        self.secrets_detector = SecretsDetector()
         self._file_write_queue: list[Any] = []
 
     def generate_realistic_test_data(self) -> dict[str, str]:
@@ -117,6 +119,19 @@ class EnterpriseTestGenerator:
         self, template: str, test_data: dict[str, str], step_index: int
     ) -> dict[str, Any]:
         """Generate a sophisticated test step with realistic enterprise context."""
+        findings = self.secrets_detector.scan({"template": template, "data": test_data})
+        if findings:
+            previews = ", ".join(
+                f"{finding.secret_type}: {finding.preview}" for finding in findings
+            )
+            self.logger.error(
+                "Potential secrets detected; refusing to generate step: %s",
+                previews,
+            )
+            raise ValueError(
+                "Potential secrets detected; sanitize inputs before generation"
+            )
+
         try:
             step_description = template.format(**test_data)
             self.logger.debug(
@@ -139,7 +154,7 @@ class EnterpriseTestGenerator:
             step_description = template
             # Add diagnostic information to help debug template issues
             self.logger.info(
-                "Using fallback template without formatting: '%s'", template
+                "Using default template without formatting: '%s'", template
             )
         except Exception as e:
             self.logger.error(
@@ -902,11 +917,11 @@ class EnterpriseTestGenerator:
 
         # Default case - return a generic test data string enriched with description
         description = keyword_info.get("description", "") or ""
-        fallback_description = description.strip() or "Unknown operation"
+        default_description = description.strip() or "Unknown operation"
         keyword_slug = keyword.lower().replace(" ", "_") if keyword else "keyword"
         library_slug = library.lower() if library else "unknown_library"
         return (
-            f"{fallback_description} :: test_data_for_{keyword_slug}  # {library_slug}"
+            f"{default_description} :: test_data_for_{keyword_slug}  # {library_slug}"
         )
 
     def _get_test_distribution(

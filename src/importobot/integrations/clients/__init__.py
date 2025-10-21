@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import base64
-import logging
 import time
 from collections.abc import Callable, Iterator
 from enum import Enum
@@ -13,8 +12,10 @@ from urllib.parse import parse_qs, urlparse
 import requests
 
 from importobot.medallion.interfaces.enums import SupportedFormat
+from importobot.utils.logging import get_logger
+from importobot.utils.rate_limiter import RateLimiter
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 ProgressCallback = Callable[..., None]
@@ -59,6 +60,7 @@ class BaseAPIClient:
                     "Accept": "application/json",
                 }
             )
+        self._rate_limiter = RateLimiter(max_calls=100, time_window=60.0)
 
     def _auth_headers(self) -> dict[str, str]:
         """Return default authorization headers."""
@@ -135,6 +137,7 @@ class BaseAPIClient:
         json: dict[str, Any] | None,
     ) -> requests.Response:
         """Dispatch HTTP request to the underlying session."""
+        self._rate_limiter.acquire()
         if method.upper() == "GET":
             return self._session.get(url, params=params or {}, headers=headers)
         if method.upper() == "POST":

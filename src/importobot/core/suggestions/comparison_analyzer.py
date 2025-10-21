@@ -10,10 +10,10 @@ from importobot.core.field_definitions import (
     TEST_SCRIPT_FIELDS,
     get_field_value,
 )
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 from importobot.utils.step_processing import collect_command_steps
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 class ComparisonAnalyzer:

@@ -267,7 +267,7 @@ class ErrorHandler:
 
     def _handle_file_not_found(self, _error: Exception, context: str) -> bool:
         """Handle file not found errors."""
-        self.logger.warning(f"File not found in {context}, using fallback data")
+        self.logger.warning(f"File not found in {context}, using default data")
         return True  # Can continue with sample data
 
     def _handle_command_error(self, _error: Exception, context: str) -> bool:

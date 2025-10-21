@@ -33,24 +33,27 @@ Key principles from experience:
 ## Recent Improvements
 
 - Parameter conversion now skips comment lines, so literal `{placeholders}` and control characters survive in traceability comments while executable statements still become Robot variables.
-- Test generation captures both the original and normalized names, which keeps the Hypothesis fixtures honest even when a source file contains odd control characters.
+- Test generation captures both the original and normalized names, ensuring Hypothesis fixtures remain accurate even when a source file contains odd control characters.
 - The weighted “Bayesian” shim is gone. Evidence flows through `EvidenceMetrics`, required-field gaps apply penalties, and `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py` keeps ambiguous-data ratios capped at 1.5:1.
 - Robot Framework dependencies are current, so the `robot.utils` compatibility shim—and the noisy warning suppression around it—has been retired.
 - Selenium integration tests still run in deterministic dry-run mode with explicit resource cleanup, so CI remains free of WebDriver start-up flakes.
 
 ### 2025 Changes
+- **JSON Template System (Oct 2025):** Added blueprint-driven Robot Framework rendering with cross-template learning. Templates learn patterns from existing Robot files and apply them consistently across conversions.
+- **Schema Parser (Oct 2025):** New `schema_parser.py` extracts field definitions from customer documentation (SOPs, READMEs). Improves parsing accuracy by understanding organization-specific naming conventions.
+- **Enhanced File Examples (Oct 2025):** Expanded JSON example library with realistic system administration tasks (file operations, SSH commands, validation). Added comprehensive test coverage for all examples.
 - **Zephyr Client (Oct 2025):** Redesigned with adaptive API discovery, multiple authentication strategies, and robust payload handling. Works with diverse server configurations.
 - **Bayesian scoring (Oct 2025):** Replaced weighted scorer with independent model, quadratic P(E|¬H), and ratio cap tests. Strong evidence reaches 0.8 confidence without tuning.
 - **Configuration parsing (Oct 2025):** Enhanced project identifier parsing for control characters and whitespace inputs. CLI arguments fall back to environment variables when invalid.
-- **Test coverage (Oct 2025):** Fixed Zephyr client discovery test. All 1,941 tests pass with 0 skips.
+- **Test coverage (Oct 2025):** All 1,941 tests pass with 0 skips.
 - **September cleanup:** Removed 200+ lines of compatibility code, added `data_analysis` helper, updated `__all__` exports to match public API.
 - **Interactive demo:** Added `scripts/interactive_demo.py` for customer demonstrations, shares code with CLI.
-- **Pattern extraction utilities:** Added step comment generation and SSH validation used by both demo and CLI.
+- **Code quality improvements:** Removed pylint from project, streamlined linting workflow, improved test isolation.
 
 ## API Integration Enhancements
 
 ### Zephyr Client
-The `ZephyrClient` adapts to different server configurations with automatic API discovery, authentication fallbacks, and adaptive pagination. See [User Guide](wiki/User-Guide.md) for detailed usage examples.
+The `ZephyrClient` adapts to different server configurations with automatic API discovery, authentication defaults, and adaptive pagination. See [User Guide](wiki/User-Guide.md) for detailed usage examples.
 
 ## CI/CD
 

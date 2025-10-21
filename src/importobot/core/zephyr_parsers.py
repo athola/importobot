@@ -9,7 +9,7 @@ class PlatformCommandParser:
 
     PLATFORM_KEYWORDS: ClassVar[dict[str, list[str]]] = {
         "PLATFORM1": ["target", "default", "standard"],
-        "PLATFORM2": ["alternative", "fallback"],
+        "PLATFORM2": ["alternative", "secondary"],
         "PLATFORM3": ["embedded", "device"],
         "OTHER": ["other", "misc"],
     }
@@ -21,7 +21,7 @@ class PlatformCommandParser:
         PLATFORM1: command for primary platform
         PLATFORM2: command for alternative platform
         PLATFORM3: command for embedded platform
-        OTHER: fallback command
+        OTHER: secondary command
         """
         commands: dict[str, list[str]] = {
             platform: [] for platform in self.PLATFORM_KEYWORDS
@@ -208,7 +208,7 @@ class ZephyrPreconditionAnalyzer:
     """Analyze and structure test preconditions."""
 
     STANDARD_PRECONDITIONS: ClassVar[list[str]] = [
-        "YJ Installed",
+        "Controller Installed",
         "Communication Prepared",
         "Socket(s) Open",
         "Agent Stamped",

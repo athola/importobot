@@ -11,12 +11,28 @@ from importobot.utils.json_utils import load_json_file
 
 def test_hostname_inferred_from_setconfig_template(tmp_path: Path) -> None:
     """Hostname suite should be generated using knowledge learned from another template."""
+    # Generate template inline to avoid tracking .robot files in git
+    template_path = tmp_path / "set_config.robot"
+    template_path.write_text(
+        """*** Test Cases ***
+Sample
+    Switch Connection    Controller
+    Write    setconfig --proc_name ${proc_name}
+    ${setconfig_cli}=    Read Until Regexp    setconfig task (\\S+) completed successfully!
+    Logger    step_num=1    result=${TRUE}    result_str=Task completed successfully.
+    Log    Expected: no task errors
+
+    Switch Connection    REMOTE_HOST
+    ${setconfig_remote}=    Execute Command    ps -ely | grep ${proc_name}
+    Log    Expected: process found
+""",
+        encoding="utf-8",
+    )
+
+    configure_template_sources([str(template_path)])
 
     base_dir = Path(__file__).resolve().parents[2]
     json_path = base_dir / "examples" / "json" / "hostname.json"
-    template_path = base_dir / "examples" / "robot" / "set_config.robot"
-
-    configure_template_sources([str(template_path)])
 
     json_data = load_json_file(str(json_path))
     converter = JsonToRobotConverter()

@@ -13,7 +13,7 @@ from typing import Any
 
 try:  # pragma: no cover - platform specific imports
     import fcntl  # type: ignore[attr-defined]
-except ImportError:  # pragma: no cover - Windows fallback
+except ImportError:  # pragma: no cover - Windows default handling
     fcntl = None  # type: ignore[assignment]
 
 try:  # pragma: no cover - platform specific imports
@@ -29,9 +29,9 @@ from importobot.medallion.interfaces.data_models import (
 from importobot.medallion.interfaces.enums import SupportedFormat
 from importobot.medallion.storage.base import StorageBackend
 from importobot.medallion.utils.query_filters import matches_query_filters
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 @contextmanager
@@ -42,7 +42,7 @@ def _exclusive_file_lock(lock_path: Path) -> Iterator[None]:
         try:
             if fcntl is not None:  # Unix-like systems
                 fcntl.flock(lock_file, fcntl.LOCK_EX)
-            elif msvcrt is not None:  # Windows fallback
+            elif msvcrt is not None:  # Windows default handling
                 lock_file.seek(0)
                 lock_file.write("0")
                 lock_file.flush()

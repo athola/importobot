@@ -16,11 +16,36 @@ class TestBronzeMetadataAndLineage(unittest.TestCase):
 
     def setUp(self) -> None:
         self.bronze_layer = BronzeLayer()
+        # Use proper Zephyr format data so format detection works as expected
         self.sample_data = {
+            "project": {"key": "TEST", "name": "Test Project"},
             "testCase": {
                 "name": "Sanity Check",
                 "description": "Smoke test for metadata retrieval",
-            }
+                "priority": "HIGH",
+                "component": "Testing",
+                "steps": [
+                    {
+                        "stepDescription": "Test step description",
+                        "expectedResult": "Expected result",
+                        "stepId": 1,
+                    }
+                ],
+            },
+            "execution": {
+                "status": "PASSED",
+                "executedOn": "2024-01-15T10:30:00Z",
+                "executedBy": "tester@company.com",
+                "environment": "test",
+                "actualResult": "Test completed successfully",
+            },
+            "cycle": {
+                "name": "Test Cycle",
+                "version": "v1.0.0",
+                "environment": "test",
+                "startDate": "2024-01-01T00:00:00Z",
+                "endDate": "2024-01-31T23:59:59Z",
+            },
         }
         self.metadata = LayerMetadata(
             source_path=Path("tests/data/sample.json"),
@@ -126,7 +151,7 @@ class TestBronzeMetadataAndLineage(unittest.TestCase):
         assert records_upper[0].metadata.record_id == self.record_id
 
     def test_get_bronze_records_filters_by_custom_metadata(self) -> None:
-        """Custom metadata filters should surface through dispatch fallback."""
+        """Custom metadata filters should surface through dispatch defaults."""
         matching = self.bronze_layer.get_bronze_records(
             filter_criteria={"custom_metadata.team": "qa"}
         )

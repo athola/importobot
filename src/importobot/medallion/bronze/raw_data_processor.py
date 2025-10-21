@@ -32,10 +32,10 @@ from importobot.services.metadata_service import MetadataService
 from importobot.services.quality_assessment_service import QualityAssessmentService
 from importobot.services.security_types import SecurityLevel
 from importobot.services.validation_service import ValidationService
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 from importobot.utils.validation_models import QualitySeverity, ValidationResult
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 class BronzeRecordResponse(dict, BronzeRecord):

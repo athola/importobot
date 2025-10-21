@@ -1,6 +1,6 @@
 # Contributing
 
-We welcome contributions. Follow the steps below to get set up and keep changes aligned with the project style.
+We welcome contributions. Here's how to get set up and keep changes aligned with the project style.
 
 ## Development Setup
 

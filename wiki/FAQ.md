@@ -11,7 +11,7 @@ Importobot converts structured test exports (Zephyr today) into Robot Framework 
 Eliminates manual copy/paste work when migrating test cases, preserves metadata, and highlights items needing manual review.
 
 ### What formats does Importobot support?
-Zephyr JSON is supported now. Xray and TestLink parsers are in review.
+Zephyr, TestRail, Xray, and TestLink formats are supported with JSON and XML inputs.
 
 ### What does Importobot generate?
 Executable Robot Framework `.robot` files.
@@ -36,10 +36,19 @@ Run `uv run pytest` in the repo. The suite should pass.
 `uv run importobot --batch input_dir/ output_dir/`
 
 ### How does Importobot handle different test steps?
-Intent-based parsing maps steps to appropriate Robot keywords; ambiguous cases are surfaced in the output for review.
+Intent-based parsing maps steps to Robot keywords; ambiguous cases appear in the output for review.
 
 ### Can I customize the output?
-Not directly. Edit the generated Robot files if bespoke behaviour is required.
+Yes:
+- **Template-based conversion**: `--robot-template` applies custom Robot Framework templates
+- **Schema-driven parsing**: `--input-schema` provides documentation about your test data format
+- **Template learning**: Importobot learns patterns from existing Robot files
+
+### How does schema-aware parsing work?
+Provide documentation files (SOPs, READMEs, field guides) describing your test data format. Importobot extracts field definitions, aliases, and examples to improve parsing accuracy.
+
+### What are blueprint templates?
+Blueprint templates learn patterns from your existing Robot Framework files and apply them to new conversions for consistency with your team's style.
 
 ## Troubleshooting
 

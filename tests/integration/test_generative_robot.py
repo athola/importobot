@@ -412,11 +412,11 @@ def _generate_builtin_keyword_data(
 ) -> str:
     """Generate proper data for BuiltIn keywords."""
     keyword_specific_data = generator.generate_keyword_specific_data(kw, test_data)
-    # Verify that BuiltIn keywords get proper structured data, not generic fallbacks
+    # Verify that BuiltIn keywords get proper structured data, not generic defaults
     if "test_data_for_" in keyword_specific_data and "#" in keyword_specific_data:
         # This indicates the generator didn't have a specific pattern
         # for this BuiltIn keyword
-        # Use a fallback that will at least be valid
+        # Use a default value that will at least be valid
         keyword_name = kw["keyword"].lower().replace(" ", "_")
         if "convert" in keyword_name:
             return "value: 123"

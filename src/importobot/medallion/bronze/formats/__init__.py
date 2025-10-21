@@ -14,7 +14,7 @@ Format definitions are based on research into:
 - Xray for JIRA (tests as JIRA issues, evidence attachments)
 - TestRail (hierarchical structure, independent platform)
 - TestLink (XML-based, suite-centric)
-- Generic (fallback for unsupported formats)
+- Generic (default for unsupported formats)
 """
 
 from .generic_format import create_generic_format

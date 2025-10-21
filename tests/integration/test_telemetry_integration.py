@@ -16,6 +16,7 @@ from importobot.services.data_ingestion_service import (
 from importobot.services.optimization_service import OptimizationService
 from importobot.services.performance_cache import PerformanceCache
 from importobot.telemetry import (
+    TelemetryClient,
     TelemetryPayload,
     clear_telemetry_exporters,
     get_telemetry_client,
@@ -311,6 +312,7 @@ class TestTelemetryRateLimitingIntegration:
         register_telemetry_exporter(lambda n, p: events.append((n, p)))
 
         client = get_telemetry_client()
+        assert client is not None
 
         # Record metrics for different caches
         client.record_cache_metrics("cache_a", hits=5, misses=2)
@@ -375,19 +377,22 @@ class TestTelemetryLifecycle:
         reset_telemetry_client()
 
         client1 = get_telemetry_client()
-        assert not client1.enabled
+        assert client1 is None
 
         # Enable and reset
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")
         reset_telemetry_client()
 
         client2 = get_telemetry_client()
-        assert client2.enabled
-        assert client1 is not client2
+        assert client2 is not None
+        assert isinstance(client2, TelemetryClient)
 
-    def test_exporter_registration_survives_operations(self):
+    def test_exporter_registration_survives_operations(self, monkeypatch):
         """Custom exporters should persist through cache operations."""
         custom_events: list[tuple[str, TelemetryPayload]] = []
+
+        monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")
+        reset_telemetry_client()
 
         def custom_exporter(name, payload):
             custom_events.append((name, payload))
@@ -413,6 +418,7 @@ class TestTelemetryLifecycle:
         register_telemetry_exporter(Mock())
 
         client = get_telemetry_client()
+        assert client is not None
         initial_count = len(client._exporters)
         assert initial_count > 1  # Default + custom exporters
 

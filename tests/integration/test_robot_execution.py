@@ -93,7 +93,7 @@ Close Connection
     # First ensure generated content has valid structure
     assert_robot_framework_syntax_valid(generated_content)
 
-    # Then do semantic comparison with fallback to exact match for regression testing
+    # Then do semantic comparison with a default-to-exact match for regression testing
     try:
         assert_robot_content_equivalent(generated_content, expected_robot_content)
     except AssertionError:

@@ -6,7 +6,7 @@
 | Package | [![PyPI Version](https://img.shields.io/pypi/v/importobot.svg)](https://pypi.org/project/importobot/) [![PyPI Downloads](https://img.shields.io/pypi/dm/importobot.svg)](https://pypi.org/project/importobot/) |
 | Meta | [![License](https://img.shields.io/pypi/l/importobot.svg)](./LICENSE) [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/) [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff) [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv) |
 
-Importobot converts structured test exports (Zephyr, TestLink, Xray) into Robot Framework files. The converter processes entire directories, maintains the original step order, and preserves metadata for audit trails.
+Importobot converts structured test exports (Zephyr, TestLink, Xray) into Robot Framework files. It processes entire directories while preserving step order and metadata for audit trails.
 
 ```python
 >>> import importobot
@@ -15,6 +15,17 @@ Importobot converts structured test exports (Zephyr, TestLink, Xray) into Robot 
 >>> print(summary)
 ```
 
+## API Reference
+
+Importobot maintains a deliberately small, stable API surface:
+
+- `importobot.JsonToRobotConverter` – primary class for orchestrating conversions.
+- `importobot.convert`, `importobot.convert_file`, `importobot.convert_directory` – convenience helpers for one-shot conversions.
+- `importobot.api.converters`, `importobot.api.suggestions`, `importobot.api.validation` – extension points for advanced workflows.
+- `importobot.config`, `importobot.exceptions` – configuration helpers and typed exceptions.
+
+All other packages (`importobot.core`, `importobot.services`, `importobot.medallion`, `importobot.utils`, etc.) are implementation details. Their structure may change between releases and they are not covered by backwards-compatibility guarantees. New public helpers will graduate through the `importobot.api` namespace to mirror the stability model used by projects such as pandas.
+
 ## Features
 
 - Convert Zephyr, TestLink, and Xray JSON exports to Robot Framework
@@ -22,8 +33,11 @@ Importobot converts structured test exports (Zephyr, TestLink, Xray) into Robot 
 - Preserve descriptions, steps, tags, and priorities for audit trails
 - Validate JSON structure and flag format mismatches before conversion
 - Python API for CI/CD pipelines and automated workflows
-- Bayesian format detection with 1.5:1 likelihood ratio caps for ambiguous data
-- Test suite with 1,941 tests covering conversion paths and edge cases
+- **Template learning**: Extracts patterns from your existing Robot files for consistent output
+- **Schema parsing**: Reads your documentation (SOPs, READMEs) to understand field naming conventions
+- **File operation support**: Generates system administration tasks (SSH, file operations, validation)
+- Bayesian format detection caps ambiguous ratios at 1.5:1 to avoid false positives
+- 1,941 tests cover conversion paths and edge cases
 
 ## Installation
 
@@ -107,7 +121,7 @@ User Login Functionality
 
 ## API Retrieval
 
-Importobot fetches test suites directly from supported platforms, then converts them using the standard pipeline. The Zephyr client discovers working API patterns and adapts to different server configurations.
+Importobot can fetch test suites directly from supported platforms and convert them using the standard pipeline. The Zephyr client automatically discovers working API patterns and adapts to different server configurations.
 
 - Fetch and convert in one step:
   ```console
@@ -151,21 +165,46 @@ Environment variables mirror CLI flags with format-specific prefixes. CLI argume
 
 ## Examples
 
-- Convert an entire directory while preserving structure:
-  ```console
-  $ uv run importobot ./exports/zephyr ./converted
-  ```
-- Enable Bayesian optimiser tuning with SciPy installed via `importobot[advanced]`:
+### Basic Directory Conversion
+Convert an entire directory while preserving structure:
+```console
+$ uv run importobot ./exports/zephyr ./converted
+```
+
+### Schema-Driven Conversion
+Use your organization's documentation to improve parsing accuracy:
+```console
+$ uv run importobot --input-schema docs/test_field_guide.md input.json output.robot
+```
+
+### Template-Based Conversion
+Apply learned patterns from existing Robot files:
+```console
+$ uv run importobot --robot-template templates/standard.robot input.json output.robot
+```
+
+#### Template Learning
+
+1. **Source ingestion** – Scans template directories safely. Unreadable files generate warnings but don't stop processing.
+2. **Pattern extraction** – Normalizes Robot content to capture step patterns (connection, command token, command body) and keyword imports.
+3. **Context matching** – Matches step text against extracted patterns during conversion. Falls back to default renderer when no pattern matches.
+4. **Rendering** – Builds suites with learned settings and keywords, adding setup/teardown based on discovered patterns.
+
+For additional examples and troubleshooting, see [`wiki/architecture/Blueprint-Learning.md`](wiki/architecture/Blueprint-Learning.md).
+
+### Advanced Features
+- Bayesian optimization with SciPy (`importobot[advanced]`):
   ```python
   from importobot.medallion.bronze import optimization
 
   optimizer = optimization.MVLPConfidenceOptimizer()
   optimizer.tune_parameters("fixtures/complex_suite.json")
   ```
-- Render conversion metrics if rich numerical plots are desired:
+- Conversion metrics and plots:
   ```console
   $ uv run python scripts/src/importobot_scripts/example_advanced_features.py
   ```
+
 
 ## Confidence Scoring
 
@@ -175,12 +214,12 @@ Importobot uses Bayesian inference to detect input formats:
 P(H|E) = P(E|H) × P(H) / [P(E|H) × P(H) + P(E|¬H) × P(¬H)]
 ```
 
-Implementation details:
+Implementation:
 
-- Likelihood mapping: `P = 0.05 + 0.85 × value` keeps weak evidence near zero, caps strong evidence at 0.9
+- Likelihood mapping: `P = 0.05 + 0.85 × value` (weak evidence → 0, strong evidence → 0.9)
 - Wrong-format penalty: `P(E|¬H) = 0.01 + 0.49 × (1 - likelihood)²`
-- Ambiguous evidence capped at 1.5:1 likelihood ratio; strong evidence can reach 3:1
-- Regression tests in `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py` enforce these constraints
+- Ambiguous evidence capped at 1.5:1 ratio, strong evidence up to 3:1
+- Constraints enforced in `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`
 
 Format-specific adjustments:
 - TestLink (XML): Higher ambiguity tolerance

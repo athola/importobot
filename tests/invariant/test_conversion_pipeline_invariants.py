@@ -19,6 +19,7 @@ from hypothesis import strategies as st
 from importobot.core.converter import JsonToRobotConverter
 from importobot.core.parsers import GenericTestFileParser
 from importobot.exceptions import ImportobotError
+from importobot.utils.validation import sanitize_robot_string
 
 
 @st.composite
@@ -105,10 +106,10 @@ class TestConversionPipelineInvariants:
                 if test_name and test_name.strip():
                     # Name might be modified for Robot Framework compatibility
                     # Robot Framework converts newlines and special chars to spaces
-                    normalized_name = (
+                    normalized_name = sanitize_robot_string(
                         test_name.replace("\n", " ").replace("\r", " ").strip()
                     )
-                    while "  " in normalized_name:  # Remove double spaces
+                    while "  " in normalized_name:
                         normalized_name = normalized_name.replace("  ", " ")
 
                     # Check if the normalized name or variations appear in output

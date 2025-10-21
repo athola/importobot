@@ -8,7 +8,9 @@ This test validates that we can:
 """
 
 import json
+import sys
 import threading
+import types
 from collections.abc import Callable
 from http.server import HTTPServer
 from typing import cast
@@ -18,19 +20,122 @@ import robot
 from robot.api import ExecutionResult, get_model
 
 from importobot.core.converter import convert_file
+from importobot.core.keywords_registry import RobotFrameworkKeywordRegistry
 from tests.mock_server import MyHandler
+
+KWARG_ENABLED_KEYWORDS = {
+    "Open Browser",
+    "Create Session",
+    "GET On Session",
+    "POST On Session",
+    "PUT On Session",
+    "DELETE On Session",
+}
+
+
+def _sanitize_identifier(name: str) -> str:
+    method_name = "".join(ch if ch.isalnum() else "_" for ch in name.strip())
+    while "__" in method_name:
+        method_name = method_name.replace("__", "_")
+    method_name = method_name.lstrip("_")
+    return method_name or "keyword"
+
+
+def _create_stub_module(library_name: str) -> types.ModuleType:
+    keyword_defs = RobotFrameworkKeywordRegistry.KEYWORD_LIBRARIES.get(library_name, {})
+
+    attrs: dict[str, object] = {
+        "ROBOT_LIBRARY_SCOPE": "GLOBAL",
+        "ROBOT_LIBRARY_VERSION": "stub-0.1",
+    }
+
+    for display_name in sorted(keyword_defs):
+        method_name = _sanitize_identifier(display_name)
+        arg_specs = keyword_defs.get(display_name, {}).get("args", [])
+        parameters = ["self"]
+
+        for spec in arg_specs:
+            cleaned = spec.strip()
+            if not cleaned:
+                continue
+            if cleaned.startswith("*"):
+                parameters.append(cleaned)
+                continue
+            if "=" in cleaned:
+                name, default = cleaned.split("=", 1)
+                param_name = _sanitize_identifier(name)
+                parameters.append(f"{param_name}={default}")
+            else:
+                parameters.append(_sanitize_identifier(cleaned))
+
+        allow_kwargs = any("=" in spec for spec in arg_specs) or (
+            display_name in KWARG_ENABLED_KEYWORDS
+        )
+        if allow_kwargs and not any(param.startswith("**") for param in parameters[1:]):
+            parameters.append("**kwargs")
+
+        params_str = ", ".join(parameters)
+        namespace: dict[str, object] = {}
+        exec(  # nosec: controlled stub for tests
+            f"def {method_name}({params_str}):\n    return None\n",
+            {},
+            namespace,
+        )
+        func = namespace[method_name]
+        func.__doc__ = f"Stub keyword for {display_name}"
+        attrs[method_name] = func
+
+    def __getattr__(self, name):  # pragma: no cover - safety default handler
+        def _keyword(*args, **kwargs):
+            return None
+
+        _keyword.__name__ = name
+        return types.MethodType(_keyword, self)
+
+    attrs["__getattr__"] = __getattr__
+
+    stub_class = type(library_name, (), attrs)
+    module = types.ModuleType(library_name)
+    module.__dict__["__all__"] = [library_name]
+    setattr(module, library_name, stub_class)
+    return module
+
 
 # Robot Framework lacks type info for `run`, so cast the attribute explicitly.
 robot_run = cast(Callable[..., int], robot.run)  # type: ignore[attr-defined]
+
+
+@pytest.fixture(scope="module", autouse=True)
+def stub_robot_libraries():
+    """Provide lightweight stubs for Robot external libraries used in tests."""
+    originals: dict[str, types.ModuleType | None] = {
+        lib: sys.modules.get(lib) for lib in ("SeleniumLibrary", "RequestsLibrary")
+    }
+
+    for lib in ("SeleniumLibrary", "RequestsLibrary"):
+        if lib in sys.modules:
+            continue
+        sys.modules[lib] = _create_stub_module(lib)
+
+    try:
+        yield
+    finally:
+        for lib, original in originals.items():
+            if original is None:
+                sys.modules.pop(lib, None)
+            else:
+                sys.modules[lib] = original
 
 
 @pytest.fixture
 def mock_server():
     """Start a mock HTTP server for Selenium testing."""
     try:
-        server = HTTPServer(("localhost", 0), MyHandler)
-    except PermissionError as exc:  # pragma: no cover - sandboxed environments
-        pytest.skip(f"Unable to start HTTP server: {exc}")
+        server = HTTPServer(("127.0.0.1", 0), MyHandler)
+    except OSError:  # pragma: no cover - sandboxed environments
+        # Fall back to a static URL when networking is unavailable.
+        yield "http://example.com"
+        return
     port = server.server_address[1]
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()

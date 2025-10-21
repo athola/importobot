@@ -77,14 +77,19 @@ sync:
 # Run tests
 .PHONY: test
 test:
-	$(info $(NEWLINE)==================== Running tests ====================$(NEWLINE))
-	uv run pytest tests/
+	$(info $(NEWLINE)==================== Running fast test suite ====================$(NEWLINE))
+	uv run pytest -n auto -m "not slow" tests/
+
+.PHONY: test-all
+test-all:
+	$(info $(NEWLINE)==================== Running full test suite ====================$(NEWLINE))
+	uv run coverage run -m pytest -n auto --junitxml=test-results.xml tests/
 
 # Coverage
 .PHONY: coverage
 coverage:
-	$(info $(NEWLINE)==================== Running tests with coverage ====================$(NEWLINE))
-	uv run coverage run -m pytest && uv run coverage report
+	$(info $(NEWLINE)==================== Generating coverage report ====================$(NEWLINE))
+	uv run coverage report
 
 # Linting
 .PHONY: lint

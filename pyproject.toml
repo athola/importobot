@@ -101,6 +101,7 @@ importobot = "importobot.__main__:main"
 dev = [
     "scipy-stubs>=1.15.3.0",
     "pytest>=7.0.0",
+    "pytest-xdist>=3.6.1",
     "pytest-asyncio>=0.23.5",
     "coverage>=7.0.0",
     "ruff>=0.1.0",
@@ -121,6 +122,7 @@ dev = [
     "bandit>=1.7.0",
     "hypothesis>=6.140.2",
     "mutmut>=2.4.4",
+    "pyright>=1.1.380",
 ]
 
 [tool.setuptools.packages.find]

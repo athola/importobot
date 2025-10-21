@@ -9,15 +9,29 @@ Addresses performance bottlenecks identified in the staff review:
 from __future__ import annotations
 
 import hashlib
+import importlib
 import json
 import time
 from collections import OrderedDict
-from typing import Any
+from typing import Any, Protocol, cast
 from weakref import WeakKeyDictionary
 
 from importobot.config import _int_from_env
 from importobot.telemetry import TelemetryClient, get_telemetry_client
 from importobot.utils.logging import setup_logger
+
+
+class _NullTelemetry:
+    def record_cache_metrics(  # pylint: disable=unused-argument
+        self,
+        cache_name: str,
+        *,
+        hits: int,
+        misses: int,
+        extras: dict[str, Any] | None = None,
+    ) -> None:
+        return None
+
 
 logger = setup_logger(__name__)
 
@@ -68,10 +82,14 @@ class PerformanceCache:
         self._json_cache: dict[str, str] = {}
         self._json_cache_expiry: dict[str, float] = {}
         self._object_cache: WeakKeyDictionary = WeakKeyDictionary()
+        self._manual_cache: dict[str, Any] = {}
         self._cache_hits = 0
         self._cache_misses = 0
         self._string_ops_cache: dict[str, Any] = {}
-        self._telemetry = telemetry_client or get_telemetry_client()
+        resolved_telemetry = telemetry_client or get_telemetry_client()
+        self._telemetry: TelemetryClient | _NullTelemetry = (
+            resolved_telemetry if resolved_telemetry is not None else _NullTelemetry()
+        )
         logger.info("Initialized PerformanceCache with max_size=%d", resolved_max)
 
     def get_cached_string_lower(self, data: Any) -> str:
@@ -91,11 +109,14 @@ class PerformanceCache:
 
         # Check cache first
         if cache_key in self._string_cache:
-            if self._is_expired(self._string_cache_expiry.get(cache_key)):
+            current_time = time.time()
+            if self._is_expired(
+                self._string_cache_expiry.get(cache_key), now=current_time
+            ):
                 self._evict_string_entry(cache_key)
             else:
                 self._cache_hits += 1
-                self._string_cache_expiry[cache_key] = time.time()
+                self._string_cache_expiry[cache_key] = current_time
                 self._emit_cache_metrics()
                 return self._string_cache[cache_key]
 
@@ -126,11 +147,14 @@ class PerformanceCache:
         cache_key = self._create_data_hash(data)
 
         if cache_key in self._json_cache:
-            if self._is_expired(self._json_cache_expiry.get(cache_key)):
+            current_time = time.time()
+            if self._is_expired(
+                self._json_cache_expiry.get(cache_key), now=current_time
+            ):
                 self._evict_json_entry(cache_key)
             else:
                 self._cache_hits += 1
-                self._json_cache_expiry[cache_key] = time.time()
+                self._json_cache_expiry[cache_key] = current_time
                 self._emit_cache_metrics()
                 return self._json_cache[cache_key]
 
@@ -183,6 +207,7 @@ class PerformanceCache:
         self._json_cache.clear()
         self._json_cache_expiry.clear()
         self._object_cache.clear()
+        self._manual_cache.clear()
         self._emit_cache_metrics()
         logger.info("Performance caches cleared")
 
@@ -197,6 +222,7 @@ class PerformanceCache:
             "cache_hits": self._cache_hits,
             "cache_misses": self._cache_misses,
             "hit_rate_percent": round(hit_rate, 2),
+            "cache_size": len(self._string_cache) + len(self._manual_cache),
             "string_cache_size": len(self._string_cache),
             "json_cache_size": len(self._json_cache),
             "object_cache_size": len(self._object_cache),
@@ -205,18 +231,20 @@ class PerformanceCache:
         }
 
     def _emit_cache_metrics(self) -> None:
-        self._telemetry.record_cache_metrics(
-            "performance_cache",
-            hits=self._cache_hits,
-            misses=self._cache_misses,
-            extras={
-                "string_cache_size": len(self._string_cache),
-                "json_cache_size": len(self._json_cache),
-                "object_cache_size": len(self._object_cache),
-                "max_cache_size": self.max_cache_size,
-                "ttl_seconds": self._ttl_seconds or 0,
-            },
-        )
+        if self._telemetry is not None:
+            self._telemetry.record_cache_metrics(
+                "performance_cache",
+                hits=self._cache_hits,
+                misses=self._cache_misses,
+                extras={
+                    "string_cache_size": len(self._string_cache),
+                    "json_cache_size": len(self._json_cache),
+                    "object_cache_size": len(self._object_cache),
+                    "manual_cache_size": len(self._manual_cache),
+                    "max_cache_size": self.max_cache_size,
+                    "ttl_seconds": self._ttl_seconds or 0,
+                },
+            )
 
     def _create_data_hash(self, data: Any) -> str:
         """Create a hash key for data caching."""
@@ -248,10 +276,19 @@ class PerformanceCache:
         self._json_cache.pop(cache_key, None)
         self._json_cache_expiry.pop(cache_key, None)
 
-    def _is_expired(self, timestamp: float | None) -> bool:
+    def _is_expired(self, timestamp: float | None, *, now: float | None = None) -> bool:
         if self._ttl_seconds is None or timestamp is None:
             return False
-        return (time.time() - timestamp) > self._ttl_seconds
+        current = now if now is not None else time.time()
+        return (current - timestamp) > self._ttl_seconds
+
+    def set(self, key: str, value: Any) -> None:
+        """Store a value in the manual cache segment."""
+        self._manual_cache[key] = value
+
+    def get(self, key: str) -> Any | None:
+        """Retrieve a value from the manual cache segment."""
+        return self._manual_cache.get(key)
 
 
 class LazyEvaluator:
@@ -323,16 +360,17 @@ class LazyEvaluator:
         return None
 
 
-# Global performance cache instance
-_global_cache: PerformanceCache | None = None
+class _SupportsPerformanceCache(Protocol):
+    @property
+    def performance_cache(self) -> PerformanceCache:
+        """Return performance cache instance."""
 
 
 def get_performance_cache() -> PerformanceCache:
-    """Get the global performance cache instance."""
-    global _global_cache  # pylint: disable=global-statement  # noqa: PLW0603
-    if _global_cache is None:
-        _global_cache = PerformanceCache()
-    return _global_cache
+    """Get the performance cache from the current application context."""
+    context_module = importlib.import_module("importobot.context")
+    context = cast(_SupportsPerformanceCache, context_module.get_context())
+    return context.performance_cache
 
 
 def cached_string_lower(data: Any) -> str:

@@ -53,8 +53,8 @@ class TestIntegration:
                 assert "*** Test Cases ***" in content
                 assert "Login Test" in content
                 assert "Test user login functionality" in content
-                assert "# Step: Open browser to login page" in content
-                assert "# Expected Result: Login page is displayed" in content
+                assert "# Open browser to login page" in content
+                assert "Expected: Login page is displayed" in content
         finally:
             # Cleanup
             Path(input_filename).unlink(missing_ok=True)

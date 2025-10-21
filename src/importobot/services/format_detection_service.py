@@ -13,9 +13,9 @@ from importobot.medallion.interfaces.data_models import (
     FormatDetectionResult,
     SupportedFormat,
 )
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 class FormatDetectionService:

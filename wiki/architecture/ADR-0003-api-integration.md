@@ -15,7 +15,7 @@ Implemented a flexible API client architecture that:
 1. **Supports multiple platforms**: Jira/Xray, Zephyr for Jira, TestRail, and TestLink
 2. **Preserves existing architecture**: Raw payloads feed into the bronze layer for normalization
 3. **Provides flexible authentication**: CLI flags override environment variables
-4. **Handles platform variability**: Adaptive discovery and fallback mechanisms
+4. **Handles platform variability**: Adaptive discovery and secondary mechanisms
 
 ## Architecture
 

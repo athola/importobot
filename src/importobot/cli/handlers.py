@@ -8,6 +8,7 @@ import enum
 import glob
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -26,7 +27,7 @@ from importobot.utils.file_operations import (
     process_single_file_with_suggestions,
 )
 from importobot.utils.json_utils import load_json_file
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 
 
 class InputType(enum.Enum):
@@ -38,7 +39,7 @@ class InputType(enum.Enum):
     ERROR = "error"
 
 
-logger = setup_logger("importobot-cli")
+logger = get_logger("importobot-cli")
 
 
 def detect_input_type(input_path: str) -> tuple[InputType, list[str]]:
@@ -235,7 +236,10 @@ def _build_payload_filename(config: Any) -> Path:
     timestamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d-%H%M%S")
     base_parts = [config.fetch_format.value]
     if config.project_name:
-        base_parts.append(config.project_name.lower())
+        safe_project = re.sub(r"[^a-z0-9]+", "-", config.project_name.lower())
+        safe_project = safe_project.strip("-")
+        if safe_project:
+            base_parts.append(safe_project)
     elif config.project_id is not None:
         base_parts.append(str(config.project_id))
     filename = "-".join(base_parts) + f"-{timestamp}.json"

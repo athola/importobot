@@ -2,6 +2,7 @@
 
 import json
 import subprocess
+import sys
 import tempfile
 from io import StringIO
 from pathlib import Path
@@ -103,7 +104,7 @@ class TestCLIUserWorkflows:
 
             # Run CLI command
             result = subprocess.run(
-                ["python", "-m", "importobot", str(input_file), str(output_file)],
+                [sys.executable, "-m", "importobot", str(input_file), str(output_file)],
                 capture_output=True,
                 text=True,
                 check=False,
@@ -149,7 +150,7 @@ class TestCLIUserWorkflows:
             # Run CLI command with --files flag (multiple arguments,
             # not comma-separated)
             cmd = [
-                "python",
+                sys.executable,
                 "-m",
                 "importobot",
                 "--files",
@@ -199,7 +200,7 @@ class TestCLIUserWorkflows:
             # Run CLI command with --directory flag
             result = subprocess.run(
                 [
-                    "python",
+                    sys.executable,
                     "-m",
                     "importobot",
                     "--directory",
@@ -239,7 +240,13 @@ class TestCLIUserErrorScenarios:
             corrupted_file.write_text('{ "name": "Test", "incomplete": ')
 
             result = subprocess.run(
-                ["python", "-m", "importobot", str(corrupted_file), str(output_file)],
+                [
+                    sys.executable,
+                    "-m",
+                    "importobot",
+                    str(corrupted_file),
+                    str(output_file),
+                ],
                 capture_output=True,
                 text=True,
                 check=False,
@@ -271,7 +278,13 @@ class TestCLIUserErrorScenarios:
             output_file = temp_path / "output.robot"
 
             result = subprocess.run(
-                ["python", "-m", "importobot", str(missing_file), str(output_file)],
+                [
+                    sys.executable,
+                    "-m",
+                    "importobot",
+                    str(missing_file),
+                    str(output_file),
+                ],
                 capture_output=True,
                 text=True,
                 check=False,
@@ -299,7 +312,7 @@ class TestCLIUserErrorScenarios:
             missing_dir = temp_path / "missing" / "output.robot"
 
             result = subprocess.run(
-                ["python", "-m", "importobot", str(input_file), str(missing_dir)],
+                [sys.executable, "-m", "importobot", str(input_file), str(missing_dir)],
                 capture_output=True,
                 text=True,
                 check=False,
@@ -315,7 +328,7 @@ class TestCLIUserErrorScenarios:
     def test_user_can_get_help_information(self):
         """User can easily get help on how to use the tool."""
         result = subprocess.run(
-            ["python", "-m", "importobot", "--help"],
+            [sys.executable, "-m", "importobot", "--help"],
             capture_output=True,
             text=True,
             check=False,
@@ -347,7 +360,7 @@ class TestCLIUserErrorScenarios:
             output_dir.mkdir()
 
             cmd = [
-                "python",
+                sys.executable,
                 "-m",
                 "importobot",
                 "--files",
@@ -380,7 +393,7 @@ class TestCLIUserErrorScenarios:
 
             result = subprocess.run(
                 [
-                    "python",
+                    sys.executable,
                     "-m",
                     "importobot",
                     "--directory",
@@ -406,7 +419,7 @@ class TestErrorHandling:
     def test_user_gets_clear_feedback_when_file_missing(self):
         """User understands what went wrong when file doesn't exist."""
         result = subprocess.run(
-            ["python", "-m", "importobot", "non_existent.json"],
+            [sys.executable, "-m", "importobot", "non_existent.json"],
             capture_output=True,
             text=True,
             check=False,
@@ -426,7 +439,7 @@ class TestErrorHandling:
             # Don't create the file to trigger the error
 
             result = subprocess.run(
-                ["python", "-m", "importobot", str(input_file)],
+                [sys.executable, "-m", "importobot", str(input_file)],
                 capture_output=True,
                 text=True,
                 check=False,
@@ -465,7 +478,7 @@ class TestErrorHandling:
     def test_no_input(self):
         """Test that the script exits with an error if no input is provided."""
         result = subprocess.run(
-            ["python", "-m", "importobot"],
+            [sys.executable, "-m", "importobot"],
             capture_output=True,
             text=True,
             check=False,

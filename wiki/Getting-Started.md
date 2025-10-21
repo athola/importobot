@@ -1,8 +1,8 @@
 # Getting Started
 
-Set up Importobot, run the tests, and convert a suite of tests into Robot Framework.
+Install Importobot, verify it works, and convert your first test export.
 
-> **New to the codebase?** Read [How to Navigate this Codebase](How-to-Navigate-this-Codebase) for a comprehensive guide to the architecture and code organization.
+> **New to the codebase?** Read [How to Navigate this Codebase](How-to-Navigate-this-Codebase) to understand the architecture and code organization.
 
 ## Prerequisites
 
@@ -85,30 +85,21 @@ robot automated_suite.robot          # Execute tests
 
 ## Configuration
 
-Common environment overrides:
-- `IMPORTOBOT_TEST_SERVER_URL` (default `http://localhost:8000`)
-- `IMPORTOBOT_TEST_SERVER_PORT` (default `8000`)
-- `IMPORTOBOT_HEADLESS_BROWSER` (`True`/`False`)
-- `IMPORTOBOT_DETECTION_CACHE_MAX_SIZE` (default `1000`)
-- `IMPORTOBOT_DETECTION_CACHE_COLLISION_LIMIT` (default `3`)
-- `IMPORTOBOT_FILE_CACHE_MAX_MB` (default `100`)
-- `IMPORTOBOT_PERFORMANCE_CACHE_MAX_SIZE` (default `1000`)
-- `IMPORTOBOT_DETECTION_CACHE_TTL_SECONDS` (default `0`, disabled)
-- `IMPORTOBOT_FILE_CACHE_TTL_SECONDS` (default `0`, disabled)
-- `IMPORTOBOT_PERFORMANCE_CACHE_TTL_SECONDS` (default `0`, disabled)
-- `IMPORTOBOT_OPTIMIZATION_CACHE_TTL_SECONDS` (default `0`, disabled)
-- `IMPORTOBOT_ENABLE_TELEMETRY` (default `false`, enable cache hit-rate telemetry)
-- `IMPORTOBOT_TELEMETRY_MIN_INTERVAL_SECONDS` (default `60`, throttle telemetry cadence)
-- `IMPORTOBOT_TELEMETRY_MIN_SAMPLE_DELTA` (default `100`, minimum operations between emissions)
-- `IMPORTOBOT_OPTIMIZATION_CACHE_TTL_SECONDS` (default `0`, disabled)
+The most useful environment variables:
 
-### Example
 ```bash
+# Server settings for API-based formats
 export IMPORTOBOT_TEST_SERVER_URL="https://test.example.com"
 export IMPORTOBOT_TEST_SERVER_PORT="8080"
+
+# Run browser tests in headless mode
 export IMPORTOBOT_HEADLESS_BROWSER="True"
-uv run importobot input.json output.robot
+
+# Cache limits for large test suites
+export IMPORTOBOT_FILE_CACHE_MAX_MB="200"
 ```
+
+Run `uv run importobot --help` to see all available options.
 
 ## Sample Files
 

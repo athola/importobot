@@ -16,10 +16,10 @@ from importobot.medallion.interfaces.data_models import (
 )
 from importobot.medallion.interfaces.records import RecordMetadata
 from importobot.utils.data_analysis import count_data_elements, get_data_types
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 from importobot.utils.validation_models import calculate_nesting_depth
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 class MetadataService:

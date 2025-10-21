@@ -55,8 +55,11 @@ jobs:
     - name: Install dependencies
       run: uv sync --dev
     
-    - name: Run tests with coverage
-      run: uv run coverage run -m pytest --junitxml=test-results.xml
+    - name: Run full test suite via Makefile
+      run: make test-all
+
+    - name: Type check with pyright
+      run: uv run pyright
 
     - name: Upload test results
       uses: actions/upload-artifact@v4

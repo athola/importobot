@@ -1,14 +1,14 @@
 [
     {
-        "owner": "JIRAUSER10907",
-        "updatedBy": "JIRAUSER10411",
+        "owner": "USER001",
+        "updatedBy": "USER002",
         "customFields": {
             "Supported Platforms": "All Platforms",
             "Automated": false,
             "Test Level": "Minimum Viable",
 	    "cycle": "all target"
         },
-        "precondition": "YJ Installed; Agent deployed; CLI connected to active agent connection",
+        "precondition": "System installed; Agent deployed; CLI connected to agent",
         "updatedOn": "2025-08-29T17:27:06.945Z",
         "priority": "Normal",
         "createdOn": "2024-03-04T14:46:01.268Z",
@@ -16,10 +16,10 @@
         "labels": [
             "Requirement"
         ],
-        "projectKey": "ABC",
-        "folder": "/Tests/'Tasks Tests'",
+        "projectKey": "DEMO",
+        "folder": "/Examples/TaskTests",
         "latestVersion": true,
-        "createdBy": "JIRAUSER11600",
+        "createdBy": "USER003",
         "testScript": {
             "id": 12548,
             "type": "STEP_BY_STEP",

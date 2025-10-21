@@ -172,8 +172,8 @@ class TestBronzeStorageIntegration(unittest.TestCase):
 
         assert len(record_types) == 2
 
-    def test_storage_fallback_respects_filter_dispatch(self):
-        """Ensure storage fallback honors filter criteria via dispatch map.
+    def test_storage_defaults_respect_filter_dispatch(self):
+        """Ensure storage defaults honor filter criteria via dispatch map.
 
         Business Case: After a restart, API queries by format type still return
         the expected subset sourced from persisted storage.

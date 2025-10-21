@@ -1,10 +1,19 @@
 # Mathematical Foundations
 
-It is important to detail the math surrounding format detection and Medallion optimization. Most engineers only require the Bayesian summary; the optimization sections explain why certain heuristics survived code review.
+This document explains the mathematical foundations of Importobot's format detection and optimization. The implementation uses Bayesian confidence scoring; advanced optimization techniques are planned for future releases.
 
 ## Overview
 
-Many pieces we introduced in 0.1.1 are still in play: Bayes for confidence scoring, information-theoretic metrics to flag structural drift, and a mix of gradient and heuristic search when the objective surface is difficult to navigate. Lightweight statistical checks are employed to prevent regressions before production.
+**Currently Implemented (v0.1.x):**
+- Bayesian confidence scoring for format detection
+- Two-stage hierarchical classification (test data validation → format discrimination)
+- Basic numerical stability handling
+
+**Planned Future Work:**
+- Format family hierarchical Bayesian models (e.g., Atlassian family: Zephyr + JIRA)
+- Domain-specific semantic boosting for TestLink
+- Advanced optimization techniques (simulated annealing, genetic algorithms)
+- Format-specific threshold optimization with ROC curves
 
 ## Core Mathematical Framework
 
@@ -14,7 +23,31 @@ The Bayesian scorer is the backbone of the format confidence pipeline. This sect
 
 Posteriors are computed directly instead of trusting the legacy noisy-OR shim. Ambiguous payloads stop at the 1.5:1 cap; confident cases can extend to 3:1 because the scorer uses format-specific ambiguity adjustments retrieved from calibration runs. The quadratic decay for `P(E|¬H)` and the configurable epsilon prevent a divide-by-zero exception when evidence dries up. See the [Bayesian scorer mathematical review](Bayesian-Scorer-Mathematical-Review.md) for the derivations, parameter ranges, and regression coverage.
 
-TODO: gather correlation numbers for completeness vs. quality so it can be documented how the independence assumption may be violated in real imports Empirical Validation & Benchmarks
+**Note:** The independence assumption may be violated in real imports (e.g., `testCase` and `steps` fields often appear together). Future work could gather correlation numbers to quantify this effect.
+
+### Two-Stage Hierarchical Classification [IMPLEMENTED]
+
+The 0.1.2 release introduced hierarchical classification with two stages:
+
+**Stage 1: Test Data Validation Gate**
+```
+P(is_test_data|E) >= threshold
+```
+- Determines if input represents ANY test management format vs random data
+- Uses completeness and structural quality metrics
+- Prevents false positives on non-test JSON
+
+**Stage 2: Format-Specific Discrimination**
+```
+P(format_i|E, is_test_data) for all formats i
+```
+- Only executes if Stage 1 passes
+- Uses format-specific unique indicators
+- Applies multi-class Bayesian normalization
+
+This differs from the planned format family models (see Future Directions) - the current implementation uses a validation gate rather than sharing evidence across related formats.
+
+## Empirical Validation & Benchmarks [IMPLEMENTED]
 
 Every release runs the fixtures in `tests/fixtures/format_detection_fixtures.py`; the results are in `wiki/benchmarks/format_detection_benchmark.json`. A 14/14 accuracy was preserved after the 0.1.2 rewrite and the ambiguous ratio was clamped at 1.5:1, as enforced by `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`. Average detection time nudged from 53.8 ms to 55.0 ms over 200 conversions on a single core, which was within the tolerance instituted during performance triage.
 
@@ -626,7 +659,7 @@ Simulated annealing with logarithmic cooling schedule T_k = T₀/log(k+1) conver
 - **Improvement**: +26.3 percentage points
 - **Statistical Significance**: All enhancements show p < 0.01
 
-## Future Mathematical Directions
+## Future Mathematical Directions [PLANNED WORK]
 
 ### Hierarchical Bayesian Models (For Zephyr - Atlassian Family)
 

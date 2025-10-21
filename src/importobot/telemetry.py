@@ -8,9 +8,9 @@ import threading
 import time
 from collections.abc import Callable
 
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 TelemetryPayload = dict[str, object]
 TelemetryExporter = Callable[[str, TelemetryPayload], None]
@@ -44,50 +44,37 @@ def _int_from_env(var_name: str, default: int) -> int:
 
 
 class TelemetryClient:
-    """Simple telemetry client with basic rate limiting."""
+    """Simple telemetry client with basic rate limiting.
+
+    For applications that don't want telemetry, simply don't create a client or
+    pass ``None`` where telemetry clients are optional parameters.
+    """
 
     def __init__(
         self,
         *,
-        enabled: bool,
         min_emit_interval: float,
         min_sample_delta: int,
     ) -> None:
         """Initialize telemetry client with rate limiting configuration."""
-        self.enabled = enabled
         self._min_emit_interval = min_emit_interval
         self._min_sample_delta = min_sample_delta
         self._lock = threading.Lock()
         self._last_emit: dict[str, tuple[int, float]] = {}
-        self._exporters: list[TelemetryExporter] = []
-        if enabled:
-            self.register_exporter(self._default_logger_exporter)
+        self._exporters: list[TelemetryExporter] = [self._default_logger_exporter]
 
     def register_exporter(self, exporter: TelemetryExporter) -> None:
         """Register an exporter that receives telemetry events."""
-        if not self.enabled:
-            return
         with self._lock:
             self._exporters.append(exporter)
 
     def clear_exporters(self) -> None:
         """Remove all exporters except the default logger exporter."""
         with self._lock:
-            # Keep only the default logger exporter
-            # (compare by function name and qualname)
-            self._exporters = [
-                exp
-                for exp in self._exporters
-                if hasattr(exp, "__func__")
-                and exp.__func__.__name__ == "_default_logger_exporter"
-                and hasattr(exp, "__self__")
-                and exp.__self__ is self
-            ]
+            self._exporters = [self._default_logger_exporter]
 
     def restore_default_exporter(self) -> None:
-        """Re-enable the built-in logger exporter if telemetry is enabled."""
-        if not self.enabled:
-            return
+        """Re-enable the built-in logger exporter."""
         with self._lock:
             if self._default_logger_exporter not in self._exporters:
                 self._exporters.insert(0, self._default_logger_exporter)
@@ -101,9 +88,6 @@ class TelemetryClient:
         extras: TelemetryPayload | None = None,
     ) -> None:
         """Record cache hit/miss information with basic throttling."""
-        if not self.enabled:
-            return
-
         total_requests = hits + misses
         now = time.time()
 
@@ -162,37 +146,45 @@ class _TelemetryClientHolder:
     def __init__(self) -> None:
         self._client: TelemetryClient | None = None
         self._lock = threading.Lock()
+        self._initialized = False
 
-    def get_client(self) -> TelemetryClient:
-        """Return the global telemetry client instance."""
-        if self._client is None:
+    def get_client(self) -> TelemetryClient | None:
+        """Return the global telemetry client instance, or None if disabled.
+
+        Returns None when IMPORTOBOT_ENABLE_TELEMETRY is false (default).
+        """
+        if not self._initialized:
             with self._lock:
-                if self._client is None:
+                if not self._initialized:
                     enabled = _flag_from_env("IMPORTOBOT_ENABLE_TELEMETRY", False)
-                    min_interval = _float_from_env(
-                        "IMPORTOBOT_TELEMETRY_MIN_INTERVAL_SECONDS", 60.0
-                    )
-                    min_delta = _int_from_env(
-                        "IMPORTOBOT_TELEMETRY_MIN_SAMPLE_DELTA", 100
-                    )
-                    self._client = TelemetryClient(
-                        enabled=enabled,
-                        min_emit_interval=min_interval,
-                        min_sample_delta=min_delta,
-                    )
+                    if enabled:
+                        min_interval = _float_from_env(
+                            "IMPORTOBOT_TELEMETRY_MIN_INTERVAL_SECONDS", 60.0
+                        )
+                        min_delta = _int_from_env(
+                            "IMPORTOBOT_TELEMETRY_MIN_SAMPLE_DELTA", 100
+                        )
+                        self._client = TelemetryClient(
+                            min_emit_interval=min_interval,
+                            min_sample_delta=min_delta,
+                        )
+                    else:
+                        self._client = None
+                    self._initialized = True
         return self._client
 
     def reset_client(self) -> None:
         """Reset the global telemetry client (useful in testing)."""
         with self._lock:
             self._client = None
+            self._initialized = False
 
 
 _HOLDER = _TelemetryClientHolder()
 
 
-def get_telemetry_client() -> TelemetryClient:
-    """Return the global telemetry client instance."""
+def get_telemetry_client() -> TelemetryClient | None:
+    """Return the global telemetry client instance, or None if disabled."""
     return _HOLDER.get_client()
 
 
@@ -202,15 +194,30 @@ def reset_telemetry_client() -> None:
 
 
 def register_telemetry_exporter(exporter: TelemetryExporter) -> None:
-    """Register a custom telemetry exporter on the global client."""
-    get_telemetry_client().register_exporter(exporter)
+    """Register a custom telemetry exporter on the global client.
+
+    No-op if telemetry is disabled.
+    """
+    client = get_telemetry_client()
+    if client is not None:
+        client.register_exporter(exporter)
 
 
 def clear_telemetry_exporters() -> None:
-    """Remove all custom exporters from the global client."""
-    get_telemetry_client().clear_exporters()
+    """Remove all custom exporters from the global client.
+
+    No-op if telemetry is disabled.
+    """
+    client = get_telemetry_client()
+    if client is not None:
+        client.clear_exporters()
 
 
 def restore_default_telemetry_exporter() -> None:
-    """Re-enable the default logger exporter on the global client."""
-    get_telemetry_client().restore_default_exporter()
+    """Re-enable the default logger exporter on the global client.
+
+    No-op if telemetry is disabled.
+    """
+    client = get_telemetry_client()
+    if client is not None:
+        client.restore_default_exporter()

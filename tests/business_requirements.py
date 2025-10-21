@@ -36,7 +36,7 @@ MIN_FORMAT_CONFIDENCE_PERFECT_MATCH = 0.9
 FORMAT_DISAMBIGUATION_RATIO = 2.0  # Correct format >= 2x wrong format confidence
 
 # BR-FORMAT-003: Generic Format Acceptance
-# Business Justification: Generic formats are fallback cases with lower
+# Business Justification: Generic formats are default cases with lower
 # business priority, requiring lower confidence threshold
 # Stakeholder: Product Team (Approved: 2025-09-22)
 # Reference: Business Spec v2.3, Section 4.4

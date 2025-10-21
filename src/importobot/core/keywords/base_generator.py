@@ -10,7 +10,7 @@ from importobot.core.keywords_registry import IntentRecognitionEngine
 from importobot.core.parsers import GenericTestFileParser
 from importobot.core.pattern_matcher import LibraryDetector
 from importobot.utils.field_extraction import extract_field
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 from importobot.utils.step_processing import (
     combine_step_text,
     extract_step_information,
@@ -21,7 +21,7 @@ from importobot.utils.validation import (
     sanitize_robot_string,
 )
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 # Compiled regex patterns for performance optimization
 _URL_PATTERN = re.compile(r"https?://[^\s,]+")
@@ -59,6 +59,8 @@ class BaseKeywordGenerator(KeywordGenerator, ABC):
         # Test name
         name = self._extract_field(test_data, ["name", "title", "testname", "summary"])
         sanitized_name = sanitize_robot_string(name or "Unnamed Test")
+        if isinstance(name, str) and re.search(r"[\x00-\x1f]", name):
+            sanitized_name = re.sub(r" {2,}", " ", sanitized_name)
         if name and name != sanitized_name:
             lines.append(f"# Original Name: {name}")
 

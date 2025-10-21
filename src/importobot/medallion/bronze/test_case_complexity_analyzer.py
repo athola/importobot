@@ -16,9 +16,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 @dataclass
@@ -119,7 +119,7 @@ class TestCaseComplexityAnalyzer:
 
     def __init__(self) -> None:
         """Initialize the complexity analyzer."""
-        self.logger = setup_logger(__name__)
+        self.logger = get_logger()
 
     def analyze_complexity(self, test_data: dict[str, Any]) -> ComplexityMetrics:
         """Analyze test case complexity and return complexity metrics.

@@ -12,13 +12,13 @@ from importobot.core.keyword_generator import GenericKeywordGenerator
 from importobot.core.parsers import GenericTestFileParser
 from importobot.core.pattern_matcher import LibraryDetector
 from importobot.core.templates.blueprints import render_with_blueprints
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 from importobot.utils.validation import (
     convert_parameters_to_robot_variables,
     sanitize_robot_string,
 )
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 class GenericConversionEngine(ConversionEngine):
@@ -38,7 +38,6 @@ class GenericConversionEngine(ConversionEngine):
         Args:
             json_data: The JSON data to convert
         """
-        # Check for blueprint-driven rendering before generic conversion
         specialized = render_with_blueprints(json_data)
         if specialized is not None:
             return specialized
@@ -145,7 +144,7 @@ class GenericConversionEngine(ConversionEngine):
                             tags.extend([str(t) for t in value])
                         elif value:
                             tags.append(str(value))
-                    elif isinstance(value, dict | list):
+                    elif isinstance(value, (dict, list)):  # noqa: UP038
                         find_tags(value)
             elif isinstance(obj, list):
                 for item in obj:

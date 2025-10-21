@@ -6,6 +6,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from importobot.utils.logging import get_logger
+
 
 def create_enhanced_json_error_message(
     error: json.JSONDecodeError,
@@ -140,7 +142,7 @@ class EnhancedErrorLogger:
             logger: Logger instance to use. If None, creates default logger.
             component_name: Name of the component for context
         """
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger = logger or get_logger()
         self.component_name = component_name
 
     def log_json_error(

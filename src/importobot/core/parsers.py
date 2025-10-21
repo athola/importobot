@@ -13,9 +13,9 @@ from importobot.core.field_definitions import (
     is_test_case,
 )
 from importobot.core.interfaces import TestFileParser
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 class GenericTestFileParser(TestFileParser):
