@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from typing import Any
 
@@ -171,6 +172,38 @@ def test_factory_returns_expected_client() -> None:
         ),
         TestLinkClient,
     )
+
+
+def test_auth_failure_logs_warning(caplog) -> None:
+    """Zephyr auth probe should emit warnings for 401/403 responses."""
+    session = DummySession(
+        [
+            DummyResponse(
+                status_code=401,
+                payload={"error": "Unauthorized"},
+            )
+        ]
+    )
+
+    client = ZephyrClient(
+        api_url="https://jira.example/rest",
+        tokens=["token"],
+        user=None,
+        project_name="PRJ",
+        project_id=None,
+        max_concurrency=None,
+        verify_ssl=True,
+    )
+    client._session = session  # type: ignore[attr-defined]
+
+    pattern = client.API_PATTERNS[1]  # direct_search pattern
+    auth_strategy = client.AUTH_STRATEGIES[0]
+
+    with caplog.at_level(logging.WARNING):
+        result = client._test_api_connection(pattern, auth_strategy, "PRJ", fields=None)
+
+    assert result is False
+    assert any("Authentication failed" in record.message for record in caplog.records)
 
 
 def test_client_uses_honest_user_agent(monkeypatch: pytest.MonkeyPatch) -> None:

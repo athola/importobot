@@ -237,8 +237,8 @@ def _auto_assign(
     var_name = command_token
     for idx, line in enumerate(lines):
         if trigger in line:
-            indent = line.split(trigger, 1)[0]
-            remainder = line[line.index(trigger) :]
+            indent, match, remainder_tail = line.partition(trigger)
+            remainder = match + remainder_tail
             auto_var = _sanitize_and_tokenize(var_name, suffix=suffix, factory=factory)
             lines[idx] = f"{indent}{auto_var}=    {remainder}"
             return auto_var

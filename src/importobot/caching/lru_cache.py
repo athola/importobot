@@ -62,6 +62,8 @@ class LRUCache(CacheStrategy[K, V]):
         self._rejections = 0
         self._pending_metric_events = 0
         self._last_metrics_emit = time.time()
+        self._cleanup_interval = self._determine_cleanup_interval()
+        self._last_cleanup = time.time()
 
     def __len__(self) -> int:
         """Return the number of cached entries."""
@@ -73,6 +75,7 @@ class LRUCache(CacheStrategy[K, V]):
 
     def get(self, key: K) -> V | None:
         """Retrieve value by key with LRU update."""
+        self._optional_cleanup()
         entry = self._cache.get(key)
 
         if entry is None:
@@ -96,6 +99,7 @@ class LRUCache(CacheStrategy[K, V]):
 
     def set(self, key: K, value: V) -> None:
         """Store value with security validation."""
+        self._optional_cleanup()
         content_size = self._estimate_size(value)
         if content_size > self.security.max_content_size:
             self._rejections += 1
@@ -103,6 +107,16 @@ class LRUCache(CacheStrategy[K, V]):
                 "Cache rejected oversized content: %d bytes (limit: %d)",
                 content_size,
                 self.security.max_content_size,
+            )
+            return
+        max_cache_bytes = self.config.max_content_size_bytes
+        if max_cache_bytes > 0 and content_size > max_cache_bytes:
+            self._rejections += 1
+            logger.warning(
+                "Cache rejected value exceeding configured cache capacity: %d bytes "
+                "(limit: %d)",
+                content_size,
+                max_cache_bytes,
             )
             return
 
@@ -131,8 +145,8 @@ class LRUCache(CacheStrategy[K, V]):
             self._evict_lru()
 
         while (
-            self.config.max_content_size_bytes > 0
-            and self._total_size + content_size > self.config.max_content_size_bytes
+            max_cache_bytes > 0
+            and self._total_size + content_size > max_cache_bytes
             and self._cache
         ):
             self._evict_lru()
@@ -163,6 +177,7 @@ class LRUCache(CacheStrategy[K, V]):
         self._evictions = 0
         self._rejections = 0
         self._emit_metrics(force=True)
+        self._last_cleanup = time.time()
 
     def get_stats(self) -> dict[str, Any]:
         """Get cache statistics."""
@@ -218,6 +233,38 @@ class LRUCache(CacheStrategy[K, V]):
         except (TypeError, AttributeError) as exc:
             logger.debug("Failed to estimate cache entry size for %r: %s", value, exc)
             return 0
+
+    def _determine_cleanup_interval(self) -> float | None:
+        """Choose a cleanup cadence based on TTL configuration."""
+        ttl = self.config.ttl_seconds
+        if ttl is None or ttl <= 0:
+            return None
+        # Balance responsiveness and overhead: clean at most every 300s and at
+        # least every 5s, scaled by TTL so short-lived caches purge quickly.
+        return max(5.0, min(ttl / 2, 300.0))
+
+    def _optional_cleanup(self) -> None:
+        """Run periodic cleanup for expired entries."""
+        if self._cleanup_interval is None:
+            return
+        now = time.time()
+        if (now - self._last_cleanup) < self._cleanup_interval:
+            return
+        self._cleanup_expired_entries(now)
+        self._last_cleanup = now
+
+    def _cleanup_expired_entries(self, reference_time: float | None = None) -> None:
+        """Remove expired cache entries without requiring direct access."""
+        if self.config.ttl_seconds is None or self.config.ttl_seconds <= 0:
+            return
+        if not self._cache:
+            return
+        now = reference_time or time.time()
+        ttl = self.config.ttl_seconds
+        for key, entry in list(self._cache.items()):
+            if (now - entry.timestamp) > ttl:
+                self.delete(key)
+                self._evictions += 1
 
     def _record_metric_event(self) -> None:
         if not self.config.enable_telemetry or self._telemetry is None:

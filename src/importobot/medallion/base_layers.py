@@ -47,7 +47,7 @@ class BaseMedallionLayer(DataLayer):
         self._lineage_store: dict[str, LineageInfo] = {}
         self._format_detector: FormatDetector | None = None
 
-        logger.info(
+        logger.debug(
             "Initialized %s layer with storage at %s", layer_name, self.storage_path
         )
 
