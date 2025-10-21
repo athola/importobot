@@ -56,7 +56,7 @@ class TestCachePerformanceCharacteristics:
 
         assert avg_lookup_time_ms < threshold, (
             f"Cache lookup too slow: {avg_lookup_time_ms:.3f}ms > {threshold:.3f}ms "
-            f"(system performance factor: {self.thresholds.system.performance_factor:.2f})"
+            f"(perf factor: {self.thresholds.system.performance_factor:.2f})"
         )
 
     # NOTE: Test removed - see CLAUDE_REVIEW.md "Cache Performance Analysis"

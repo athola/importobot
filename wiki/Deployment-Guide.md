@@ -8,7 +8,7 @@ Deploy Importobot locally, in containers, or inside CI jobs using the steps belo
 - `uv` package manager (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
 - Access to target format exports (Zephyr/JIRA/etc.) OR API credentials for direct integration
 
-> Note: Only local storage is available. Cloud storage interfaces were designed but not implemented due to competing priorities. Configuration examples remain for future development.
+> Note: Only local storage is supported. Cloud storage interfaces were designed but not implemented due to competing priorities.
 
 ## Local Development
 
@@ -163,11 +163,11 @@ spec:
 ```
 
 ### Performance Monitoring
-- Schedule `uv run python -m importobot_scripts.benchmarks.performance_benchmark --parallel` nightly to catch performance regressions and archive `performance_benchmark_results.json`.
-- Full validation (`make validate`) takes about 4 minutes; see [Performance-Characteristics](Performance-Characteristics) for timing breakdown and faster alternatives during development.
-- Monitor API rate limits and response times when using direct integration.
+- Schedule `uv run python -m importobot_scripts.benchmarks.performance_benchmark --parallel` nightly to catch performance regressions and archive `performance_benchmark_results.json`
+- Full validation (`make validate`) takes about 4 minutes; see [Performance-Characteristics](Performance-Characteristics) for timing breakdown and faster alternatives during development
+- Monitor API rate limits and response times when using direct integration
 
-**Production performance**: 10,000 test cases convert in 45 seconds on an 8-core AWS instance, using under 200MB RAM.
+**Production performance**: 10,000 test cases convert in 45 seconds on an 8-core AWS instance, using under 200MB RAM
 
 ## Storage Configuration
 

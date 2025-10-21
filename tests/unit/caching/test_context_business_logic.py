@@ -33,7 +33,7 @@ class TestConcurrentConversionWorkflows:
         WHEN each uses its own context
         THEN caches don't interfere with each other
 
-        Business requirement: Support concurrent batch processing without cache pollution
+        Requirement: Support concurrent batch processing without cache pollution
         """
         results = []
 

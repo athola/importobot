@@ -125,8 +125,8 @@ def test_zephyr_discovery_cached_between_runs(monkeypatch: pytest.MonkeyPatch) -
 
     session = CountingSession()
 
-    # Mock responses for discovery phase - working_two_stage pattern (index 0) succeeds on Bearer
-    # auth (4th attempt), but first 3 auth strategies fail
+    # Mock responses for discovery - working_two_stage pattern succeeds on Bearer auth
+    # (4th attempt), but first 3 auth strategies fail
     # First 3 auth strategies fail
     for _ in range(3):
         session.add_response(

@@ -46,14 +46,20 @@ def _exclusive_file_lock(lock_path: Path) -> Iterator[None]:
                 lock_file.seek(0)
                 lock_file.write("0")
                 lock_file.flush()
-                msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
+                locking = getattr(msvcrt, "locking", None)
+                lk_lock = getattr(msvcrt, "LK_LOCK", None)
+                if locking is not None and lk_lock is not None:
+                    locking(lock_file.fileno(), lk_lock, 1)
             yield
         finally:
             if fcntl is not None:
                 fcntl.flock(lock_file, fcntl.LOCK_UN)
             elif msvcrt is not None:
                 lock_file.seek(0)
-                msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+                locking = getattr(msvcrt, "locking", None)
+                lk_unlock = getattr(msvcrt, "LK_UNLCK", None)
+                if locking is not None and lk_unlock is not None:
+                    locking(lock_file.fileno(), lk_unlock, 1)
     with suppress(OSError):
         lock_path.unlink()
 

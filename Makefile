@@ -111,6 +111,7 @@ format:
 typecheck:
 	$(info $(NEWLINE)==================== Running type checking ====================$(NEWLINE))
 	uv run ty check .
+	uv run pyright
 	uv run mypy -p importobot
 	uv run mypy tests
 	cd scripts && uv run mypy -p importobot_scripts
@@ -129,7 +130,7 @@ validate: lint typecheck test
 	$(info $(NEWLINE)==================== Validating PR readiness ====================$(NEWLINE))
 	@echo "→ [4/6] Checking for exposed secrets..."
 	@uv run detect-secrets --version >/dev/null 2>&1 || { echo "⚠️  detect-secrets unavailable. Run 'uv sync' to install dev dependencies"; exit 1; }
-	@uv run detect-secrets scan --all-files . || { echo "⚠️  Secrets detected! Run 'uv run detect-secrets scan --all-files .' to see details"; exit 1; }
+	@uv run detect-secrets -c 1 scan --all-files . || { echo "⚠️  Secrets detected! Run 'UV_CACHE_DIR=$(CURDIR)/.uv-cache uv run detect-secrets -c 1 scan --all-files .' to see details"; exit 1; }
 	@echo "→ [5/6] Checking dependency updates..."
 	@uv pip list --outdated || true
 	@echo "→ Checking for uncommitted changes..."

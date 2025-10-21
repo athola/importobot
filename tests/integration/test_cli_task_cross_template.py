@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from importobot.core.converter import JsonToRobotConverter
@@ -10,7 +11,7 @@ from importobot.utils.json_utils import load_json_file
 
 
 def test_hostname_inferred_from_setconfig_template(tmp_path: Path) -> None:
-    """Hostname suite should be generated using knowledge learned from another template."""
+    """Hostname suite generated using knowledge from another template."""
     # Generate template inline to avoid tracking .robot files in git
     template_path = tmp_path / "set_config.robot"
     template_path.write_text(
@@ -18,7 +19,7 @@ def test_hostname_inferred_from_setconfig_template(tmp_path: Path) -> None:
 Sample
     Switch Connection    Controller
     Write    setconfig --proc_name ${proc_name}
-    ${setconfig_cli}=    Read Until Regexp    setconfig task (\\S+) completed successfully!
+    ${setconfig_cli}=    Read Until Regexp    setconfig task completed successfully!
     Logger    step_num=1    result=${TRUE}    result_str=Task completed successfully.
     Log    Expected: no task errors
 
@@ -29,7 +30,11 @@ Sample
         encoding="utf-8",
     )
 
-    configure_template_sources([str(template_path)])
+    os.environ["IMPORTOBOT_ALLOW_EXTERNAL_TEMPLATES"] = "1"
+    try:
+        configure_template_sources([str(template_path)])
+    finally:
+        os.environ.pop("IMPORTOBOT_ALLOW_EXTERNAL_TEMPLATES", None)
 
     base_dir = Path(__file__).resolve().parents[2]
     json_path = base_dir / "examples" / "json" / "hostname.json"
@@ -58,7 +63,7 @@ def test_ip_task_infers_step_relationships_from_minimal_template(
 Sample
     Switch Connection    Controller
     Write    setconfig --proc_name ${proc_name}
-    ${setconfig_cli}=    Read Until Regexp    setconfig task (\\S+) completed successfully!
+    ${setconfig_cli}=    Read Until Regexp    setconfig task completed successfully!
     Logger    step_num=1    result=${TRUE}    result_str=Task completed successfully.
     Log    Expected: no task errors
 
@@ -69,7 +74,11 @@ Sample
         encoding="utf-8",
     )
 
-    configure_template_sources([str(template_path)])
+    os.environ["IMPORTOBOT_ALLOW_EXTERNAL_TEMPLATES"] = "1"
+    try:
+        configure_template_sources([str(template_path)])
+    finally:
+        os.environ.pop("IMPORTOBOT_ALLOW_EXTERNAL_TEMPLATES", None)
 
     base_dir = Path(__file__).resolve().parents[2]
     json_path = base_dir / "examples" / "json" / "ip.json"
@@ -85,6 +94,6 @@ Sample
     assert "${ip}=    Execute Command    ip addr" in output
     assert "Should Be Equal As Strings    ${ip}    ${ip_cli}" in output
     assert (
-        "Should Contain    ${ip}    all interfaces and their type, mac address, ipv4/6 addresses"
+        "Should Contain    ${ip}    all interfaces and type, mac, ipv4/6 addresses"
         in output
     )

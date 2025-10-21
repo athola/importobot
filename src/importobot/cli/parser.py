@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from collections.abc import Sequence
+from typing import cast
 
 from importobot.cli.constants import FETCHABLE_FORMATS, format_choices
 
@@ -50,14 +51,21 @@ class TokenListAction(argparse.Action):
         option_string: str | None = None,
     ) -> None:
         """Accumulate tokens from repeated and comma-delimited flags."""
-        tokens = getattr(namespace, self.dest, None)
-        if tokens is None:
-            tokens = []
+        existing = getattr(namespace, self.dest, None)
+        if existing is None:
+            tokens: list[str] = []
+        else:
+            tokens = cast(list[str], existing)
+            if not isinstance(tokens, list):
+                tokens = list(tokens)
 
         if values is None:
             return
 
-        raw_segments = values if isinstance(values, list) else [values]
+        if isinstance(values, str):
+            raw_segments: list[str] = [values]
+        else:
+            raw_segments = list(cast(Sequence[str], values))
 
         for segment in raw_segments:
             for raw_token in segment.split(","):
@@ -166,6 +174,14 @@ def create_parser() -> argparse.ArgumentParser:
         dest="max_concurrency",
         type=int,
         help="Maximum number of concurrent API requests (experimental)",
+    )
+    parser.add_argument(
+        "--insecure",
+        action="store_true",
+        help=(
+            "Disable TLS certificate verification for API requests. "
+            "Use only when connecting to trusted endpoints."
+        ),
     )
 
     parser.add_argument(

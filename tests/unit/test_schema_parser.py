@@ -24,7 +24,7 @@ class TestSchemaParser:
         content = """
         Name
 
-        The "Name" section of the test case should be the name of the feature being tested
+        The "Name" section should be the name of the feature being tested
 
         Ex: find --name
         """

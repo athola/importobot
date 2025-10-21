@@ -1,8 +1,40 @@
-"""Template registry and pattern-learning utilities for blueprints."""
+"""Template registry and pattern-learning utilities for blueprints.
+
+This module implements the blueprint system that learns patterns from existing Robot
+Framework files and applies them to new conversions. The system extracts structural
+patterns, keyword imports, and step templates from source files, then uses these
+learned patterns to generate consistent Robot Framework output.
+
+Cross-template learning works by:
+1. **Pattern Extraction**: Analyzing existing .robot files to identify common
+   step patterns
+2. **Template Registration**: Storing patterns with metadata about their usage
+   context
+3. **Pattern Matching**: Finding the best matching pattern for each step
+   during conversion
+4. **Context Application**: Applying learned settings and imports to generated output
+
+The system supports:
+- Multiple template sources (directories, individual files)
+- Cross-template pattern sharing
+- Resource file discovery and import handling
+- Safe template validation (no symlinks, size limits, content validation)
+
+Example usage:
+    from importobot.core.templates.blueprints.registry import configure_template_sources
+
+    # Configure template sources
+    configure_template_sources(["./templates/", "./legacy_tests/"])
+
+    # Templates are automatically applied during conversion
+    converter = JsonToRobotConverter()
+    result = converter.convert_file("input.json", "output.robot")
+"""
 
 from __future__ import annotations
 
 import ast
+import os
 import re
 import string
 from collections.abc import Mapping, Sequence
@@ -11,9 +43,9 @@ from pathlib import Path
 from typing import Any
 
 from importobot import exceptions
+from importobot.config import MAX_TEMPLATE_FILE_SIZE_BYTES
 from importobot.utils.logging import get_logger
 
-MAX_TEMPLATE_FILE_SIZE = 2 * 1024 * 1024  # 2 MB
 MAX_TEMPLATE_FILES = 512
 MAX_TEMPLATE_VALUE_LENGTH = 4096
 DISALLOWED_PLACEHOLDER_PREFIXES = ("__",)
@@ -127,6 +159,14 @@ class SandboxedTemplate(string.Template):
         super().__init__(template)
 
     def render_safe(self, substitutions: Mapping[str, Any]) -> str:
+        """Render template with safe substitutions only.
+
+        Args:
+            substitutions: Mapping of placeholder names to values
+
+        Returns:
+            Rendered template string with unsafe placeholders filtered out
+        """
         safe_mapping: dict[str, str] = {}
         for key, value in substitutions.items():
             if not _is_safe_placeholder_name(key):
@@ -152,8 +192,63 @@ class TemplateIngestionError(exceptions.ImportobotError):
     """Raised when blueprint template ingestion fails."""
 
 
+def _is_path_within_root(candidate: Path, root: Path) -> bool:
+    try:
+        candidate.relative_to(root)
+        return True
+    except ValueError:
+        return False
+
+
+def _prepare_template_entry(
+    raw_entry: str, safe_root: Path
+) -> tuple[str | None, Path] | None:
+    if not raw_entry:
+        return None
+
+    key_override: str | None = None
+    entry = raw_entry
+    if "=" in raw_entry:
+        potential_key, potential_path = raw_entry.split("=", 1)
+        if potential_key:
+            key_override = potential_key.strip()
+            entry = potential_path
+
+    candidate_path = Path(entry).expanduser()
+    if candidate_path.is_symlink():
+        logger.warning("Skipping template source symlink %s", entry)
+        return None
+
+    candidate = candidate_path.resolve()
+    allow_external = os.getenv("IMPORTOBOT_ALLOW_EXTERNAL_TEMPLATES", "0") == "1"
+
+    try:
+        candidate.relative_to(safe_root)
+    except ValueError:
+        if not allow_external:
+            logger.warning(
+                "Skipping template source outside working directory: %s",
+                candidate,
+            )
+            return None
+        logger.debug("Allowing template outside working directory: %s", candidate)
+
+    if not candidate.exists():
+        logger.warning("Skipping missing template source: %s", entry)
+        return None
+
+    return key_override, candidate
+
+
 def configure_template_sources(entries: Sequence[str]) -> None:
-    """Register blueprint templates from user-provided files or directories."""
+    """Register blueprint templates from user-provided files or directories.
+
+    This routine clears and rebuilds the in-memory registry, so callers should
+    invoke it as part of initial setup rather than on hot paths.
+    Only files under the current working directory are ingested to prevent
+    accidental traversal of sensitive paths (e.g., via ``~`` expansion).
+    """
+    safe_root = Path.cwd().resolve()
     TEMPLATE_REGISTRY.clear()
     KNOWLEDGE_BASE.clear()
     KEYWORD_LIBRARY.clear()
@@ -162,25 +257,11 @@ def configure_template_sources(entries: Sequence[str]) -> None:
     ingested_files = 0
 
     for raw_entry in entries:
-        if not raw_entry:
+        prepared = _prepare_template_entry(raw_entry, safe_root)
+        if prepared is None:
             continue
 
-        key_override: str | None = None
-        entry = raw_entry
-        if "=" in raw_entry:
-            potential_key, potential_path = raw_entry.split("=", 1)
-            if potential_key:
-                key_override = potential_key.strip()
-                entry = potential_path
-
-        candidate_path = Path(entry).expanduser()
-        if candidate_path.is_symlink():
-            logger.warning("Skipping template source symlink %s", entry)
-            continue
-
-        candidate = candidate_path.resolve()
-        if not candidate.exists():
-            continue
+        key_override, candidate = prepared
 
         if TEMPLATE_STATE["base_dir"] is None:
             TEMPLATE_STATE["base_dir"] = (
@@ -282,6 +363,16 @@ def get_resource_imports() -> list[str]:
 def _ingest_source_file(
     path: Path, key_override: str | None, *, base_dir: Path | None
 ) -> None:
+    """Ingest a template file and register it in the template system.
+
+    Args:
+        path: Path to the template file
+        key_override: Optional key override for the template
+        base_dir: Base directory for relative path calculations
+
+    Raises:
+        TemplateIngestionError: If the file cannot be ingested
+    """
     suffix = path.suffix.lower()
     if suffix not in ALLOWED_TEMPLATE_SUFFIXES:
         raise TemplateIngestionError(f"Unsupported template type for {path}")
@@ -294,9 +385,9 @@ def _ingest_source_file(
         file_size = path.stat().st_size
     except OSError as exc:
         raise TemplateIngestionError(f"Failed to stat template {path}: {exc}") from exc
-    if file_size > MAX_TEMPLATE_FILE_SIZE:
+    if file_size > MAX_TEMPLATE_FILE_SIZE_BYTES:
         raise TemplateIngestionError(
-            f"Template {path} exceeds size limit ({MAX_TEMPLATE_FILE_SIZE} bytes)"
+            f"Template {path} exceeds size limit ({MAX_TEMPLATE_FILE_SIZE_BYTES} bytes)"
         )
 
     if suffix in TEMPLATE_EXTENSIONS:
@@ -442,6 +533,11 @@ def _derive_template_keys(name: str) -> list[str]:
 
 
 def _template_base_dir() -> Path | None:
+    """Get the configured base directory for template files.
+
+    Returns:
+        Path to the base directory if configured, None otherwise.
+    """
     base_dir = TEMPLATE_STATE.get("base_dir")
     return base_dir if isinstance(base_dir, Path) else None
 

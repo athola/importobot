@@ -40,6 +40,7 @@ def make_args(**overrides: object) -> Namespace:
         "project": "JIRA",
         "input_dir": None,
         "max_concurrency": None,
+        "insecure": False,
         "output": None,
         "files": None,
         "directory": None,
@@ -62,6 +63,7 @@ def fake_config(monkeypatch: pytest.MonkeyPatch) -> APIIngestConfig:
         project_id=None,
         output_dir=Path.cwd(),
         max_concurrency=None,
+        insecure=False,
     )
 
     monkeypatch.setattr(
@@ -132,6 +134,7 @@ def test_handler_provides_progress_feedback(
             project_id=None,
             output_dir=tmp_path,
             max_concurrency=None,
+            insecure=False,
         ),
     )
 
@@ -164,6 +167,7 @@ def test_handle_api_ingest_returns_path(
             project_id=None,
             output_dir=tmp_path,
             max_concurrency=None,
+            insecure=False,
         ),
     )
     monkeypatch.setattr(

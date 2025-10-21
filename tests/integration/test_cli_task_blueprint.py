@@ -19,10 +19,11 @@ def test_cli_task_blueprint_matches_expected() -> None:
 
     robot_output = JsonToRobotConverter().convert_json_data(json_data)
 
-    assert (
-        "${setconfig_cli}=    Read Until Regexp    setconfig task (\\S+) completed successfully!"
-        in robot_output
+    expected_fragment = (
+        "${setconfig_cli}=    Read Until Regexp    setconfig task (\\S+) "
+        "completed successfully!"
     )
+    assert expected_fragment in robot_output
     assert "Log    Expected: no task errors" in robot_output
     assert "${ps}=    Execute Command    ps -ely | grep mycustomname" in robot_output
     assert "Log    Expected: mycustomname found" in robot_output

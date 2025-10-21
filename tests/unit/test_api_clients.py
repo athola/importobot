@@ -53,12 +53,24 @@ class DummySession:
         self.responses = responses
         self.calls: list[tuple[str, dict[str, Any]]] = []
         self._index = 0
+        self.headers: dict[str, str] = {"User-Agent": "stub"}
 
     def get(
-        self, url: str, *, params: dict[str, Any], headers: dict[str, str]
+        self,
+        url: str,
+        *,
+        params: dict[str, Any],
+        headers: dict[str, str],
+        verify: bool | None = None,
+        timeout: int | float | None = None,
     ) -> DummyResponse:
         """Make a GET request and return the next configured response."""
-        self.calls.append((url, {"params": params, "headers": headers}))
+        payload: dict[str, Any] = {"params": params, "headers": headers}
+        if verify is not None:
+            payload["verify"] = verify
+        if timeout is not None:
+            payload["timeout"] = timeout
+        self.calls.append((url, payload))
         if self._index >= len(self.responses):
             raise AssertionError("No more responses configured")
         response = self.responses[self._index]
@@ -104,6 +116,7 @@ def test_factory_returns_expected_client() -> None:
         "project_name": "PRJ",
         "project_id": None,
         "max_concurrency": None,
+        "verify_ssl": True,
     }
 
     assert isinstance(
@@ -115,6 +128,7 @@ def test_factory_returns_expected_client() -> None:
             project_name=config["project_name"],
             project_id=config["project_id"],
             max_concurrency=config["max_concurrency"],
+            verify_ssl=config["verify_ssl"],
         ),
         JiraXrayClient,
     )
@@ -127,6 +141,7 @@ def test_factory_returns_expected_client() -> None:
             project_name=config["project_name"],
             project_id=config["project_id"],
             max_concurrency=config["max_concurrency"],
+            verify_ssl=config["verify_ssl"],
         ),
         ZephyrClient,
     )
@@ -139,6 +154,7 @@ def test_factory_returns_expected_client() -> None:
             project_name=config["project_name"],
             project_id=config["project_id"],
             max_concurrency=config["max_concurrency"],
+            verify_ssl=config["verify_ssl"],
         ),
         TestRailClient,
     )
@@ -151,9 +167,46 @@ def test_factory_returns_expected_client() -> None:
             project_name=config["project_name"],
             project_id=config["project_id"],
             max_concurrency=config["max_concurrency"],
+            verify_ssl=config["verify_ssl"],
         ),
         TestLinkClient,
     )
+
+
+def test_client_uses_honest_user_agent(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Clients should identify themselves with an importobot-specific User-Agent."""
+    responses = [
+        DummyResponse(
+            status_code=200,
+            payload={
+                "issues": [],
+                "total": 0,
+                "maxResults": 50,
+                "startAt": 0,
+            },
+        )
+    ]
+    session = DummySession(responses)
+
+    def mock_session():
+        return session
+
+    monkeypatch.setattr(
+        "importobot.integrations.clients.requests.Session", mock_session
+    )
+
+    JiraXrayClient(
+        api_url="https://jira.example/rest/api/2/search",
+        tokens=["token"],
+        user=None,
+        project_name="PRJ",
+        project_id=None,
+        max_concurrency=None,
+        verify_ssl=True,
+    )
+
+    user_agent = session.headers.get("User-Agent", "")
+    assert user_agent.startswith("importobot-client/")
 
 
 def test_jira_xray_client_paginates(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -191,6 +244,7 @@ def test_jira_xray_client_paginates(monkeypatch: pytest.MonkeyPatch) -> None:
         project_name="PRJ",
         project_id=None,
         max_concurrency=None,
+        verify_ssl=True,
     )
 
     pages = gather(client)
@@ -221,6 +275,7 @@ def test_jira_xray_client_accepts_project_id(monkeypatch: pytest.MonkeyPatch) ->
         project_name=None,
         project_id=321,
         max_concurrency=None,
+        verify_ssl=True,
     )
 
     gather(client)
@@ -259,12 +314,45 @@ def test_client_retries_on_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
         project_name="PRJ",
         project_id=None,
         max_concurrency=None,
+        verify_ssl=True,
     )
 
     gather(client)
 
     assert len(sleep_calls) == 1
     assert session._index == 2
+
+
+def test_client_raises_after_retry_budget(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Clients should bubble RuntimeError when retry budget is exhausted."""
+    retries = JiraXrayClient._max_retries  # pylint: disable=protected-access
+    responses = [
+        DummyResponse(status_code=429, payload={}, headers={"Retry-After": "0"})
+        for _ in range(retries + 1)
+    ]
+    session = DummySession(responses)
+    monkeypatch.setattr(
+        "importobot.integrations.clients.requests.Session", lambda: session
+    )
+    monkeypatch.setattr(
+        "importobot.integrations.clients.time.sleep", lambda seconds: None
+    )
+
+    client = JiraXrayClient(
+        api_url="https://jira.example/rest/api/2/search",
+        tokens=["token"],
+        user=None,
+        project_name="PRJ",
+        project_id=None,
+        max_concurrency=None,
+        verify_ssl=True,
+    )
+
+    with pytest.raises(RuntimeError) as exc_info:
+        gather(client)
+
+    assert "Exceeded retry budget" in str(exc_info.value)
+    assert session._index == len(responses)
 
 
 def test_testrail_client_uses_offset(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -291,6 +379,7 @@ def test_testrail_client_uses_offset(monkeypatch: pytest.MonkeyPatch) -> None:
         project_name="TR",
         project_id=None,
         max_concurrency=None,
+        verify_ssl=True,
     )
 
     pages = gather(client)
@@ -324,6 +413,7 @@ def test_testlink_client_posts_commands(monkeypatch: pytest.MonkeyPatch) -> None
         project_name="TL",
         project_id=None,
         max_concurrency=None,
+        verify_ssl=True,
     )
 
     pages = gather(client)
@@ -343,6 +433,7 @@ def test_zephyr_client_supports_multiple_auth_strategies() -> None:
         project_name="ZEPHYR",
         project_id=None,
         max_concurrency=None,
+        verify_ssl=True,
     )
 
     client_basic = ZephyrClient(
@@ -352,6 +443,7 @@ def test_zephyr_client_supports_multiple_auth_strategies() -> None:
         project_name="ZEPHYR",
         project_id=None,
         max_concurrency=None,
+        verify_ssl=True,
     )
 
     client_dual = ZephyrClient(
@@ -361,6 +453,7 @@ def test_zephyr_client_supports_multiple_auth_strategies() -> None:
         project_name="ZEPHYR",
         project_id=None,
         max_concurrency=None,
+        verify_ssl=True,
     )
 
     # Verify all clients can be instantiated
@@ -580,6 +673,7 @@ def test_zephyr_client_discovers_two_stage_strategy(
         project_name="PRJ",
         project_id=None,
         max_concurrency=None,
+        verify_ssl=True,
     )
 
     progress_calls: list[dict[str, Any]] = []

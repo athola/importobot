@@ -219,6 +219,7 @@ class TestBronzeStorageIntegration(unittest.TestCase):
         Business Case: High-level API must work seamlessly with storage.
         """
         # Use RawDataProcessor to ingest
+        assert self.processor is not None
         result = self.processor.ingest_data_dict(
             self.zephyr_data, "processor_test.json"
         )

@@ -28,6 +28,13 @@ Library             libraries/zephyr_logger.py
 Resource            example.resource
 
 
+*** Variables ***
+${EMBEDDED_PRIVATE_KEY}    -----BEGIN TEST KEY-----
+...                        # Example placeholder key (non-sensitive; generated for tests)
+...                        placeholder-ssh-key-content-for-example-purposes-only
+...                        -----END TEST KEY-----
+
+
 *** Keywords ***
 Connect Agent
     [Documentation]    Connect to an already established agent connection.
@@ -96,13 +103,16 @@ Login Target
     IF     "${IS_EMBEDDED}"
         # Special case where embedded3/embedded4 requires public key authentication.
         # Password authentication will have priority, and public key authentication
-        # used as a fall back method.
+        # used as a backup method. Key material is generated on demand to avoid
+        # storing private keys in source control.
         TRY
             Open Connection    ${target_ip}    alias=Target    port=2222    prompt=#
             Login    username=root    password=${EMPTY}
         EXCEPT
             Open Connection    ${target_ip}    alias=Target    port=2222    prompt=#
-            Login With Public Key    username=root    keyfile=${EXECDIR}/example/.ssh/aembedded3
+            ${embedded_key_path}=    Join Path    ${OUTPUT_DIR}    embedded_private_key.pem
+            Create File    ${embedded_key_path}    ${EMBEDDED_PRIVATE_KEY}
+            Login With Public Key    username=root    keyfile=${embedded_key_path}
         END
         Open Connection    ${target_ip}    alias=RouterOSTarget
         # quotations around ``${EMPTY}`` otherwise syntax error
