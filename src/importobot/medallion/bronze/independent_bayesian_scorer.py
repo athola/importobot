@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 
 from .evidence_metrics import EvidenceMetrics
 from .shared_config import (
@@ -24,7 +24,7 @@ from .shared_config import (
 )
 from .test_case_complexity_analyzer import ComplexityMetrics
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 LOG_LIKELIHOOD_FLOOR = 1e-12  # Keeps log products bounded (~-27.6) for three factors
 AMBIGUOUS_RATIO_CAP = 1.5  # Caps weak signals so the posterior stays near the priors

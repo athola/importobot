@@ -3,24 +3,38 @@
 Roadmap of upcoming features, parked items, and ideas requiring proof-of-concept development.
 
 ### Latest engineering update (October 2025)
+- **✅ JSON Template System**: Blueprint-driven Robot Framework rendering with cross-template learning. Templates learn patterns from existing Robot files and apply them consistently across conversions.
+- **✅ Schema Parser**: New field extraction from customer documentation (SOPs, READMEs) improves parsing accuracy by understanding organization-specific naming conventions.
+- **✅ Enhanced File Examples**: Expanded JSON library with realistic system administration tasks (file operations, SSH commands, validation) and comprehensive test coverage.
 - **✅ Bayesian confidence scoring**: Replaced weighted evidence with independent scorer. Evidence flows through `EvidenceMetrics`, missing indicators are penalized, ambiguous inputs capped at 1.5:1 likelihood ratio. Regression tests in `test_bayesian_ratio_constraints.py`.
 - **✅ Configuration parsing**: Enhanced project identifier parsing for control characters and whitespace inputs. CLI arguments that don't parse to valid identifiers fall back to environment variables.
-- **✅ Test coverage**: Fixed Zephyr client discovery test with proper mocking. All 1,941 tests pass with 0 skips.
+- **✅ Test coverage**: All 1,941 tests pass with 0 skips.
+- **✅ Code quality**: Removed pylint from project, streamlined linting workflow, improved test isolation.
 - Fixed formatter to preserve comment placeholders and show both raw/normalized names for auditing
 - Selenium tests run in dry-run mode without `robot.utils` shim, removing deprecation warnings
 - Property-based tests keep literal step bodies for Hypothesis while testing parameter conversion
 
 ## Roadmap
 
-### Q3 2025 — in-flight work
-- Bulk conversion polish. Tighten recursive directory handling and step mapping because current heuristics stumble on large Zephyr dumps.
-- Additional format support. Xray and TestLink parsers are in review; once merged, bake them into the same validation path as Zephyr so quality is consistent between formats.
-- Performance visibility. Adding simple timing metrics and I/O profiling so bottlenecks can be identified between parsing, mapping, or write-out.
+### Q4 2025 — current focus
+- **Template learning system**: Refine cross-template learning to capture more complex Robot Framework patterns from existing test suites.
+- **Schema integration**: Deepen integration between schema parser and conversion pipeline to automatically apply organization-specific field mappings.
+- **Documentation quality improvements**: Continue removing AI-generated content patterns and add more authentic technical details throughout documentation.
+
+### Q3 2025 — completed work
+- **✅ JSON template system**: Implemented blueprint-driven rendering with pattern learning capabilities.
+- **✅ Schema parser**: Created documentation-driven field mapping system.
+- **✅ File examples**: Comprehensive JSON test data covering common system administration scenarios.
+- **✅ Bulk conversion polish**: Improved recursive directory handling and step mapping for large Zephyr exports.
+- **✅ Performance visibility**: Added timing metrics and I/O profiling for bottleneck identification.
 
 ### Q4 2025 – Q1 2026 — queued next
 - REST surface for CI/CD. Request for a service wrapper instead of shell access, so prototype it once parsers are integrated.
 - Plugin architecture research. The goal is to let us snap in new source formats without rewriting the core converter. Need to prove abstraction on a format other than Zephyr.
 - Quality reporting. Lightweight analytics (success/error counts, skipped fields) so operations teams can spot regressions without perusing logs.
+
+- 🔜  Refactor `src/importobot/core/templates/blueprints/cli.py` into smaller helper modules
+  - Explore table-driven rendering / class-based builders after current release
 
 ### Later — stays on the backlog until we learn more
 - Converters targeting frameworks beyond Robot Framework.

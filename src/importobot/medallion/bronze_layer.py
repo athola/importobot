@@ -26,7 +26,7 @@ from importobot.medallion.interfaces.data_models import (
 from importobot.medallion.interfaces.enums import ProcessingStatus, SupportedFormat
 from importobot.medallion.interfaces.records import BronzeRecord, RecordMetadata
 from importobot.medallion.storage.base import StorageBackend
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 from importobot.utils.string_cache import data_to_lower_cached
 from importobot.utils.validation_models import (
     QualitySeverity,
@@ -34,7 +34,7 @@ from importobot.utils.validation_models import (
     create_basic_validation_result,
 )
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 @dataclass(slots=True)

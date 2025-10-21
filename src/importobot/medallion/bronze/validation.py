@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 from importobot.utils.string_cache import data_to_lower_cached
 from importobot.utils.validation_models import (
     QualitySeverity,
@@ -14,7 +14,7 @@ from importobot.utils.validation_models import (
     create_validation_result,
 )
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 class ValidationThresholds:

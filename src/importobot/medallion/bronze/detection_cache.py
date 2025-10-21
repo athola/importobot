@@ -29,6 +29,18 @@ DETECTION_CACHE_COLLISION_LIMIT = CONFIG_COLLISION_LIMIT
 DETECTION_CACHE_TTL_SECONDS = CONFIG_TTL_SECONDS
 
 
+class _NullTelemetry:
+    def record_cache_metrics(  # pylint: disable=unused-argument
+        self,
+        cache_name: str,
+        *,
+        hits: int,
+        misses: int,
+        extras: dict[str, Any] | None = None,
+    ) -> None:
+        return None
+
+
 class DetectionCache:
     """Manages caching and performance optimizations for format detection."""
 
@@ -92,7 +104,10 @@ class DetectionCache:
         self._collision_count = 0
         self._rejected_large_content = 0
         self._eviction_count = 0
-        self._telemetry = telemetry_client or get_telemetry_client()
+        resolved_telemetry = telemetry_client or get_telemetry_client()
+        self._telemetry: TelemetryClient | _NullTelemetry = (
+            resolved_telemetry if resolved_telemetry is not None else _NullTelemetry()
+        )
 
     def get_data_string_efficient(self, data: Any) -> str:
         """Get string representation with secure collision-resistant caching."""
@@ -360,21 +375,22 @@ class DetectionCache:
         self._emit_cache_metrics()
 
     def _emit_cache_metrics(self) -> None:
-        self._telemetry.record_cache_metrics(
-            "detection_cache",
-            hits=self._cache_hits,
-            misses=self._cache_misses,
-            extras={
-                "max_cache_size": self.max_cache_size,
-                "data_string_cache_size": len(self._data_string_cache),
-                "detection_result_cache_size": len(self._detection_result_cache),
-                "normalized_key_cache_size": len(self._normalized_key_cache),
-                "collision_count": self._collision_count,
-                "rejected_large_content": self._rejected_large_content,
-                "evictions": self._eviction_count,
-                "ttl_seconds": self._ttl_seconds or 0,
-            },
-        )
+        if self._telemetry is not None:
+            self._telemetry.record_cache_metrics(
+                "detection_cache",
+                hits=self._cache_hits,
+                misses=self._cache_misses,
+                extras={
+                    "max_cache_size": self.max_cache_size,
+                    "data_string_cache_size": len(self._data_string_cache),
+                    "detection_result_cache_size": len(self._detection_result_cache),
+                    "normalized_key_cache_size": len(self._normalized_key_cache),
+                    "collision_count": self._collision_count,
+                    "rejected_large_content": self._rejected_large_content,
+                    "evictions": self._eviction_count,
+                    "ttl_seconds": self._ttl_seconds or 0,
+                },
+            )
 
 
 __all__ = ["DetectionCache"]

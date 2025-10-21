@@ -12,8 +12,9 @@ from typing import Any
 from importobot import exceptions
 from importobot.core.engine import GenericConversionEngine
 from importobot.core.suggestions import GenericSuggestionEngine
+from importobot.services.performance_cache import cached_string_lower
 from importobot.utils.json_utils import load_json_file
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 from importobot.utils.validation import (
     validate_json_dict,
     validate_not_empty,
@@ -22,7 +23,7 @@ from importobot.utils.validation import (
     validate_type,
 )
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 class JsonToRobotConverter:
@@ -36,6 +37,16 @@ class JsonToRobotConverter:
         """Initialize converter with conversion and suggestion engines."""
         self.conversion_engine = GenericConversionEngine()
         self.suggestion_engine = GenericSuggestionEngine()
+
+    def convert(self, json_input: dict[str, Any] | str) -> str:
+        """Unified helper accepting either raw JSON strings or dictionaries."""
+        if isinstance(json_input, str):
+            return self.convert_json_string(json_input)
+        if isinstance(json_input, dict):
+            return self.convert_json_data(json_input)
+        raise TypeError(
+            "JsonToRobotConverter.convert accepts either a JSON string or a dict"
+        )
 
     def convert_json_string(self, json_string: str) -> str:
         """Convert a JSON string directly to Robot Framework format."""
@@ -62,6 +73,7 @@ class JsonToRobotConverter:
     def convert_json_data(self, json_data: dict[str, Any]) -> str:
         """Convert a JSON dictionary to Robot Framework format."""
         validate_json_dict(json_data)
+        _prime_string_cache(json_data)
 
         try:
             return self.conversion_engine.convert(json_data)
@@ -172,6 +184,18 @@ def convert_multiple_files(input_files: list[str], output_dir: str) -> None:
 
     for input_file in input_files:
         _convert_file_with_error_handling(input_file, output_dir)
+
+
+def _prime_string_cache(payload: Any) -> None:
+    if isinstance(payload, dict):
+        for value in payload.values():
+            if isinstance(value, str):
+                cached_string_lower(value)
+            else:
+                _prime_string_cache(value)
+    elif isinstance(payload, list):
+        for item in payload:
+            _prime_string_cache(item)
 
 
 def convert_directory(input_dir: str, output_dir: str) -> None:

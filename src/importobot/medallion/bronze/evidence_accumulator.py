@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from importobot.medallion.interfaces.enums import EvidenceSource, SupportedFormat
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 
 from .evidence_metrics import EvidenceMetrics
 from .format_models import EvidenceWeight
@@ -25,7 +25,7 @@ from .independent_bayesian_scorer import IndependentBayesianScorer
 from .shared_config import DEFAULT_FORMAT_PRIORS
 from .test_case_complexity_analyzer import ComplexityMetrics, TestCaseComplexityAnalyzer
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 # Penalty constants are defined here so the ratios we enforce stay transparent.
 # - PATTERN_MISMATCH_PENALTY pushes down confidence when regex checks fail.

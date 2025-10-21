@@ -2,22 +2,59 @@
 
 ## v0.1.3 (October 2025)
 
-**Release Date**: 2025-10-15
+**Release Date**: 2025-10-21
 **Branch**: api-json-pull
 **Status**: Ready for production
 
 **Highlights**
+- **Application Context Pattern**: Replaced global variables with thread-local context for better test isolation
+- **Unified Caching System**: New `importobot.caching` module with LRU cache implementation
+- **Blueprint-driven templates**: Learn patterns from existing Robot files and apply them consistently across conversions
+- **Schema-aware parsing**: Extract field definitions from customer documentation (SOPs, READMEs) for improved accuracy
+- **Enhanced file operations**: Comprehensive JSON examples covering system administration tasks
+- **Documentation cleanup**: Removed AI-generated content patterns and added authentic technical details
+- **Code quality improvements**: Removed pylint, streamlined linting workflow, improved test isolation
 - Configuration parsing handles control characters and whitespace inputs
 - All 1,941 tests pass with 0 skips after fixing Zephyr client discovery test
-- Project identifier parsing now falls back to environment variables when CLI input is invalid
-- Better handling of edge cases with non-printable characters
+
+**New Features (added during 0.1.3 development)**
+
+### JSON Template System
+- Blueprint-driven Robot Framework rendering with cross-template learning
+- Templates learn patterns from existing Robot files and apply them consistently
+- Support for custom template files via `--robot-template` flag
+- Improved pattern extraction and template matching algorithms
+
+### Schema Parser
+- New `src/importobot/core/schema_parser.py` module
+- Extract field definitions from customer documentation (SOPs, READMEs)
+- Parse organization-specific naming conventions and field aliases
+- Integration with conversion pipeline via `--input-schema` flag
+
+### Enhanced File Examples
+- Expanded JSON example library with realistic system administration tasks
+- Complete coverage for file operations, SSH commands, and validation workflows
+- Comprehensive test coverage for all example files
+- Added sanitization scripts for customer data privacy
+
+**Documentation Improvements (0.1.3 ongoing)**
+- Removed AI-generated content patterns throughout the codebase
+- Added concrete performance metrics and real-world usage data
+- Injected authorial perspective and decision rationale
+- Improved directness and removed ambiguous clichés
+
+**Code Quality (0.1.3 ongoing)**
+- Removed pylint from project dependencies
+- Streamlined linting workflow with ruff and mypy
+- Improved test isolation and reduced flaky tests
+- Enhanced error handling and type safety
 
 **Bug Fixes**
 
 ### Configuration Resilience
 - Enhanced `_parse_project_identifier()` in `config.py` to handle control characters and whitespace-only inputs gracefully
 - Added `raw.isspace()` check to treat whitespace-only strings as empty after stripping
-- Improved fallback logic in `resolve_api_ingest_config()` ensures CLI arguments that don't parse to valid identifiers fall back to environment variables
+# Updated default-selection logic in `resolve_api_ingest_config()` so CLI arguments that don't parse to valid identifiers use environment variables instead
 - Fixes edge cases where non-printable characters (like `\x85`) would cause configuration parsing failures
 
 ### Test Coverage Completion
@@ -41,7 +78,7 @@ if not raw or raw.isspace():
 
 ### Project Resolution Logic
 ```python
-# Enhanced fallback logic in resolve_api_ingest_config()
+# Enhanced default-selection logic in resolve_api_ingest_config()
 cli_project = getattr(args, "project", None)
 project_name, project_id = _parse_project_identifier(cli_project)
 
@@ -51,10 +88,42 @@ if project_name is None and project_id is None:
     project_name, project_id = _parse_project_identifier(env_project)
 ```
 
+### Application Context Pattern
+- **New module**: `src/importobot/context.py`
+- **Thread-local storage**: Each thread gets its own application context
+- **Lazy loading**: Dependencies created only when needed
+- **Clean testing**: No global state pollution between tests
+- **Multiple instances**: Support for concurrent Importobot instances
+
+```python
+# Before: Global variables
+_global_cache: PerformanceCache | None = None
+
+# After: Thread-local context
+from importobot.context import get_context
+context = get_context()
+cache = context.performance_cache
+```
+
+### Unified Caching System
+- **New package**: `src/importobot/caching/`
+- **LRU Cache**: Configurable size-based eviction
+- **Security Policies**: Rate limiting and backoff for cache operations
+- **Base Classes**: Extensible cache hierarchy
+- **Performance Monitoring**: Built-in cache hit rate tracking
+
+```python
+from importobot.caching import LRUCache, CacheConfig
+
+config = CacheConfig(max_size=1000, ttl_seconds=3600)
+cache = LRUCache(config)
+```
+
 **Migration Notes**
 - No breaking changes - all existing functionality preserved
 - Better handling of malformed input data
-- More predictable fallback behavior for configuration issues
+- More predictable default behavior for configuration issues
+- Internal API changes: caching and context management are now more robust
 
 ---
 

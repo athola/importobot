@@ -236,14 +236,14 @@ class TestGenericFormatCreator(unittest.TestCase):
         """Test basic properties of Generic format definition."""
         assert self.format_def.format_type == SupportedFormat.GENERIC
         assert "Generic" in self.format_def.name
-        # Description should indicate fallback nature
-        keywords = ["generic", "fallback", "unstructured", "custom"]
+        # Description should indicate default nature
+        keywords = ["generic", "default", "unstructured", "custom"]
         description_lower = self.format_def.description.lower()
         assert any(keyword in description_lower for keyword in keywords)
 
     def test_generic_moderate_indicators(self):
         """Test Generic format focuses on moderate/weak indicators."""
-        # Generic should rely more on moderate/weak indicators since it's a fallback
+        # Generic should rely more on moderate/weak indicators since it's a default option
         moderate_indicators = self.format_def.moderate_indicators
         weak_indicators = self.format_def.weak_indicators
 

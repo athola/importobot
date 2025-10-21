@@ -44,6 +44,18 @@ from importobot.utils.validation import (
 logger = setup_logger(__name__)
 
 
+class _NullTelemetry:
+    def record_cache_metrics(  # pylint: disable=unused-argument
+        self,
+        cache_name: str,
+        *,
+        hits: int,
+        misses: int,
+        extras: dict[str, Any] | None = None,
+    ) -> None:
+        return None
+
+
 class FileContentCache:
     """Simple LRU cache for file contents keyed by path + mtime."""
 
@@ -67,7 +79,10 @@ class FileContentCache:
         self._ttl_seconds: int | None = resolved_ttl if resolved_ttl > 0 else None
         self._cache_hits = 0
         self._cache_misses = 0
-        self._telemetry = telemetry_client or get_telemetry_client()
+        resolved_telemetry = telemetry_client or get_telemetry_client()
+        self._telemetry: TelemetryClient | _NullTelemetry = (
+            resolved_telemetry if resolved_telemetry is not None else _NullTelemetry()
+        )
 
     def get_cached_content(self, file_path: Path) -> str | None:
         """Return cached content if file unchanged, else evict entry."""
@@ -78,9 +93,10 @@ class FileContentCache:
             self._emit_cache_metrics()
             return None
 
+        current_time = time.time()
         if (
             self._ttl_seconds is not None
-            and (time.time() - entry["accessed"]) > self._ttl_seconds
+            and (current_time - entry["accessed"]) > self._ttl_seconds
         ):
             self._evict_key(cache_key)
             self._cache_misses += 1
@@ -100,7 +116,7 @@ class FileContentCache:
             self._evict_key(cache_key)
             return None
 
-        entry["accessed"] = time.time()
+        entry["accessed"] = current_time
         self._cache.move_to_end(cache_key)
         self._cache_hits += 1
         self._emit_cache_metrics()

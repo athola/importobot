@@ -1,10 +1,16 @@
 """Core validation functions and utilities."""
 
 import functools
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from typing import Any, TypeVar
 
 from importobot import exceptions
+from importobot.utils.validation_models import (
+    QualitySeverity,
+    ValidationResult,
+    ValidationSeverity,
+    create_validation_result,
+)
 
 T = TypeVar("T")
 
@@ -178,3 +184,97 @@ class ValidationContext:
                 f"  - {error}" for error in self.errors
             )
             raise ValidationError(error_message)
+
+
+class ValidationPipeline:
+    """Composable validation pipeline for reusable validation flows."""
+
+    def __init__(self, name: str | None = None) -> None:
+        """Create a pipeline with an optional display name."""
+        self.name = name or "validation_pipeline"
+        self._validators: list[Callable[[Any], ValidationResult]] = []
+
+    def add(self, validator: Callable[[Any], ValidationResult]) -> "ValidationPipeline":
+        """Append a validator callable to the pipeline."""
+        self._validators.append(validator)
+        return self
+
+    def extend(
+        self, validators: Iterable[Callable[[Any], ValidationResult]]
+    ) -> "ValidationPipeline":
+        """Append multiple validators to the pipeline in order."""
+        for validator in validators:
+            self.add(validator)
+        return self
+
+    def validate(self, data: Any) -> ValidationResult:
+        """Run all validators against ``data`` and collate results."""
+        results = [validator(data) for validator in self._validators]
+        return merge_validation_results(results, pipeline_name=self.name)
+
+
+def merge_validation_results(
+    results: Iterable[ValidationResult], *, pipeline_name: str | None = None
+) -> ValidationResult:
+    """Merge multiple ValidationResult objects into a single roll-up result."""
+    results = list(results)
+    if not results:
+        return create_validation_result(
+            messages=["No validators executed"],
+            severity=ValidationSeverity.INFO,
+        )
+
+    messages: list[str] = []
+    issues: list[str] = []
+    context: dict[str, Any] = {}
+    details: dict[str, Any] = {}
+    error_count = 0
+    warning_count = 0
+    is_valid = True
+    highest_rank = -1
+    chosen_severity: ValidationSeverity | QualitySeverity = ValidationSeverity.INFO
+
+    for index, result in enumerate(results):
+        messages.extend(result.messages)
+        issues.extend(result.issues)
+        error_count += result.error_count
+        warning_count += result.warning_count
+        is_valid = is_valid and result.is_valid
+
+        if result.context:
+            context[f"validator_{index}"] = result.context
+        if result.details:
+            details[f"validator_{index}"] = result.details
+
+        rank = _severity_rank(result.severity)
+        if rank > highest_rank:
+            highest_rank = rank
+            chosen_severity = result.severity
+
+    if pipeline_name:
+        context.setdefault("pipeline", pipeline_name)
+
+    return ValidationResult(
+        is_valid=is_valid,
+        severity=chosen_severity,
+        messages=messages,
+        context=context,
+        error_count=error_count,
+        warning_count=warning_count,
+        issues=issues,
+        details=details,
+    )
+
+
+def _severity_rank(severity: ValidationSeverity | QualitySeverity) -> int:
+    order = {
+        "info": 0,
+        "low": 1,
+        "warning": 2,
+        "medium": 2,
+        "error": 3,
+        "high": 3,
+        "critical": 4,
+    }
+    key = severity.value.lower()
+    return order.get(key, 0)

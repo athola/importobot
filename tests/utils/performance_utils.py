@@ -23,7 +23,7 @@ class SystemResources:
             # Unix-like systems
             return os.getloadavg()[0] / self._cpu_count
         except (OSError, AttributeError):
-            # Windows or fallback
+            # Windows or default path
             return 0.5  # Conservative assumption
 
     def _get_memory_info(self) -> dict[str, float]:

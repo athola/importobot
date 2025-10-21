@@ -5,6 +5,7 @@ from collections.abc import Callable
 from typing import Any
 
 from importobot.utils.defaults import PROGRESS_CONFIG
+from importobot.utils.logging import get_logger
 
 
 class ProgressReporter:
@@ -19,7 +20,7 @@ class ProgressReporter:
             logger: Logger instance to use for reporting. If None, creates default.
             operation_name: Name of the operation being tracked.
         """
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger = logger or get_logger()
         self.operation_name = operation_name
         self.total_items = 0
         self.completed_items = 0

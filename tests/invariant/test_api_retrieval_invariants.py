@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import unicodedata
 from argparse import Namespace
 from pathlib import Path
 
@@ -80,7 +81,12 @@ def test_token_resolution_precedence(
         stripped = cli_project.strip()
         if stripped.isdigit():
             assert config.project_name is None
-            assert config.project_id == int(stripped)
+            # Use the same unicode digit handling logic as the function
+            try:
+                expected_id = int(stripped)
+            except ValueError:
+                expected_id = int(unicodedata.numeric(stripped))
+            assert config.project_id == expected_id
         else:
             assert config.project_name == stripped
     else:

@@ -16,7 +16,7 @@ Internal:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 # Core public functionality - import without exposing modules
 # API toolkit (following pandas.api pattern)
@@ -59,14 +59,32 @@ config = _config
 exceptions = _exceptions
 api = _api
 
+
+def convert(payload: dict[str, Any] | str) -> str:
+    """Convert a JSON payload (dict or string) to Robot Framework text."""
+    converter = JsonToRobotConverter()
+    return converter.convert(payload)
+
+
+def convert_file(input_file: str, output_file: str) -> dict[str, Any]:
+    """Convert a JSON file to Robot Framework output."""
+    converter = JsonToRobotConverter()
+    return converter.convert_file(input_file, output_file)
+
+
+def convert_directory(input_dir: str, output_dir: str) -> dict[str, Any]:
+    """Convert all JSON files within a directory to Robot Framework output."""
+    converter = JsonToRobotConverter()
+    return converter.convert_directory(input_dir, output_dir)
+
+
 __all__ = [
-    # Core business functionality
     "JsonToRobotConverter",
-    # Public API toolkit
     "api",
-    # Configuration management
     "config",
-    # Error handling
+    "convert",
+    "convert_directory",
+    "convert_file",
     "exceptions",
 ]
 

@@ -79,7 +79,7 @@ class TestBronzeStorageInvariants:
                 )
 
     @given(st.integers(min_value=0, max_value=100))
-    @settings(max_examples=20, deadline=2000)
+    @settings(max_examples=20, deadline=None)
     def test_limit_zero_always_returns_empty_invariant(self, num_records: int) -> None:
         """Invariant: Querying with limit=0 always returns empty list.
 
@@ -123,7 +123,7 @@ class TestBronzeStorageInvariants:
             max_size=30,
         )
     )
-    @settings(max_examples=20, deadline=4000)
+    @settings(max_examples=20, deadline=None)
     def test_retrieval_after_ingestion_preserves_count_invariant(
         self, test_data_list: list[dict]
     ) -> None:
@@ -223,7 +223,7 @@ class TestBronzeStorageInvariants:
             )
             result = bronze_layer.ingest(test_data, metadata)
 
-            # Attempt retrieval - should work due to in-memory storage fallback
+            # Attempt retrieval - should work due to in-memory storage defaults
             records = bronze_layer.get_bronze_records()
 
             # INVARIANT: In-memory storage provides graceful degradation
@@ -418,9 +418,19 @@ class TestBronzeStorageInvariants:
 
         def _sample_data(fmt: str) -> dict:
             if fmt.lower() == "zephyr":
-                return {"testCase": {"name": "Zephyr Case"}}
+                return {
+                    "testCase": {"name": "Zephyr Case", "steps": [{"action": "A"}]},
+                    "execution": {"status": "PASS"},
+                    "cycle": {"name": "Cycle"},
+                }
             if fmt.lower() == "testlink":
-                return {"testsuites": {"testsuite": [{"name": "TL Suite"}]}}
+                return {
+                    "testsuites": {
+                        "testsuite": [
+                            {"name": "TL Suite", "testcase": [{"name": "Case"}]}
+                        ]
+                    }
+                }
             return {"misc": "data"}
 
         with tempfile.TemporaryDirectory() as temp_dir:

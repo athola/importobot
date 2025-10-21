@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import importlib
-import logging
 import os
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
@@ -12,10 +12,11 @@ from typing import TYPE_CHECKING, Any, cast
 from importobot import exceptions
 from importobot.cli.constants import FETCHABLE_FORMATS, SUPPORTED_FETCH_FORMATS
 from importobot.medallion.interfaces.enums import SupportedFormat
+from importobot.utils.logging import get_logger
 
 if TYPE_CHECKING:  # pragma: no cover - circular import guard for type checking
     from importobot.medallion.storage.config import StorageConfig
-else:  # pragma: no cover - runtime fallback to satisfy type check references
+else:  # pragma: no cover - runtime default to satisfy type check references
     StorageConfig = Any  # type: ignore[assignment]
 
 
@@ -26,7 +27,7 @@ def _load_storage_config_cls() -> type[Any]:
 
 
 # Module-level logger for configuration warnings
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 # Default values
 DEFAULT_TEST_SERVER_URL = "http://localhost:8000"
@@ -95,6 +96,9 @@ FILE_CONTENT_CACHE_MAX_MB = _int_from_env(
 FILE_CONTENT_CACHE_TTL_SECONDS = _int_from_env(
     "IMPORTOBOT_FILE_CACHE_TTL_SECONDS", 0, minimum=0
 )
+FILE_CONTENT_CACHE_MAX_ENTRIES = _int_from_env(
+    "IMPORTOBOT_FILE_CACHE_MAX_ENTRIES", 2048, minimum=1
+)
 PERFORMANCE_CACHE_MAX_SIZE = _int_from_env(
     "IMPORTOBOT_PERFORMANCE_CACHE_MAX_SIZE", 1000, minimum=1
 )
@@ -159,14 +163,14 @@ def _mask(tokens: list[str] | None) -> str:
 
 
 def _resolve_output_dir(cli_path: str | None) -> Path:
-    """Resolve output directory with fallback to environment and cwd."""
+    """Resolve output directory defaulting to environment and cwd."""
     env_dir = os.getenv("IMPORTOBOT_API_INPUT_DIR")
     candidate = cli_path or env_dir
     return Path(candidate).expanduser().resolve() if candidate else Path.cwd()
 
 
 def _resolve_max_concurrency(cli_value: int | None) -> int | None:
-    """Resolve max concurrency with environment fallback."""
+    """Resolve max concurrency with environment defaults."""
     if cli_value is not None:
         return cli_value
     raw_env = os.getenv("IMPORTOBOT_API_MAX_CONCURRENCY")
@@ -188,12 +192,16 @@ def _parse_project_identifier(value: str | None) -> tuple[str | None, int | None
     if not raw or raw.isspace():
         return None, None
     if raw.isdigit():
+        # Try direct int conversion first for ASCII digits
         try:
             return None, int(raw)
         except ValueError:
-            # Handle cases where isdigit() returns True but int() fails
-            # (e.g., for some Unicode superscript/subscript numbers)
-            return raw, None
+            # Handle unicode digits like superscript numbers
+            try:
+                numeric_value = unicodedata.numeric(raw)
+                return None, int(numeric_value)
+            except (TypeError, ValueError):
+                return raw, None
     return raw, None
 
 
@@ -227,7 +235,7 @@ def resolve_api_ingest_config(args: Any) -> APIIngestConfig:
     )
     api_user = getattr(args, "api_user", None) or fetch_env(f"{prefix}_API_USER")
 
-    # Handle project resolution with fallback logic
+    # Handle project resolution with default-selection logic
     cli_project = getattr(args, "project", None)
     project_name, project_id = _parse_project_identifier(cli_project)
 

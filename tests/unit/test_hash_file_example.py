@@ -221,9 +221,7 @@ class TestHashFileExample:
         assert "hash" in content  # Test case name
         assert "Verify hashes match" in content  # Objective
         assert "# In the target machine's terminal, create a file" in content
-        assert (
-            "# In target machine's terminal, get the sha of new file" in content
-        )
+        assert "# In target machine's terminal, get the sha of new file" in content
         assert "# Use the hash command on the CLI" in content
 
         # Validate that SSHLibrary is imported (for CLI commands)

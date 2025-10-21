@@ -1,7 +1,7 @@
 [
     {
-        "owner": "JIRAUSER10907",
-        "updatedBy": "JIRAUSER10411",
+        "owner": "USER001",
+        "updatedBy": "USER002",
         "customFields": {
             "Supported Platforms": "All Platforms",
             "Test Level": "Minimum Viable"
@@ -14,10 +14,10 @@
         "labels": [
             "Requirement"
         ],
-        "projectKey": "ABC",
-        "folder": "/Tests/'Tasks Tests'",
+        "projectKey": "DEMO",
+        "folder": "/Examples/TaskTests",
         "latestVersion": true,
-        "createdBy": "JIRAUSER11600",
+        "createdBy": "USER003",
         "testScript": {
             "id": 12510,
             "type": "STEP_BY_STEP",

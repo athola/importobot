@@ -168,7 +168,7 @@ KEYWORD_PATTERNS = KeywordPatterns()
 LIBRARY_MAPPING = LibraryMapping()
 
 
-def get_default_value(category: str, key: str, fallback: str = "") -> str:
+def get_default_value(category: str, key: str, default_value: str = "") -> str:
     """Get a default value by category and key."""
     defaults_map = {
         "web": {
@@ -203,7 +203,7 @@ def get_default_value(category: str, key: str, fallback: str = "") -> str:
         },
     }
 
-    return defaults_map.get(category, {}).get(key, fallback)
+    return defaults_map.get(category, {}).get(key, default_value)
 
 
 def configure_defaults(**kwargs: Any) -> None:

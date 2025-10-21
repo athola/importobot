@@ -708,7 +708,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
         assert detected == SupportedFormat.TESTRAIL
 
     # Test 5: Generic format detection
-    def test_generic_format_detection_fallback(self):
+    def test_generic_format_detection_default(self):
         """Test that generic test structures are properly detected.
 
         Note: Generic format has low prior (0.04) by design, reflecting its rarity.

@@ -15,7 +15,7 @@ class TestZephyrPreconditionAnalyzer:
     def test_standard_preconditions_structure(self):
         """Test STANDARD_PRECONDITIONS contains expected values."""
         expected_preconditions = [
-            "YJ Installed",
+            "Controller Installed",
             "Communication Prepared",
             "Socket(s) Open",
             "Agent Stamped",

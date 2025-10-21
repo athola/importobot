@@ -19,7 +19,7 @@ from importobot.utils.file_operations import (
     process_single_file_with_suggestions,
 )
 from importobot.utils.json_utils import load_json_file
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 
 
 class ConversionStrategy(ABC):
@@ -269,7 +269,7 @@ def get_strategy(args: Any) -> ConversionStrategy:
 
 def convert_with_strategy(args: Any) -> None:
     """Convert input using the appropriate strategy."""
-    logger = setup_logger(__name__)
+    logger = get_logger()
     strategy = get_strategy(args)
 
     try:

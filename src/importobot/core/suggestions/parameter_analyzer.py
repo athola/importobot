@@ -10,9 +10,9 @@ from importobot.core.constants import (
     TEST_DATA_FIELD_NAMES,
 )
 from importobot.core.field_definitions import PARAMETERS_FIELDS, TEST_SCRIPT_FIELDS
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 class ParameterAnalyzer:

@@ -24,7 +24,7 @@ from typing import (
 
 from importobot.services.security_types import SecurityLevel
 from importobot.services.validation_service import ValidationService
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 from importobot.utils.security import SecurityValidator
 from importobot.utils.validation import (
     ValidationError,
@@ -57,7 +57,7 @@ INLINE_EVENT_HANDLER_PATTERN = (
     r"touchstart|unload|wheel)\s*="
 )
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 def _int_from_env(var_name: str, default: int) -> int:

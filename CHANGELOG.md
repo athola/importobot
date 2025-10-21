@@ -5,22 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.3] - 2025-10-15
+## [0.1.3] - 2025-10-21
+
+### Added
+- **Application Context Pattern**: Replaced global variables with thread-local application context for better test isolation and dependency management
+- **Unified Caching System**: New `importobot.caching` module with LRU cache implementation and security policies
+- **JSON-based CLI Task Templates**: Cross-template learning system that extracts patterns from existing Robot files
+- **Schema Parser**: New `importobot.core.schema_parser` for extracting field definitions from documentation
+- **Enhanced File Operations**: Comprehensive JSON examples covering system administration tasks
+- **API Examples Documentation**: New `wiki/API-Examples.md` with detailed usage patterns
+- **Architecture Documentation**: Added ADR-0004 for Application Context Pattern
 
 ### Fixed
-- **Configuration Resilience**: Enhanced `_parse_project_identifier()` in `config.py` to handle control characters and whitespace-only inputs gracefully
-- **Project Resolution Fallback**: Improved fallback logic in `resolve_api_ingest_config()` ensures CLI arguments that don't parse to valid identifiers fall back to environment variables
-- **Test Coverage Completion**: Unskipped and completely rewrote `test_zephyr_client_discovers_two_stage_strategy` to achieve comprehensive test coverage with 1,941 tests passing and 0 skips
+- **Configuration Resilience**: Enhanced `_parse_project_identifier()` to handle control characters and whitespace-only inputs
+- **Project Resolution Defaults**: Improved default-selection logic so CLI arguments that don't parse to valid identifiers use environment variables instead
+- **Blueprint Learning Tests**: Fixed test issues with blueprint template system
+- **Test Coverage**: Achieved 1,941 tests passing with 0 skips after rewriting Zephyr client discovery test
 
 ### Changed
-- Updated test count references across documentation to reflect current comprehensive coverage
-- Enhanced error handling for edge cases with non-printable characters in project identifiers
-- Improved configuration parsing robustness with additional whitespace validation
+- **Removed Pylint**: Dropped pylint from project, now using ruff/mypy only for streamlined linting
+- **Documentation Cleanup**: Removed AI-generated content patterns and improved team voice throughout wiki
+- **Bayesian Scoring**: Independent Bayesian model replaced weighted heuristic with 1.5:1 ambiguity ratio cap
+- **Dependencies**: Removed `robot.utils` compatibility shim after Robot Framework updates
+- **Configuration Terminology**: Changed from "fallback" to "default/secondary" helpers for consistency
 
 ### Technical Details
-- Added `raw.isspace()` check to treat whitespace-only strings as empty after stripping
-- Modified project resolution to try CLI arguments first, then fall back to environment variables when parsing fails
-- Rewrote Zephyr client discovery test to use successful pattern validation instead of complex failure-mocking
+- Added `raw.isspace()` check in configuration parsing for better whitespace handling
+- Implemented thread-local context storage for concurrent instance support
+- Created comprehensive caching hierarchy with configurable eviction policies
+- Enhanced blueprint learning with cross-template pattern recognition
 
 ## [Unreleased]
 
@@ -28,6 +41,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `EvidenceMetrics` dataclass plus additional regression coverage (`tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`, `tests/unit/medallion/bronze/test_independent_bayesian_scorer.py`) that holds the independent Bayesian scorer to the 1.5:1 ambiguity cap and validates posterior normalization.
 - Benchmark artifacts under `wiki/benchmarks/` covering format-detection accuracy, detection latency, and regex cache performance.
 - Environment flags (`IMPORTOBOT_SECURITY_RATE_MAX_QUEUE`, `IMPORTOBOT_SECURITY_RATE_BACKOFF_BASE`, `IMPORTOBOT_SECURITY_RATE_BACKOFF_MAX`) to tune the security gateway rate limiter.
+- `wiki/architecture/Blueprint-Learning.md` documenting the blueprint learning pipeline and debugging tips.
+- Configuration terminology guide in the README describing the shift from “fallback” helpers to “default” helpers.
+- Pyright static analysis in CI for cross-checking mypy/ty results.
 - **API Retrieval Integration** with comprehensive platform support and flexible client architecture:
   - **Enhanced Zephyr Client** with automatic API discovery and adaptive authentication strategies
   - **Multi-Platform Support** for Jira/Xray, Zephyr for Jira, TestRail, and TestLink APIs
@@ -46,6 +62,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Enhanced CLI Interface** with `--fetch-format` parameter and shared credential flags for seamless API integration
 - **Improved Documentation** across README.md, User Guide, and Deployment Guide with comprehensive API integration examples
 - **Extended Public API** with programmatic access to platform clients via `importobot.integrations.clients`
+- Split `blueprints.py` into modular components (`registry.py`, `models.py`, `utils.py`, `cli.py`, `render.py`) with hardened ingestion error reporting.
+- Renamed helper APIs from “fallback” to “default/secondary” to keep terminology consistent with configuration defaults.
 
 ### Removed
 - Legacy `WeightedEvidenceBayesianScorer` entry points and the analysis scripts that referred to it.

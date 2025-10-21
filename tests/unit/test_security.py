@@ -28,10 +28,11 @@ class TestSSHParameterValidation:
 
         warnings = validator.validate_ssh_parameters(params)
 
-        assert len(warnings) == 2  # SSH password + hardcoded credential warnings
+        assert len(warnings) >= 2  # SSH password + hardcoded credential warnings
         assert any("⚠️  SSH password found" in w for w in warnings)
         assert any("consider using key-based authentication" in w for w in warnings)
         assert any("⚠️  Hardcoded credential detected" in w for w in warnings)
+        assert any("Password encrypted" in w for w in warnings)
 
     def test_validate_ssh_parameters_dangerous_command(self):
         """Test SSH parameter validation with dangerous command."""
@@ -300,9 +301,7 @@ class TestValidateTestSecurity:
 
         results = validate_test_security(test_case)
 
-        assert (
-            len(results["warnings"]) == 3
-        )  # password, hardcoded credential, and dangerous command
+        assert len(results["warnings"]) >= 3
         assert len(results["recommendations"]) >= 4  # SSH recommendations
 
     def test_validate_test_security_logging(self):

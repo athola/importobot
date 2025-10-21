@@ -37,13 +37,13 @@ def log_zephyr(test_id, step_num, result, result_str):
         zephyr_log.write(f"{log_line}\n")
 
 
-def get_test_id(test_name, project_id="CRF"):
+def get_test_id(test_name, project_id="ABC"):
     """Parse test name to extract Zephyr test ID.
 
     Parses out "test_name" to make sure it conforms to the Zephyr
     ID, e.g. agent1 would be CAN-T, but Robot does not allow "-"
     therefore the testcase name would omit "-" and recombine here.
-    Adjust for YJ and use CRF.
+    Adjust for Controller and use ABC.
     """
     logger.info(f"Test string: {test_name}")
     search = re.search(rf"{project_id} T(\d+)", test_name)

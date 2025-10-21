@@ -22,7 +22,7 @@ import re
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 
 from ..interfaces.enums import EvidenceSource
 from .evidence_accumulator import EvidenceAccumulator, EvidenceItem
@@ -30,7 +30,7 @@ from .evidence_collector import EvidenceCollector
 from .format_models import EvidenceWeight
 from .format_registry import FormatRegistry
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 @dataclass

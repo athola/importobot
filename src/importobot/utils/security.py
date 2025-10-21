@@ -7,9 +7,11 @@ import time
 from datetime import datetime, timezone
 from typing import Any, ClassVar
 
+from importobot.utils.credential_manager import CredentialManager, EncryptedCredential
+from importobot.utils.logging import get_logger
 from importobot.utils.string_cache import data_to_lower_cached
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 class SecurityValidator:
@@ -111,7 +113,9 @@ class SecurityValidator:
             sensitive_paths, security_level
         )
         self.enable_audit_logging = enable_audit_logging
-        self.audit_logger = logging.getLogger(f"{__name__}.audit")
+        self.audit_logger = get_logger(f"{__name__}.audit")
+
+        self.credential_manager = CredentialManager()
 
         # Set up audit logger with specific formatting if enabled
         if self.enable_audit_logging:
@@ -347,7 +351,12 @@ class SecurityValidator:
         """Check for hardcoded credentials in parameters."""
         warnings = []
 
-        if "password" in parameters:
+        password_value = parameters.get("password")
+        if isinstance(password_value, EncryptedCredential):
+            warnings.append("✓ Password encrypted in memory")
+            return warnings
+
+        if password_value:
             warning_msg = (
                 "⚠️  SSH password found - consider using key-based authentication"
             )
@@ -365,10 +374,7 @@ class SecurityValidator:
             )
 
             # Also flag as credential exposure
-            if (
-                isinstance(parameters.get("password"), str)
-                and len(parameters["password"]) > 1
-            ):
+            if isinstance(password_value, str) and len(password_value) > 1:
                 exposure_warning = (
                     "⚠️  Hardcoded credential detected - avoid exposing "
                     "secrets in test data"
@@ -380,11 +386,29 @@ class SecurityValidator:
                     "CREDENTIAL_EXPOSURE",
                     {
                         "parameter": "password",
-                        "credential_length": len(str(parameters["password"])),
+                        "credential_length": len(password_value),
                         "risk_level": "HIGH",
                     },
                     "ERROR",
                 )
+
+            if isinstance(password_value, str):
+                try:
+                    encrypted = self.credential_manager.encrypt_credential(
+                        password_value
+                    )
+                    parameters["password"] = encrypted
+                    warnings.append("✓ Password encrypted in memory")
+                    self._log_security_event(
+                        "PASSWORD_ENCRYPTED",
+                        {
+                            "parameter": "password",
+                            "credential_length": encrypted.length,
+                        },
+                        "INFO",
+                    )
+                except Exception as exc:  # pragma: no cover - encryption fallback
+                    logger.warning("Failed to encrypt password parameter: %s", exc)
 
         return warnings
 
@@ -400,6 +424,21 @@ class SecurityValidator:
         ]
 
         for key, value in parameters.items():
+            if isinstance(value, EncryptedCredential):
+                continue
+
+            if isinstance(value, str) and "password" in key.lower():
+                try:
+                    parameters[key] = self.credential_manager.encrypt_credential(value)
+                    warnings.append(f"✓ {key} encrypted in memory to reduce exposure")
+                except Exception as exc:  # pragma: no cover - encryption fallback
+                    logger.warning(
+                        "Failed to encrypt credential parameter %s: %s",
+                        key,
+                        exc,
+                    )
+                continue
+
             if isinstance(value, str):
                 for pattern in credential_patterns:
                     if re.search(pattern, value, re.IGNORECASE):
@@ -540,11 +579,9 @@ class SecurityValidator:
     def _check_production_indicators(self, parameters: dict[str, Any]) -> list[str]:
         """Check for production environment indicators."""
         warnings = []
+        lowered = data_to_lower_cached(parameters)
 
-        if any(
-            env in data_to_lower_cached(parameters)
-            for env in ["prod", "production", "live"]
-        ):
+        if any(env in lowered for env in ["prod", "production", "live"]):
             warning_msg = (
                 "⚠️  Production environment detected - ensure proper authorization"
             )
@@ -556,9 +593,7 @@ class SecurityValidator:
                 "PRODUCTION_ENVIRONMENT",
                 {
                     "detected_indicators": [
-                        env
-                        for env in ["prod", "production", "live"]
-                        if env in data_to_lower_cached(parameters)
+                        env for env in ["prod", "production", "live"] if env in lowered
                     ],
                     "parameter_preview": (
                         str(parameters)[:100] + "..."

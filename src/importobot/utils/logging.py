@@ -1,23 +1,18 @@
 """Logging utilities for Importobot."""
 
+from __future__ import annotations
+
+import inspect
 import logging
 import sys
+from functools import cache
+
+_LOGGER_CACHE: dict[str, logging.Logger] = {}
 
 
-def setup_logger(name: str = "importobot", level: int = logging.INFO) -> logging.Logger:
-    """Set up and return a logger with consistent formatting.
-
-    Args:
-        name: Name for the logger
-        level: Logging level
-
-    Returns:
-        Configured logger instance
-    """
+def _configure_logger(name: str, level: int) -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(level)
-
-    # Prevent adding multiple handlers if logger already exists
     if not logger.handlers:
         handler = logging.StreamHandler(sys.stderr)
         formatter = logging.Formatter(
@@ -25,8 +20,39 @@ def setup_logger(name: str = "importobot", level: int = logging.INFO) -> logging
         )
         handler.setFormatter(formatter)
         logger.addHandler(handler)
-
     return logger
+
+
+@cache
+def _detect_caller_module(depth: int = 2) -> str:
+    frame = inspect.currentframe()
+    for _ in range(depth):
+        if frame is None:
+            break
+        frame = frame.f_back  # type: ignore[assignment]
+    module_name = "importobot"
+    if frame and frame.f_globals.get("__name__"):
+        module_name = frame.f_globals["__name__"]
+    return module_name
+
+
+def get_logger(name: str | None = None, level: int = logging.INFO) -> logging.Logger:
+    """Return a configured logger with optional automatic module detection."""
+    resolved_name = name or _detect_caller_module()
+    cached = _LOGGER_CACHE.get(resolved_name)
+    if cached is not None and cached.level == level:
+        return cached
+
+    logger = _configure_logger(resolved_name, level)
+    _LOGGER_CACHE[resolved_name] = logger
+    return logger
+
+
+def setup_logger(
+    name: str | None = "importobot", level: int = logging.INFO
+) -> logging.Logger:
+    """Backwards-compatible logger factory."""
+    return get_logger(name=name, level=level)
 
 
 def log_exception(
@@ -45,5 +71,5 @@ def log_exception(
     logger.exception(message)
 
 
-# Internal utility - not part of public API
-__all__: list[str] = []
+# Exported helpers
+__all__ = ["get_logger", "log_exception", "setup_logger"]

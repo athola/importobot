@@ -180,4 +180,16 @@ def create_parser() -> argparse.ArgumentParser:
         ),
     )
 
+    parser.add_argument(
+        "--input-schema",
+        dest="input_schemas",
+        action="append",
+        metavar="PATH",
+        help=(
+            "Documentation file describing input test data format (SOP, README, etc.). "
+            "Helps improve parsing quality and conversion suggestions. "
+            "Use multiple --input-schema flags for additional documentation sources."
+        ),
+    )
+
     return parser

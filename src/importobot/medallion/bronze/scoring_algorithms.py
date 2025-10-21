@@ -5,12 +5,12 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 from importobot.utils.regex_cache import get_compiled_pattern
 
 from .format_models import EvidenceThreshold, EvidenceWeight
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 def _compile_pattern_safe(pattern: str) -> re.Pattern | None:

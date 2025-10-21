@@ -5,6 +5,7 @@ import os
 from typing import Any
 
 from importobot import exceptions
+from importobot.services.performance_cache import get_performance_cache
 from importobot.utils.validation import validate_safe_path
 
 _MULTI_TEST_CONTAINER_KEY = "testCases"
@@ -157,3 +158,9 @@ def _process_json_structure(data: dict[str, Any] | list[Any]) -> dict[str, Any]:
         raise exceptions.ValidationError("JSON content must be a dictionary or array.")
 
     return data
+
+
+def dumps_cached(data: Any) -> str:
+    """Serialize data to JSON using the shared performance cache."""
+    cache = get_performance_cache()
+    return cache.get_cached_json_string(data)

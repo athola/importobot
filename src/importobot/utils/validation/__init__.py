@@ -15,6 +15,8 @@ The unified approach provides:
 from .core import (
     ValidationContext,
     ValidationError,
+    ValidationPipeline,
+    merge_validation_results,
     require_valid_input,
     validate_json_dict,
     validate_json_size,
@@ -40,8 +42,10 @@ __all__ = [
     "FieldValidator",
     "ValidationContext",
     "ValidationError",
+    "ValidationPipeline",
     "convert_parameters_to_robot_variables",
     "format_robot_framework_arguments",
+    "merge_validation_results",
     "require_valid_input",
     "sanitize_error_message",
     # Robot Framework specific

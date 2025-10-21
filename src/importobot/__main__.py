@@ -16,10 +16,11 @@ from importobot.cli.handlers import (
     handle_positional_args,
 )
 from importobot.cli.parser import create_parser
+from importobot.core.schema_parser import register_schema_file
 from importobot.core.templates import configure_template_sources
-from importobot.utils.logging import log_exception, setup_logger
+from importobot.utils.logging import get_logger, log_exception
 
-logger = setup_logger("importobot-cli")
+logger = get_logger("importobot-cli")
 
 
 def _check_conversion_flags(args: Any) -> bool:
@@ -94,7 +95,7 @@ def _handle_error(e: Exception) -> None:
         # User-friendly error for corrupted JSON files
         logger.error(str(e))  # This now contains our enhanced message
         sys.exit(1)
-    elif isinstance(e, FileNotFoundError | ValueError | IOError):
+    elif isinstance(e, (FileNotFoundError, ValueError, IOError)):  # noqa: UP038
         logger.error(
             str(e)
         )  # Remove "Error:" prefix since our messages are now descriptive
@@ -116,6 +117,12 @@ def main() -> None:
         template_sources = getattr(args, "robot_templates", None)
         if template_sources:
             configure_template_sources(template_sources)
+
+        # Load input schema documentation if provided
+        schema_sources = getattr(args, "input_schemas", None)
+        if schema_sources:
+            for schema_path in schema_sources:
+                register_schema_file(schema_path)
 
         if getattr(args, "fetch_format", None):
             should_exit = _handle_api_ingest_logic(args, parser, had_conversion_flags)

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from importobot.medallion.interfaces.enums import SupportedFormat
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 
 from .format_models import FormatDefinition
 from .formats import (
@@ -15,7 +15,7 @@ from .formats import (
     create_zephyr_format,
 )
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 class FormatRegistry:

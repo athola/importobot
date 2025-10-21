@@ -10,10 +10,10 @@ from typing import Any
 from importobot.medallion.bronze.validation import BronzeValidator
 from importobot.medallion.interfaces.data_models import DataQualityMetrics
 from importobot.utils.data_analysis import count_data_elements, count_data_fields
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 from importobot.utils.validation_models import QualitySeverity, ValidationResult
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 def stable_weighted_average(values: list[float], weights: list[float]) -> float:

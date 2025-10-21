@@ -5,8 +5,9 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import date, datetime
+from importlib import import_module
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from importobot.medallion.interfaces.base_interfaces import DataLayer
 from importobot.medallion.interfaces.data_models import (
@@ -18,10 +19,12 @@ from importobot.medallion.interfaces.data_models import (
 )
 from importobot.medallion.interfaces.enums import SupportedFormat
 from importobot.medallion.utils.query_filters import matches_query_filters
-from importobot.utils.logging import setup_logger
-from importobot.utils.string_cache import data_to_lower_cached
+from importobot.utils.logging import get_logger
 
-logger = setup_logger(__name__)
+logger = get_logger()
+
+if TYPE_CHECKING:
+    from importobot.medallion.bronze.format_detector import FormatDetector
 
 
 class BaseMedallionLayer(DataLayer):
@@ -42,6 +45,7 @@ class BaseMedallionLayer(DataLayer):
         self._data_store: dict[str, dict[str, Any]] = {}
         self._metadata_store: dict[str, LayerMetadata] = {}
         self._lineage_store: dict[str, LineageInfo] = {}
+        self._format_detector: FormatDetector | None = None
 
         logger.info(
             "Initialized %s layer with storage at %s", layer_name, self.storage_path
@@ -102,32 +106,15 @@ class BaseMedallionLayer(DataLayer):
         if not isinstance(data, dict):
             return SupportedFormat.UNKNOWN
 
-        # Check for Zephyr indicators
-        if any(key in data for key in ["testCase", "execution", "cycle"]):
-            return SupportedFormat.ZEPHYR
+        detector = self._get_format_detector()
+        return detector.detect_format(data)
 
-        # Check for TestLink indicators
-        if any(key in data for key in ["testsuites", "testsuite", "testcase"]):
-            return SupportedFormat.TESTLINK
-
-        # Check for JIRA/Xray indicators
-        data_str = data_to_lower_cached(data)
-        if any(key in data for key in ["issues", "key", "fields"]) and (
-            "xray" in data_str or "test" in data_str or "issuetype" in data_str
-        ):
-            return SupportedFormat.JIRA_XRAY
-
-        # Check for TestRail indicators
-        if any(
-            key in data for key in ["runs", "tests", "cases"]
-        ) and "testrail" in data_to_lower_cached(data):
-            return SupportedFormat.TESTRAIL
-
-        # Generic test structure detection
-        if any(key in data for key in ["tests", "test_cases", "testcases"]):
-            return SupportedFormat.GENERIC
-
-        return SupportedFormat.UNKNOWN
+    def _get_format_detector(self) -> FormatDetector:
+        if self._format_detector is None:
+            module = import_module("importobot.medallion.bronze.format_detector")
+            FormatDetectorCls: type[FormatDetector] = module.FormatDetector
+            self._format_detector = FormatDetectorCls()
+        return self._format_detector
 
     def _create_lineage(
         self,

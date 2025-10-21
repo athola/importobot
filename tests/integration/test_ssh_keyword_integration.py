@@ -423,14 +423,14 @@ class TestSSHKeywordIntegration:
         with open(test_file, "w", encoding="utf-8") as f:
             json.dump(edge_case_data, f, indent=2)
 
-        # Should not crash and should generate fallback keywords
+        # Should not crash and should generate default keywords
         output_file = tmp_path / "edge_case_ssh_test.robot"
         convert_file(str(test_file), str(output_file))
 
         assert output_file.exists()
         robot_content = output_file.read_text(encoding="utf-8")
 
-        # Verify fallback behavior
+        # Verify default behavior
         assert "Open Connection    ${HOST}" in robot_content  # Parameterized connection
         assert "Execute Command    ${COMMAND}" in robot_content  # Fallback command
         assert (

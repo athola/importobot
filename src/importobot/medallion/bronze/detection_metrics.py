@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from importobot.medallion.interfaces.enums import SupportedFormat
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 
 
 @dataclass
@@ -65,7 +65,7 @@ class PerformanceMonitor:
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Finish performance monitoring and log if needed."""
         if self.metrics and self.metrics.log_performance_warning():
-            logger = setup_logger(__name__)
+            logger = get_logger()
 
             logger.info(
                 "Format detection performance metrics",

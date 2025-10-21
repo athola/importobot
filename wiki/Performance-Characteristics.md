@@ -1,7 +1,6 @@
 # Performance Characteristics
 
-This note records the current performance profile so teams know what to expect
-under load and can spot regressions quickly.
+Current performance numbers for Importobot conversions. Use these to spot regressions and plan capacity.
 
 ## Baseline Metrics (2025-09)
 
@@ -23,9 +22,7 @@ the reference CI runner (Ubuntu 22.04, Python 3.12).
 | Large      | 100–250 cases | ≤13s total | ≥8 files/sec | ≤75 MB | Expect near-linear scaling; monitor throughput drop <15% |
 | Parallel   | 10 workers × medium cases | ≤7s total | ≥14 files/sec | ≤90 MB | Depends on I/O; watch thread contention |
 
-Numbers derive from the CI smoke benchmark and the comprehensive suite. When
-running on slower hardware, allow ±20% variance but investigate anything
-exceeding the regression thresholds below.
+Numbers come from the CI benchmark and full test suite. On slower hardware, expect ±20% variance, but investigate anything exceeding the regression thresholds below.
 
 ## Ongoing Tracking
 
