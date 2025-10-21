@@ -6,6 +6,7 @@ import pytest
 
 from importobot import exceptions
 from importobot.config import (
+    MAX_PROJECT_ID,
     APIIngestConfig,
     _parse_project_identifier,
     resolve_api_ingest_config,
@@ -150,3 +151,36 @@ def test_parse_project_identifier_handles_unicode_digits() -> None:
 
     assert name == unicode_digits
     assert project_id is None
+
+
+def test_parse_project_identifier_accepts_upper_bound() -> None:
+    """Max supported numeric identifier should remain numeric."""
+    name, project_id = _parse_project_identifier(str(MAX_PROJECT_ID))
+
+    assert name is None
+    assert project_id == MAX_PROJECT_ID
+
+
+def test_parse_project_identifier_rejects_out_of_range_numeric() -> None:
+    """Identifiers beyond the supported range should fall back to names."""
+    overflow_value = str(MAX_PROJECT_ID + 1)
+
+    name, project_id = _parse_project_identifier(overflow_value)
+
+    assert name == overflow_value
+    assert project_id is None
+
+
+def test_cli_project_identifier_invalid_raises_configuration_error() -> None:
+    """CLI project argument should be validated before falling back to env."""
+    args = make_args(
+        api_url="https://testrail.example/api",
+        api_tokens=["token"],
+        api_user="cli-user",
+        project="   ",
+    )
+
+    with pytest.raises(exceptions.ConfigurationError) as exc_info:
+        resolve_api_ingest_config(args)
+
+    assert "Invalid CLI project identifier" in str(exc_info.value)

@@ -14,12 +14,13 @@ We release patches for security vulnerabilities for the following versions:
 If you discover a security vulnerability within Importobot, please follow these steps:
 
 1. **Do not create a public issue** - Vulnerabilities should be reported privately.
-2. Send an email to our security team at security@importobot.com with the following information:
+2. **Preferred:** Open a [private security advisory](https://github.com/athola/importobot/security/advisories/new) on GitHub so maintainers are paged immediately.
+3. **Fallback:** If you must email, write to security@importobot.com *after* confirming the mailbox is monitored for your disclosure window (expect a human acknowledgement within one business day). Include:
    - Description of the vulnerability
    - Steps to reproduce the issue
    - Potential impact of the vulnerability
    - Any possible mitigations you've identified
-3. Encrypt your message with our PGP key if possible (key details below)
+4. Encrypt your message with our PGP key if possible (key details below)
 
 ### Alternative Reporting Methods
 
@@ -283,4 +284,4 @@ Importobot automatically detects and warns about access to sensitive files:
 - [GitHub Security Advisories](https://github.com/athola/importobot/security/advisories)
 - [GitHub Dependabot Alerts](https://github.com/athola/importobot/security/dependabot)
 
-For any security-related questions or concerns not covered in this policy, please contact security@importobot.com.
+For any security-related questions or concerns not covered in this policy, please either use GitHub's private advisory channel or contact security@importobot.com after verifying it is actively monitored.

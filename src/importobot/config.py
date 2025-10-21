@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol, cast
@@ -73,6 +74,10 @@ TEST_LOGIN_URL = f"{TEST_SERVER_URL}{LOGIN_PAGE_PATH}"
 
 # Authentication requirements
 ZEPHYR_MIN_TOKEN_COUNT = 2
+
+# Numeric project identifiers must stay within signed 64-bit bounds so downstream
+# systems (e.g. external SDKs, databases) do not overflow.
+MAX_PROJECT_ID = 9_223_372_036_854_775_807
 
 # Chrome options for headless browser testing
 CHROME_OPTIONS = [
@@ -280,19 +285,69 @@ def _parse_project_identifier(value: str | None) -> tuple[str | None, int | None
     if raw.isdigit():
         if raw.isascii():
             try:
-                return None, int(raw)
+                project_id = int(raw)
             except ValueError:
                 logger.warning(
                     "Numeric project identifier %s failed to parse; treating as name",
                     raw,
                 )
                 return raw, None
+            if project_id > MAX_PROJECT_ID:
+                logger.warning(
+                    "Numeric project identifier %s exceeds max supported value %s; "
+                    "treating as project name",
+                    raw,
+                    MAX_PROJECT_ID,
+                )
+                return raw, None
+            return None, project_id
         logger.warning(
             "Non-ASCII numeric project identifier %s treated as project name",
             raw,
         )
         return raw, None
     return raw, None
+
+
+def _resolve_project_reference(
+    args: Any,
+    fetch_env: Callable[[str], str | None],
+    prefix: str,
+    fetch_format: SupportedFormat,
+) -> tuple[str | None, int | None]:
+    """Determine project identifiers from CLI args or environment."""
+    cli_project = getattr(args, "project", None)
+    if cli_project is not None:
+        project_name, project_id = _parse_project_identifier(cli_project)
+        if project_name is None and project_id is None:
+            message = (
+                f"Invalid CLI project identifier '{cli_project}' for "
+                f"{fetch_format.value} ingestion. "
+                "Provide a non-empty name or numeric ID."
+            )
+            raise exceptions.ConfigurationError(message)
+        return project_name, project_id
+
+    env_project = fetch_env(f"{prefix}_PROJECT")
+    if env_project:
+        logger.debug(
+            (
+                "CLI project identifier missing; falling back to %s_PROJECT=%s "
+                "for %s ingestion"
+            ),
+            prefix,
+            env_project,
+            fetch_format.value,
+        )
+    project_name, project_id = _parse_project_identifier(env_project)
+    if project_name is None and project_id is None and env_project:
+        message = (
+            f"Invalid project identifier '{env_project}' for "
+            f"{fetch_format.value} ingestion. "
+            "Provide a non-empty name or numeric ID."
+        )
+        raise exceptions.ConfigurationError(message)
+    return project_name, project_id
 
 
 def resolve_api_ingest_config(args: Any) -> APIIngestConfig:
@@ -325,28 +380,12 @@ def resolve_api_ingest_config(args: Any) -> APIIngestConfig:
     )
     api_user = getattr(args, "api_user", None) or fetch_env(f"{prefix}_API_USER")
 
-    # Handle project resolution with default-selection logic
-    cli_project = getattr(args, "project", None)
-    project_name, project_id = _parse_project_identifier(cli_project)
-
-    # If CLI project doesn't parse to a valid identifier, fall back to environment
-    if project_name is None and project_id is None:
-        env_project = fetch_env(f"{prefix}_PROJECT")
-        if env_project:
-            logger.debug(
-                (
-                    "CLI project identifier missing; falling back to %s_PROJECT=%s "
-                    "for %s ingestion"
-                ),
-                prefix,
-                env_project,
-                fetch_format.value,
-            )
-        project_name, project_id = _parse_project_identifier(env_project)
-        if project_name is None and project_id is None and env_project:
-            raise exceptions.ConfigurationError(
-                f"Invalid project identifier '{env_project}' for {fetch_format.value}"
-            )
+    project_name, project_id = _resolve_project_reference(
+        args,
+        fetch_env,
+        prefix,
+        fetch_format,
+    )
 
     output_dir = _resolve_output_dir(getattr(args, "input_dir", None))
     max_concurrency = _resolve_max_concurrency(getattr(args, "max_concurrency", None))

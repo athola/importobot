@@ -143,7 +143,8 @@ def with_progress_reporting(
 
     def decorator(func: Callable) -> Callable:
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            reporter = ProgressReporter(logger, operation_name)
+            injected_reporter = kwargs.pop("reporter", None)
+            reporter = injected_reporter or ProgressReporter(logger, operation_name)
             reporter.initialize(total_items, milestone_percentage)
 
             try:

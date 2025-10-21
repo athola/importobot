@@ -35,7 +35,7 @@ class FormatRegistry:
             )
 
         self._formats[format_def.format_type] = format_def
-        logger.info(
+        logger.debug(
             "Registered format: %s (%s)", format_def.name, format_def.format_type.value
         )
 
@@ -65,13 +65,13 @@ class FormatRegistry:
             try:
                 format_def = format_creator()
                 self._formats[format_def.format_type] = format_def
-                logger.info("Loaded format definition: %s", format_def.name)
+                logger.debug("Loaded format definition: %s", format_def.name)
             except Exception as e:
                 logger.error(
                     "Failed to load format from %s: %s", format_creator.__name__, e
                 )
 
-        logger.info("Successfully loaded %s format definitions", len(self._formats))
+        logger.debug("Successfully loaded %s format definitions", len(self._formats))
 
 
 __all__ = ["FormatRegistry"]

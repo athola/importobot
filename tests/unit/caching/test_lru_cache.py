@@ -217,6 +217,34 @@ class TestTTLExpiration:
         # (only 0.7s since last access, not 1.2s)
         assert cache.get("key") == "value"
 
+    def test_periodic_cleanup_removes_expired_without_access(self, monkeypatch) -> None:
+        """GIVEN a cache with TTL and periodic cleanup
+        WHEN time advances past TTL without touching an entry
+        THEN the cache purges the stale entry on the next operation
+        """
+        base_time = {"value": 1_000.0}
+
+        def fake_time() -> float:
+            return base_time["value"]
+
+        monkeypatch.setattr("importobot.caching.lru_cache.time.time", fake_time)
+
+        config = CacheConfig(ttl_seconds=4)
+        cache = LRUCache[str, str](config=config)
+
+        cache.set("stale", "value")
+        assert cache.get_stats()["cache_size"] == 1
+
+        # Advance time beyond TTL and cleanup interval
+        base_time["value"] += 5.0
+
+        cache.set("fresh", "value2")
+
+        stats = cache.get_stats()
+        assert stats["cache_size"] == 1
+        assert cache.get("stale") is None
+        assert cache.get("fresh") == "value2"
+
 
 class TestSecurityPolicies:
     """Test security constraints (content size, collision chains)."""
@@ -252,6 +280,23 @@ class TestSecurityPolicies:
 
         stats = cache.get_stats()
         assert stats["rejections"] >= 1
+
+    def test_config_max_bytes_rejects_oversized_entry(self, caplog):
+        """GIVEN a cache with max_content_size_bytes=100
+        WHEN setting a single value larger than the total capacity
+        THEN the value is rejected and not cached
+        """
+        config = CacheConfig(max_content_size_bytes=100)
+        cache = LRUCache[str, str](config=config)
+        large_value = "x" * 200
+
+        with caplog.at_level("WARNING"):
+            cache.set("key", large_value)
+
+        assert cache.get("key") is None
+        stats = cache.get_stats()
+        assert stats["rejections"] >= 1
+        assert "exceeding configured cache capacity" in caplog.text.lower()
 
     def test_collision_chain_limit_enforced(self, monkeypatch, caplog):
         """GIVEN a cache with max_collision_chain=1

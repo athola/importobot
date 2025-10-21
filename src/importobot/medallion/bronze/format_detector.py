@@ -46,7 +46,7 @@ class FormatDetector:
         self._consecutive_failures = 0
         self._circuit_open_until = 0.0
 
-        logger.info(
+        logger.debug(
             "Initialized modular FormatDetector with %d formats",
             len(self.format_registry.get_all_formats()),
         )

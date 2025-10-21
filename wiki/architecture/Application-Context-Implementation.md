@@ -182,6 +182,13 @@ for thread in threads:
 - Automatic cleanup via context reset
 - No lingering global state
 
+### Cleanup Responsibilities
+- Call `clear_context()` when a worker thread finishes to release thread-local state
+- Web frameworks: register `clear_context` in teardown hooks (e.g., `finally` blocks or request middleware)
+- Background executors: wrap job functions with `try/finally` to invoke `clear_context()`
+- Tests: use the provided `clear_context` fixture to guarantee isolation between cases
+- Long-running threads can periodically call `clear_context()` if they reset dependencies
+
 ## Performance Characteristics
 
 | Operation | Complexity | Notes |

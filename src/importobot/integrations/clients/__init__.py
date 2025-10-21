@@ -51,7 +51,7 @@ import base64
 import time
 from collections.abc import Callable, Iterator
 from enum import Enum
-from typing import Any, ClassVar, Protocol
+from typing import Any, ClassVar, NamedTuple, Protocol
 from urllib.parse import parse_qs, urlparse
 
 import requests
@@ -72,6 +72,14 @@ MAX_RETRY_DELAY_SECONDS = 30.0
 
 
 ProgressCallback = Callable[..., None]
+
+
+class _KeyBatch(NamedTuple):
+    """Container for key batches in Zephyr two-stage fetches."""
+
+    keys: list[str]
+    total: int | None
+    page: int
 
 
 def _default_user_agent() -> str:
@@ -614,6 +622,19 @@ class ZephyrClient(BaseAPIClient):
                 self._verify_ssl,
             )
 
+            if response.status_code in (401, 403):
+                logger.warning(
+                    (
+                        "Authentication failed with status %s for pattern=%s using "
+                        "auth=%s (url=%s)"
+                    ),
+                    response.status_code,
+                    pattern["name"],
+                    auth_strategy["type"].value,
+                    request_url,
+                )
+                return False
+
             if response.status_code == 200:
                 try:
                     data = response.json()
@@ -732,29 +753,35 @@ class ZephyrClient(BaseAPIClient):
         if not self._discovered_pattern:
             return
 
-        # Stage 1: Get all test case keys
-        all_keys = self._fetch_all_keys(progress_cb)
-        if not all_keys:
-            logger.warning("No test case keys found")
-            return
-
-        # Stage 2: Fetch details in batches
-        total_keys = len(all_keys)
+        total_keys: int | None = None
         processed_keys = 0
+        saw_key_batch = False
 
-        for batch_start in range(0, total_keys, self._effective_page_size):
-            batch_start_size = batch_start + self._effective_page_size
-            batch_keys = all_keys[batch_start:batch_start_size]
-            batch_details = self._fetch_details_for_keys(batch_keys, progress_cb)
+        for key_batch in self._fetch_all_keys(progress_cb):
+            if not key_batch.keys:
+                continue
+            saw_key_batch = True
+
+            if key_batch.total is not None:
+                total_keys = key_batch.total
+
+            batch_details = self._fetch_details_for_keys(key_batch.keys, progress_cb)
 
             if batch_details:
                 processed_keys += len(batch_details)
                 progress_cb(
                     items=len(batch_details),
                     total=total_keys,
-                    page=(batch_start // self._effective_page_size) + 1,
+                    page=key_batch.page,
                 )
-                yield {"results": batch_details, "total": total_keys}
+                yield {
+                    "results": batch_details,
+                    "total": total_keys if total_keys is not None else processed_keys,
+                }
+        if not saw_key_batch:
+            logger.warning("No test case keys found")
+        elif processed_keys == 0:
+            logger.warning("No test case details fetched for discovered keys")
 
     def _fetch_direct_search(
         self, progress_cb: ProgressCallback
@@ -818,12 +845,11 @@ class ZephyrClient(BaseAPIClient):
                 logger.error("Failed to fetch page %d: %s", page, e)
                 break
 
-    def _fetch_all_keys(self, progress_cb: ProgressCallback) -> list[str]:
-        """Fetch all test case keys using the two-stage approach."""
+    def _fetch_all_keys(self, progress_cb: ProgressCallback) -> Iterator[_KeyBatch]:
+        """Yield key batches for the two-stage approach without buffering everything."""
         if not self._discovered_pattern:
-            return []
+            return
 
-        all_keys = []
         offset = 0
 
         while True:
@@ -849,30 +875,27 @@ class ZephyrClient(BaseAPIClient):
 
                 results = self._extract_results(payload)
                 if not results:
-                    break
+                    return
 
                 batch_keys = [result["key"] for result in results if "key" in result]
                 if not batch_keys:
-                    break
-                all_keys.extend(batch_keys)
+                    return
 
-                progress_cb(
-                    items=len(batch_keys),
-                    total=None,
-                    page=offset // self._effective_page_size + 1,
-                )
+                total = self._extract_total(payload, None)
+                page = offset // self._effective_page_size + 1
+
+                progress_cb(items=len(batch_keys), total=total, page=page)
+                yield _KeyBatch(batch_keys, total, page)
 
                 offset += len(batch_keys)
 
                 # Check if we have more items
                 if len(results) < self._effective_page_size:
-                    break
+                    return
 
             except Exception as e:
                 logger.error("Failed to fetch keys batch: %s", e)
-                break
-
-        return all_keys
+                return
 
     def _fetch_details_for_keys(
         self, keys: list[str], _progress_cb: ProgressCallback

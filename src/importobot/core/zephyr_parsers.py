@@ -78,9 +78,11 @@ class PlatformCommandParser:
                     return True, current_platform
                 if stripped_line.upper().startswith(keyword_upper + " "):
                     current_platform = platform
-                    command = stripped_line[len(keyword_upper) :].strip()
-                    if command:  # Only append non-empty commands
-                        commands[platform].append(command)
+                    parts = stripped_line.split(None, 1)
+                    if len(parts) == 2:
+                        command = parts[1].strip()
+                        if command:  # Only append non-empty commands
+                            commands[platform].append(command)
                     return True, current_platform
         return False, current_platform
 

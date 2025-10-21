@@ -157,7 +157,7 @@ class HierarchicalClassifier:
 
         fast_pass_stage1 = self._check_stage1_fast_path(all_key_tokens)
         if fast_pass_stage1:
-            logger.info("Stage 1 FAST PATH: Strong test data indicators detected")
+            logger.debug("Stage 1 FAST PATH: Strong test data indicators detected")
             test_confidence = 1.0
             test_evidence = {"fast_path": True, "strong_indicators": True}
             is_test_data = True
@@ -182,14 +182,16 @@ class HierarchicalClassifier:
                 format_likelihoods={},
             )
 
-        logger.info(
+        logger.debug(
             "Stage 1 PASSED: Validated as test data (confidence=%.3f)", test_confidence
         )
 
         # Stage 2 Fast Path: Check for unique format-specific combinations
         fast_format = self._check_stage2_fast_path(all_keys_lower)
         if fast_format:
-            logger.info("Stage 2 FAST PATH: Unique %s indicators detected", fast_format)
+            logger.debug(
+                "Stage 2 FAST PATH: Unique %s indicators detected", fast_format
+            )
             # Calculate likelihoods for all formats for transparency
             format_likelihoods, format_posteriors = self._stage2_discriminate_formats(
                 data
