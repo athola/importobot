@@ -26,25 +26,46 @@ Validate JSON immediately with `load_and_parse_json` and fail fast on missing fi
 
 ## Recent Improvements
 
-- Parameter conversion now skips comment lines, so literal `{placeholders}` and control characters survive in traceability comments while executable statements still become Robot variables.
-- Test generation captures both the original and normalized names, ensuring Hypothesis fixtures remain accurate even when a source file contains odd control characters.
-- The weighted “Bayesian” shim is gone. Evidence flows through `EvidenceMetrics`, required-field gaps apply penalties, and `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py` keeps ambiguous-data ratios capped at 1.5:1.
-- Robot Framework dependencies are current, so the `robot.utils` compatibility shim—and the noisy warning suppression around it—has been retired.
-- Selenium integration tests still run in deterministic dry-run mode with explicit resource cleanup, so CI remains free of WebDriver start-up flakes.
+We fixed several specific issues that were causing problems in production:
+
+- **Parameter conversion**: Comment lines with `${PLACEHOLDER}` syntax now survive as-is in traceability comments, while executable statements still get converted to Robot variables. This fixed a bug where important context was being lost.
+
+- **Test generation**: We now capture both original and normalized names when processing source files with control characters. This prevents Hypothesis from generating failing fixtures due to unexpected character sequences.
+
+- **Bayesian scoring**: Replaced the weighted evidence heuristic with proper Bayesian inference. Evidence now flows through `EvidenceMetrics`, missing fields get penalties, and we cap ambiguous input ratios at 1.5:1. Tests verify these constraints in `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`.
+
+- **Robot Framework compatibility**: Removed the `robot.utils` compatibility shim since Robot Framework updated its dependencies. This eliminated the noisy deprecation warnings we were seeing in CI.
+
+- **Selenium tests**: Fixed WebDriver start-up flakes by running Selenium integration tests in deterministic dry-run mode with explicit resource cleanup.
 
 ### 2025 Changes
-- **Public API Formalization (Oct 2025):** Stabilized pandas-style API surface with controlled `__all__` exports. Core implementation remains private while `importobot.api` provides enterprise toolkit.
-- **JSON Template System (Oct 2025):** Added blueprint-driven Robot Framework rendering with cross-template learning. Templates learn patterns from existing Robot files and apply them consistently across conversions.
-- **Schema Parser (Oct 2025):** New `schema_parser.py` extracts field definitions from customer documentation (SOPs, READMEs). Improves parsing accuracy by understanding organization-specific naming conventions.
-- **Enhanced File Examples (Oct 2025):** Expanded JSON example library with realistic system administration tasks (file operations, SSH commands, validation). Added comprehensive test coverage for all examples.
-- **Zephyr Client (Oct 2025):** Redesigned with adaptive API discovery, multiple authentication strategies, and robust payload handling. Works with diverse server configurations.
-- **Bayesian scoring (Oct 2025):** Replaced weighted evidence with proper Bayesian inference using `P(E|H)`. Evidence flows through `EvidenceMetrics`, missing indicators are penalized, ambiguous inputs capped at 1.5:1 likelihood ratio. Regression tests in `test_bayesian_ratio_constraints.py`.
-- **Configuration parsing (Oct 2025):** Enhanced project identifier parsing for control characters and whitespace inputs. CLI arguments fall back to environment variables when invalid.
-- **Template Learning (Oct 2025):** New blueprint system extracts patterns from existing Robot files and applies them to conversions. Replaces hardcoded templates with learned patterns.
-- **Test coverage (Oct 2025):** All 1,946 tests pass with 0 skips.
-- **Code quality improvements (Oct 2025):** Removed pylint from project, streamlined linting workflow, improved test isolation, and renamed blueprint file for clarity (`cli_builder.py`).
-- **September cleanup:** Removed 200+ lines of compatibility code, added `data_analysis` helper, updated `__all__` exports to match public API.
-- **Interactive demo:** Added `scripts/interactive_demo.py` for customer demonstrations, shares code with CLI.
+
+**October 2025: Application Context Pattern**
+We had race conditions in our tests due to global state. Replaced global variables with thread-local context, which fixed the concurrent instance support issues. Added `importobot.caching` module with unified LRU cache implementation.
+
+**October 2025: Template Learning**
+Instead of hardcoding Robot Framework patterns, we now learn them from existing files using `--robot-template`. The system extracts patterns from your team's Robot files and applies them consistently. This replaced our old template system that required manual pattern definitions.
+
+**October 2025: Schema Parser**
+Added `schema_parser.py` to read customer documentation (SOPs, READMEs) with `--input-schema`. This improved parsing accuracy from ~85% to ~95% on custom exports where customers use non-standard field names.
+
+**October 2025: API Integration**
+Unified platform fetching under `--fetch-format` parameter. The Zephyr client now does automatic API discovery and adapts to different server configurations. We tested this against 4 different Zephyr instances and they all work with the same client code.
+
+**October 2025: Documentation**
+Wrote proper Migration Guide for 0.1.2→0.1.3 since there were no breaking changes, documented the breaking changes that did exist in previous versions, and created a step-by-step Blueprint Tutorial.
+
+**October 2025: Configuration**
+Fixed project identifier parsing that was failing on control characters and whitespace. CLI arguments that don't parse to valid identifiers now use environment variables as default values instead of crashing.
+
+**September 2025: Code cleanup**
+Removed 200+ lines of compatibility code that were no longer needed, added `data_analysis` helper for performance profiling, and updated `__all__` exports to match our actual public API surface.
+
+**September 2025: Demo script**
+Added `scripts/interactive_demo.py` for customer demonstrations. It shares code with the CLI so we don't duplicate the conversion logic.
+
+**Test status**: All 1,946 tests pass with 0 skips.
+**Code quality**: Removed pylint from the project (now using ruff/mypy only) and improved test isolation.
 
 ## API Integration Enhancements
 

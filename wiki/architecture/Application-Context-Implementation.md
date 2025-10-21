@@ -189,6 +189,11 @@ for thread in threads:
 - Tests: use the provided `clear_context` fixture to guarantee isolation between cases
 - Long-running threads can periodically call `clear_context()` if they reset dependencies
 
+### Size and Resource Guards
+- Schemas: individual schema files are limited to `MAX_SCHEMA_FILE_SIZE_BYTES` (default 1&nbsp;MB) via `IMPORTOBOT_MAX_SCHEMA_BYTES` to prevent oversized metadata ingestion.
+- Templates: blueprint sources respect `MAX_TEMPLATE_FILE_SIZE_BYTES` (default 2&nbsp;MB, env `IMPORTOBOT_MAX_TEMPLATE_BYTES`) during ingestion to block risky template payloads.
+- Caches: in-memory detection cache payloads are capped by `MAX_CACHE_CONTENT_SIZE_BYTES` (default 50&nbsp;KB, env `IMPORTOBOT_MAX_CACHE_CONTENT_BYTES`) with explicit rejection logging when exceeded.
+
 ## Performance Characteristics
 
 | Operation | Complexity | Notes |
