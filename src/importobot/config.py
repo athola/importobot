@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import importlib
 import os
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Protocol, cast
+from typing import Any, Protocol, cast
 
 from importobot import exceptions
 from importobot.cli.constants import FETCHABLE_FORMATS, SUPPORTED_FETCH_FORMATS
@@ -30,11 +29,11 @@ class StorageConfigProtocol(Protocol):
         ...
 
 
-if TYPE_CHECKING:  # pragma: no cover
+try:  # pragma: no cover - optional dependency during bootstrapping
     from importobot.medallion.storage.config import (
         StorageConfig as StorageConfigRuntime,
     )
-else:  # pragma: no cover
+except ImportError:  # pragma: no cover - medallion package not ready
 
     class _StorageConfigStub:
         backend_type: str = "local"
@@ -49,13 +48,7 @@ else:  # pragma: no cover
     StorageConfigRuntime = _StorageConfigStub
 
 
-StorageConfig = StorageConfigRuntime
-
-
-def _load_storage_config_cls() -> type[StorageConfigProtocol]:
-    """Dynamically import StorageConfig to avoid circular import at module load."""
-    module = importlib.import_module("importobot.medallion.storage.config")
-    return cast(type[StorageConfigProtocol], module.StorageConfig)
+StorageConfig = cast(type[StorageConfigProtocol], StorageConfigRuntime)
 
 
 # Module-level logger for configuration warnings
@@ -139,6 +132,31 @@ MAX_CACHE_CONTENT_SIZE_BYTES = _int_from_env(
     50_000,
     minimum=1024,
 )
+
+
+def validate_global_limits() -> None:
+    """Validate critical configuration limits and raise if misconfigured."""
+    issues: list[str] = []
+    if MAX_SCHEMA_FILE_SIZE_BYTES <= 0:
+        issues.append(
+            "MAX_SCHEMA_FILE_SIZE_BYTES must be positive "
+            f"(got {MAX_SCHEMA_FILE_SIZE_BYTES})"
+        )
+    if MAX_TEMPLATE_FILE_SIZE_BYTES <= 0:
+        issues.append(
+            "MAX_TEMPLATE_FILE_SIZE_BYTES must be positive "
+            f"(got {MAX_TEMPLATE_FILE_SIZE_BYTES})"
+        )
+    if MAX_CACHE_CONTENT_SIZE_BYTES <= 0:
+        issues.append(
+            "MAX_CACHE_CONTENT_SIZE_BYTES must be positive "
+            f"(got {MAX_CACHE_CONTENT_SIZE_BYTES})"
+        )
+    if issues:
+        formatted = "; ".join(issues)
+        raise exceptions.ConfigurationError(
+            f"Configuration sanity checks failed: {formatted}"
+        )
 
 
 DETECTION_CACHE_MAX_SIZE = _int_from_env(
@@ -436,13 +454,11 @@ def update_medallion_config(
 ) -> StorageConfigProtocol:
     """Update medallion configuration placeholder.
 
-    Uses lazy import to avoid circular dependency with medallion.storage.config.
+    Relies on StorageConfig from ``medallion.storage.config`` when available.
     """
-    storage_config_cls = _load_storage_config_cls()
-
     # Placeholder implementation for testing
     if config is None:
-        config = storage_config_cls()
+        config = StorageConfig()
 
     # kwargs used for potential future configuration updates
     _ = kwargs  # Mark as used for linting

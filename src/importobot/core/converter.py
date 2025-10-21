@@ -39,7 +39,19 @@ class JsonToRobotConverter:
         self.suggestion_engine = GenericSuggestionEngine()
 
     def convert(self, json_input: dict[str, Any] | str) -> str:
-        """Unified helper accepting either raw JSON strings or dictionaries."""
+        """Unified helper accepting either raw JSON strings or dictionaries.
+
+        Examples:
+            >>> from importobot.core.converter import JsonToRobotConverter
+            >>> sample = {
+            ...     "testCases": [
+            ...         {"name": "Sample", "steps": [{"action": "Ping"}]}
+            ...     ]
+            ... }
+            >>> result = JsonToRobotConverter().convert(sample)  # doctest: +SKIP
+            >>> "*** Settings ***" in result
+            True
+        """
         if isinstance(json_input, str):
             return self.convert_json_string(json_input)
         if isinstance(json_input, dict):
@@ -92,6 +104,14 @@ class JsonToRobotConverter:
 
         Returns:
             dict: Conversion result with success status and metadata
+
+        Examples:
+            >>> from importobot.core.converter import JsonToRobotConverter
+            >>> JsonToRobotConverter().convert_file(  # doctest: +SKIP
+            ...     "in.json",
+            ...     "out.robot",
+            ... )
+            {'success': True, 'input_file': 'in.json', 'output_file': 'out.robot'}
         """
         # Delegate to standalone function but return result dict
         convert_file(input_file, output_file)
@@ -106,6 +126,14 @@ class JsonToRobotConverter:
 
         Returns:
             dict: Conversion result with success/error counts
+
+        Examples:
+            >>> from importobot.core.converter import JsonToRobotConverter
+            >>> JsonToRobotConverter().convert_directory(  # doctest: +SKIP
+            ...     "json_cases",
+            ...     "robot_output",
+            ... )
+            {'success': True, 'input_dir': 'json_cases', 'output_dir': 'robot_output'}
         """
         # Delegate to standalone function but return result dict
         convert_directory(input_dir, output_dir)

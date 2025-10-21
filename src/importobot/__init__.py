@@ -51,6 +51,7 @@ def _check_dependencies() -> None:
 
 
 _check_dependencies()
+_config.validate_global_limits()
 
 # TYPE_CHECKING block removed - no future type exports currently needed
 

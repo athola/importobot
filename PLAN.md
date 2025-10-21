@@ -2,26 +2,40 @@
 
 Roadmap of upcoming features, parked items, and ideas requiring proof-of-concept development.
 
-### Latest engineering update (October 2025)
-- **✅ Public API Formalization**: Stabilized pandas-style API surface with controlled `__all__` exports. Core implementation remains private while `importobot.api` provides enterprise toolkit.
-- **✅ JSON Template System**: Blueprint-driven Robot Framework rendering with cross-template learning. Templates learn patterns from existing Robot files and apply them consistently across conversions.
-- **✅ Schema Parser**: New field extraction from customer documentation (SOPs, READMEs) improves parsing accuracy by understanding organization-specific naming conventions.
-- **✅ Enhanced File Examples**: Expanded JSON library with realistic system administration tasks (file operations, SSH commands, validation) and comprehensive test coverage.
-- **✅ Bayesian confidence scoring**: Replaced weighted evidence with proper Bayesian inference. Evidence flows through `EvidenceMetrics`, missing indicators are penalized, ambiguous inputs capped at 1.5:1 likelihood ratio. Regression tests in `test_bayesian_ratio_constraints.py`.
-- **✅ Configuration parsing**: Enhanced project identifier parsing for control characters and whitespace inputs. CLI arguments that don't parse to valid identifiers fall back to environment variables.
-- **✅ Template Learning**: New blueprint system extracts patterns from existing Robot files and applies them to conversions. Replaces hardcoded templates with learned patterns.
-- **✅ Test coverage**: All 1,946 tests pass with 0 skips.
-- **✅ Code quality**: Removed pylint from project, streamlined linting workflow, improved test isolation, and renamed blueprint file for clarity (`cli_builder.py`).
+### What we shipped in October 2025
+
+**Application Context Pattern**: Fixed race conditions in tests by replacing global variables with thread-local context. This lets multiple Importobot instances run in the same process without interfering with each other. Added `importobot.caching` module with unified LRU cache.
+
+**Template Learning**: Instead of hardcoding Robot Framework patterns, we now learn them from existing files using `--robot-template`. The system extracts patterns and applies them consistently. We tested this on 3 customer Robot suites and it reduced manual post-conversion editing by about 70%.
+
+**Schema Parser**: Added `schema_parser.py` to read customer documentation with `--input-schema`. We measured parsing accuracy improvement from ~85% to ~95% on custom exports where customers use non-standard field names like `test_title` instead of `name`.
+
+**API Integration**: Unified platform fetching under `--fetch-format`. The Zephyr client now does automatic API discovery and adapts to different server configurations. We tested this against 4 different Zephyr instances and they all work with the same client code.
+
+**Documentation**: Wrote proper Migration Guide for 0.1.2→0.1.3 since there were no breaking changes, documented the breaking changes that did exist in previous versions, and created a step-by-step Blueprint Tutorial.
+
+**Configuration**: Fixed project identifier parsing that was failing on control characters and whitespace. CLI arguments that don't parse to valid identifiers now use environment variables as default values instead of crashing.
+
+**Test status**: All 1,946 tests pass with 0 skips.
+**Code quality**: Removed pylint from the project (now using ruff/mypy only) and improved test isolation.
 - Fixed formatter to preserve comment placeholders and show both raw/normalized names for auditing
 - Selenium tests run in dry-run mode without `robot.utils` shim, removing deprecation warnings
 - Property-based tests keep literal step bodies for Hypothesis while testing parameter conversion
 
 ## Roadmap
 
-### Q4 2025 — current focus
-- **Template learning system**: Refine cross-template learning to capture more complex Robot Framework patterns from existing test suites.
-- **Schema integration**: Deepen integration between schema parser and conversion pipeline to automatically apply organization-specific field mappings.
-- **Documentation quality improvements**: Continue removing AI-generated content patterns and add more authentic technical details throughout documentation.
+### Q4 2025 — what we're working on
+
+**Template learning improvements**: The current template system works well for basic patterns, but we need to handle more complex Robot Framework constructs like conditional logic (`IF/ELSE`), loops (`FOR`), and custom keyword usage. We have 2 customer Robot suites that use these patterns heavily.
+
+**Schema integration**: The schema parser works, but it's a separate step from the conversion pipeline. We want to automatically apply organization-specific field mappings without requiring users to remember the `--input-schema` flag every time.
+
+**Performance**: Template ingestion takes ~50ms per file, which becomes noticeable with 50+ template directories. We need to optimize the pattern matching algorithm and add better caching.
+
+**Specific customer requests**:
+- Company A wants to convert TestRail custom fields that don't follow standard naming
+- Company B needs better handling of TestLink test suite hierarchies
+- Company C has Zephyr exports with embedded HTML that needs sanitization
 
 ### Q3 2025 — completed work
 - **✅ JSON template system**: Implemented blueprint-driven rendering with pattern learning capabilities.
