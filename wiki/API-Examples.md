@@ -148,6 +148,72 @@ converter = importobot.JsonToRobotConverter(field_schema=field_definitions)
 result = converter.convert_file("export.json", "output.robot")
 ```
 
+## Schema Parser Workflows
+
+### CLI With Multiple Documentation Sources
+
+```bash
+uv run importobot \
+  --input-schema docs/field_guide.md \
+  --input-schema docs/backend_cheat_sheet.md \
+  --fetch-format zephyr \
+  --api-url https://zephyr.example.com \
+  --tokens "$ZEPHYR_TOKEN" \
+  --project ENG-QA \
+  --output converted.robot
+```
+
+- Each `--input-schema` flag feeds one documentation file into the parser.
+- Files can be Markdown, plain text, JSON, or YAML as long as they describe field semantics.
+- Parser warnings appear on stdout; address them to ensure definitions are picked up.
+
+### Programmatic Field Overrides
+
+```python
+from importobot.core.schema_parser import SchemaParser, FieldSchema
+from importobot.api import converters
+
+parser = SchemaParser()
+schema_doc = parser.parse_file("docs/field_guide.md")
+
+# Hand-tune a specific field
+priority = schema_doc.fields.setdefault(
+    "Priority",
+    FieldSchema(name="Priority", aliases=["prio", "p0/p1"], description="Risk level"),
+)
+priority.required = True
+priority.examples.extend(["P0", "P1", "P2"])
+
+converter = converters.JsonToRobotConverter(field_schema=schema_doc.fields)
+robot_text = converter.convert_json_dict(payload)
+```
+
+### Combine With Streaming API Fetch
+
+```python
+import os
+from importobot.api import converters
+from importobot.core.schema_parser import SchemaParser
+from importobot.integrations.clients import get_api_client, SupportedFormat
+
+schema = SchemaParser().parse_file("docs/qa_field_map.md")
+client = get_api_client(
+    SupportedFormat.ZEPHYR,
+    api_url="https://zephyr.example.com",
+    tokens=[os.environ["ZEPHYR_TOKEN"]],
+    user=None,
+    project_name="ENG-QA",
+    project_id=None,
+    max_concurrency=5,
+    verify_ssl=True,
+)
+
+converter = converters.JsonToRobotConverter(field_schema=schema.fields)
+for page in client.fetch_all(progress_callback=lambda **kw: print(kw)):
+    for case in page.get("testCases", []):
+        converter.convert_json_dict(case)
+```
+
 ## Validation and Suggestions API
 
 ### Input Validation
@@ -180,6 +246,52 @@ for suggestion in suggestions:
     print(f"Issue: {suggestion.issue}")
     print(f"Suggestion: {suggestion.recommendation}")
 ```
+
+## API Client Error Handling
+
+Importobot clients surface errors using standard Python exceptions so they plug into your retry and alerting strategy.
+
+```python
+import logging
+import requests
+from importobot.exceptions import ConfigurationError
+from importobot.integrations.clients import get_api_client, SupportedFormat
+
+logger = logging.getLogger(__name__)
+
+client = get_api_client(
+    SupportedFormat.TESTRAIL,
+    api_url="https://testrail.example.com/api/v2",
+    tokens=["api-token"],
+    user="automation@example.com",
+    project_name="QA",
+    project_id=None,
+    max_concurrency=3,
+    verify_ssl=True,
+)
+
+try:
+    for page in client.fetch_all(progress_callback=lambda **kw: None):
+        process(page)
+except requests.HTTPError as http_err:
+    logger.error(
+        "TestRail API returned %s for %s",
+        http_err.response.status_code,
+        http_err.request.url,
+    )
+    raise
+except RuntimeError as retry_err:
+    raise RuntimeError("Importobot client exceeded retry budget") from retry_err
+except ValueError as config_err:
+    raise ConfigurationError(f"Client misconfiguration: {config_err}") from config_err
+```
+
+### Common Failure Signals
+
+- `requests.HTTPError`: Raised when the platform returns a non-success status; inspect `response.status_code` and `response.json()` for details.
+- `RuntimeError("Exceeded retry budget ...")`: Importobot exhausted the built-in retry loop (default 3 retries + initial attempt).
+- `ValueError("Unsupported fetch format ...")`: `get_api_client` received an unsupported `SupportedFormat` enum value.
+- `requests.exceptions.ConnectionError`: Network failure before HTTP status; safe to retry with your own backoff.
 
 ## Advanced Features
 

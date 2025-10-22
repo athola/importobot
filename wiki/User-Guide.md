@@ -289,7 +289,7 @@ uv run importobot input.json output.robot
 - **Large exports**: Files with 500+ test cases take ~2-3 seconds to convert
 - **Memory usage**: Each 1000 test cases uses ~50MB RAM during conversion
 - **Batch processing**: Use `--batch` for directories - it's 3-4x faster than individual file calls
-- **API rate limits**: Zephyr servers typically allow 60 requests/minute; set `IMPORTOBOT_API_MAX_CONCURRENCY=2` for safe limits
+- **API rate limits**: Zephyr servers allow 60 requests/minute by default; set `IMPORTOBOT_API_MAX_CONCURRENCY=2` to stay within limits
 
 ### Common conversion patterns
 

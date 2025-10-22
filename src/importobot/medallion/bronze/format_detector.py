@@ -45,6 +45,7 @@ class FormatDetector:
         self._circuit_lock = threading.Lock()
         self._consecutive_failures = 0
         self._circuit_open_until = 0.0
+        self._stage1_warning_emitted = False
 
         logger.debug(
             "Initialized modular FormatDetector with %d formats",
@@ -300,11 +301,20 @@ class FormatDetector:
 
         # If Stage 1 failed (not test data), return all zeros
         if not result.is_test_data:
-            logger.warning(
-                "Hierarchical Stage 1 FAILED: Input not recognized as test data "
-                "(confidence=%.3f)",
-                result.test_data_confidence,
-            )
+            if not self._stage1_warning_emitted:
+                logger.warning(
+                    "Hierarchical Stage 1 FAILED: Input not recognized as test data "
+                    "(confidence=%.3f)",
+                    result.test_data_confidence,
+                )
+                # TODO(post-conversion-log): funnel repeated detection warnings into
+                # the upcoming aggregation endpoint instead of console spam.
+                self._stage1_warning_emitted = True
+            else:
+                logger.debug(
+                    "Stage 1 failed (confidence=%.3f); suppressing repeat warning",
+                    result.test_data_confidence,
+                )
             return {fmt.name: 0.0 for fmt in self.format_registry.get_all_formats()}
 
         # Return Stage 2 posteriors

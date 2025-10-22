@@ -100,6 +100,7 @@ class BronzeLayer(BaseMedallionLayer):
         )
         self._ingestion_order: deque[str] = deque()
         self._in_memory_timestamps: dict[str, datetime] = {}
+        self._record_cache: dict[str, BronzeRecord] = {}
 
     def ingest(self, data: Any, metadata: LayerMetadata) -> ProcessingResult:
         """Ingest raw data into the Bronze layer."""
@@ -152,6 +153,7 @@ class BronzeLayer(BaseMedallionLayer):
             self._lineage_store[data_id] = lineage
             self._register_in_memory_record(data_id, start_time)
             self._enforce_in_memory_capacity()
+            self._cache_bronze_record(data_id)
 
             # Store in persistent storage backend if available
             if self.storage_backend:
@@ -282,6 +284,7 @@ class BronzeLayer(BaseMedallionLayer):
         self._metadata_store.pop(data_id, None)
         self._lineage_store.pop(data_id, None)
         self._in_memory_timestamps.pop(data_id, None)
+        self._record_cache.pop(data_id, None)
         if self._ingestion_order and self._ingestion_order[0] == data_id:
             self._ingestion_order.popleft()
         else:
@@ -327,6 +330,14 @@ class BronzeLayer(BaseMedallionLayer):
             source_type="bronze_layer",
             source_location=str(source_path),
         )
+
+        if not data:
+            return BronzeRecord(
+                data={},
+                metadata=record_metadata,
+                format_detection=format_detection,
+                lineage=lineage,
+            )
 
         return BronzeRecord(
             data=data,
@@ -516,10 +527,10 @@ class BronzeLayer(BaseMedallionLayer):
             if not record_metadata:
                 continue
 
-            lineage = self.get_record_lineage(record_id)
-
-            records.append(
-                self._build_bronze_record(
+            cached_record = self._record_cache.get(record_id)
+            if cached_record is None:
+                lineage = self.get_record_lineage(record_id)
+                cached_record = self._build_bronze_record(
                     data=data,
                     record_metadata=record_metadata,
                     format_detection=self._create_format_detection(
@@ -533,7 +544,9 @@ class BronzeLayer(BaseMedallionLayer):
                         source_path=layer_metadata.source_path,
                     ),
                 )
-            )
+                self._record_cache[record_id] = cached_record
+
+            records.append(cached_record)
 
             if len(records) >= effective_limit:
                 break
@@ -664,6 +677,35 @@ class BronzeLayer(BaseMedallionLayer):
             format_detection=format_detection,
             lineage=lineage,
         )
+
+    def _cache_bronze_record(self, record_id: str) -> None:
+        """Cache immutable BronzeRecord for fast retrieval."""
+        data = self._data_store.get(record_id)
+        metadata = self._metadata_store.get(record_id)
+        if data is None or metadata is None:
+            return
+
+        record_metadata = self.get_record_metadata(record_id)
+        if record_metadata is None:
+            return
+
+        lineage = self.get_record_lineage(record_id) or self._resolve_lineage(
+            None,
+            record_id=record_id,
+            source_path=metadata.source_path,
+        )
+
+        cached_record = self._build_bronze_record(
+            data=data,
+            record_metadata=record_metadata,
+            format_detection=self._create_format_detection(
+                metadata.format_type,
+                method="metadata_analysis",
+                record_id=record_id,
+            ),
+            lineage=lineage,
+        )
+        self._record_cache[record_id] = cached_record
 
     def _matches_filter(
         self,

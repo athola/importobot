@@ -169,6 +169,54 @@ fixes = engine.suggest_improvements(ambiguous_test_data)
 - Provides suggestions for improvements
 - Handles ambiguous or incomplete test data
 
+## API Client Error Handling
+
+Importobot's HTTP clients (Zephyr, TestRail, Jira/Xray, TestLink) inherit from `BaseAPIClient` and raise familiar Python exceptions when requests fail.
+
+- `requests.HTTPError` — emitted via `response.raise_for_status()` for non-success status codes. Inspect `err.response.status_code` and `err.response.text` for remediation guidance.
+- `RuntimeError("Exceeded retry budget ...")` — thrown after the client retries the same request `_max_retries + 1` times (default: 3 retries). Wrap calls in your own retry loop if you need a longer budget.
+- `ValueError("Unsupported fetch format ...")` — raised by `get_api_client` when the supplied `SupportedFormat` is not mapped to a client, or when an unsupported HTTP method is invoked.
+- Standard `requests` exceptions (`ConnectionError`, `Timeout`, etc.) — bubbled up for network issues before any response is returned.
+
+```python
+import logging
+import os
+import requests
+from importobot.exceptions import ConfigurationError
+from importobot.integrations.clients import get_api_client, SupportedFormat
+
+logger = logging.getLogger(__name__)
+
+client = get_api_client(
+    SupportedFormat.ZEPHYR,
+    api_url="https://zephyr.example.com",
+    tokens=[os.environ["ZEPHYR_TOKEN"]],
+    user=None,
+    project_name="ENG-QA",
+    project_id=None,
+    max_concurrency=5,
+    verify_ssl=True,
+)
+
+try:
+    for page in client.fetch_all(progress_cb=lambda **kw: None):
+        process_page(page)
+except requests.HTTPError as err:
+    logger.error(
+        "Zephyr API request %s failed with %s",
+        err.request.url,
+        err.response.status_code,
+    )
+    raise
+except RuntimeError as retry_err:
+    logger.warning("Importobot exhausted built-in retries for %s", client.api_url)
+    raise
+except ValueError as config_err:
+    raise ConfigurationError(f"Misconfigured API client: {config_err}") from config_err
+```
+
+> Tip: Only disable TLS verification (`verify_ssl=False`) in trusted development environments. Importobot logs a warning whenever verification is turned off.
+
 ## Business Use Cases
 
 ### 1. Bulk Conversion Pipeline

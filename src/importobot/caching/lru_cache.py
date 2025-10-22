@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import sys
 import time
+from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Generic, TypeVar
 
@@ -52,7 +53,7 @@ class LRUCache(CacheStrategy[K, V]):
         self.security = security_policy or SecurityPolicy()
         self._telemetry = telemetry_client or get_telemetry_client()
 
-        self._cache: dict[K, CacheEntry[V]] = {}
+        self._cache: OrderedDict[K, CacheEntry[V]] = OrderedDict()
         self._collision_chains: dict[str, list[K]] = {}
         self._total_size = 0
 
@@ -91,7 +92,7 @@ class LRUCache(CacheStrategy[K, V]):
 
         entry.access_count += 1
         entry.timestamp = time.time()
-        self._cache[key] = self._cache.pop(key)
+        self._cache.move_to_end(key)
 
         self._hits += 1
         self._record_metric_event()
@@ -239,8 +240,12 @@ class LRUCache(CacheStrategy[K, V]):
         ttl = self.config.ttl_seconds
         if ttl is None or ttl <= 0:
             return None
-        # Balance responsiveness and overhead: clean at most every 300s and at
-        # least every 5s, scaled by TTL so short-lived caches purge quickly.
+        # Balance responsiveness and overhead: clean at most every 300s and with
+        # a lower bound tuned to the configured TTL so short-lived caches purge
+        # quickly instead of waiting for the default 5-second cadence.
+        if ttl <= 5.0:
+            return max(ttl / 2, 0.1)
+        # For longer TTLs reuse the original scaling window (between 5s and 300s)
         return max(5.0, min(ttl / 2, 300.0))
 
     def _optional_cleanup(self) -> None:

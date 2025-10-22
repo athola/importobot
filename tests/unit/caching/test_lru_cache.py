@@ -9,6 +9,8 @@ Test Principles:
 
 import time
 
+import pytest
+
 from importobot.caching import CacheConfig, LRUCache, SecurityPolicy
 from importobot.telemetry import TelemetryClient, TelemetryPayload
 
@@ -217,7 +219,9 @@ class TestTTLExpiration:
         # (only 0.7s since last access, not 1.2s)
         assert cache.get("key") == "value"
 
-    def test_periodic_cleanup_removes_expired_without_access(self, monkeypatch) -> None:
+    def test_periodic_cleanup_removes_expired_without_access(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """GIVEN a cache with TTL and periodic cleanup
         WHEN time advances past TTL without touching an entry
         THEN the cache purges the stale entry on the next operation

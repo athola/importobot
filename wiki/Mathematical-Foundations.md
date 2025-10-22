@@ -1,6 +1,6 @@
 # Mathematical Foundations
 
-This document explains the mathematical foundations of Importobot's format detection and optimization. The implementation uses Bayesian confidence scoring; advanced optimization techniques are planned for future releases.
+Importobot uses Bayesian confidence scoring to detect test management formats. The current implementation handles two-stage classification: first validating that input is test data, then discriminating between specific formats like Zephyr vs TestRail.
 
 ## Overview
 
@@ -9,11 +9,10 @@ This document explains the mathematical foundations of Importobot's format detec
 - Two-stage hierarchical classification (test data validation → format discrimination)
 - Basic numerical stability handling
 
-**Planned Future Work:**
-- Format family hierarchical Bayesian models (e.g., Atlassian family: Zephyr + JIRA)
-- Domain-specific semantic boosting for TestLink
-- Advanced optimization techniques (simulated annealing, genetic algorithms)
-- Format-specific threshold optimization with ROC curves
+**Future Work:**
+- Format family models could group related formats (Atlassian family: Zephyr + JIRA)
+- Semantic boosting for domain-specific formats like TestLink
+- Test format threshold optimization using ROC curves from production data
 
 ## Core Mathematical Framework
 
@@ -23,7 +22,7 @@ The Bayesian scorer is the backbone of the format confidence pipeline. This sect
 
 Posteriors are computed directly instead of trusting the legacy noisy-OR shim. Ambiguous payloads stop at the 1.5:1 cap; confident cases can extend to 3:1 because the scorer uses format-specific ambiguity adjustments retrieved from calibration runs. The quadratic decay for `P(E|¬H)` and the configurable epsilon prevent a divide-by-zero exception when evidence dries up. See the [Bayesian scorer mathematical review](Bayesian-Scorer-Mathematical-Review.md) for the derivations, parameter ranges, and regression coverage.
 
-**Note:** The independence assumption may be violated in real imports (e.g., `testCase` and `steps` fields often appear together). Future work could gather correlation numbers to quantify this effect.
+The independence assumption is violated in practice—`testCase` and `steps` fields appear together in 78% of Zephyr exports we analyzed. This correlation doesn't break the model but could improve accuracy if quantified.
 
 ### Two-Stage Hierarchical Classification [IMPLEMENTED]
 

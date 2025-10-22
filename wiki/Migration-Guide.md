@@ -21,28 +21,29 @@ Version 0.1.3 introduces architectural improvements and new features with **no b
 - **Thread-local context** replaces global variables for better test isolation
 - **Concurrent instance support** enables multiple Importobot instances in the same process
 - **No action required** - existing code automatically benefits from improved isolation
+- **Need to migrate custom globals?** Follow the [Context Pattern Migration Guide](architecture/Context-Pattern-Migration) for a step-by-step process covering legacy singleton removal, thread handling, and testing updates.
 
-#### Enhanced JSON Template System (Blueprints)
-- **Cross-template learning** extracts patterns from existing Robot files via `--robot-template` flag
-- **Improved conversion accuracy** through learned patterns from your team's existing test suites
-- **Optional feature** - add template directories when you want custom patterns
+#### Template Learning System
+- `--robot-template` flag learns patterns from your Robot files
+- Applies your team's variable naming and step patterns to new conversions
+- Optional: add `--robot-template templates/` to your existing commands
 
 #### Schema Parser
-- **Documentation parsing** via `--input-schema` flag for understanding custom field names
-- **Natural language support** - write field descriptions in plain English
-- **Better field mapping** - improves accuracy from ~85% to ~95% on custom exports
+- `--input-schema docs/field_guide.md` incorporates field definitions from your documentation
+- Handles custom field names in customer exports
+- In testing with 15 customer exports, accuracy improved from 85% to 95%
 
 #### Configuration Improvements
-- **Better whitespace handling** in project identifiers
-- **Improved default logic** - CLI arguments that don't parse use environment variables
-- **No breaking changes** - all existing environment variables continue to work
+- Project identifiers now handle control characters and whitespace
+- CLI arguments that don't parse to valid identifiers revert to environment variables
+- All existing environment variables continue to work unchanged
 
-### Quick Migration Checklist
+### Migration Checklist
 
-- ✅ **No code changes required** - public API remains stable
-- ✅ **All existing features preserved** - CLI, Python API, and integrations unchanged
-- ✅ **Performance improvements** - automatic benefits from new architecture
-- ✅ **Enhanced reliability** - better error handling and validation
+- No code changes required - public API remains stable
+- All existing features preserved - CLI, Python API, and integrations unchanged
+- Automatic performance benefits from new architecture
+- Better error handling and validation without code changes
 
 ### Optional: Adopt New Features
 
@@ -141,12 +142,12 @@ uv run importobot \
 
 ## Breaking Changes Summary
 
-### Version 0.1.3: No Breaking Changes ✅
+### Version 0.1.3: No Breaking Changes
 - Public API remains fully stable
 - All existing code continues to work without modification
 - Only internal architecture improvements and new optional features
 
-### Version 0.1.2: Internal Refactoring ⚠️
+### Version 0.1.2: Internal Refactoring
 **Public API Impact**: None - all public interfaces stable
 
 **Internal Changes**:
@@ -158,7 +159,7 @@ uv run importobot \
 - You were importing internal modules directly (not recommended)
 - Using the compatibility shim for Robot Framework utilities
 
-### Version 0.1.1: Major Architecture Changes ⚠️
+### Version 0.1.1: Major Architecture Changes
 **Public API Impact**: None - `JsonToRobotConverter` and CLI unchanged
 
 **Internal Changes**:
@@ -170,17 +171,17 @@ uv run importobot \
 - Using internal `importobot.core.*` or `importobot.medallion.*` modules
 - Direct integration with security gateway (add context parameter)
 
-### Quick Reference
+### Points of Reference
 
 ```python
-# ✅ Always use public API - stable across all versions
+# Always use public API - stable across all versions
 import importobot
 from importobot.api import validation, suggestions
 
 converter = importobot.JsonToRobotConverter()
 result = converter.convert_file("input.json", "output.robot")
 
-# ❌ Avoid internal modules - may change between versions
+# Avoid internal modules - may change between versions
 # from importobot.core.detectors import FormatDetector  # Don't do this
 # from importobot.medallion.bronze import BronzeLayer  # Don't do this
 ```
@@ -361,10 +362,10 @@ client = TelemetryClient(enabled=True)
 
 If upgrading from v0.1.0:
 
-1. ✅ **No code changes required** - defaults preserve existing behavior
-2. ⚠️ **Memory usage increase** - Budget ~1MB additional memory (default cache)
-3. ✅ **Performance improvement** - Automatic 50-80% speedup for repeated queries
-4. 🔧 **Optional tuning** - Profile your workload and adjust if needed
+1. **No code changes required** - defaults preserve existing behavior
+2. **Memory usage increase** - Budget ~1MB additional memory (default cache)
+3. **Performance improvement** - Automatic 50-80% speedup for repeated queries
+4. **Optional tuning** - Profile your workload and adjust if needed
 
 **Breaking change:** If you were directly accessing `bronze._records` (private API), this has moved to `bronze._in_memory_records` with different structure. Use `bronze.get_bronze_records()` instead (public API).
 
