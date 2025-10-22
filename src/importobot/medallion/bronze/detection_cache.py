@@ -15,6 +15,9 @@ from importobot.config import (
     DETECTION_CACHE_MAX_SIZE as CONFIG_MAX_SIZE,
 )
 from importobot.config import (
+    DETECTION_CACHE_MIN_DELAY_MS as CONFIG_MIN_DELAY_MS,
+)
+from importobot.config import (
     DETECTION_CACHE_TTL_SECONDS as CONFIG_TTL_SECONDS,
 )
 from importobot.config import MAX_CACHE_CONTENT_SIZE_BYTES
@@ -28,6 +31,7 @@ logger = setup_logger(__name__)
 DETECTION_CACHE_MAX_SIZE = CONFIG_MAX_SIZE
 DETECTION_CACHE_COLLISION_LIMIT = CONFIG_COLLISION_LIMIT
 DETECTION_CACHE_TTL_SECONDS = CONFIG_TTL_SECONDS
+DETECTION_CACHE_MIN_DELAY_MS = CONFIG_MIN_DELAY_MS
 
 
 class _NullTelemetry:
@@ -325,16 +329,24 @@ class DetectionCache:
         self._detection_result_expiry.pop(cache_key, None)
 
     def enforce_min_detection_time(
-        self, start_time: float, data: Any, min_time_ms: float = 50.0
+        self, start_time: float, data: Any, min_time_ms: float | None = None
     ) -> None:
         """Enforce minimum detection time to prevent timing attacks."""
         _ = data  # Mark as intentionally unused
+        target_ms = (
+            float(min_time_ms)
+            if min_time_ms is not None
+            else float(DETECTION_CACHE_MIN_DELAY_MS)
+        )
+        if target_ms <= 0:
+            return
+
         elapsed_time = (time.perf_counter() - start_time) * 1000  # Convert to ms
 
-        if elapsed_time < min_time_ms:
+        if elapsed_time < target_ms:
             # Add artificial delay to normalize timing
             # Convert back to seconds
-            remaining_time = (min_time_ms - elapsed_time) / 1000.0
+            remaining_time = (target_ms - elapsed_time) / 1000.0
             time.sleep(remaining_time)
 
     def _is_expired(self, timestamp: float | None) -> bool:

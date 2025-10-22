@@ -537,6 +537,9 @@ class TestFormatDetectionPerformance(unittest.TestCase):
 
         detection_times = []
 
+        # Warm up detection pipeline so cache priming does not skew timing assertions
+        self.detector.detect_format(dataset)
+
         for _ in range(3):  # Reduced from 10 for advanced algorithms
             start_time = time.time()
             detected_format = self.detector.detect_format(dataset)
