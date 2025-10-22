@@ -4,14 +4,18 @@ This tutorial shows how to use Importobot's blueprint system to learn patterns f
 
 ## Overview
 
-The blueprint learning system extracts patterns from your existing Robot Framework test suites and uses them to generate more consistent, team-specific conversions. Instead of using generic templates, Importobot learns from your team's actual testing patterns.
+Importobot identifies conversion patterns from existing Robot Framework files. When you provide template files, the system extracts step patterns, variable naming conventions, and test structure to apply them to new conversions.
 
-### Key Benefits
+For example, if your team uses `${TEST_USER}` and `${TEST_PASSWORD}` consistently across web tests, Importobot will apply those patterns instead of generating generic variable names.
 
-- **Consistency**: Generated tests match your team's existing style
-- **Accuracy**: Better conversion of domain-specific commands
-- **Customization**: No need to manually create templates
-- **Cross-template learning**: Combines patterns from multiple files
+### Template Learning
+
+When you run Importobot with `--robot-template`, it scans your existing Robot files to find step patterns. For example, if your templates consistently use `Input Text    id=username    ${TEST_USER}`, Importobot will apply that variable pattern instead of generic `${variable}` syntax.
+
+In practice, this means:
+- Web UI tests use your team's naming conventions (`${TEST_USER}`, `${TEST_PASSWORD}`)
+- API calls follow your session management patterns
+- Database queries use your preferred connection cleanup approach
 
 ## Step 1: Prepare Your Template Files
 
@@ -19,14 +23,14 @@ Gather your existing Robot Framework files that demonstrate good testing pattern
 
 ### What Makes a Good Template?
 
-✅ **Good template characteristics**:
+**Good template characteristics**:
 - Well-structured test cases with clear steps
 - Consistent naming conventions
 - Proper use of Robot Framework keywords
 - Domain-specific commands relevant to your applications
 - Error handling and validation patterns
 
-❌ **Avoid templates with**:
+**Avoid templates with**:
 - Syntax errors or invalid Robot Framework code
 - Outdated or deprecated keywords
 - Overly complex or unclear test logic
@@ -63,13 +67,13 @@ cp tests/ops/*.robot templates/infrastructure/
 Use descriptive names that indicate the domain:
 
 ```bash
-✅ Good names:
+Good names:
 ├── user_authentication.robot
 ├── payment_processing.robot
 ├── database_migrations.robot
 ├── server_deployment.robot
 
-❌ Poor names:
+Poor names:
 ├── test1.robot
 ├── temp.robot
 ├── old_tests.robot

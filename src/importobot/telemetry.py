@@ -110,7 +110,11 @@ class TelemetryClient:
             "timestamp": now,
         }
         if extras:
-            payload.update(extras)
+            for key, value in extras.items():
+                if key in payload:
+                    payload[f"extra_{key}"] = value
+                else:
+                    payload[key] = value
 
         self._emit("cache_metrics", payload)
 

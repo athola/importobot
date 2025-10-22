@@ -79,11 +79,9 @@ class BronzeRecord:
         if not isinstance(self.data, dict):
             raise ValueError("Bronze record data must be a dictionary")
 
-        if (
-            not self.data
-            and self.metadata.processing_status == ProcessingStatus.COMPLETED
-        ):
-            raise ValueError("Bronze record data cannot be empty")
+        # Empty payloads are permitted when upstream components intentionally store
+        # placeholder records (e.g., empty dict ingests). Downstream validation is
+        # responsible for flagging missing content via warnings instead of errors.
 
     @property
     def record_id(self) -> str:

@@ -37,6 +37,14 @@ def convert_parameters_to_robot_variables(
     def replace_parameter(match: re.Match[str]) -> str:
         param_name = match.group(1).strip()
 
+        # Avoid converting braces that are immediately adjacent to
+        # alphanumeric characters (e.g. "foo{bar}") since they're likely
+        # literal braces rather than placeholder syntax.
+        if match.start() > 0:
+            preceding_char = match.string[match.start() - 1]
+            if preceding_char.isalnum() or preceding_char == "_":
+                return match.group(0)
+
         # Only convert if it looks like a valid variable name
         if re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", param_name):
             return f"${{{param_name}}}"

@@ -1,12 +1,15 @@
 # Performance Benchmarks
 
-Importobot includes a benchmark harness that measures conversion throughput, latency, and memory usage. Run benchmarks before merging medallion or optimizer changes to catch regressions.
+Run `uv run python -m importobot_scripts.benchmarks.performance_benchmark` before merging changes to the conversion engine. The benchmark processes file batches in 5, 10, 25, or 50 batch increments and reports throughput, latency, and memory usage.
 
 ## When to Run Benchmarks
 
-- Before and after major refactors (like OptimizedConverter changes)
-- During release candidates to confirm no speed regressions
-- While tuning optimization settings to balance quality and performance
+Run benchmarks when you change:
+- The conversion engine (OptimizedConverter, medallion layers)
+- Memory usage patterns (caching, data structures)
+- File processing logic (parsers, serializers)
+
+Any change that slows single-file conversion by more than 5% or increases memory usage by more than 10% requires validation.
 
 ## Benchmark Script
 

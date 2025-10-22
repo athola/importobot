@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import threading
 from typing import cast
+from weakref import WeakKeyDictionary
 
 from importobot.services.performance_cache import PerformanceCache
 from importobot.telemetry import TelemetryClient, get_telemetry_client
@@ -69,6 +70,22 @@ class ApplicationContext:
 
 
 _context_storage = threading.local()
+_context_lock = threading.Lock()
+_context_registry: WeakKeyDictionary[threading.Thread, ApplicationContext] = (
+    WeakKeyDictionary()
+)
+
+
+def _register_context(context: ApplicationContext) -> None:
+    thread = threading.current_thread()
+    with _context_lock:
+        _context_registry[thread] = context
+
+
+def _unregister_context() -> None:
+    thread = threading.current_thread()
+    with _context_lock:
+        _context_registry.pop(thread, None)
 
 
 def get_context() -> ApplicationContext:
@@ -79,9 +96,12 @@ def get_context() -> ApplicationContext:
     Returns:
         Current application context
     """
-    if not hasattr(_context_storage, "context"):
-        _context_storage.context = ApplicationContext()
-    return cast(ApplicationContext, _context_storage.context)
+    context = getattr(_context_storage, "context", None)
+    if context is None:
+        context = ApplicationContext()
+        _context_storage.context = context
+        _register_context(context)
+    return cast(ApplicationContext, context)
 
 
 def set_context(context: ApplicationContext) -> None:
@@ -91,6 +111,7 @@ def set_context(context: ApplicationContext) -> None:
         context: Application context to use
     """
     _context_storage.context = context
+    _register_context(context)
 
 
 def clear_context() -> None:
@@ -101,6 +122,7 @@ def clear_context() -> None:
     if hasattr(_context_storage, "context"):
         _context_storage.context.reset()
         delattr(_context_storage, "context")
+        _unregister_context()
 
 
 __all__ = ["ApplicationContext", "clear_context", "get_context", "set_context"]

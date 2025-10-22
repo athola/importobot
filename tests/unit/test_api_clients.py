@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -174,7 +174,7 @@ def test_factory_returns_expected_client() -> None:
     )
 
 
-def test_auth_failure_logs_warning(caplog) -> None:
+def test_auth_failure_logs_warning(caplog: pytest.LogCaptureFixture) -> None:
     """Zephyr auth probe should emit warnings for 401/403 responses."""
     session = DummySession(
         [
@@ -194,7 +194,7 @@ def test_auth_failure_logs_warning(caplog) -> None:
         max_concurrency=None,
         verify_ssl=True,
     )
-    client._session = session  # type: ignore[attr-defined]
+    client._session = cast(Any, session)
 
     pattern = client.API_PATTERNS[1]  # direct_search pattern
     auth_strategy = client.AUTH_STRATEGIES[0]

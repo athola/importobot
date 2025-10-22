@@ -8,6 +8,7 @@ from typing import Any
 from .default_render import (
     build_suite_documentation,
     format_test_name,
+    render_cli_task_documentation,
     render_cli_task_metadata,
     render_cli_task_settings,
 )
@@ -49,6 +50,8 @@ def _build_cli_task_suite(
 
     for test_case, context in zip(test_cases, contexts, strict=True):
         command = _resolve_cli_command(test_case, context)
+        if context and context.get("command"):
+            command = context["command"].strip().lower()
         commands.append(command)
         proc_names.append(context.get("proc_name") if context else None)
 
@@ -68,20 +71,33 @@ def _build_cli_task_suite(
         "proc_value": primary_proc,
         "proc_name_value": primary_proc,
     }
+    base_for_cli_var = primary_command or (commands[0] if commands else "cli")
+    substitutions["cli_assignment"] = _var_token(base_for_cli_var, suffix="cli")
 
     template_candidates = []
     if len(test_cases) == 1:
         template_candidates = template_name_candidates(
+            "cli_proc_task",
             contexts[0].get("template") if contexts else None,
             primary_command,
             f"{primary_command}_task",
-            "cli_proc_task",
         )
+
+    documentation = render_cli_task_documentation(test_cases[0], primary_command)
+    substitutions.update(
+        {
+            "documentation": documentation,
+            "proc_name": primary_proc,
+        }
+    )
+
+    prefer_template = bool(template_candidates and primary_proc)
 
     return BlueprintResult(
         template_candidates=template_candidates,
         substitutions=substitutions,
         default_rendering=default_rendering,
+        prefer_template=prefer_template,
     )
 
 
@@ -175,6 +191,7 @@ def _render_cli_step(
             step_lines,
             command_text,
             command,
+            proc_name,
             expected,
             state,
             connection_override,
@@ -186,6 +203,7 @@ def _render_cli_step(
             step_lines,
             command_text,
             command,
+            proc_name,
             expected,
             state,
             connection_override,
@@ -253,18 +271,20 @@ def _render_target_location(
     step_lines: list[str],
     command_text: str,
     command: str,
+    proc_name: str | None,
     expected: str | None,
     state: RenderState,
     connection_override: str | None,
     step_index: int,
 ) -> list[str]:
     command_exec, notes = _split_command_and_notes(command_text)
+    normalized_exec = _normalize_cli_command(command_exec, proc_name)
     command_token = (command_exec.split() or [command])[0].lower()
     pattern = find_step_pattern("target", command_token)
     if pattern:
         return apply_target_pattern(
             pattern,
-            command_exec,
+            normalized_exec,
             command_token,
             expected,
             notes,
@@ -278,10 +298,10 @@ def _render_target_location(
 
     connection_name = connection_override or "Target"
     _ensure_connection(step_lines, state, connection_name)
-    var_name = _command_to_identifier(command_exec)
+    var_name = _command_to_identifier(normalized_exec)
     target_var = _var_token(var_name or "target")
     state.last_target_var = target_var
-    step_lines.append(f"    {target_var}=    Execute Command    {command_exec}")
+    step_lines.append(f"    {target_var}=    Execute Command    {normalized_exec}")
     state.outputs[step_index] = target_var
     step_lines.extend(
         render_expectation(expected, target_var, step_index=step_index, state=state)
@@ -294,18 +314,20 @@ def _render_host_location(
     step_lines: list[str],
     command_text: str,
     command: str,
+    proc_name: str | None,
     expected: str | None,
     state: RenderState,
     connection_override: str | None,
     step_index: int,
 ) -> list[str]:
     command_exec, notes = _split_command_and_notes(command_text)
+    normalized_exec = _normalize_cli_command(command_exec, proc_name)
     command_token = (command_exec.split() or [command])[0].lower()
     pattern = find_step_pattern("host", command_token)
     if pattern:
         return apply_host_pattern(
             pattern,
-            command_exec,
+            normalized_exec,
             command_token,
             expected,
             notes,
@@ -318,8 +340,8 @@ def _render_host_location(
         )
 
     _ensure_connection(step_lines, state, connection_override or "Controller")
-    host_var = _var_token(_command_to_identifier(command_exec) or "host")
-    step_lines.append(f"    {host_var}=    Execute Command    {command_exec}")
+    host_var = _var_token(_command_to_identifier(normalized_exec) or "host")
+    step_lines.append(f"    {host_var}=    Execute Command    {normalized_exec}")
     state.outputs[step_index] = host_var
     step_lines.extend(
         render_expectation(expected, host_var, step_index=step_index, state=state)

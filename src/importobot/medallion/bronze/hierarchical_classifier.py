@@ -133,6 +133,7 @@ class HierarchicalClassifier:
         self.evidence_collector = evidence_collector
         self.evidence_accumulator = evidence_accumulator
         self._stage1_indicator_tokens = self._build_stage1_indicator_tokens()
+        self._stage1_notice_emitted = False
 
     def classify(self, data: dict[str, Any]) -> HierarchicalClassificationResult:
         """Perform two-stage hierarchical classification with fast paths.
@@ -168,12 +169,21 @@ class HierarchicalClassifier:
             )
 
         if not is_test_data:
-            logger.info(
-                "Stage 1 FAILED: Input does not appear to be test data "
-                "(confidence=%.3f < %s)",
-                test_confidence,
-                self.MIN_TEST_DATA_CONFIDENCE,
-            )
+            if not self._stage1_notice_emitted:
+                logger.info(
+                    "Stage 1 FAILED: Input does not appear to be test data "
+                    "(confidence=%.3f < %s)",
+                    test_confidence,
+                    self.MIN_TEST_DATA_CONFIDENCE,
+                )
+                # TODO(post-conversion-log): consolidate repeated classifier noise into
+                # the dedicated log stream being planned for ingestion summaries.
+                self._stage1_notice_emitted = True
+            else:
+                logger.debug(
+                    "Stage 1 failed (confidence=%.3f); suppressing duplicate notice",
+                    test_confidence,
+                )
             return HierarchicalClassificationResult(
                 is_test_data=False,
                 test_data_confidence=test_confidence,

@@ -6,50 +6,13 @@ import os
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Protocol, cast
+from typing import Any
 
 from importobot import exceptions
 from importobot.cli.constants import FETCHABLE_FORMATS, SUPPORTED_FETCH_FORMATS
 from importobot.medallion.interfaces.enums import SupportedFormat
+from importobot.medallion.storage.config import StorageConfig
 from importobot.utils.logging import get_logger
-
-
-class StorageConfigProtocol(Protocol):
-    """Minimal protocol for storage configuration objects."""
-
-    backend_type: str
-    base_path: Path
-
-    def to_dict(self) -> dict[str, Any]:
-        """Return a serialisable representation of the configuration."""
-        ...
-
-    def validate(self) -> list[str]:
-        """Validate the configuration and return a list of issues."""
-        ...
-
-
-try:  # pragma: no cover - optional dependency during bootstrapping
-    from importobot.medallion.storage.config import (
-        StorageConfig as StorageConfigRuntime,
-    )
-except ImportError:  # pragma: no cover - medallion package not ready
-
-    class _StorageConfigStub:
-        backend_type: str = "local"
-        base_path: Path = Path("./medallion_data")
-
-        def to_dict(self) -> dict[str, Any]:
-            raise NotImplementedError("StorageConfig not available at runtime")
-
-        def validate(self) -> list[str]:
-            raise NotImplementedError("StorageConfig not available at runtime")
-
-    StorageConfigRuntime = _StorageConfigStub
-
-
-StorageConfig = cast(type[StorageConfigProtocol], StorageConfigRuntime)
-
 
 # Module-level logger for configuration warnings
 logger = get_logger()
@@ -335,16 +298,20 @@ def _resolve_project_reference(
 ) -> tuple[str | None, int | None]:
     """Determine project identifiers from CLI args or environment."""
     cli_project = getattr(args, "project", None)
+    cli_invalid = False
     if cli_project is not None:
         project_name, project_id = _parse_project_identifier(cli_project)
         if project_name is None and project_id is None:
-            message = (
-                f"Invalid CLI project identifier '{cli_project}' for "
-                f"{fetch_format.value} ingestion. "
-                "Provide a non-empty name or numeric ID."
+            logger.debug(
+                "Ignoring invalid CLI project identifier %r for %s ingestion; "
+                "%s_PROJECT fallback will be used if available",
+                cli_project,
+                fetch_format.value,
+                prefix,
             )
-            raise exceptions.ConfigurationError(message)
-        return project_name, project_id
+            cli_invalid = True
+        else:
+            return project_name, project_id
 
     env_project = fetch_env(f"{prefix}_PROJECT")
     if env_project:
@@ -361,6 +328,13 @@ def _resolve_project_reference(
     if project_name is None and project_id is None and env_project:
         message = (
             f"Invalid project identifier '{env_project}' for "
+            f"{fetch_format.value} ingestion. "
+            "Provide a non-empty name or numeric ID."
+        )
+        raise exceptions.ConfigurationError(message)
+    if cli_invalid and project_name is None and project_id is None:
+        message = (
+            f"Invalid CLI project identifier '{cli_project}' for "
             f"{fetch_format.value} ingestion. "
             "Provide a non-empty name or numeric ID."
         )
@@ -450,8 +424,8 @@ def resolve_api_ingest_config(args: Any) -> APIIngestConfig:
 
 
 def update_medallion_config(
-    config: StorageConfigProtocol | None = None, **kwargs: Any
-) -> StorageConfigProtocol:
+    config: StorageConfig | None = None, **kwargs: Any
+) -> StorageConfig:
     """Update medallion configuration placeholder.
 
     Relies on StorageConfig from ``medallion.storage.config`` when available.
@@ -465,7 +439,7 @@ def update_medallion_config(
     return config
 
 
-def validate_medallion_config(_config: StorageConfigProtocol) -> bool:
+def validate_medallion_config(_config: StorageConfig) -> bool:
     """Validate medallion configuration placeholder."""
     # Placeholder implementation for testing
     return True

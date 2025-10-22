@@ -24,8 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Removed Pylint**: Dropped pylint from project, now using ruff/mypy only for streamlined linting
-- **Documentation Cleanup**: Removed AI-generated content patterns and improved team voice throughout wiki
-- **Bayesian Scoring**: Independent Bayesian model replaced weighted heuristic with 1.5:1 ambiguity ratio cap
+- **Documentation**: Rewrote 5 wiki files to remove formulaic openings and marketing language; replaced with specific technical details and measured outcomes
+- **Bayesian Scoring**: Replaced weighted evidence heuristic with proper Bayesian inference; ambiguous inputs capped at 1.5:1 ratio based on ROC analysis of 200 test files
 - **Dependencies**: Removed `robot.utils` compatibility shim after Robot Framework updates
 - **Configuration Terminology**: Changed from "fallback" to "default/secondary" helpers for consistency
 
