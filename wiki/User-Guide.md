@@ -116,7 +116,7 @@ This improves field mapping accuracy from ~85% to ~95% on custom exports.
 - `--robot-template` – Robot Framework template file or directory (repeatable)
 
 ### Enterprise test generators
-Helper scripts under `scripts/` can emit large sample suites for demos or benchmarking:
+Helper scripts under `scripts/` can generate large sample suites for demos or benchmarking:
 
 ```bash
 python scripts/generate_enterprise_tests.py
@@ -125,21 +125,21 @@ python scripts/generate_zephyr_tests.py
 
 ## Migration from 0.1.2
 
-Version 0.1.3 adds major architectural improvements, new features, and documentation cleanup. No breaking changes were introduced.
+Version 0.1.3 adds significant architectural enhancements, new features, and documentation cleanup. No breaking changes were introduced.
 
 **New architecture:**
-- **Application Context Pattern**: Replaced global variables with thread-local context for better test isolation
+- **Application Context Pattern**: Replaced global variables with thread-local context to improve test isolation
 - **Unified Caching System**: New `importobot.caching` module with LRU cache implementation
 
 **New features:**
 - **JSON Template System**: Learns patterns from your existing Robot files via `--robot-template` flag
 - **Schema Parser**: Extracts field definitions from your documentation via `--input-schema` flag
-- **Enhanced File Operations**: More JSON examples for system administration tasks
+- **Improved File Operations**: More JSON examples for system administration tasks
 - **API Examples**: New usage examples in `wiki/API-Examples.md`
 
 **Configuration improvements:**
 - Better handling of control characters and whitespace in project identifiers
-- CLI arguments that don't parse as valid identifiers fall back to environment variables
+- CLI arguments that don't parse as valid identifiers default to environment variables
 
 **Code quality:**
 - Removed pylint (now using ruff/mypy only)
@@ -372,7 +372,7 @@ for payload in client.fetch_all(progress_callback=lambda **kw: print(f"Fetched {
 
 #### Zephyr Client Features
 
-The enhanced Zephyr client provides automatic discovery and adaptation to different server configurations. For complete technical details, see [ADR-0003: API Integration Architecture](architecture/ADR-0003-api-integration).
+The enhanced Zephyr client provides improved format detection and flexible authentication methods. For complete technical details, see [ADR-0003: API Integration Architecture](architecture/ADR-0003-api-integration).
 
 #### Integration Hooks
 
@@ -384,17 +384,17 @@ engine = suggestions.GenericSuggestionEngine()
 notes = engine.suggest_improvements(problematic_tests)
 ```
 
-**Internal layers (FYI only):** Bronze handles schema checks, Silver standardises data (in development), Gold prepares the Robot output. Stick to `importobot.*` and `importobot.api.*`; internal modules (`importobot.medallion.*`, `importobot.core.*`) are unsupported.
+**Internal layers (FYI only):** Bronze handles schema checks, Silver standardizes data (under development), Gold prepares the Robot output. Stick to `importobot.*` and `importobot.api.*`; internal modules (`importobot.medallion.*`, `importobot.core.*`) are unsupported.
 
 ## Format Detection
 
-Importobot automatically detects which test management system created your export file. If the confidence score is below 0.5, the tool will warn you so you can verify the format is correct.
+Importobot identifies which test management system created your export file. If the confidence score is below 0.5, the tool will warn you so you can verify the format is correct.
 
 Common formats:
 - **Zephyr/JIRA** - JSON exports with `testCase` fields
 - **TestRail** - JSON with case structures and custom fields
 - **TestLink** - XML or JSON with test suite hierarchies
-- **Generic** - Fallback for unusual or mixed formats
+- **Generic** - Default for unusual or mixed formats
 
 If you get a low confidence warning, check that your export matches the expected format for your test management system.
 
@@ -402,7 +402,7 @@ If you get a low confidence warning, check that your export matches the expected
 
 - **Strong evidence (>0.9 likelihood)**: Confidence above 0.8 ✅
 - **Zero evidence**: Confidence of 0.0 (evidence of absence)
-- **Weak evidence**: Low confidence with uncertainty preserved
+- **Weak evidence**: Low confidence with retained uncertainty
 
 ### Advanced Features
 

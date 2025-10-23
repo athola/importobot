@@ -35,7 +35,7 @@ class FetchFormatAction(argparse.Action):
         fetch_format = FETCHABLE_FORMATS.get(normalized)
         if fetch_format is None:
             valid = ", ".join(format_choices())
-            parser.error(f"Unsupported fetch format '{values}'. Choose from: {valid}")
+            parser.error(f'Unsupported fetch format "{values}". Choose from: {valid}')
 
         setattr(namespace, self.dest, fetch_format)
 
@@ -65,7 +65,7 @@ class TokenListAction(argparse.Action):
         if isinstance(values, str):
             raw_segments: list[str] = [values]
         else:
-            raw_segments = list(cast(Sequence[str], values))
+            raw_segments = list(values)
 
         for segment in raw_segments:
             for raw_token in segment.split(","):

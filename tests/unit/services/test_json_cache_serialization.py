@@ -13,7 +13,7 @@ from importobot.services.performance_cache import PerformanceCache
 
 
 class TestJSONCacheSerializationOptimization:
-    """Verify that JSON caching uses identity-based keys to avoid double serialization."""
+    """Verify JSON caching uses identity-based keys to avoid double serialization."""
 
     def test_json_cache_serializes_once_per_unique_object(self):
         """GIVEN an unhashable object (dict)

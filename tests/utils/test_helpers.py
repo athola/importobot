@@ -6,12 +6,12 @@ from collections.abc import Callable
 from typing import Any
 
 try:  # pragma: no cover - optional dependency guard
-    from robot.api import TestSuite as RobotTestSuite  # type: ignore
+    from robot.api import TestSuite as RobotTestSuite
 except ImportError:  # pragma: no cover
-    RobotTestSuite = None  # type: ignore
+    RobotTestSuite: Any = None  # type: ignore[no-redef]
 
 
-def run_robot_command(command: list[str]) -> subprocess.CompletedProcess:
+def run_robot_command(command: list[str]) -> subprocess.CompletedProcess[str]:
     """Execute a Robot Framework command and return the result."""
     try:
         result = subprocess.run(
@@ -37,9 +37,9 @@ def parse_robot_file(file_path: str) -> list[dict[str, Any]]:
     suite = RobotTestSuite.from_file_system(file_path)
     result = []
 
-    def _extract_keywords(test_or_suite):
+    def _extract_keywords(test_or_suite: Any) -> list[dict[str, Any]]:
         """Recursively extract keywords from a test or suite."""
-        keywords = []
+        keywords: list[dict[str, Any]] = []
         if hasattr(test_or_suite, "body"):
             for item in test_or_suite.body:
                 if hasattr(item, "name") and item.name:

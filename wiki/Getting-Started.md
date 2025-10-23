@@ -1,8 +1,8 @@
 # Getting Started
 
-Install Importobot, verify it works, and convert your first test export.
+This guide covers the installation of Importobot and the conversion of a test export.
 
-> **New to the codebase?** Read [How to Navigate this Codebase](How-to-Navigate-this-Codebase) to understand the architecture and code organization.
+> If you are new to the codebase, read [How to Navigate this Codebase](How-to-Navigate-this-Codebase.md) to understand the architecture and code organization.
 
 ## Prerequisites
 
@@ -11,7 +11,7 @@ Install Importobot, verify it works, and convert your first test export.
 
 ## Installing uv
 
-Importobot uses [uv](https://github.com/astral-sh/uv) for package management. Install uv first:
+Importobot uses [uv](https://github.com/astral-sh/uv) for package management.
 
 ### macOS/Linux:
 ```bash
@@ -45,7 +45,7 @@ cd importobot
 # Install project dependencies
 uv sync --dev
 
-# Sanity-check the install (1,946 tests should pass with 0 skips)
+# Run the test suite to verify the installation
 uv run pytest
 ```
 
@@ -66,7 +66,7 @@ uv run importobot --batch input_dir/ output_dir/
 1. Export test suite from Zephyr/Xray/etc.
 2. Convert it with a single Importobot command.
 3. Dry-run and execute the generated Robot tests.
-4. Wire the command into a CI job.
+4. Integrate the command into a CI job.
 
 ```bash
 # 1. Export from source system

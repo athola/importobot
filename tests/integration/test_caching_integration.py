@@ -351,7 +351,7 @@ class TestCacheInvalidation:
         """
         converter = JsonToRobotConverter()
 
-        def run_conversion_job(job_id: int) -> tuple:
+        def run_conversion_job(job_id: int) -> tuple[str, float]:
             # Job-specific data
             data = {
                 "testCase": {

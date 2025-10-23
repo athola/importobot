@@ -23,7 +23,7 @@ Template learning scans your existing Robot files for patterns. If your template
 
 The schema parser reads field definitions from your documentation. In our testing with 15 customer exports that used custom field names, parsing accuracy improved from 85% to 95%.
 
-For system administration, Importobot generates SSH commands and file operations that match patterns in your test library. The Bayesian detector caps ambiguous evidence at 1.5:1 to prevent false positives on unclear input formats.
+For system administration, Importobot generates SSH commands and file operations that match patterns in your test library. A Bayesian approach helps avoid incorrect interpretations of unusual input formats by limiting the influence of uncertain data.
 
 **Performance measured on our test suite:**
 - 100 tests convert in 0.8s
@@ -137,7 +137,7 @@ User Login Functionality
 
 ## API Retrieval
 
-Importobot can fetch test suites directly from Zephyr, TestRail, JIRA/Xray and other supported platforms. The Zephyr client automatically discovers working API patterns and adapts to different server configurations.
+Importobot can fetch test suites directly from Zephyr, TestRail, JIRA/Xray and other supported platforms. The Zephyr client handles diverse server configurations by identifying the correct API patterns.
 
 For complete API retrieval examples, configuration options, and troubleshooting, see the [User Guide](wiki/User-Guide#api-retrieval).
 
@@ -169,9 +169,9 @@ The template system works in four phases:
 
 2. **Pattern extraction** – Normalizes Robot content to capture step patterns (connection, command token, command body) and keyword imports using regex matching defined in `src/importobot/core/templates/blueprints/pattern_application.py`.
 
-3. **Context matching** – Matches step text against extracted patterns during conversion. Reverts to default renderer when no pattern matches are found. This handles edge cases like custom commands or unusual syntax.
+3. **Context matching** – Matches step text against extracted patterns during conversion. Reverts to default renderer when no pattern matches are found, accommodating custom commands or unusual syntax.
 
-4. **Rendering** – Builds suites with learned settings and keywords, adding setup/teardown based on discovered patterns. The renderer preserves your team's coding style.
+4. **Rendering** – Builds suites with learned settings and keywords, adding setup/teardown based on discovered patterns.
 
 For troubleshooting template issues, check `src/importobot/core/templates/blueprints/expectations.py` for pattern matching rules.
 
@@ -182,7 +182,7 @@ For Bayesian optimization, conversion metrics, and performance analysis, see [AP
 
 ## Confidence Scoring
 
-Importobot uses Bayesian inference to detect input formats and avoid false positives. See [Mathematical Foundations](wiki/Mathematical-Foundations) for the complete implementation details and [Performance Characteristics](wiki/Performance-Characteristics) for accuracy metrics.
+Importobot uses Bayesian inference to detect input formats and reduce incorrect detections. See [Mathematical Foundations](wiki/Mathematical-Foundations) for the complete implementation details and [Performance Characteristics](wiki/Performance-Characteristics) for accuracy metrics.
 
 ## Migration Notes
 

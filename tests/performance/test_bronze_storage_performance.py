@@ -17,6 +17,7 @@ import threading
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -34,7 +35,7 @@ class TestBronzeStoragePerformance:
     @staticmethod
     def _measure_throughput(
         bronze_layer: BronzeLayer,
-        test_data: dict,
+        test_data: dict[str, Any],
         record_count: int,
         prefix: str,
     ) -> tuple[float, float]:

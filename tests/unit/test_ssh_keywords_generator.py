@@ -1,4 +1,4 @@
-"""Comprehensive tests for SSH keyword generation following TDD principles."""
+"""Tests for generating Robot Framework SSH keywords from various input formats."""
 
 from typing import Any
 

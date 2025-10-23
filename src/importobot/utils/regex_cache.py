@@ -43,7 +43,7 @@ def _compile_pattern(pattern: str, flags: int) -> Pattern[str]:
 
 def search_cached(
     pattern: str, text: str, flags: int | re.RegexFlag = 0
-) -> re.Match | None:
+) -> re.Match[str] | None:
     """Perform regex search using cached pattern compilation.
 
     Args:
@@ -60,7 +60,7 @@ def search_cached(
 
 def match_cached(
     pattern: str, text: str, flags: int | re.RegexFlag = 0
-) -> re.Match | None:
+) -> re.Match[str] | None:
     """Perform regex match using cached pattern compilation.
 
     Args:

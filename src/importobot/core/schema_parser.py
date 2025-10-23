@@ -2,6 +2,41 @@
 
 This module allows users to provide documentation (SOPs, READMEs, etc.) that
 describe their test data format, which helps improve parsing quality and suggestions.
+
+Security Considerations
+-----------------------
+Schema files are untrusted user input and must be validated before processing:
+
+1. **File Size Limits**: Individual files are limited to MAX_SCHEMA_FILE_SIZE_BYTES
+   (default: 1MB, configurable via IMPORTOBOT_MAX_SCHEMA_BYTES). For large
+   documentation, split into multiple files and register each one - the
+   SchemaRegistry automatically merges fields from all registered schemas.
+
+2. **Content Length Validation**: Content is validated and truncated before
+   parsing to prevent memory exhaustion attacks
+
+3. **File Type Restrictions**: Only text-based formats are accepted
+   (.md, .txt, .json, .yaml, etc.)
+
+4. **Symlink Protection**: Symlinks are rejected to prevent path traversal
+
+5. **Character Sanitization**: Control characters (except newline/tab) are
+   stripped to prevent injection attacks
+
+6. **Section Limits**: Maximum MAX_SCHEMA_SECTIONS (256) sections to prevent
+   algorithmic complexity attacks
+
+Multiple File Support
+---------------------
+Large schemas should be split into multiple files for better organization
+and to stay within size limits:
+
+    from importobot.core.schema_parser import register_schema_file
+
+    # Register multiple schema files - fields are merged automatically
+    register_schema_file("schemas/test_fields.md")
+    register_schema_file("schemas/metadata_fields.md")
+    register_schema_file("schemas/execution_fields.md")
 """
 
 from __future__ import annotations
@@ -11,7 +46,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import ClassVar
 
-from importobot.config import MAX_SCHEMA_FILE_SIZE_BYTES
+from importobot import exceptions
+from importobot.config import MAX_SCHEMA_FILE_SIZE_BYTES, MAX_SCHEMA_SECTIONS
 from importobot.utils.logging import get_logger
 
 logger = get_logger()
@@ -58,7 +94,11 @@ class SchemaDocument:
         return None
 
 
-MAX_SCHEMA_CONTENT_LENGTH = 2 * 1024 * 1024
+# Use the same limit for content length as file size for consistency
+# This ensures that whether content comes from a file or direct string,
+# the same memory limits apply
+MAX_SCHEMA_CONTENT_LENGTH = MAX_SCHEMA_FILE_SIZE_BYTES
+
 ALLOWED_SCHEMA_SUFFIXES: tuple[str, ...] = (
     ".md",
     ".markdown",
@@ -69,14 +109,13 @@ ALLOWED_SCHEMA_SUFFIXES: tuple[str, ...] = (
     ".yaml",
     ".yml",
 )
-MAX_SCHEMA_SECTIONS = 256
 
 
 class SchemaParser:
     """Parse documentation files to extract test data schema."""
 
     # Patterns to identify field definitions
-    FIELD_HEADER_PATTERN: re.Pattern = re.compile(
+    FIELD_HEADER_PATTERN: re.Pattern[str] = re.compile(
         r"^([A-Z][A-Za-z\s]+)$|^([A-Z][A-Za-z\s]+):?\s*$", re.MULTILINE
     )
 
@@ -85,9 +124,10 @@ class SchemaParser:
     #   1. Zephyr-style prose: The "Field" section should contain ...
     #   2. Markdown bullet syntax: "Field" - description
     #   3. Generic colon form: Field: description
-    # Keeping the most specific expressions first prevents the simpler fallback
-    # pattern from stealing matches that carry richer context (e.g. quoting).
-    DESCRIPTION_PATTERNS: ClassVar[list[re.Pattern]] = [
+    # More specific expressions are ordered first to ensure they are matched
+    # before simpler, more general patterns.
+
+    DESCRIPTION_PATTERNS: ClassVar[list[re.Pattern[str]]] = [
         # Example: The "Objective" section should describe the test intent.
         re.compile(
             r'\s*The\s+"([^"]+)"\s+(?:section|field|portion)\s+'
@@ -107,7 +147,7 @@ class SchemaParser:
     # Patterns for example extraction. The explicit prose form is prioritised
     # over fenced code blocks so we keep short inline samples before grabbing
     # entire snippets.
-    EXAMPLE_PATTERNS: ClassVar[list[re.Pattern]] = [
+    EXAMPLE_PATTERNS: ClassVar[list[re.Pattern[str]]] = [
         re.compile(
             r"(?:Ex|Example|e\.g\.|For example):\s*(.+?)(?:\n|$)",
             re.IGNORECASE,
@@ -135,7 +175,9 @@ class SchemaParser:
                 return SchemaDocument(source_file=str(file_path))
             if resolved.stat().st_size > MAX_SCHEMA_FILE_SIZE_BYTES:
                 logger.warning(
-                    "Schema file %s exceeds size limit (%d bytes)",
+                    "Schema file %s exceeds size limit (%d bytes). "
+                    "Consider splitting into multiple files and registering each one. "
+                    "The SchemaRegistry merges fields from all registered files.",
                     file_path,
                     MAX_SCHEMA_FILE_SIZE_BYTES,
                 )
@@ -147,7 +189,30 @@ class SchemaParser:
             return SchemaDocument(source_file=str(file_path))
 
     def parse_content(self, content: str, source_file: str = "") -> SchemaDocument:
-        """Parse documentation content to extract schema."""
+        """Parse documentation content to extract schema.
+
+        Args:
+            content: Documentation content to parse
+            source_file: Optional source file path for tracking
+
+        Returns:
+            Parsed schema document
+
+        Raises:
+            ValidationError: If content exceeds reasonable limits for security
+
+        Note:
+            Content is automatically sanitized and truncated if needed, but
+            extremely large inputs (>10x limit) are rejected outright to
+            prevent memory exhaustion attacks.
+        """
+        # Reject pathologically large inputs before any processing
+        if len(content) > MAX_SCHEMA_FILE_SIZE_BYTES * 10:
+            raise exceptions.ValidationError(
+                f"Schema content ({len(content)} bytes) exceeds maximum "
+                f"reasonable size ({MAX_SCHEMA_FILE_SIZE_BYTES * 10} bytes)"
+            )
+
         doc = SchemaDocument(source_file=source_file)
 
         sanitized = self._sanitize_content(content)
@@ -308,7 +373,7 @@ class SchemaParser:
                 desc = match.group(2) if len(match.groups()) > 1 else match.group(1)
                 return desc.strip()
 
-        # Fallback: take first non-empty, non-example line
+        # Default behavior: take first non-empty, non-example line
         for line in content.splitlines():
             stripped = line.strip()
             is_example = re.match(
@@ -442,6 +507,7 @@ def find_field_schema(field_name: str) -> FieldSchema | None:
 
 
 __all__ = [
+    "MAX_SCHEMA_SECTIONS",
     "FieldSchema",
     "SchemaDocument",
     "SchemaParser",

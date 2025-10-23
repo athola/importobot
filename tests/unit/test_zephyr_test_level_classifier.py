@@ -136,7 +136,7 @@ class TestZephyrTestLevelClassifier:
 
     def test_classify_test_priority_order(self):
         """Test that requirement links take priority over smoke test indicators."""
-        # Test with both requirement links and smoke indicators - should classify as Sanity
+        # Test with both requirement links and smoke indicators - classify as Sanity
         test_data = {
             "name": "Critical Authentication Smoke Test",
             "objective": "Basic smoke test for authentication",

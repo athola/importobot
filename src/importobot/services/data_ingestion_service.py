@@ -303,7 +303,7 @@ class DataIngestionService:
                 start_time, error_msg, file_path, correlation_id=correlation_id
             )
 
-        except Exception as e:  # pragma: no cover - defensive fallback
+        except Exception as e:  # pragma: no cover - General exception handler
             error_msg = f"Failed to ingest file {file_path}: {e!s}"
             logger.error(error_msg)
             return self._create_error_result(

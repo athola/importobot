@@ -38,7 +38,7 @@ from tests.shared_test_data_bronze import (
 )
 
 try:  # pragma: no cover - optional dependency guard
-    import numpy  # type: ignore
+    import numpy
 
     _ = numpy  # Mark as used to avoid F401
 except ImportError as exc:  # pragma: no cover

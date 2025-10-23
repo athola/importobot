@@ -54,7 +54,7 @@ summary = converter.convert_file("input.json", "output.robot")
 ```python
 from importobot.integrations.clients import get_api_client, SupportedFormat
 
-# Zephyr client automatically discovers API patterns
+# Zephyr client identifies API patterns
 client = get_api_client(
     SupportedFormat.ZEPHYR,
     api_url="https://your-zephyr.example.com",
@@ -361,7 +361,7 @@ print(f"Format detection accuracy: {metrics['detection_accuracy']:.2%}")
 
 ## Error Handling
 
-### Robust Error Handling
+### Error Handling
 
 ```python
 import importobot

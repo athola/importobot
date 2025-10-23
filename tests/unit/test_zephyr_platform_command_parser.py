@@ -22,7 +22,7 @@ class TestPlatformCommandParser:
         }
 
     def test_default_platform_keywords_empty(self):
-        """Test that default PLATFORM_KEYWORDS is empty (no hard-coded customer data)."""
+        """Test that default PLATFORM_KEYWORDS is empty (no hard-coded data)."""
         default_parser = PlatformCommandParser()
         assert default_parser.PLATFORM_KEYWORDS == {}
         assert isinstance(default_parser.PLATFORM_KEYWORDS, dict)

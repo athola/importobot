@@ -128,7 +128,7 @@ def with_progress_reporting(
     operation_name: str = "operation",
     logger: logging.Logger | None = None,
     milestone_percentage: int | None = None,
-) -> Callable:
+) -> Callable[..., Any]:
     """Add progress reporting to functions.
 
     Args:
@@ -141,7 +141,7 @@ def with_progress_reporting(
         Decorator function
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             injected_reporter = kwargs.pop("reporter", None)
             reporter = injected_reporter or ProgressReporter(logger, operation_name)

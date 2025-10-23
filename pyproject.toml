@@ -90,7 +90,6 @@ all = [
     "matplotlib>=3.10.6",
     "numpy>=2.2.6",
     "pandas>=2.0.0",
-    "scipy>=1.15.3",
     # Medallion architecture included in 'all'
 ]
 
@@ -243,6 +242,9 @@ mypy_path = "./src:./scripts/src"
 explicit_package_bases = true
 namespace_packages = true
 exclude = ['^\.venv', '^\.uv-cache']
+
+# Enable strict mode
+strict = true
 
 [tool.mutmut]
 paths_to_mutate = [

@@ -17,26 +17,26 @@ from statistics import mean, median, stdev
 from typing import Any
 
 try:
-    import psutil  # type: ignore[misc]
+    import psutil
 
     PSUTIL_AVAILABLE = True
 except ImportError:
     PSUTIL_AVAILABLE = False
 
 try:
-    import numpy as np  # type: ignore[misc]
+    import numpy as np
 
     NUMPY_AVAILABLE = True
 except ImportError:
     NUMPY_AVAILABLE = False
 
 from importobot.core.business_domains import (
-    BusinessDomainTemplates,  # type: ignore[misc]
+    BusinessDomainTemplates,
 )
 from importobot.core.converter import (
-    JsonToRobotConverter,  # type: ignore[misc]
-    convert_directory,  # type: ignore[misc]
-    convert_file,  # type: ignore[misc]
+    JsonToRobotConverter,
+    convert_directory,
+    convert_file,
 )
 
 
@@ -60,8 +60,8 @@ class PerformanceBenchmark:
         if not PSUTIL_AVAILABLE:
             return None
 
-        process = psutil.Process()  # type: ignore[unbound]
-        return process.memory_info().rss  # type: ignore[no-any-return]
+        process = psutil.Process()
+        return int(process.memory_info().rss)
 
     def _format_memory_size(self, size_bytes: float) -> str:
         """Format memory size in the most appropriate units (B, KB, or MB)."""
@@ -116,7 +116,7 @@ class PerformanceBenchmark:
     def generate_test_case(self, complexity: str = "medium") -> dict[str, Any]:
         """Generate test case with varying complexity levels."""
         # More realistic test case structure
-        base_case = {
+        base_case: dict[str, Any] = {
             "testCase": {
                 "name": "Performance Test Case",
                 "description": "Benchmark test case for performance measurement",
@@ -167,12 +167,11 @@ class PerformanceBenchmark:
                 "action": "execute_operation",
                 "object": f"test_object_{i + 1}",
             }
-            base_case["testCase"]["steps"].append(step)  # type: ignore[attr-defined]
+            base_case["testCase"]["steps"].append(step)
 
         # Add some metadata for enterprise complexity
         if complexity_enum == ComplexityLevel.ENTERPRISE:
-            base_case["testCase"]["metadata"] = {  # type: ignore[attr-defined]
-                # type: ignore[assignment]
+            base_case["testCase"]["metadata"] = {
                 "business_domain": "enterprise",
                 "compliance_level": "high",
                 "security_classification": "confidential",
@@ -257,17 +256,17 @@ class PerformanceBenchmark:
 
         result = self._calculate_statistics(times)
         result.update(
-            {  # type: ignore[arg-type]
-                "iterations": iterations,  # type: ignore[dict-item]
-                "warmup_iterations": warmup_iterations,  # type: ignore[dict-item]
+            {
+                "iterations": iterations,
+                "warmup_iterations": warmup_iterations,
                 "complexity": complexity,  # type: ignore[dict-item]
             }
         )
 
         if memory_usages:
-            result["memory_usage"] = self._calculate_statistics(
+            result["memory_usage"] = self._calculate_statistics(  # type: ignore[assignment]
                 [float(m) for m in memory_usages]
-            )  # type: ignore[assignment]
+            )
 
         return result
 
@@ -387,23 +386,23 @@ class PerformanceBenchmark:
         if strict_memory:
             result["strict_mode"]["memory_usage"] = self._calculate_statistics(
                 [float(m) for m in strict_memory]
-            )  # type: ignore[assignment]
+            )
 
         if lenient_memory:
             result["lenient_mode"]["memory_usage"] = self._calculate_statistics(
                 [float(m) for m in lenient_memory]
-            )  # type: ignore[assignment]
+            )
 
         return result
 
-    def run_comprehensive_benchmark(
+    def run_full_benchmark(
         self,
         single_file_iterations: int = 10,
         api_iterations: int = 5,
         bulk_file_counts: list[int] | None = None,
         run_parallel: bool = False,
     ) -> dict[str, Any]:
-        """Run comprehensive performance benchmark suite."""
+        """Run full performance benchmark suite."""
         if bulk_file_counts is None:
             bulk_file_counts = [5, 10, 25, 50]
         print("🔧 Running Importobot Performance Benchmarks...")
@@ -771,7 +770,7 @@ class PerformanceBenchmark:
         if memory_data:
             memory_stats = self._calculate_statistics([float(m) for m in memory_data])
             if isinstance(result[key], dict):
-                result[key]["memory_usage"] = memory_stats  # type: ignore[index]
+                result[key]["memory_usage"] = memory_stats
 
     def benchmark_lazy_loading(
         self, warmup_iterations: int = 10, iterations: int = 100
@@ -1041,7 +1040,7 @@ def main() -> None:
         print("🔧 Running Importobot CI performance smoke benchmarks...")
         results = benchmark.run_ci_smoke_benchmark()
     else:
-        results = benchmark.run_comprehensive_benchmark(
+        results = benchmark.run_full_benchmark(
             single_file_iterations=args.iterations,
             api_iterations=args.api_iterations,
             bulk_file_counts=args.bulk_files,

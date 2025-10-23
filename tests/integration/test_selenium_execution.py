@@ -232,7 +232,7 @@ def test_json_to_robot_selenium_execution(tmp_path, mock_server):
         # Use headless mode if available
         variable=[
             f"URL:{mock_server}",
-            "BROWSER:headlessfirefox",  # Fallback to headless
+            "BROWSER:headlessfirefox",  # Use headless browser for tests
         ],
         # Continue on failure to see all steps
         exitonfailure=False,

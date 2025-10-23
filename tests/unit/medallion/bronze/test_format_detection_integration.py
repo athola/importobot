@@ -24,7 +24,7 @@ from importobot.medallion.interfaces.enums import SupportedFormat
 from tests.utils import create_test_case_base
 
 try:  # pragma: no cover - optional dependency guard
-    import numpy  # type: ignore
+    import numpy
 
     _ = numpy  # Mark as used to avoid F401
 except ImportError as exc:  # pragma: no cover

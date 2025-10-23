@@ -243,7 +243,7 @@ def safe_json_load(
 
 
 def safe_file_operation(
-    operation_func: Callable,
+    operation_func: Callable[..., Any],
     file_path: str | Path,
     logger: logging.Logger | None = None,
     component_name: str = "component",

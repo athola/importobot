@@ -41,12 +41,12 @@ from tests.business_requirements import (
 from tests.utils import measure_performance
 
 try:  # pragma: no cover - optional dependency guards
-    import psutil  # type: ignore
-except ImportError as exc:  # pragma: no cover
+    import psutil
+except ImportError as exc:  # pragma: no cover - optional dependency guards
     raise unittest.SkipTest("psutil dependency required for performance tests") from exc
 
 try:  # pragma: no cover
-    import numpy  # type: ignore
+    import numpy
 
     _ = numpy  # Mark as used to avoid F401
 except ImportError as exc:  # pragma: no cover
@@ -95,7 +95,11 @@ class TestFormatDetectionPerformance(unittest.TestCase):
             "issues": [],
         }
 
-        self.testrail_template: dict[str, list] = {"runs": [], "tests": [], "cases": []}
+        self.testrail_template: dict[str, list[Any]] = {
+            "runs": [],
+            "tests": [],
+            "cases": [],
+        }
 
     def _create_large_zephyr_dataset(
         self, num_test_cases: int, steps_per_case: int = 10

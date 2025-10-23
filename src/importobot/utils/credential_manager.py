@@ -15,8 +15,8 @@ try:  # pragma: no cover - optional dependency
     from cryptography.fernet import Fernet as _CryptographyFernet
 
     Fernet = _CryptographyFernet
-except ImportError:  # pragma: no cover - fallback when cryptography unavailable
-    Fernet = None  # type: ignore[assignment]
+except ImportError:  # pragma: no cover - cryptography is an optional dependency
+    Fernet = None
 
 
 logger = get_logger()
@@ -72,7 +72,7 @@ class CredentialManager:
             return cast(bytes, self._cipher.encrypt(payload))
         encoded = base64.urlsafe_b64encode(payload)
         logger.warning(
-            "CredentialManager falling back to base64 encoding; set "
+            "CredentialManager is using base64 encoding; set "
             "IMPORTOBOT_ENCRYPTION_KEY for stronger security."
         )
         return encoded
@@ -97,7 +97,7 @@ class CredentialManager:
             return Fernet(normalized_key)
         except Exception as exc:  # pragma: no cover - invalid key edge cases
             logger.warning(
-                "Invalid encryption key provided; falling back to base64: %s",
+                "Invalid encryption key provided; using base64 instead: %s",
                 exc,
             )
             return None

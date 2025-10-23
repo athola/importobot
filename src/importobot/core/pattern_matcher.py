@@ -92,9 +92,9 @@ class IntentPattern:
     priority: int = 0  # Higher priority patterns are checked first
 
     # Dynamically created compiled pattern cache
-    _compiled: Pattern | None = None
+    _compiled: Pattern[str] | None = None
 
-    def compiled_pattern(self) -> Pattern:
+    def compiled_pattern(self) -> Pattern[str]:
         """Get compiled regex pattern."""
         # Initialize cache if needed
         # Using instance-level caching without lru_cache decorator
@@ -117,7 +117,7 @@ class PatternMatcher:
         self.patterns = self._build_patterns()
         # Sort by priority (descending) for more specific patterns first
         self.patterns.sort(key=lambda p: p.priority, reverse=True)
-        self._pattern_cache: dict[str, Pattern] = {}
+        self._pattern_cache: dict[str, Pattern[str]] = {}
         self._intent_cache: dict[str, IntentType | None] = {}
 
     def _build_patterns(self) -> list[IntentPattern]:
@@ -755,8 +755,9 @@ class LibraryDetector:
             r"|telnet.*command|telnet.*read|telnet.*write)\b"
         ),
         "AppiumLibrary": (
-            r"\b(?:mobile|appium|app|android|ios|device|mobile.*app|mobile.*testing"
-            r"|open.*application|mobile.*element|mobile.*click|touch|swipe|mobile.*automation)\b"
+            r"\b(?:mobile|appium|app|android|ios|device|mobile.*app|mobile.*testing|"
+            r"open.*application|mobile.*element|mobile.*click|touch|swipe|"
+            r"mobile.*automation)\b"
         ),
         "FtpLibrary": (
             r"\b(?:ftp|file.*transfer|ftp.*connect|ftp.*upload|ftp.*download"

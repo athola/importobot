@@ -432,10 +432,10 @@ class TestSSHKeywordIntegration:
 
         # Verify default behavior
         assert "Open Connection    ${HOST}" in robot_content  # Parameterized connection
-        assert "Execute Command    ${COMMAND}" in robot_content  # Fallback command
+        assert "Execute Command    ${COMMAND}" in robot_content  # Default command
         assert (
             "Put File    ${SOURCE_FILE}    ${DESTINATION_PATH}" in robot_content
-        )  # Fallback file transfer
+        )  # Default file transfer
         assert (
             "No Operation  # SSH operation not recognized" in robot_content
         )  # Unrecognized operation

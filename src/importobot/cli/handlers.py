@@ -102,7 +102,7 @@ def requires_output_directory(input_type: InputType, files_count: int) -> bool:
 
 def validate_input_and_output(
     input_type: InputType,
-    detected_files: list,
+    detected_files: list[str],
     args: argparse.Namespace,
     parser: argparse.ArgumentParser,
 ) -> None:
@@ -239,7 +239,7 @@ def apply_suggestions_single_file(args: argparse.Namespace) -> None:
 
 
 def handle_bulk_conversion_with_suggestions(
-    args: argparse.Namespace, input_type: InputType, detected_files: list
+    args: argparse.Namespace, input_type: InputType, detected_files: list[str]
 ) -> None:
     """Handle conversion for directories or multiple files with suggestions warning."""
     print(WARNING_APPLY_SUGGESTIONS_SINGLE)

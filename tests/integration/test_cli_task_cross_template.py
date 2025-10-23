@@ -99,10 +99,19 @@ def test_setconfig_template_applies_learned_keywords(tmp_path: Path) -> None:
     default_output = JsonToRobotConverter().convert_json_data(json_data)
 
     template_path = tmp_path / "set_config.robot"
-    template_path.write_text(
-        """*** Test Cases ***\nSample\n    Switch Connection    Controller\n    Write    setconfig --proc_name ${proc_name}\n    ${setconfig_cli}=    Read Until Regexp    setconfig task (\\S+) completed successfully!\n    Logger    step_num=1    result=${TRUE}    result_str=Task completed successfully.\n    Log    Expected: no task errors\n\n    Switch Connection    REMOTE_HOST\n    ${setconfig_remote}=    Execute Command    ps -ely | grep ${proc_name}\n    Log    Expected: process found\n""",
-        encoding="utf-8",
+    template_content = (
+        "*** Test Cases ***\nSample\n    Switch Connection    Controller\n"
+        "Write    setconfig --proc_name ${proc_name}\n"
+        "${setconfig_cli}=    Read Until Regexp    setconfig task (\\S+) completed "
+        "successfully!\n"
+        "Logger    step_num=1    result=${TRUE}    result_str=Task completed "
+        "successfully.\n"
+        "Log    Expected: no task errors\n\n"
+        "Switch Connection    REMOTE_HOST\n"
+        "${setconfig_remote}=    Execute Command    ps -ely | grep ${proc_name}\n"
+        "Log    Expected: process found\n"
     )
+    template_path.write_text(template_content, encoding="utf-8")
 
     os.environ["IMPORTOBOT_ALLOW_EXTERNAL_TEMPLATES"] = "1"
     try:
@@ -124,10 +133,19 @@ def test_setconfig_template_influences_hash_file(tmp_path: Path) -> None:
     default_output = JsonToRobotConverter().convert_json_data(data)
 
     template_path = tmp_path / "set_config.robot"
-    template_path.write_text(
-        """*** Test Cases ***\nSample\n    Switch Connection    Controller\n    Write    setconfig --proc_name ${proc_name}\n    ${setconfig_cli}=    Read Until Regexp    setconfig task (\\S+) completed successfully!\n    Logger    step_num=1    result=${TRUE}    result_str=Task completed successfully.\n    Log    Expected: no task errors\n\n    Switch Connection    REMOTE_HOST\n    ${setconfig_remote}=    Execute Command    ps -ely | grep ${proc_name}\n    Log    Expected: process found\n""",
-        encoding="utf-8",
+    template_content = (
+        "*** Test Cases ***\nSample\n    Switch Connection    Controller\n"
+        "Write    setconfig --proc_name ${proc_name}\n"
+        "${setconfig_cli}=    Read Until Regexp    setconfig task (\\S+) completed "
+        "successfully!\n"
+        "Logger    step_num=1    result=${TRUE}    result_str=Task completed "
+        "successfully.\n"
+        "Log    Expected: no task errors\n\n"
+        "Switch Connection    REMOTE_HOST\n"
+        "${setconfig_remote}=    Execute Command    ps -ely | grep ${proc_name}\n"
+        "Log    Expected: process found\n"
     )
+    template_path.write_text(template_content, encoding="utf-8")
 
     os.environ["IMPORTOBOT_ALLOW_EXTERNAL_TEMPLATES"] = "1"
     try:

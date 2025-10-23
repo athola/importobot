@@ -96,7 +96,7 @@ class PerformanceCache:
         self._json_cache: dict[_CacheKey, str] = {}
         self._json_identity_refs: dict[_CacheKey, Any] = {}
         self._json_cache_expiry: dict[_CacheKey, float] = {}
-        self._object_cache: WeakKeyDictionary = WeakKeyDictionary()
+        self._object_cache: WeakKeyDictionary[Any, Any] = WeakKeyDictionary()
         self._manual_cache: dict[str, Any] = {}
         self._cache_hits = 0
         self._cache_misses = 0

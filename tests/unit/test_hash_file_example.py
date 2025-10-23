@@ -13,7 +13,7 @@ from importobot.core.converter import (
     get_conversion_suggestions,
 )
 from importobot.core.suggestions.suggestion_engine import GenericSuggestionEngine
-from tests.utils import validate_test_script_structure  # type: ignore[import-untyped]
+from tests.utils import validate_test_script_structure
 
 
 @pytest.fixture
@@ -371,10 +371,11 @@ class TestHashFileExample:
             "Run Process    sha256sum    /tmp/source.txt    stdout=${hash_source}"
             in robot_output
         )
-        assert (
-            "Run Process    sha256sum    /tmp/deploy/target.txt    stdout=${hash_target}"
-            in robot_output
+        expected_cmd = (
+            "Run Process    sha256sum    /tmp/deploy/target.txt    "
+            "stdout=${hash_target}"
         )
+        assert expected_cmd in robot_output
 
     # pylint: disable=redefined-outer-name
     def test_conversion_suggestions_displayed_in_correct_order(

@@ -8,6 +8,7 @@ Test Principles:
 """
 
 import time
+from typing import Any
 
 import pytest
 
@@ -584,7 +585,7 @@ class TestCacheWithDifferentTypes:
         WHEN storing and retrieving objects
         THEN objects are cached correctly
         """
-        cache = LRUCache[str, dict]()
+        cache = LRUCache[str, dict[str, Any]]()
         complex_obj = {"nested": {"data": [1, 2, 3]}, "value": 42}
 
         cache.set("obj", complex_obj)
@@ -610,7 +611,7 @@ class TestCacheWithDifferentTypes:
         WHEN storing and retrieving with tuple keys
         THEN cache works correctly
         """
-        cache = LRUCache[tuple, str]()
+        cache = LRUCache[tuple[Any, ...], str]()
 
         cache.set(("a", "b"), "value1")
         cache.set((1, 2, 3), "value2")

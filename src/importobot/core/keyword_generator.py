@@ -1,6 +1,7 @@
 """Implementation of keyword generation components."""
 
 import re
+from collections.abc import Callable
 from typing import Any
 
 from importobot.core.context_analyzer import ContextAnalyzer
@@ -133,7 +134,7 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
         os_generator = self.operating_system_generator
         builtin = self.builtin_generator
 
-        intent_handlers = {
+        intent_handlers: dict[Any, Callable[[], str]] = {
             # Web operations
             IntentType.BROWSER_OPEN: (lambda: web.generate_browser_keyword(test_data)),
             IntentType.BROWSER_NAVIGATE: (
@@ -645,7 +646,7 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
         if result:
             return result
 
-        # Fallback to generic wrapping
+        # Default to generic wrapping
         return self._generic_wrapping(content, prefix, continuation_prefix, max_length)
 
     def _handle_specific_patterns(

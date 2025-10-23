@@ -12,12 +12,12 @@ from pathlib import Path
 from typing import Any
 
 try:  # pragma: no cover - platform specific imports
-    import fcntl  # type: ignore[attr-defined]
+    import fcntl
 except ImportError:  # pragma: no cover - Windows default handling
     fcntl = None  # type: ignore[assignment]
 
 try:  # pragma: no cover - platform specific imports
-    import msvcrt  # type: ignore[attr-defined]
+    import msvcrt
 except ImportError:  # pragma: no cover - non-Windows platforms
     msvcrt = None  # type: ignore[assignment]
 

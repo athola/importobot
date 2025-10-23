@@ -278,3 +278,18 @@ def load_json_with_default(file_path: str | Path) -> dict[str, Any] | list[Any]:
         return load_json_file(str(file_path))
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
+
+
+__all__ = [
+    "ConversionContext",
+    "backup_file",
+    "convert_with_temp_file",
+    "display_suggestion_changes",
+    "load_json_file",  # Re-exported from json_utils
+    "load_json_with_default",
+    "process_single_file_with_suggestions",
+    "restore_file",
+    "save_improved_json_and_convert",
+    "save_improved_json_file",
+    "temporary_json_file",
+]

@@ -27,7 +27,7 @@ def create_generic_format() -> FormatDefinition:
     return FormatDefinition(
         name="Generic Test Format",
         format_type=SupportedFormat.GENERIC,
-        description="Fallback format for unstructured, custom, or unrecognized test",
+        description="Default format for unstructured, custom, or unrecognized test",
         # UNIQUE indicators - none for generic (this is the default)
         unique_indicators=[],
         # STRONG indicators - common test collection patterns

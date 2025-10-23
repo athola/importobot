@@ -78,7 +78,7 @@ class WebKeywordGenerator(BaseKeywordGenerator):
                 return "Click Button    id=submit_button"
             return "Click Element    id=submit_button"
 
-        # Fallback to original logic if no locator found
+        # If no locator is found, use original logic
         if "login" in desc_lower and "button" in desc_lower:
             return "Click Button    id=login_button"
         if "button" in desc_lower:

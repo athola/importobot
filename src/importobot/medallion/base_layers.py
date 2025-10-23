@@ -157,7 +157,7 @@ class BaseMedallionLayer(DataLayer):
             retrieved_at=start_time,
         )
 
-    def _filter_records(self, query: LayerQuery) -> tuple[list, list]:
+    def _filter_records(self, query: LayerQuery) -> tuple[list[Any], list[Any]]:
         """Apply filters to records based on query parameters."""
         filtered_records = []
         filtered_metadata = []
@@ -174,7 +174,7 @@ class BaseMedallionLayer(DataLayer):
         return filtered_records, filtered_metadata
 
     def _record_matches_query(
-        self, data_id: str, record: dict, metadata: Any, query: LayerQuery
+        self, data_id: str, record: dict[str, Any], metadata: Any, query: LayerQuery
     ) -> bool:
         """Check if a record matches the query criteria."""
         # Use shared query filter logic
@@ -190,8 +190,8 @@ class BaseMedallionLayer(DataLayer):
         return True
 
     def _apply_pagination(
-        self, records: list, metadata: list, query: LayerQuery
-    ) -> tuple[list, list]:
+        self, records: list[Any], metadata: list[Any], query: LayerQuery
+    ) -> tuple[list[Any], list[Any]]:
         """Apply pagination to filtered results."""
         start_idx = query.offset
         end_idx = start_idx + query.limit if query.limit is not None else len(records)

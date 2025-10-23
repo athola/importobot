@@ -38,7 +38,7 @@ from importobot.utils.validation_models import QualitySeverity, ValidationResult
 logger = get_logger()
 
 
-class BronzeRecordResponse(dict, BronzeRecord):
+class BronzeRecordResponse(dict[str, Any], BronzeRecord):
     """Hybrid response that behaves like both a BronzeRecord and a mapping."""
 
     def __init__(

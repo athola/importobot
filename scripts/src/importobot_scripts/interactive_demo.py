@@ -1623,7 +1623,7 @@ def _log_business_metrics_report(local_vars: dict[str, Any]) -> None:
                 executive_summary = {}
 
             demo_logger.log_business_impact(
-                "comprehensive_analysis",
+                "detailed_analysis",
                 {
                     "total_scenarios": executive_summary.get(
                         "total_scenarios_analyzed", len(safe_scenario_names)
@@ -1663,7 +1663,7 @@ def demo_business_benefits() -> bool:
         )
         print(f"\nAnalyzed {len(scenario_names)} different scale scenarios...")
     else:
-        # Fallback to standard scenario
+        # If scenario modeler is not available, use a default scenario
         standard_scenario = EnterpriseScenario(
             name="Standard Enterprise", test_cases=metrics.test_cases, team_size=10
         )

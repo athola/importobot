@@ -331,7 +331,7 @@ class TestGetSSHSecurityGuidelines:
         assert any("connection timeouts" in g for g in guidelines)
         assert any("host key fingerprints" in g for g in guidelines)
 
-    def test_get_ssh_security_guidelines_comprehensive(self):
+    def test_get_ssh_security_guidelines_coverage(self):
         """Test that SSH guidelines cover all important aspects."""
         guidelines = get_ssh_security_guidelines()
 

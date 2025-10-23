@@ -779,8 +779,6 @@ all = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "pandas" },
-    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "scipy", version = "1.16.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
 ]
 analytics = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -852,7 +850,6 @@ requires-dist = [
     { name = "robotframework-seleniumlibrary", specifier = ">=6.0.0" },
     { name = "robotframework-sshlibrary", specifier = ">=3.8.0" },
     { name = "scipy", marker = "extra == 'advanced'", specifier = ">=1.15.3" },
-    { name = "scipy", marker = "extra == 'all'", specifier = ">=1.15.3" },
 ]
 provides-extras = ["viz", "analytics", "demo", "advanced", "medallion", "enterprise", "all"]
 

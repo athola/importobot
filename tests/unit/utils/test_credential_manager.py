@@ -24,12 +24,12 @@ def test_encrypt_decrypt_roundtrip(monkeypatch):
     assert decrypted == "s3cr3t!"
 
 
-def test_fallback_to_base64_when_library_missing(monkeypatch):
+def test_uses_base64_when_library_missing(monkeypatch):
     monkeypatch.delenv("IMPORTOBOT_ENCRYPTION_KEY", raising=False)
     manager = CredentialManager()
-    encrypted = manager.encrypt_credential("fallback-secret")
-    assert encrypted.length == len("fallback-secret")
-    assert encrypted.reveal() == "fallback-secret"
+    encrypted = manager.encrypt_credential("secondary-secret")
+    assert encrypted.length == len("secondary-secret")
+    assert encrypted.reveal() == "secondary-secret"
 
 
 def test_reject_empty_credentials():

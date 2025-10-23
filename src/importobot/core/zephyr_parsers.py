@@ -1,7 +1,7 @@
 """Zephyr-specific parsers and analyzers for enhanced test case processing."""
 
 import re
-from typing import ClassVar
+from typing import Any, ClassVar
 
 
 class PlatformCommandParser:
@@ -140,7 +140,7 @@ class ZephyrTestLevelClassifier:
         "Regression": 3,  # Functional regression tests - industry standard
     }
 
-    def classify_test(self, test_data: dict) -> tuple[str, int]:
+    def classify_test(self, test_data: dict[str, Any]) -> tuple[str, int]:
         """Determine test level based on content and metadata.
 
         Uses generic industry-standard classification:
@@ -164,7 +164,7 @@ class ZephyrTestLevelClassifier:
         # Default to regression
         return ("Regression", 3)
 
-    def _has_requirement_links(self, test_data: dict) -> bool:
+    def _has_requirement_links(self, test_data: dict[str, Any]) -> bool:
         """Check if test case has requirement or traceability links.
 
         Uses generic patterns from industry-standard test management:
@@ -205,7 +205,7 @@ class ZephyrTestLevelClassifier:
 
         return False
 
-    def _is_smoke_test(self, test_data: dict) -> bool:
+    def _is_smoke_test(self, test_data: dict[str, Any]) -> bool:
         """Identify smoke test patterns."""
         smoke_indicators = ["smoke", "basic", "core", "critical", "startup", "health"]
         test_text = " ".join(
@@ -218,7 +218,7 @@ class ZephyrTestLevelClassifier:
 
         return any(indicator in test_text for indicator in smoke_indicators)
 
-    def _is_edge_case(self, test_data: dict) -> bool:
+    def _is_edge_case(self, test_data: dict[str, Any]) -> bool:
         """Identify edge case patterns."""
         edge_indicators = [
             "edge",
@@ -250,7 +250,7 @@ class ZephyrPreconditionAnalyzer:
     infrastructure or setup requirements.
     """
 
-    def analyze_preconditions(self, precondition_text: str) -> list[dict]:
+    def analyze_preconditions(self, precondition_text: str) -> list[dict[str, Any]]:
         """Parse precondition text into structured steps."""
         if not precondition_text:
             return []
@@ -267,7 +267,7 @@ class ZephyrPreconditionAnalyzer:
 
         return steps
 
-    def _parse_formatted_preconditions(self, lines: list[str]) -> list[dict]:
+    def _parse_formatted_preconditions(self, lines: list[str]) -> list[dict[str, Any]]:
         """Parse formatted preconditions (numbered or bulleted)."""
         steps = []
         current_step: dict[str, str] = {}
@@ -318,8 +318,8 @@ class ZephyrPreconditionAnalyzer:
         return False
 
     def _handle_unformatted_text(
-        self, precondition_text: str, steps: list[dict]
-    ) -> list[dict]:
+        self, precondition_text: str, steps: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Handle unformatted text by combining first and last lines."""
         if len(steps) == 1:
             # For unformatted text, if there are multiple lines,

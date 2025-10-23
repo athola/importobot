@@ -393,7 +393,7 @@ class HierarchicalClassifier:
 
         return format_likelihoods, format_posteriors
 
-    def _extract_all_keys(self, data: Any, keys: set | None = None) -> set:
+    def _extract_all_keys(self, data: Any, keys: set[str] | None = None) -> set[str]:
         """Recursively extract all keys from nested dict structure."""
         if keys is None:
             keys = set()
@@ -408,7 +408,7 @@ class HierarchicalClassifier:
 
         return keys
 
-    def _collect_key_tokens(self, keys: set) -> set[str]:
+    def _collect_key_tokens(self, keys: set[str]) -> set[str]:
         """Collect normalized token representations for a set of keys."""
         tokens: set[str] = set()
         for key in keys:
@@ -509,7 +509,7 @@ class HierarchicalClassifier:
             return current_depth
         return max(self._calculate_depth(item, current_depth + 1) for item in data)
 
-    def _check_stage1_fast_path(self, key_tokens: set) -> bool:
+    def _check_stage1_fast_path(self, key_tokens: set[str]) -> bool:
         """Check if Stage 1 can fast-pass based on strong test data indicators.
 
         Fast path activates when multiple strong test data indicators are present.
@@ -529,7 +529,7 @@ class HierarchicalClassifier:
         # Fast pass if we have at least N strong indicators
         return indicator_count >= self.FAST_PATH_TEST_DATA_INDICATORS
 
-    def _check_stage2_fast_path(self, all_keys_lower: set) -> str | None:
+    def _check_stage2_fast_path(self, all_keys_lower: set[str]) -> str | None:
         """Check if Stage 2 can fast-pass based on unique format combinations.
 
         Fast path activates when a format's unique field combination is present.

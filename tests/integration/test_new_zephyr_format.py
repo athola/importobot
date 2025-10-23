@@ -5,7 +5,7 @@ import json
 from robot.api import get_model
 
 from importobot.core.converter import convert_file
-from tests.utils import parse_robot_file  # type: ignore[import-untyped]
+from tests.utils import parse_robot_file
 
 
 def test_zephyr_integration_keyword_types(tmp_path):

@@ -14,7 +14,7 @@ class TestZephyrPreconditionAnalyzer:
 
     def test_no_hardcoded_preconditions(self):
         """Test that analyzer has no hard-coded customer-specific preconditions."""
-        # Verify no STANDARD_PRECONDITIONS attribute exists (removed customer-specific data)
+        # Verify no STANDARD_PRECONDITIONS attribute exists (removed customer data)
         assert not hasattr(self.analyzer, "STANDARD_PRECONDITIONS")
 
     def test_analyze_preconditions_empty_string(self):

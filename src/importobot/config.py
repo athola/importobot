@@ -31,8 +31,6 @@ TEST_LOGIN_URL = f"{TEST_SERVER_URL}{LOGIN_PAGE_PATH}"
 # Authentication requirements
 ZEPHYR_MIN_TOKEN_COUNT = 2
 
-# Numeric project identifiers must stay within signed 64-bit bounds so downstream
-# systems (e.g. external SDKs, databases) do not overflow.
 # Numeric project identifiers must fit within a signed 64-bit integer. This aligns
 # with the largest BIGINT value supported by downstream databases and partner
 # APIs, preventing overflow when storing project references.
@@ -63,9 +61,7 @@ def _int_from_env(var_name: str, default: int, *, minimum: int | None = None) ->
     try:
         value = int(raw_value)
     except ValueError:
-        logger.warning(
-            "Invalid %s=%s; falling back to default %d", var_name, raw_value, default
-        )
+        logger.warning("Invalid %s=%s; using default %d", var_name, raw_value, default)
         return default
     if minimum is not None and value < minimum:
         logger.warning(
@@ -88,11 +84,20 @@ def _flag_from_env(var_name: str, default: bool = False) -> bool:
 
 
 # Configuration for maximum file sizes (in MB / bytes)
-MAX_JSON_SIZE_MB = int(os.getenv("IMPORTOBOT_MAX_JSON_SIZE_MB", "10"))
+DEFAULT_MAX_JSON_SIZE_MB = 10
+DEFAULT_MAX_SCHEMA_SECTIONS = 256
+MAX_JSON_SIZE_MB = int(
+    os.getenv("IMPORTOBOT_MAX_JSON_SIZE_MB", str(DEFAULT_MAX_JSON_SIZE_MB))
+)
 MAX_SCHEMA_FILE_SIZE_BYTES = _int_from_env(
     "IMPORTOBOT_MAX_SCHEMA_BYTES",
     1 * 1024 * 1024,
     minimum=1024,
+)
+MAX_SCHEMA_SECTIONS = _int_from_env(
+    "IMPORTOBOT_MAX_SCHEMA_SECTIONS",
+    DEFAULT_MAX_SCHEMA_SECTIONS,
+    minimum=1,
 )
 MAX_TEMPLATE_FILE_SIZE_BYTES = _int_from_env(
     "IMPORTOBOT_MAX_TEMPLATE_BYTES",
@@ -313,7 +318,7 @@ def _resolve_project_reference(
         if project_name is None and project_id is None:
             logger.debug(
                 "Ignoring invalid CLI project identifier %r for %s ingestion; "
-                "%s_PROJECT fallback will be used if available",
+                "%s_PROJECT default will be used if available",
                 cli_project,
                 fetch_format.value,
                 prefix,
@@ -324,29 +329,50 @@ def _resolve_project_reference(
 
     env_project = fetch_env(f"{prefix}_PROJECT")
     if env_project:
-        logger.debug(
-            (
+        if cli_invalid:
+            # CLI was invalid, using environment variable default
+            logger.warning(
+                "Invalid CLI project identifier %r for %s ingestion; "
+                "using %s_PROJECT=%s instead",
+                cli_project,
+                fetch_format.value,
+                prefix,
+                env_project,
+            )
+        else:
+            # CLI was missing, using environment variable as default
+            logger.debug(
                 "CLI project identifier missing; falling back to %s_PROJECT=%s "
-                "for %s ingestion"
-            ),
-            prefix,
-            env_project,
-            fetch_format.value,
-        )
+                "for %s ingestion",
+                prefix,
+                env_project,
+                fetch_format.value,
+            )
     project_name, project_id = _parse_project_identifier(env_project)
     if project_name is None and project_id is None and env_project:
         message = (
-            f"Invalid project identifier '{env_project}' for "
+            f'Invalid project identifier "{env_project}" for '
             f"{fetch_format.value} ingestion. "
             "Provide a non-empty name or numeric ID."
         )
         raise exceptions.ConfigurationError(message)
     if cli_invalid and project_name is None and project_id is None:
-        message = (
-            f"Invalid CLI project identifier '{cli_project}' for "
-            f"{fetch_format.value} ingestion. "
-            "Provide a non-empty name or numeric ID."
-        )
+        if env_project:
+            # CLI was invalid and env was also invalid
+            message = (
+                f"Both CLI project identifier {cli_project!r} and "
+                f"{prefix}_PROJECT={env_project!r} are invalid for "
+                f"{fetch_format.value} ingestion. "
+                "Provide a non-empty name or numeric ID."
+            )
+        else:
+            # CLI was invalid and no environment variable was set
+            message = (
+                f"Invalid CLI project identifier {cli_project!r} for "
+                f"{fetch_format.value} ingestion and no "
+                f"{prefix}_PROJECT environment variable set. "
+                "Provide a valid project identifier via CLI or environment variable."
+            )
         raise exceptions.ConfigurationError(message)
     return project_name, project_id
 
@@ -366,7 +392,7 @@ def resolve_api_ingest_config(args: Any) -> APIIngestConfig:
     if fetch_format not in SUPPORTED_FETCH_FORMATS:
         valid = ", ".join(fmt.value for fmt in SUPPORTED_FETCH_FORMATS)
         raise exceptions.ConfigurationError(
-            f"Unsupported fetch format '{fetch_format.value}'. Supported: {valid}"
+            f'Unsupported fetch format "{fetch_format.value}". Supported: {valid}'
         )
 
     args.fetch_format = fetch_format

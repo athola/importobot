@@ -40,7 +40,7 @@ Roadmap of upcoming features, parked items, and ideas requiring proof-of-concept
 ### Q3 2025 — completed work
 - **✅ JSON template system**: Implemented blueprint-driven rendering with pattern learning capabilities.
 - **✅ Schema parser**: Created documentation-driven field mapping system.
-- **✅ File examples**: Comprehensive JSON test data covering common system administration scenarios.
+- **✅ File examples**: JSON test data covering scenarios like user login, file manipulation, and network configuration.
 - **✅ Bulk conversion polish**: Improved recursive directory handling and step mapping for large Zephyr exports.
 - **✅ Performance visibility**: Added timing metrics and I/O profiling for bottleneck identification.
 

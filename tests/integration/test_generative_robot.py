@@ -474,15 +474,15 @@ def test_library_coverage(tmp_path):
         "name": "Library Coverage Test",
         "description": "Test covering all major Robot Framework libraries",
         "priority": "High",
-        "labels": ["comprehensive", "library_coverage"],
+        "labels": ["library_coverage"],
         "steps": steps,
     }
 
     # Convert
-    json_file = tmp_path / "comprehensive_test.json"
+    json_file = tmp_path / "library_coverage_test.json"
     json_file.write_text(json.dumps(json_data, indent=2))
 
-    robot_file = tmp_path / "comprehensive_test.robot"
+    robot_file = tmp_path / "library_coverage_test.robot"
     convert_file(str(json_file), str(robot_file))
 
     # Verify syntax
@@ -490,7 +490,7 @@ def test_library_coverage(tmp_path):
     syntax_result = syntax_executor.execute_robot_file(str(robot_file), dry_run=True)
 
     assert syntax_result["syntax_valid"], (
-        f"Comprehensive test failed validation: {syntax_result['stderr']}"
+        f"Library coverage test failed validation: {syntax_result['stderr']}"
     )
 
     # Verify all libraries are imported (except builtin)
@@ -502,8 +502,8 @@ def test_library_coverage(tmp_path):
         assert f"Library    {lib}" in content, f"Missing library import: {lib}"
 
 
-def test_builtin_keywords_comprehensive_coverage(tmp_path):
-    """Test comprehensive coverage of BuiltIn keywords with proper structured data."""
+def test_builtin_keywords_coverage(tmp_path):
+    """Test coverage of BuiltIn keywords with proper structured data."""
     # Create test scenarios for each major BuiltIn keyword category
     builtin_scenarios = [
         # Conversion keywords
@@ -640,21 +640,21 @@ def test_builtin_keywords_comprehensive_coverage(tmp_path):
     ]
 
     json_data = {
-        "name": "BuiltIn Keywords Comprehensive Test",
+        "name": "BuiltIn Keywords Coverage Test",
         "description": (
-            "Comprehensive test covering all major BuiltIn keyword categories "
+            "Test covering all major BuiltIn keyword categories "
             "with proper structured data"
         ),
         "priority": "High",
-        "labels": ["builtin", "comprehensive", "structured_data"],
+        "labels": ["builtin", "structured_data"],
         "steps": builtin_scenarios,
     }
 
     # Convert to Robot Framework
-    json_file = tmp_path / "builtin_comprehensive_test.json"
+    json_file = tmp_path / "builtin_coverage_test.json"
     json_file.write_text(json.dumps(json_data, indent=2))
 
-    robot_file = tmp_path / "builtin_comprehensive_test.robot"
+    robot_file = tmp_path / "builtin_coverage_test.robot"
     convert_file(str(json_file), str(robot_file))
 
     # Verify syntax
@@ -663,7 +663,7 @@ def test_builtin_keywords_comprehensive_coverage(tmp_path):
 
     # Should have valid syntax
     assert syntax_result["syntax_valid"], (
-        f"BuiltIn comprehensive test failed validation: {syntax_result['stderr']}"
+        f"BuiltIn coverage test failed validation: {syntax_result['stderr']}"
     )
 
     # Verify content includes proper BuiltIn keywords
@@ -1031,8 +1031,8 @@ if __name__ == "__main__":
     )  # Truncate for readability
 
 
-def test_ssh_comprehensive_keyword_coverage():
-    """Test comprehensive coverage of all 42 SSH keywords through generative testing."""
+def test_ssh_keyword_coverage():
+    """Test coverage of all 42 SSH keywords through generative testing."""
     ssh_generator = SSHKeywordTestGenerator()
 
     # Generate test cases for all SSH keywords
@@ -1119,8 +1119,8 @@ def test_ssh_comprehensive_keyword_coverage():
     print(f"- Keywords tested: {sorted(covered_keywords)}")
 
 
-def test_ssh_keyword_categories_comprehensive():
-    """Test that all SSH keyword categories are comprehensively covered."""
+def test_ssh_keyword_categories_coverage():
+    """Test that all SSH keyword categories are covered."""
     ssh_generator = SSHKeywordTestGenerator()
 
     # Define SSH keyword categories and their expected keywords

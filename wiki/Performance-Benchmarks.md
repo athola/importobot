@@ -38,7 +38,7 @@ Key flags:
 
 Each run prints a summary and writes
 `performance_benchmark_results.json` in the project root. The file records
-timings, throughput, optional memory deltas (when `psutil` is installed), and
+timings, throughput, optional memory usage differences (if `psutil` is installed), and
 per-scenario iteration data. Call `PerformanceCache().get_cache_stats()` during
 custom runs if you also want cache metrics.
 

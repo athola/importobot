@@ -3,6 +3,7 @@
 from argparse import Namespace
 from collections.abc import Iterable
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -18,8 +19,7 @@ class DummyClient:
         self._payloads = list(payloads)
         self.calls: list[dict[str, object]] = []
 
-    def fetch_all(self, progress_cb):
-        """Yield payloads while capturing progress updates."""
+    def fetch_all(self, progress_cb: Any) -> Iterable[dict[str, object]]:
         for payload in self._payloads:
             items = payload.get("items", [])
             progress_cb(

@@ -43,9 +43,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         else:
             super().do_GET()
 
-    def log_message(  # type: ignore[override]
-        self, format, *args
-    ):  # pylint: disable=redefined-builtin,unused-argument
+    def log_message(self, format, *args):  # pylint: disable=redefined-builtin,unused-argument
         """Suppress default logging to keep test output clean."""
         return
 
@@ -81,8 +79,8 @@ def stop_mock_server(mock_server):
 if __name__ == "__main__":
     # This part is for manual testing of the server
     # In actual tests, it will be run in a separate thread
-    test_server, test_port = start_mock_server()
+    test_server, test_port = start_mock_server()  # type: ignore[no-untyped-call]
     try:
         test_server.serve_forever()
     except KeyboardInterrupt:
-        stop_mock_server(test_server)
+        stop_mock_server(test_server)  # type: ignore[no-untyped-call]

@@ -95,7 +95,7 @@ Key exceptions:
 - `FileAccessError`
 - `SuggestionError`
 
-## Enterprise Toolkit (importobot.api)
+## Advanced API Utilities (importobot.api)
 
 ### importobot.api.converters
 
@@ -173,8 +173,8 @@ fixes = engine.suggest_improvements(ambiguous_test_data)
 
 Importobot's HTTP clients (Zephyr, TestRail, Jira/Xray, TestLink) inherit from `BaseAPIClient` and raise familiar Python exceptions when requests fail.
 
-- `requests.HTTPError` — emitted via `response.raise_for_status()` for non-success status codes. Inspect `err.response.status_code` and `err.response.text` for remediation guidance.
-- `RuntimeError("Exceeded retry budget ...")` — thrown after the client retries the same request `_max_retries + 1` times (default: 3 retries). Wrap calls in your own retry loop if you need a longer budget.
+- `requests.HTTPError` — raised by `response.raise_for_status()` for non-success status codes. Inspect `err.response.status_code` and `err.response.text` for remediation guidance.
+- `RuntimeError("Exceeded retry budget ...")` — raised after the client retries the same request `_max_retries + 1` times (default: 3 retries). Wrap calls in your own retry loop if you need a longer budget.
 - `ValueError("Unsupported fetch format ...")` — raised by `get_api_client` when the supplied `SupportedFormat` is not mapped to a client, or when an unsupported HTTP method is invoked.
 - Standard `requests` exceptions (`ConnectionError`, `Timeout`, etc.) — bubbled up for network issues before any response is returned.
 
@@ -267,7 +267,7 @@ for test_case in problematic_tests:
 
 Following pandas-style API evolution:
 
-- **Public API Contracts**: `importobot.*` and `importobot.api.*` remain stable across versions
+- **Public API Stability**: `importobot.*` and `importobot.api.*` remain stable across versions
 - **Internal Implementation**: Core modules can be refactored freely without breaking public API
 - **Deprecation Warnings**: Any breaking changes include migration guidance
 - **Semantic Versioning**: Major.Minor.Patch versioning with clear upgrade paths
@@ -404,7 +404,7 @@ if not custom_parameters.validate():
 ## Performance Considerations
 
 - **Bulk Operations**: Use `convert_directory()` for hundreds/thousands of files
-- **Memory Management**: Large files automatically handled within size limits
+- **Memory Management**: Large files are managed within defined size limits
 - **Parallel Processing**: Directory conversion uses efficient batching
 - **Error Recovery**: Individual file failures don't stop batch processing
 - **Bayesian Calculations**: Confidence scoring is O(1) per evaluation with optional Monte Carlo sampling for uncertainty quantification

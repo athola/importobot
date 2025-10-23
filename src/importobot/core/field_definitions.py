@@ -10,14 +10,14 @@ from importobot.core.constants import EXPECTED_RESULT_FIELD_NAMES, TEST_DATA_FIE
 class FieldGroup:
     """Represents a group of field names that serve the same purpose."""
 
-    fields: tuple
+    fields: tuple[str, ...]
     description: str
 
     def __contains__(self, item: str) -> bool:
         """Check if a field name is in this group."""
         return item.lower() in (f.lower() for f in self.fields)
 
-    def find_first(self, data: dict) -> tuple[str | None, Any]:
+    def find_first(self, data: dict[str, Any]) -> tuple[str | None, Any]:
         """Find the first matching field in data and return (field_name, value)."""
         for field in self.fields:
             if data.get(field):
@@ -183,13 +183,13 @@ LIBRARY_KEYWORDS = {
 }
 
 
-def get_field_value(data: dict, field_group: FieldGroup) -> str:
+def get_field_value(data: dict[str, Any], field_group: FieldGroup) -> str:
     """Extract value from first matching field in group."""
     _, value = field_group.find_first(data)
     return str(value) if value else ""
 
 
-def has_field(data: dict, field_group: FieldGroup) -> bool:
+def has_field(data: dict[str, Any], field_group: FieldGroup) -> bool:
     """Check if data has any field from the group."""
     return any(field in data and data[field] for field in field_group.fields)
 

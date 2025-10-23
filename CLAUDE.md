@@ -165,7 +165,7 @@ Following pandas model:
 
 ### Before Making Changes
 1. Run existing tests: `make test`
-2. Check code quality: `make lint`
+2. Check code quality: `make lint` (runs ruff and mypy)
 3. Understand existing architecture and patterns
 4. Review public API impact if changing exposed functionality
 
@@ -178,7 +178,7 @@ Following pandas model:
 
 ### After Changes
 1. Run all tests: `make test`
-2. Check code quality: `make lint` (runs all linting tools matching CI configuration)
+2. Check code quality: `make lint` (runs ruff and mypy for linting and type checking)
 3. Format code: `make format`
 4. Clean artifacts: `make clean` or `make deep-clean`
 5. Verify no regressions were introduced

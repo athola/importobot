@@ -16,6 +16,7 @@ import tempfile
 import unittest
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -44,7 +45,7 @@ class TestBronzeStorageInvariants:
     )
     @settings(max_examples=30, deadline=3000)
     def test_retrieval_count_never_exceeds_ingestion_count_invariant(
-        self, test_data: dict
+        self, test_data: dict[str, Any]
     ) -> None:
         """Invariant: Number of retrieved records never exceeds ingested records.
 
@@ -125,7 +126,7 @@ class TestBronzeStorageInvariants:
     )
     @settings(max_examples=20, deadline=None)
     def test_retrieval_after_ingestion_preserves_count_invariant(
-        self, test_data_list: list[dict]
+        self, test_data_list: list[dict[str, Any]]
     ) -> None:
         """Invariant: Retrieved record count equals ingested count.
 
@@ -204,7 +205,7 @@ class TestBronzeStorageInvariants:
     )
     @settings(max_examples=25, deadline=2000)
     def test_retrieval_without_storage_backend_returns_empty_invariant(
-        self, test_data: dict
+        self, test_data: dict[str, Any]
     ) -> None:
         """Invariant: Retrieval without backend uses in-memory storage.
 
@@ -249,7 +250,7 @@ class TestBronzeStorageInvariants:
     )
     @settings(max_examples=20, deadline=3000)
     def test_ingestion_success_implies_retrievability_invariant(
-        self, test_data: dict
+        self, test_data: dict[str, Any]
     ) -> None:
         """Invariant: Successful ingestion implies data is retrievable.
 
@@ -323,7 +324,7 @@ class TestBronzeStorageInvariants:
     )
     @settings(max_examples=20, deadline=2000)
     def test_retrieved_records_have_required_structure_invariant(
-        self, test_data: dict
+        self, test_data: dict[str, Any]
     ) -> None:
         """Invariant: All retrieved records have BronzeRecord structure.
 
@@ -416,7 +417,7 @@ class TestBronzeStorageInvariants:
     ) -> None:
         """Invariant: Format-type filters are case-insensitive for known handlers."""
 
-        def _sample_data(fmt: str) -> dict:
+        def _sample_data(fmt: str) -> dict[str, Any]:
             if fmt.lower() == "zephyr":
                 return {
                     "testCase": {"name": "Zephyr Case", "steps": [{"action": "A"}]},

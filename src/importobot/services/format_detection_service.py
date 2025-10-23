@@ -11,8 +11,8 @@ from typing import Any, cast
 from importobot.medallion.bronze.format_detector import FormatDetector
 from importobot.medallion.interfaces.data_models import (
     FormatDetectionResult,
-    SupportedFormat,
 )
+from importobot.medallion.interfaces.enums import SupportedFormat
 from importobot.utils.logging import get_logger
 
 logger = get_logger()
@@ -64,9 +64,9 @@ class FormatDetectionService:
         """
         detected_format = self.format_detector.detect_format(data)
         # Return a dict with the detected format having score 1.0, others 0.0
-        scores = dict.fromkeys(SupportedFormat, 0.0)
-        # Type assertion for fromkeys - it returns the correct type
-        scores = cast(dict[SupportedFormat, float], scores)
+        scores: dict[SupportedFormat, float] = cast(
+            dict[SupportedFormat, float], dict.fromkeys(SupportedFormat, 0.0)
+        )
         scores[detected_format] = 1.0
         return scores
 
