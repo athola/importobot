@@ -353,6 +353,146 @@ class RobotFrameworkKeywordRegistry:
                 "description": "Strip whitespace",
             },
         },
+        # Telnet Library
+        "Telnet": {
+            "Open Connection": {
+                "args": ["host", "port=23"],
+                "description": "Open Telnet connection",
+            },
+            "Close Connection": {"args": [], "description": "Close Telnet connection"},
+            "Write": {"args": ["text"], "description": "Write to Telnet session"},
+            "Read": {"args": [], "description": "Read from Telnet session"},
+            "Read Until": {
+                "args": ["expected"],
+                "description": "Read until expected text",
+            },
+            "Execute Command": {
+                "args": ["command"],
+                "description": "Execute command via Telnet",
+            },
+            "Switch Connection": {
+                "args": ["index_or_alias"],
+                "description": "Switch to another Telnet connection",
+            },
+        },
+        # AppiumLibrary - Mobile testing
+        "AppiumLibrary": {
+            "Open Application": {
+                "args": ["remote_url", "desired_capabilities"],
+                "description": "Open mobile application",
+            },
+            "Close Application": {
+                "args": [],
+                "description": "Close mobile application",
+            },
+            "Switch Application": {
+                "args": ["index_or_alias"],
+                "description": "Switch to another application",
+            },
+            "Click Element": {
+                "args": ["locator"],
+                "description": "Click mobile element",
+            },
+            "Input Text": {
+                "args": ["locator", "text"],
+                "description": "Input text to mobile element",
+            },
+            "Get Text": {"args": ["locator"], "description": "Get element text"},
+            "Element Should Be Visible": {
+                "args": ["locator"],
+                "description": "Assert element visible",
+            },
+            "Wait Until Element Is Visible": {
+                "args": ["locator", "timeout=None"],
+                "description": "Wait for element",
+            },
+        },
+        # FtpLibrary - FTP operations
+        "FtpLibrary": {
+            "Ftp Connect": {
+                "args": ["host", "username", "password"],
+                "description": "Connect to FTP server",
+            },
+            "Ftp Close": {"args": [], "description": "Close FTP connection"},
+            "Ftp Put File": {
+                "args": ["local_file", "remote_file"],
+                "description": "Upload file via FTP",
+            },
+            "Ftp Get File": {
+                "args": ["remote_file", "local_file"],
+                "description": "Download file via FTP",
+            },
+            "Dir": {"args": [], "description": "List directory contents"},
+            "Cwd": {"args": ["directory"], "description": "Change working directory"},
+        },
+        # MQTTLibrary - IoT messaging
+        "MQTTLibrary": {
+            "Connect": {
+                "args": ["broker", "port=1883"],
+                "description": "Connect to MQTT broker",
+            },
+            "Disconnect": {"args": [], "description": "Disconnect from MQTT broker"},
+            "Publish": {
+                "args": ["topic", "message"],
+                "description": "Publish MQTT message",
+            },
+            "Subscribe": {"args": ["topic"], "description": "Subscribe to MQTT topic"},
+            "Unsubscribe": {
+                "args": ["topic"],
+                "description": "Unsubscribe from MQTT topic",
+            },
+        },
+        # RedisLibrary - Redis cache operations
+        "RedisLibrary": {
+            "Connect To Redis": {
+                "args": ["host", "port=6379"],
+                "description": "Connect to Redis",
+            },
+            "Disconnect From Redis": {
+                "args": [],
+                "description": "Disconnect from Redis",
+            },
+            "Get From Redis": {"args": ["key"], "description": "Get value from Redis"},
+            "Append To Redis": {
+                "args": ["key", "value"],
+                "description": "Append to Redis key",
+            },
+            "Redis Key Should Exist": {
+                "args": ["key"],
+                "description": "Assert key exists",
+            },
+            "Delete From Redis": {
+                "args": ["*keys"],
+                "description": "Delete keys from Redis",
+            },
+        },
+        # MongoDBLibrary - MongoDB operations
+        "MongoDBLibrary": {
+            "Connect To MongoDB": {
+                "args": ["connection_string", "database"],
+                "description": "Connect to MongoDB",
+            },
+            "Disconnect From MongoDB": {
+                "args": [],
+                "description": "Disconnect from MongoDB",
+            },
+            "Insert Data": {
+                "args": ["collection", "document"],
+                "description": "Insert document into collection",
+            },
+            "Retrieve Some Data": {
+                "args": ["collection", "query"],
+                "description": "Query MongoDB collection",
+            },
+            "Update Data": {
+                "args": ["collection", "query", "update"],
+                "description": "Update MongoDB document",
+            },
+            "Delete Data": {
+                "args": ["collection", "query"],
+                "description": "Delete MongoDB document",
+            },
+        },
     }
     # Intent to library keyword mapping
     INTENT_TO_LIBRARY_KEYWORDS: ClassVar[dict[str, tuple[str, str]]] = {

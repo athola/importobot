@@ -7,11 +7,28 @@ class TestPlatformCommandParser:
     """Test PlatformCommandParser class."""
 
     def setup_method(self):
-        """Set up test fixtures."""
+        """Set up test fixtures with test-specific platform configuration.
+
+        Uses test data instead of customer-specific hard-coded platforms.
+        In production, platforms should be provided via --input-schema.
+        """
         self.parser = PlatformCommandParser()
+        # Configure test platforms (would come from --input-schema in production)
+        self.parser.PLATFORM_KEYWORDS = {
+            "TEST_PLATFORM1": ["target", "default", "standard"],
+            "TEST_PLATFORM2": ["alternative", "secondary"],
+            "TEST_PLATFORM3": ["embedded", "device"],
+            "OTHER": ["other", "misc"],
+        }
+
+    def test_default_platform_keywords_empty(self):
+        """Test that default PLATFORM_KEYWORDS is empty (no hard-coded customer data)."""
+        default_parser = PlatformCommandParser()
+        assert default_parser.PLATFORM_KEYWORDS == {}
+        assert isinstance(default_parser.PLATFORM_KEYWORDS, dict)
 
     def test_platform_keywords_structure(self):
-        """Test PLATFORM_KEYWORDS has expected structure."""
+        """Test PLATFORM_KEYWORDS has expected structure after configuration."""
         # Test that we have configurable platform mappings
         assert isinstance(self.parser.PLATFORM_KEYWORDS, dict)
         assert len(self.parser.PLATFORM_KEYWORDS) > 0

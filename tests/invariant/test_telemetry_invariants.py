@@ -24,8 +24,11 @@ from importobot.telemetry import (
     _flag_from_env,
     _float_from_env,
     _int_from_env,
+    clear_telemetry_exporters,
     get_telemetry_client,
+    register_telemetry_exporter,
     reset_telemetry_client,
+    restore_default_telemetry_exporter,
 )
 
 
@@ -116,12 +119,36 @@ class TestTelemetryClientInvariants:
         assert client._min_emit_interval == interval
         assert client._min_sample_delta == delta
 
-    def test_disabled_client_never_emits(self):
-        """Disabled telemetry is represented by None, not a disabled client."""
-        # When telemetry is disabled, get_client() returns None
-        # This means no telemetry is emitted
-        # This test now represents the expected behavior for disabled telemetry
-        assert True  # No client means no emissions by definition
+    def test_disabled_telemetry_returns_none(self):
+        """When telemetry is disabled, get_telemetry_client() returns None."""
+        reset_telemetry_client()
+
+        # Ensure telemetry is disabled
+        with patch.dict(os.environ, {"IMPORTOBOT_ENABLE_TELEMETRY": "false"}):
+            client = get_telemetry_client()
+            assert client is None
+
+        reset_telemetry_client()
+
+        # Also test with env var not set (default should be disabled)
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("IMPORTOBOT_ENABLE_TELEMETRY", None)
+            client = get_telemetry_client()
+            assert client is None
+
+    def test_disabled_telemetry_operations_are_noops(self):
+        """When telemetry is disabled, telemetry operations don't raise errors."""
+        reset_telemetry_client()
+
+        # Ensure telemetry is disabled
+        with patch.dict(os.environ, {"IMPORTOBOT_ENABLE_TELEMETRY": "false"}):
+            # All these operations should be no-ops and not raise
+            register_telemetry_exporter(lambda n, p: None)
+            clear_telemetry_exporters()
+            restore_default_telemetry_exporter()
+
+            # Verify client is still None
+            assert get_telemetry_client() is None
 
     @given(
         st.integers(min_value=0, max_value=10000),

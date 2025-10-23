@@ -5,6 +5,7 @@ Robot Framework commands, enabling more sophisticated test automation scenarios.
 """
 
 import re
+import shlex
 
 
 class MultiCommandParser:
@@ -88,7 +89,11 @@ class MultiCommandParser:
             return True
 
         # Check for file operations with verification
-        return bool("upload" in description.lower() and "verify" in description.lower())
+        if "upload" in description.lower() and "verify" in description.lower():
+            return True
+
+        # Detect hash comparison style operations
+        return self._is_hash_comparison_operation(description, parsed_data)
 
     def generate_multiple_robot_keywords(
         self, description: str, parsed_data: dict[str, str], expected: str
@@ -109,6 +114,8 @@ class MultiCommandParser:
             )
         elif self._is_file_upload_operation(description):
             keywords.extend(self._generate_file_upload_keywords(parsed_data, expected))
+        elif self._is_hash_comparison_operation(description, parsed_data):
+            keywords.extend(self._generate_command_comparison_keywords(parsed_data))
         else:
             # Fall back to generic processing
             keywords.extend(self._generate_generic_keywords(parsed_data))
@@ -138,6 +145,71 @@ class MultiCommandParser:
     def _is_file_upload_operation(self, description: str) -> bool:
         """Check if this is a file upload operation."""
         return "upload" in description.lower() and "verify" in description.lower()
+
+    def _is_hash_comparison_operation(
+        self, description: str, parsed_data: dict[str, str]
+    ) -> bool:
+        """Detect whether the step represents a hash comparison workflow."""
+        if not parsed_data:
+            return False
+        keys = {key.lower() for key in parsed_data}
+        if {"command_1", "command_2"}.issubset(keys):
+            return True
+        if {"source_command", "target_command"}.issubset(keys):
+            return True
+        description_lower = description.lower() if description else ""
+        keywords = ["hash", "checksum", "digest", "compare", "diff"]
+        return any(token in description_lower for token in keywords)
+
+    def _generate_command_comparison_keywords(
+        self, parsed_data: dict[str, str]
+    ) -> list[str]:
+        """Generate commands to compare outputs of two hash commands."""
+        source_command = (
+            parsed_data.get("command_1")
+            or parsed_data.get("source_command")
+            or parsed_data.get("source")
+        )
+        target_command = (
+            parsed_data.get("command_2")
+            or parsed_data.get("target_command")
+            or parsed_data.get("target")
+        )
+
+        if not source_command or not target_command:
+            return []
+
+        source_tokens = self._split_command(source_command)
+        target_tokens = self._split_command(target_command)
+        if not source_tokens or not target_tokens:
+            return []
+
+        commands: list[str] = []
+        commands.append(self._format_run_process_command(source_tokens, "hash_source"))
+        commands.append(self._format_run_process_command(target_tokens, "hash_target"))
+        commands.append(
+            "Should Be Equal As Strings    ${hash_source}    ${hash_target}"
+        )
+        return commands
+
+    def _split_command(self, command: str) -> list[str]:
+        """Split a shell command into Robot Framework arguments."""
+        try:
+            tokens = shlex.split(command)
+        except ValueError:
+            tokens = command.split()
+        return [token for token in tokens if token]
+
+    def _format_run_process_command(self, tokens: list[str], var_name: str) -> str:
+        """Format a Run Process command capturing stdout into a variable."""
+        if not tokens:
+            return "Run Process"
+        command = tokens[0]
+        arguments = "    ".join(tokens[1:])
+        stdout_capture = f"stdout=${{{var_name}}}"
+        if arguments:
+            return f"Run Process    {command}    {arguments}    {stdout_capture}"
+        return f"Run Process    {command}    {stdout_capture}"
 
     def _generate_form_filling_keywords(self, parsed_data: dict[str, str]) -> list[str]:
         """Generate form filling keywords from parsed data."""

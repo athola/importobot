@@ -88,21 +88,24 @@ def collect_command_steps(steps: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 if field_name in step and isinstance(step[field_name], str):
                     content = step[field_name].lower()
                     # Check for command patterns
-                    if any(
-                        cmd in content
-                        for cmd in [
-                            "command:",
-                            "execute",
-                            "run",
-                            "hash",
-                            "sha",
-                            "md5",
-                            "echo",
-                            "cat",
-                            "ls",
-                            "curl",
-                        ]
-                    ):
+                    keywords = {
+                        "command:",
+                        "execute",
+                        "run",
+                        "hash",
+                        "blake",
+                        "sha",
+                        "md5",
+                        "checksum",
+                        "sum",
+                        "compare",
+                        "diff",
+                        "echo",
+                        "cat",
+                        "ls",
+                        "curl",
+                    }
+                    if any(token in content for token in keywords):
                         command_steps.append(step)
                         break
     return command_steps

@@ -16,7 +16,7 @@ Roadmap of upcoming features, parked items, and ideas requiring proof-of-concept
 
 **Configuration**: Fixed project identifier parsing that was failing on control characters and whitespace. CLI arguments that don't parse to valid identifiers now use environment variables as default values instead of crashing.
 
-**Test status**: All 1,946 tests pass with 0 skips.
+**Test status**: All 2,105 tests pass with 0 skips.
 **Code quality**: Removed pylint from the project (now using ruff/mypy only) and improved test isolation.
 - Fixed formatter to preserve comment placeholders and show both raw/normalized names for auditing
 - Selenium tests run in dry-run mode without `robot.utils` shim, removing deprecation warnings

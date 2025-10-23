@@ -18,7 +18,7 @@ class SecurityValidator:
     """Validates and sanitizes test parameters for security concerns.
 
     Supports configurable security policies for different environments.
-    Provides comprehensive audit logging for security validation failures.
+    Logs security validation failures with specific rule violations and context.
 
     Security Levels:
         strict: Maximum security for enterprise/production environments.

@@ -15,10 +15,55 @@ if TYPE_CHECKING:  # pragma: no cover
 __all__ = [
     "apply_cli_pattern",
     "apply_host_pattern",
+    "apply_pattern_generic",
     "apply_target_pattern",
 ]
 
 _placeholder_cache: dict[tuple[str, ...], re.Pattern[str]] = {}
+
+
+def apply_pattern_generic(
+    pattern: StepPattern,
+    command_text: str,
+    expected: str | None,
+    state: RenderState,
+    step_index: int,
+    step_lines: list[str],
+    *,
+    replace_connection: Callable[[str, str], str],
+    extract_assigned_variable: Callable[[str], str | None],
+    var_token: Callable[[str, str | None], str],
+) -> list[str]:
+    """Apply a learned pattern from templates."""
+    command_token = command_text.split()[0] if command_text.split() else ""
+    lines = step_lines.copy()
+
+    # Apply pattern with placeholders
+    for template_line in pattern.lines:
+        line = template_line.replace("{{COMMAND_LINE}}", command_text)
+        line = line.replace("{{COMMAND_UPPER}}", command_token.upper())
+        line = line.replace("{{COMMAND}}", command_token)
+
+        # Update connection if pattern uses connections
+        if pattern.connection and "Switch Connection" in line:
+            line = replace_connection(line, pattern.connection)
+
+        lines.append(line)
+
+        # Track output variable
+        extracted_var = extract_assigned_variable(line.strip())
+        if extracted_var:
+            state.outputs[step_index] = extracted_var
+
+    # Add expectation checking
+    if expected and state.outputs.get(step_index):
+        lines.extend(
+            render_expectation(
+                expected, state.outputs[step_index], step_index=step_index, state=state
+            )
+        )
+
+    return lines
 
 
 def apply_cli_pattern(

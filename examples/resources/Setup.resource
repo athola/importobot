@@ -73,7 +73,7 @@ Create Directory
 
     # adjust connection for SFTP commands for target/embedded
     IF    '${connection}' == 'Target' and '${IS_EMBEDDED}'
-        Switch Connection    RouterOSTarget
+        Switch Connection    CustomOSTarget
     END
     # ``OperatingSystem`` also has ``File Should Not Exist``; to remove lint warning
     # explicitly use ``SSHLibrary``
@@ -97,7 +97,7 @@ Logger
 Login Target
     [Documentation]    embedded devices will use 2 connections, one that
     ...    will use the alias ``Target`` for ``Execute Command``
-    ...    and ``RouterOSTarget`` for SFTP commands.
+    ...    and ``CustomOSTarget`` for SFTP commands.
     ...    embedded devices are assumed to have used ``dropbear -BR``
     ...    to run in the background, and not require passwords.
     IF     "${IS_EMBEDDED}"
@@ -114,7 +114,7 @@ Login Target
             Create File    ${embedded_key_path}    ${EMBEDDED_PRIVATE_KEY}
             Login With Public Key    username=root    keyfile=${embedded_key_path}
         END
-        Open Connection    ${target_ip}    alias=RouterOSTarget
+        Open Connection    ${target_ip}    alias=CustomOSTarget
         # quotations around ``${EMPTY}`` otherwise syntax error
         # appears; doesn't regard as an empty string.
         IF    "${TARGET_PASSWORD}" == "${EMPTY}"
@@ -149,7 +149,7 @@ Remove Directory
 
     # adjust connection for SFTP commands for target/embedded
     IF    '${connection}' == 'Target' and '${IS_EMBEDDED}'
-        Switch Connection    RouterOSTarget
+        Switch Connection    CustomOSTarget
     END
     # ``OperatingSystem`` also has ``Directory Should Not Exist``; to remove lint warning
     # explicitly use ``SSHLibrary``

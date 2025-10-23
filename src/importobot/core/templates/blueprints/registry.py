@@ -34,6 +34,8 @@ Example usage:
 from __future__ import annotations
 
 import ast
+import hashlib
+import json
 import os
 import re
 import string
@@ -60,10 +62,20 @@ DISALLOWED_TEMPLATE_PATTERNS = (
 class StepPattern:
     """Generalised pattern learned from existing Robot templates."""
 
-    location: str  # cli, target, host
-    connection: str
-    command_token: str
-    lines: list[str]
+    library: str  # Robot Framework library (SSHLibrary, OperatingSystem, etc.)
+    keyword: str  # Library keyword (Execute Command, Write, Run, etc.)
+    connection: str | None  # Connection name if uses connections, else None
+    command_token: str  # First token of the command for pattern matching
+    lines: list[str]  # Template lines with placeholders
+
+
+@dataclass
+class TemplateAnalysis:
+    """Container for derived template metadata used by caches."""
+
+    patterns: list[StepPattern]
+    keywords: set[str]
+    resource_imports: list[str]
 
 
 class TemplateRegistry:
@@ -90,39 +102,63 @@ class KnowledgeBase:
     """Aggregates patterns learned from templates."""
 
     def __init__(self) -> None:
-        """Create empty pattern buckets for each recognised location."""
-        self._patterns: dict[str, list[StepPattern]] = {
-            "cli": [],
-            "target": [],
-            "host": [],
-        }
+        """Create empty pattern storage keyed by (library, keyword) tuples."""
+        self._patterns: dict[tuple[str, str], list[StepPattern]] = {}
 
     def clear(self) -> None:
         """Clear all learned pattern groups."""
-        for patterns in self._patterns.values():
-            patterns.clear()
+        self._patterns.clear()
 
     def add_pattern(self, pattern: StepPattern) -> None:
-        """Store a learned pattern for lookups keyed by location."""
-        self._patterns.setdefault(pattern.location, []).append(pattern)
+        """Store a learned pattern indexed by (library, keyword)."""
+        key = (pattern.library, pattern.keyword)
+        self._patterns.setdefault(key, []).append(pattern)
 
     def find_pattern(
         self,
-        location: str,
+        library: str | None = None,
+        keyword: str | None = None,
         command_token: str | None = None,
-        *,
-        allow_generic: bool = False,
     ) -> StepPattern | None:
-        """Find a matching pattern, optionally falling back to generic ones."""
-        patterns = self._patterns.get(location, [])
+        """Find a matching pattern by library+keyword or command token.
+
+        Args:
+            library: Robot Framework library name (e.g., "SSHLibrary")
+            keyword: Library keyword (e.g., "Execute Command")
+            command_token: Command token to match (e.g., "ls")
+
+        Returns:
+            Matching StepPattern or None
+        """
+        # Primary: exact library+keyword match
+        if library and keyword:
+            key = (library, keyword)
+            patterns = self._patterns.get(key, [])
+            if command_token:
+                lowered = command_token.lower()
+                for pattern in patterns:
+                    if pattern.command_token == lowered:
+                        return pattern
+            elif patterns:
+                return patterns[0]
+
+        # Secondary: search all patterns by command token when library+keyword
+        # not provided
         if command_token:
             lowered = command_token.lower()
-            for pattern in patterns:
-                if pattern.command_token == lowered:
-                    return pattern
-        if allow_generic and patterns:
-            return patterns[0]
+            for patterns_list in self._patterns.values():
+                for pattern in patterns_list:
+                    if pattern.command_token == lowered:
+                        return pattern
+
         return None
+
+    def get_all_patterns(self) -> list[StepPattern]:
+        """Get all stored patterns."""
+        result = []
+        for patterns_list in self._patterns.values():
+            result.extend(patterns_list)
+        return result
 
 
 class KeywordLibrary:
@@ -146,7 +182,7 @@ TEMPLATE_REGISTRY = TemplateRegistry()
 KNOWLEDGE_BASE = KnowledgeBase()
 KEYWORD_LIBRARY = KeywordLibrary()
 RESOURCE_IMPORTS: list[str] = []
-TEMPLATE_STATE: dict[str, Path | None] = {"base_dir": None}
+TEMPLATE_STATE: dict[str, Path | None | bool] = {"base_dir": None, "enabled": False}
 
 
 class SandboxedTemplate(string.Template):
@@ -186,6 +222,8 @@ RESOURCE_LINE_PATTERN = re.compile(r"(?i)^\s*Resource[\t ]{2,}(.+?)\s*$")
 ALLOWED_TEMPLATE_SUFFIXES = (
     TEMPLATE_EXTENSIONS | RESOURCE_EXTENSIONS | PYTHON_EXTENSIONS
 )
+
+TEMPLATE_CACHE_VERSION = 1
 
 
 class TemplateIngestionError(exceptions.ImportobotError):
@@ -254,6 +292,7 @@ def configure_template_sources(entries: Sequence[str]) -> None:
     KEYWORD_LIBRARY.clear()
     RESOURCE_IMPORTS.clear()
     TEMPLATE_STATE["base_dir"] = None
+    TEMPLATE_STATE["enabled"] = False
     ingested_files = 0
 
     for raw_entry in entries:
@@ -273,9 +312,11 @@ def configure_template_sources(entries: Sequence[str]) -> None:
                 candidate, key_override, ingested_files
             )
             if limit_hit:
+                TEMPLATE_STATE["enabled"] = ingested_files > 0
                 return
         except TemplateIngestionError as err:
             logger.warning("Skipping template source %s: %s", candidate, err)
+    TEMPLATE_STATE["enabled"] = ingested_files > 0
 
 
 def _process_template_candidate(
@@ -296,6 +337,7 @@ def _ingest_directory_sources(
             return ingested_files, True
         _ingest_source_file(child, key_override, base_dir=directory)
         ingested_files += 1
+        _log_ingestion_progress(ingested_files)
     return ingested_files, False
 
 
@@ -305,7 +347,9 @@ def _ingest_single_source(
     if _has_reached_template_limit(ingested_files):
         return ingested_files, True
     _ingest_source_file(path, key_override, base_dir=path.parent)
-    return ingested_files + 1, False
+    updated = ingested_files + 1
+    _log_ingestion_progress(updated)
+    return updated, False
 
 
 def _has_reached_template_limit(current_count: int) -> bool:
@@ -344,15 +388,23 @@ def template_name_candidates(*identifiers: str | None) -> list[str]:
 
 
 def find_step_pattern(
-    location: str,
-    command_token: str | None,
-    *,
-    allow_generic: bool = False,
+    library: str | None = None,
+    keyword: str | None = None,
+    command_token: str | None = None,
 ) -> StepPattern | None:
-    """Look up a learned step pattern for ``location`` and ``command_token``."""
-    return KNOWLEDGE_BASE.find_pattern(
-        location, command_token, allow_generic=allow_generic
+    """Look up a learned step pattern by library+keyword or command token."""
+    pattern = KNOWLEDGE_BASE.find_pattern(
+        library=library, keyword=keyword, command_token=command_token
     )
+    if pattern is not None:
+        return pattern
+
+    # Backwards compatibility: older call sites pass the command token as the
+    # second positional argument (`keyword`) without naming `command_token`.
+    if command_token is None and keyword:
+        return KNOWLEDGE_BASE.find_pattern(command_token=keyword)
+
+    return None
 
 
 def get_resource_imports() -> list[str]:
@@ -402,22 +454,35 @@ def _ingest_source_file(
 
 def _register_template(path: Path, key_override: str | None) -> None:
     try:
-        raw_content = path.read_text(encoding="utf-8")
+        stat = path.stat()
     except OSError as exc:
-        raise TemplateIngestionError(f"Failed to read template {path}: {exc}") from exc
+        raise TemplateIngestionError(f"Failed to stat template {path}: {exc}") from exc
 
-    content = _sanitize_template_payload(raw_content)
+    cache_payload = _load_template_cache(path, stat)
+    if cache_payload is not None:
+        content = cache_payload["content"]
+        analysis = _deserialize_analysis(cache_payload["analysis"])
+        _apply_template_analysis(analysis)
+    else:
+        try:
+            raw_content = path.read_text(encoding="utf-8")
+        except OSError as exc:
+            raise TemplateIngestionError(
+                f"Failed to read template {path}: {exc}"
+            ) from exc
+
+        content = _sanitize_template_payload(raw_content)
+
+        try:
+            analysis = _learn_from_template(content)
+        except ValueError as exc:
+            raise TemplateIngestionError(f"Malformed template {path}: {exc}") from exc
+        _store_template_cache(path, stat, content, analysis)
 
     template_obj = SandboxedTemplate(content)
     for key in _derive_template_keys(key_override or path.stem):
         if key and TEMPLATE_REGISTRY.get(key) is None:
             TEMPLATE_REGISTRY.register(key, template_obj)
-
-    try:
-        _learn_from_template(content)
-        _collect_resource_imports_from_template(content)
-    except ValueError as exc:
-        raise TemplateIngestionError(f"Malformed template {path}: {exc}") from exc
 
 
 def _register_resource(path: Path, *, base_dir: Path | None) -> None:
@@ -551,13 +616,8 @@ def _add_resource_import(raw_path: str) -> None:
 
 
 def _collect_resource_imports_from_template(content: str) -> None:
-    for raw_line in content.splitlines():
-        stripped = raw_line.strip()
-        if not stripped or stripped.startswith("#"):
-            continue
-        match = RESOURCE_LINE_PATTERN.match(raw_line)
-        if match:
-            _add_resource_import(match.group(1).strip())
+    for reference in _collect_resource_imports_from_lines(content.splitlines()):
+        _add_resource_import(reference)
 
 
 def _register_resource_path(path: Path, *, base_dir: Path | None) -> None:
@@ -593,79 +653,156 @@ def _format_resource_reference(path: Path, *, base_dir: Path | None) -> str:
     return f"${{CURDIR}}/{posix}"
 
 
-def _learn_from_template(content: str) -> None:
+def _learn_from_template(content: str) -> TemplateAnalysis:
+    analysis = _analyze_template_content(content)
+    _apply_template_analysis(analysis)
+    return analysis
+
+
+def _analyze_template_content(content: str) -> TemplateAnalysis:
     lines = content.splitlines()
     total = len(lines)
     i = 0
     current_block: list[str] = []
+    patterns: list[StepPattern] = []
+    keywords: set[str] = set()
+    resource_imports: list[str] = []
 
     while i < total:
         line = lines[i]
         stripped = line.strip()
 
         if not stripped:
-            _analyze_block(current_block)
+            pattern = _pattern_from_block(current_block)
+            if pattern:
+                patterns.append(pattern)
             current_block = []
             i += 1
             continue
 
         if stripped.startswith("Switch Connection"):
-            _analyze_block(current_block)
+            pattern = _pattern_from_block(current_block)
+            if pattern:
+                patterns.append(pattern)
             current_block = [line]
         elif current_block:
             current_block.append(line)
 
         i += 1
 
-    _analyze_block(current_block)
-    _extract_keywords_from_template(lines)
+    pattern = _pattern_from_block(current_block)
+    if pattern:
+        patterns.append(pattern)
+
+    _extract_keywords_from_lines(lines, keywords)
+    resource_imports.extend(_collect_resource_imports_from_lines(lines))
+
+    return TemplateAnalysis(
+        patterns=patterns,
+        keywords=keywords,
+        resource_imports=resource_imports,
+    )
 
 
-def _analyze_block(block: list[str]) -> None:
+def _extract_connection_metadata(block: list[str]) -> tuple[str | None, str | None]:
+    """Identify connection handling and associated library."""
+    for raw_line in block:
+        stripped = raw_line.strip()
+        if stripped.startswith("Switch Connection"):
+            connection = stripped.split("Switch Connection", 1)[1].strip()
+            return connection or None, "SSHLibrary"
+    return None, None
+
+
+def _is_telnet_block(block: list[str]) -> bool:
+    """Detect whether the block is operating within a Telnet context."""
     if not block:
-        return
+        return False
+    return "Telnet" in block[0]
 
-    first_line = block[0].strip()
-    if not first_line.startswith("Switch Connection"):
-        return
 
-    connection = first_line.split("Switch Connection", 1)[1].strip()
-    command_line: str | None = None
-    location: str | None = None
+def _identify_keyword_and_command(
+    block: list[str], base_library: str | None
+) -> tuple[str | None, str | None, str | None]:
+    """Return detected keyword, library, and command payload."""
+    telnet_context = _is_telnet_block(block)
 
     for raw_line in block:
         stripped = raw_line.strip()
         if stripped.startswith("Write"):
+            keyword = "Write"
+            library = base_library or "SSHLibrary"
             command_line = stripped.split("Write", 1)[1].strip()
-            location = "cli"
-            break
-        if stripped.startswith("Execute Command"):
+        elif stripped.startswith("Execute Command"):
+            keyword = "Execute Command"
+            library = base_library or ("Telnet" if telnet_context else "SSHLibrary")
             command_line = stripped.split("Execute Command", 1)[1].strip()
-            location = "target" if connection.lower() == "target" else "host"
-            break
+        elif stripped.startswith("Run And Return Stdout"):
+            keyword = "Run And Return Stdout"
+            library = "OperatingSystem"
+            command_line = stripped.split("Run And Return Stdout", 1)[1].strip()
+        elif stripped.startswith("Run Process"):
+            keyword = "Run Process"
+            library = "Process"
+            command_line = stripped.split("Run Process", 1)[1].strip()
+        elif stripped.startswith("Start Process"):
+            keyword = "Start Process"
+            library = "Process"
+            command_line = stripped.split("Start Process", 1)[1].strip()
+        elif stripped.startswith("Run "):
+            keyword = "Run"
+            library = "OperatingSystem"
+            command_line = stripped.split("Run", 1)[1].strip()
+        else:
+            continue
 
-    if not command_line or not location:
-        return
+        return keyword, library, command_line
 
+    return None, base_library, None
+
+
+def _command_token(command_line: str) -> str | None:
+    """Return the primary command token for placeholder substitution."""
     tokens = command_line.split()
-    if not tokens:
-        return
-    command_token = tokens[0]
+    return tokens[0] if tokens else None
 
+
+def _build_placeholder_lines(
+    block: list[str], command_line: str, command_token: str
+) -> list[str]:
+    """Construct placeholder-rich template lines for a detected pattern."""
     placeholder_lines: list[str] = []
     for raw_line in block:
         line = raw_line.replace(command_line, "{{COMMAND_LINE}}")
         line = line.replace(command_token.upper(), "{{COMMAND_UPPER}}")
         line = line.replace(command_token, "{{COMMAND}}")
         placeholder_lines.append(line)
+    return placeholder_lines
 
-    KNOWLEDGE_BASE.add_pattern(
-        StepPattern(
-            location=location,
-            connection=connection,
-            command_token=command_token.lower(),
-            lines=placeholder_lines,
-        )
+
+def _pattern_from_block(block: list[str]) -> StepPattern | None:
+    """Extract a step pattern from a code block using RF library keywords."""
+    if not block:
+        return None
+
+    connection, base_library = _extract_connection_metadata(block)
+    keyword, library, command_line = _identify_keyword_and_command(block, base_library)
+    if not command_line or not library or not keyword:
+        return None
+
+    command_token = _command_token(command_line)
+    if not command_token:
+        return None
+
+    # Create template with placeholders
+    placeholder_lines = _build_placeholder_lines(block, command_line, command_token)
+
+    return StepPattern(
+        library=library,
+        keyword=keyword,
+        connection=connection,
+        command_token=command_token.lower(),
+        lines=placeholder_lines,
     )
 
 
@@ -685,7 +822,7 @@ def _learn_from_python(content: str) -> None:
                     KEYWORD_LIBRARY.add(target.id.lower())
 
 
-def _extract_keywords_from_template(lines: list[str]) -> None:
+def _extract_keywords_from_lines(lines: list[str], keywords: set[str]) -> None:
     section: str | None = None
 
     for raw_line in lines:
@@ -702,7 +839,174 @@ def _extract_keywords_from_template(lines: list[str]) -> None:
             and "    " not in stripped
         ):
             keyword_name = stripped.split("  ")[0].strip()
-            KEYWORD_LIBRARY.add(keyword_name)
+            keywords.add(keyword_name)
+
+
+def _collect_resource_imports_from_lines(lines: list[str]) -> list[str]:
+    resources: list[str] = []
+    for raw_line in lines:
+        stripped = raw_line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        match = RESOURCE_LINE_PATTERN.match(raw_line)
+        if match:
+            candidate = match.group(1).strip()
+            if candidate and candidate not in resources:
+                resources.append(candidate)
+    return resources
+
+
+def _apply_template_analysis(analysis: TemplateAnalysis) -> None:
+    for pattern in analysis.patterns:
+        KNOWLEDGE_BASE.add_pattern(pattern)
+    for keyword in analysis.keywords:
+        KEYWORD_LIBRARY.add(keyword)
+    for resource in analysis.resource_imports:
+        _add_resource_import(resource)
+
+
+def _template_cache_enabled() -> bool:
+    return os.getenv("IMPORTOBOT_BLUEPRINT_CACHE", "1") != "0"
+
+
+def _template_cache_dir() -> Path:
+    default_root = Path(".importobot/cache/blueprints")
+    root = Path(
+        os.getenv("IMPORTOBOT_BLUEPRINT_CACHE_DIR", str(default_root))
+    ).expanduser()
+    root.mkdir(parents=True, exist_ok=True)
+    return root
+
+
+def _template_cache_key(path: Path) -> str:
+    return hashlib.blake2s(str(path).encode("utf-8"), digest_size=16).hexdigest()
+
+
+def _load_template_cache(path: Path, stat: os.stat_result) -> dict[str, Any] | None:
+    if not _template_cache_enabled():
+        return None
+    cache_file = _template_cache_dir() / f"{_template_cache_key(path)}.json"
+    try:
+        raw = cache_file.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return None
+    except OSError as exc:  # pragma: no cover - filesystem edge cases
+        logger.debug("Failed reading template cache for %s: %s", path, exc)
+        return None
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError:
+        logger.debug("Invalid template cache payload for %s", path)
+        return None
+    if payload.get("version") != TEMPLATE_CACHE_VERSION:
+        return None
+    if (
+        payload.get("mtime_ns") != stat.st_mtime_ns
+        or payload.get("size") != stat.st_size
+    ):
+        return None
+    analysis = payload.get("analysis")
+    if not isinstance(analysis, dict):
+        return None
+    content = payload.get("content")
+    if not isinstance(content, str):
+        return None
+    return {"content": content, "analysis": analysis}
+
+
+def _store_template_cache(
+    path: Path, stat: os.stat_result, content: str, analysis: TemplateAnalysis
+) -> None:
+    if not _template_cache_enabled():
+        return
+    cache_dir = _template_cache_dir()
+    cache_file = cache_dir / f"{_template_cache_key(path)}.json"
+    payload = {
+        "version": TEMPLATE_CACHE_VERSION,
+        "mtime_ns": stat.st_mtime_ns,
+        "size": stat.st_size,
+        "content": content,
+        "analysis": _serialize_analysis(analysis),
+    }
+    try:
+        tmp = cache_file.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+        tmp.replace(cache_file)
+    except OSError as exc:  # pragma: no cover - best effort cache
+        logger.debug("Failed writing template cache for %s: %s", path, exc)
+
+
+def _serialize_analysis(analysis: TemplateAnalysis) -> dict[str, Any]:
+    return {
+        "patterns": [_serialize_step_pattern(pattern) for pattern in analysis.patterns],
+        "keywords": sorted(analysis.keywords),
+        "resource_imports": analysis.resource_imports,
+    }
+
+
+def _deserialize_analysis(data: dict[str, Any]) -> TemplateAnalysis:
+    pattern_items = data.get("patterns", [])
+    patterns: list[StepPattern] = []
+    if isinstance(pattern_items, list):
+        for item in pattern_items:
+            pattern = _deserialize_step_pattern(item)
+            if pattern is not None:
+                patterns.append(pattern)
+    keywords_raw = data.get("keywords", [])
+    keywords = set(keywords_raw) if isinstance(keywords_raw, list) else set()
+    resources_raw = data.get("resource_imports", [])
+    if isinstance(resources_raw, list):
+        resource_imports = list(dict.fromkeys(resources_raw))
+    else:
+        resource_imports = []
+    return TemplateAnalysis(
+        patterns=patterns, keywords=keywords, resource_imports=resource_imports
+    )
+
+
+def _serialize_step_pattern(pattern: StepPattern) -> dict[str, Any]:
+    """Convert StepPattern into JSON-serialisable payload."""
+    return {
+        "library": pattern.library,
+        "keyword": pattern.keyword,
+        "connection": pattern.connection,
+        "command_token": pattern.command_token,
+        "lines": list(pattern.lines),
+    }
+
+
+def _deserialize_step_pattern(payload: Any) -> StepPattern | None:
+    """Reconstruct StepPattern from cached payload, skipping invalid entries."""
+    if not isinstance(payload, dict):
+        return None
+    required = ("library", "keyword", "command_token", "lines")
+    if not all(key in payload for key in required):
+        return None
+    lines = payload.get("lines", [])
+    if not isinstance(lines, list):
+        return None
+    connection = payload.get("connection")
+    if connection is not None and not isinstance(connection, str):
+        connection = str(connection)
+    try:
+        return StepPattern(
+            library=str(payload["library"]),
+            keyword=str(payload["keyword"]),
+            connection=connection,
+            command_token=str(payload["command_token"]),
+            lines=[str(line) for line in lines],
+        )
+    except (TypeError, ValueError):
+        return None
+
+
+def _log_ingestion_progress(count: int) -> None:
+    if count and count % 50 == 0:
+        logger.info(
+            "Blueprint ingestion processed %d template sources (limit %d).",
+            count,
+            MAX_TEMPLATE_FILES,
+        )
 
 
 __all__ = [

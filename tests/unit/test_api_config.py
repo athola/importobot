@@ -162,13 +162,13 @@ def test_parse_project_identifier_accepts_upper_bound() -> None:
 
 
 def test_parse_project_identifier_rejects_out_of_range_numeric() -> None:
-    """Identifiers beyond the supported range should fall back to names."""
+    """Identifiers beyond the supported range should raise a configuration error."""
     overflow_value = str(MAX_PROJECT_ID + 1)
 
-    name, project_id = _parse_project_identifier(overflow_value)
+    with pytest.raises(exceptions.ConfigurationError) as exc_info:
+        _parse_project_identifier(overflow_value)
 
-    assert name == overflow_value
-    assert project_id is None
+    assert str(MAX_PROJECT_ID + 1) in str(exc_info.value)
 
 
 def test_cli_project_identifier_invalid_raises_configuration_error() -> None:

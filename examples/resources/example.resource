@@ -17,7 +17,7 @@ ${TARGET_CONNECTION}    20
 # we are unable to use ${FALSE} because it would be interpreted
 # as a string.
 ${IS_EMBEDDED}          ${TRUE}
-# used in ``tunnel.robot`` test suite. this machine currently
+# used in ``ssh.robot`` test suite. this machine currently
 # requires ``netstat`` from the ``net-tools`` library, and
 # ``ncat`` to be installed.
 ${THIRD_MACHINE_IP}            10.0.2.51

@@ -42,21 +42,12 @@ For sensitive vulnerability reports, you can encrypt your message using our PGP 
 
 ### Response Expectations
 
-When you report a vulnerability, our security team will:
-
-1. Acknowledge your report within 48 hours
-2. Investigate and validate the issue within 5 business days
-3. Work on a fix and coordinate a release date with you
-4. Notify you when the fix is published
-5. Credit you in our release notes (unless you prefer to remain anonymous)
+When you report a vulnerability, our security team typically acknowledges reports within 48 hours and completes validation within 5 business days. We coordinate fix timing with you and notify you when patches are released. Security credits are included in release notes unless you prefer to remain anonymous.
 
 ## Security Considerations
 
 ### Data Handling
-Importobot processes data from external sources. Users should:
-- Validate and sanitize imported data
-- Regularly update to the latest version
-- Review permissions granted to imported content
+Importobot processes data from external test management systems. Keep your systems secure by validating imported test data, applying updates promptly, and reviewing permissions for any imported Robot Framework files.
 
 ### Security Gateway Scope
 The `SecurityGateway` hardens API inputs against XSS and path traversal as data
@@ -144,18 +135,11 @@ untrusted input can reach the gateway. Mix levels per process by instantiating
 `SecurityGateway(security_level="…")`.
 
 ### Dependencies
-We regularly update dependencies to address known vulnerabilities:
-- Automated dependency updates via Dependabot
-- Regular security audits of our codebase
-- Prompt response to CVEs in our dependencies
+We keep dependencies current with automated Dependabot updates and regular security audits. Critical CVEs in our dependencies are evaluated and patched promptly based on risk impact.
 
 ## Security Best Practices
 
-For users of Importobot, we recommend:
-- Running the latest stable version
-- Using minimal required permissions for imported content
-- Regularly reviewing imported data for anomalies
-- Monitoring logs for suspicious activity
+Keep Importobot secure by running the latest stable version and applying minimal permissions to imported test content. Review converted Robot files for unusual commands and monitor execution logs for unexpected activity.
 
 ### SSH and Command Execution Security
 
@@ -268,16 +252,10 @@ Importobot automatically detects and warns about access to sensitive files:
 #### Security Monitoring and Auditing
 
 **🔒 Logging and Monitoring:**
-- Log all SSH connections and command executions
-- Monitor for unusual test patterns or failures
-- Implement alerting for security policy violations
-- Regular security audits of generated test suites
+Log SSH connections and command executions to track test activities. Monitor for unusual test patterns that might indicate misuse and set up alerts for security policy violations. Conduct regular audits of generated test suites to ensure they follow security guidelines.
 
 **🔒 Compliance Considerations:**
-- Ensure test activities comply with organizational security policies
-- Document test procedures for security audits
-- Implement approval workflows for high-risk test scenarios
-- Regular review of test permissions and access levels
+Test activities should align with your organization's security policies. Document test procedures for audit trails and implement approval workflows for high-risk test scenarios. Periodically review test permissions and access levels to maintain least privilege principles.
 
 ## Additional Security Resources
 

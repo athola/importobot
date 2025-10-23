@@ -83,3 +83,14 @@ Sample JSON structure:
 ## Integration with optimization benchmarks
 
 Align scenarios with the optimizer plan from [Mathematical Foundations](Mathematical-Foundations): reuse the same small/medium/large suites, track optimization preview latency alongside conversion timing, and store both JSON outputs when making decisions about the OptimizedConverter.
+
+### Cache Performance Considerations
+
+When benchmarking cache performance, note that the `PerformanceCache` implements optimizations to avoid double serialization. See [Performance Characteristics](Performance-Characteristics#json-cache-serialization-optimization) for details on:
+
+- Cache key generation strategy avoiding JSON serialization
+- Identity-based tracking for unhashable objects
+- Performance impact: >2x speedup on cache hits
+- Memory management and eviction policies
+
+Run `PerformanceCache().get_cache_stats()` during custom benchmarks to monitor cache hit/miss ratios alongside conversion timing.

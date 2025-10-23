@@ -10,6 +10,12 @@ from dataclasses import dataclass
 from typing import Any, Generic, TypeVar
 
 from importobot.caching.base import CacheConfig, CacheStrategy
+from importobot.config import (
+    CACHE_DEFAULT_CLEANUP_INTERVAL,
+    CACHE_MAX_CLEANUP_INTERVAL,
+    CACHE_MIN_CLEANUP_INTERVAL,
+    CACHE_SHORT_TTL_THRESHOLD,
+)
 from importobot.telemetry import TelemetryClient, get_telemetry_client
 from importobot.utils.logging import get_logger
 
@@ -41,6 +47,12 @@ class LRUCache(CacheStrategy[K, V]):
 
     TELEMETRY_BATCH_SIZE = 20
     TELEMETRY_FLUSH_SECONDS = 5.0
+
+    # Cleanup interval thresholds (in seconds)
+    MIN_CLEANUP_INTERVAL = CACHE_MIN_CLEANUP_INTERVAL
+    DEFAULT_CLEANUP_INTERVAL = CACHE_DEFAULT_CLEANUP_INTERVAL
+    MAX_CLEANUP_INTERVAL = CACHE_MAX_CLEANUP_INTERVAL
+    SHORT_TTL_THRESHOLD = CACHE_SHORT_TTL_THRESHOLD
 
     def __init__(
         self,
@@ -236,17 +248,28 @@ class LRUCache(CacheStrategy[K, V]):
             return 0
 
     def _determine_cleanup_interval(self) -> float | None:
-        """Choose a cleanup cadence based on TTL configuration."""
+        """Choose a cleanup cadence based on TTL configuration.
+
+        Strategy:
+        - No TTL: no cleanup needed
+        - Short TTLs (≤5s): clean at half-TTL, minimum 100ms to prevent CPU waste
+        - Long TTLs (>5s): clean at half-TTL, bounded between 5s and 5min
+
+        This balances responsiveness (purging stale entries promptly) with
+        overhead (avoiding excessive cleanup cycles).
+        """
         ttl = self.config.ttl_seconds
         if ttl is None or ttl <= 0:
             return None
-        # Balance responsiveness and overhead: clean at most every 300s and with
-        # a lower bound tuned to the configured TTL so short-lived caches purge
-        # quickly instead of waiting for the default 5-second cadence.
-        if ttl <= 5.0:
-            return max(ttl / 2, 0.1)
-        # For longer TTLs reuse the original scaling window (between 5s and 300s)
-        return max(5.0, min(ttl / 2, 300.0))
+
+        # Short-lived caches need aggressive cleanup to prevent stale entries
+        if ttl <= self.SHORT_TTL_THRESHOLD:
+            return max(ttl / 2, self.MIN_CLEANUP_INTERVAL)
+
+        # Long-lived caches use bounded scaling to balance overhead and responsiveness
+        return max(
+            self.DEFAULT_CLEANUP_INTERVAL, min(ttl / 2, self.MAX_CLEANUP_INTERVAL)
+        )
 
     def _optional_cleanup(self) -> None:
         """Run periodic cleanup for expired entries."""

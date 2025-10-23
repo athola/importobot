@@ -43,6 +43,58 @@ benchmark (`performance_benchmark --ci-mode`) against
 `ci/performance_thresholds.json`. Update the JSON alongside this document when
 raising or tightening limits.
 
+## JSON Cache Serialization Optimization
+
+The `PerformanceCache` implements a key optimization that avoids double serialization for JSON caching operations.
+
+### Implementation Details
+
+**File:** `src/importobot/services/performance_cache.py`
+
+The `_build_cache_key()` method uses a smart strategy to avoid double serialization:
+
+```python
+def _build_cache_key(self, namespace: str, data: Any) -> _CacheKey:
+    """Build an internal cache key without forcing serialization when possible."""
+    if isinstance(data, Hashable):
+        return _CacheKey(namespace, data, False)
+    return _CacheKey(namespace, id(data), True)
+```
+
+**Key insight:**
+- **Hashable types** (strings, tuples, numbers): Use the value directly as cache key
+- **Unhashable types** (dicts, lists): Use `id(data)` (object identity) as cache key
+
+This optimization ensures:
+- ✅ **No serialization needed for cache key generation**
+- ✅ **Only one serialization happens** (to get the cached JSON string)
+- ✅ **Cache lookups are O(1) dictionary operations**
+
+### Performance Impact
+
+Based on comprehensive test coverage:
+
+- **Cache Miss:** 1 serialization (same as no cache)
+- **Cache Hit:** 0 serializations (massive speedup)
+- **Speedup:** >2x faster than direct serialization for complex nested structures
+- **Memory:** Bounded by `max_cache_size`, identity refs cleaned on eviction
+
+### Identity Tracking
+
+For unhashable objects using identity-based keys, the cache maintains:
+- `_json_identity_refs`: Stores strong references to objects to prevent false cache hits from Python id reuse
+- Identity validation: Checks object identity before returning cached values
+
+### Test Coverage
+
+Six comprehensive tests in `tests/unit/services/test_json_cache_serialization.py` validate:
+1. Single serialization per unique object
+2. Identity-based distinction for identical content
+3. Performance improvement on cache hits
+4. Value-based keying for hashable types
+5. Memory safety during evictions
+6. Protection against false cache hits
+
 ## Validation Pipeline (v0.1.2)
 
 The full validation suite (`make validate`) takes around 4 minutes. Breakdown:

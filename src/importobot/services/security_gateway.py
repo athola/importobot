@@ -395,7 +395,7 @@ class SecurityGateway:
         *,
         correlation_id: str | None = None,
     ) -> FileOperationResult:
-        """Validate file operations with comprehensive security checks.
+        """Validate file operations against XSS, path traversal, and command injection.
 
         Args:
             file_path: Path to validate
@@ -515,7 +515,7 @@ class SecurityGateway:
             if not _BleachState.warned:
                 logger.info(
                     "Running in lightweight security mode without bleach dependency. "
-                    "Install bleach for comprehensive HTML sanitization."
+                    "Install bleach for HTML tag and attribute sanitization."
                 )
                 _BleachState.warned = True
             # Lightweight regex-based sanitization for performance

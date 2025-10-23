@@ -111,6 +111,7 @@ learned_bayesian_parameters.json
 wiki/benchmarks/format_detection_benchmark.json
 scripts/performance_results/
 scripts/benchmark_output/
+scripts/medallion_data/
 performance-metrics/
 performance_benchmark_results.json
 
@@ -118,3 +119,15 @@ performance_benchmark_results.json
 tests/generated/
 tests/temp/
 tests/output/
+
+# Application cache and configuration
+.importobot/
+
+# Generated documentation
+docs/
+
+# Development tools and analysis
+scripts/devtools/
+
+# Temporary test files
+tmp.robot

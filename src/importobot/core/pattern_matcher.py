@@ -750,6 +750,30 @@ class LibraryDetector:
             r"|string.*operation|string.*manipulation|convert.*case"
             r"|format.*string|convert.*to.*uppercase|convert.*to.*lowercase)\b"
         ),
+        "Telnet": (
+            r"\b(?:telnet|telnet.*connection|open.*telnet|telnet.*session"
+            r"|telnet.*command|telnet.*read|telnet.*write)\b"
+        ),
+        "AppiumLibrary": (
+            r"\b(?:mobile|appium|app|android|ios|device|mobile.*app|mobile.*testing"
+            r"|open.*application|mobile.*element|mobile.*click|touch|swipe|mobile.*automation)\b"
+        ),
+        "FtpLibrary": (
+            r"\b(?:ftp|file.*transfer|ftp.*connect|ftp.*upload|ftp.*download"
+            r"|ftp.*put|ftp.*get|ftp.*file)\b"
+        ),
+        "MQTTLibrary": (
+            r"\b(?:mqtt|message.*queue|publish|subscribe|broker|iot|mqtt.*message"
+            r"|mqtt.*topic|mqtt.*connect)\b"
+        ),
+        "RedisLibrary": (
+            r"\b(?:redis|cache|key.*value|redis.*connect|redis.*get|redis.*set"
+            r"|redis.*key|redis.*cache)\b"
+        ),
+        "MongoDBLibrary": (
+            r"\b(?:mongodb|mongo|nosql|document.*database|collection|mongo.*connect"
+            r"|mongo.*insert|mongo.*query|mongo.*update|mongo.*delete)\b"
+        ),
     }
 
     @classmethod

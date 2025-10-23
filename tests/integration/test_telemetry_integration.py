@@ -339,8 +339,9 @@ class TestTelemetryErrorResilience:
         cache = PerformanceCache(max_cache_size=100, ttl_seconds=0)
 
         # Should not raise despite failing exporter
-        result1 = cache.get_cached_string_lower({"test": "data"})
-        result2 = cache.get_cached_string_lower({"test": "data"})
+        test_data = {"test": "data"}
+        result1 = cache.get_cached_string_lower(test_data)
+        result2 = cache.get_cached_string_lower(test_data)
 
         # Cache should still work correctly
         # get_cached_string_lower returns str(data).lower()

@@ -2,11 +2,17 @@
 
 import json
 import re
+from pathlib import Path
 
 import pytest
 from robot.api import get_model
 
-from importobot.core.converter import convert_file, get_conversion_suggestions
+from importobot.core.converter import (
+    JsonToRobotConverter,
+    convert_file,
+    get_conversion_suggestions,
+)
+from importobot.core.suggestions.suggestion_engine import GenericSuggestionEngine
 from tests.utils import validate_test_script_structure  # type: ignore[import-untyped]
 
 
@@ -220,12 +226,15 @@ class TestHashFileExample:
         # Validate specific content from hash_file.json
         assert "hash" in content  # Test case name
         assert "Verify hashes match" in content  # Objective
-        assert "# In the target machine's terminal, create a file" in content
-        assert "# In target machine's terminal, get the sha of new file" in content
-        assert "# Use the hash command on the CLI" in content
+        assert "# Step: In the target machine's terminal, create a file" in content
+        assert (
+            "# Step: In target machine's terminal, get the sha of new file" in content
+        )
+        assert "# Step: Use the hash command on the CLI" in content
 
-        # Validate that SSHLibrary is imported (for CLI commands)
-        assert "Library             SSHLibrary" in content
+        # Validate that generic libraries are imported instead of SSHLibrary
+        assert "Library    OperatingSystem" in content
+        assert "Library    Process" in content
 
     # pylint: disable=redefined-outer-name
     def test_hash_file_robot_content_executes_without_syntax_errors(
@@ -328,6 +337,43 @@ class TestHashFileExample:
             "missing closing braces" in suggestion_texts
             or "unmatched braces" in suggestion_texts
             or "unmatched curly braces" in suggestion_texts
+        )
+
+    def test_hash_compare_example_auto_generates_comparison_step(self):
+        """Applying suggestions to hash_compare.json adds a comparison step."""
+        example_path = Path("examples/json/hash_compare.json")
+        with example_path.open(encoding="utf-8") as handle:
+            data = json.load(handle)
+
+        engine = GenericSuggestionEngine()
+        improved, changes = engine.apply_suggestions(data)
+
+        improved_case = improved[0]
+        steps = improved_case["testScript"]["steps"]
+        assert len(steps) == 5  # original 4 steps + generated comparison
+
+        comparison_step = steps[-1]
+        metadata = comparison_step.get("metadata", {})
+
+        assert metadata.get("generator") == "command_comparison"
+        assert "command_1" in comparison_step["testData"]
+        assert "command_2" in comparison_step["testData"]
+        assert (
+            comparison_step["description"].lower().startswith("verify command outputs")
+        )
+        assert any(
+            change.get("reason") == "Added command comparison verification step"
+            for change in changes
+        )
+
+        robot_output = JsonToRobotConverter().convert_json_data(improved_case)
+        assert (
+            "Run Process    sha256sum    /tmp/source.txt    stdout=${hash_source}"
+            in robot_output
+        )
+        assert (
+            "Run Process    sha256sum    /tmp/deploy/target.txt    stdout=${hash_target}"
+            in robot_output
         )
 
     # pylint: disable=redefined-outer-name

@@ -24,7 +24,7 @@ class CacheConfig:
     """Unified cache configuration."""
 
     max_size: int = 1000
-    ttl_seconds: int | None = None
+    ttl_seconds: float | None = None
     eviction_policy: EvictionPolicy = EvictionPolicy.LRU
     max_content_size_bytes: int = 50000
     enable_telemetry: bool = True

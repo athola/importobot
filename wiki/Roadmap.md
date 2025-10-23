@@ -29,7 +29,7 @@ This document outlines the future development plans for Importobot.
 ## Zephyr Scale Enhancement Plan (Future Work)
 
 ### Overview
-Enhance Importobot to support Zephyr Scale's sophisticated test case methodology while maintaining automated Robot Framework conversion.
+Zephyr Scale introduces complex test case structures with nested preconditions and parameterized steps. The enhancement plan focuses on field mapping for these structures while preserving the existing conversion pipeline.
 
 ### Key Enhancements Planned
 

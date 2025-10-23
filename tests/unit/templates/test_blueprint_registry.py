@@ -64,10 +64,20 @@ Sample
 
     registry.configure_template_sources([str(template_file)])
 
-    pattern = registry.find_step_pattern("cli", "setconfig")
+    # Find by library+keyword
+    pattern = registry.find_step_pattern(
+        library="SSHLibrary", keyword="Write", command_token="setconfig"
+    )
     assert pattern is not None
+    assert pattern.library == "SSHLibrary"
+    assert pattern.keyword == "Write"
     assert pattern.command_token == "setconfig"
     assert any("Read Until Regexp" in line for line in pattern.lines)
+
+    # Can also find by command token alone
+    pattern_by_token = registry.find_step_pattern(command_token="setconfig")
+    assert pattern_by_token is not None
+    assert pattern_by_token.command_token == "setconfig"
 
 
 def test_configure_template_sources_skips_invalid_helpers(tmp_path: Path) -> None:

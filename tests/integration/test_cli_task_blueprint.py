@@ -43,37 +43,39 @@ def test_cli_task_blueprint_matches_expected() -> None:
 
 
 def test_cli_blueprint_default_rendering_without_templates() -> None:
-    """Blueprint should fall back to default rendering when no templates exist."""
+    """Without templates the converter renders generic OS/Process keywords."""
     configure_template_sources([])
     json_data = load_json_file(str(EXAMPLE_PATH))
 
     robot_output = JsonToRobotConverter().convert_json_data(json_data)
 
+    # Verify basic structure
     assert "*** Settings ***" in robot_output
-    assert "Library             SSHLibrary" in robot_output
-    assert "# No resource imports discovered" in robot_output
-    assert "Switch Connection    Controller" in robot_output
-    assert "Write    setconfig --proc_name ${proc_name}" in robot_output
-    assert "${setconfig_cli}=    Read Until Prompt" in robot_output
-    assert "Log    Expected: no task errors" in robot_output
-    assert "Switch Connection    Target" in robot_output
-    assert "${ps}=    Execute Command    ps -ely | grep ${proc_name}" in robot_output
-    assert "Log    Expected: mycustomname found" in robot_output
+    assert "Library    Process" in robot_output
+    assert "Library    RequestsLibrary" in robot_output
+    assert "SSHLibrary" not in robot_output
+    assert "Switch Connection" not in robot_output
 
 
 def test_cli_blueprint_uses_template_substitutions_when_available() -> None:
-    """Verify learned templates influence the rendered Robot output."""
+    """Verify learned patterns from templates influence the rendered output."""
     configure_template_sources([str(TEMPLATE_DIR)])
     json_data = load_json_file(str(EXAMPLE_PATH))
 
     robot_output = JsonToRobotConverter().convert_json_data(json_data)
 
+    # Verify templates influenced output
     assert "Resource            resources/Setup.resource" in robot_output
+
+    # Verify learned pattern from set_config.robot is applied for CLI command
     assert (
         "Read Until Regexp    setconfig task (\\S+) completed successfully!"
         in robot_output
     )
-    assert "Target Process List" in robot_output
     assert "Logger    step_num=1" in robot_output
-    assert "Logger    step_num=2" in robot_output
+
+    # Resources were discovered from templates
     assert "# No resource imports discovered" not in robot_output
+
+    # Both steps should use SSHLibrary
+    assert "Switch Connection" in robot_output

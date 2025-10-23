@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import contextlib
 from collections import deque
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from itertools import islice
 from pathlib import Path
 from typing import Any, ClassVar
 
@@ -506,7 +508,14 @@ class BronzeLayer(BaseMedallionLayer):
         """Gather Bronze records from the in-memory store."""
         records: list[BronzeRecord] = []
 
-        for record_id, data in self._data_store.items():
+        if not filter_criteria:
+            source_iter: Iterable[tuple[str, dict[str, Any]]] = islice(
+                self._data_store.items(), 0, effective_limit
+            )
+        else:
+            source_iter = self._data_store.items()
+
+        for record_id, data in source_iter:
             layer_metadata = self._metadata_store.get(record_id)
             lineage_info = self._lineage_store.get(record_id)
 
@@ -527,28 +536,13 @@ class BronzeLayer(BaseMedallionLayer):
             if not record_metadata:
                 continue
 
-            cached_record = self._record_cache.get(record_id)
+            cached_record = self._resolve_cached_record(record_id)
             if cached_record is None:
-                lineage = self.get_record_lineage(record_id)
-                cached_record = self._build_bronze_record(
-                    data=data,
-                    record_metadata=record_metadata,
-                    format_detection=self._create_format_detection(
-                        layer_metadata.format_type,
-                        method="metadata_analysis",
-                        record_id=record_id,
-                    ),
-                    lineage=self._resolve_lineage(
-                        lineage,
-                        record_id=record_id,
-                        source_path=layer_metadata.source_path,
-                    ),
-                )
-                self._record_cache[record_id] = cached_record
+                continue
 
             records.append(cached_record)
 
-            if len(records) >= effective_limit:
+            if filter_criteria and len(records) >= effective_limit:
                 break
 
         return records
@@ -680,14 +674,22 @@ class BronzeLayer(BaseMedallionLayer):
 
     def _cache_bronze_record(self, record_id: str) -> None:
         """Cache immutable BronzeRecord for fast retrieval."""
+        self._resolve_cached_record(record_id)
+
+    def _resolve_cached_record(self, record_id: str) -> BronzeRecord | None:
+        """Return a cached BronzeRecord, constructing it if absent."""
+        cached = self._record_cache.get(record_id)
+        if cached is not None:
+            return cached
+
         data = self._data_store.get(record_id)
         metadata = self._metadata_store.get(record_id)
         if data is None or metadata is None:
-            return
+            return None
 
         record_metadata = self.get_record_metadata(record_id)
         if record_metadata is None:
-            return
+            return None
 
         lineage = self.get_record_lineage(record_id) or self._resolve_lineage(
             None,
@@ -706,6 +708,7 @@ class BronzeLayer(BaseMedallionLayer):
             lineage=lineage,
         )
         self._record_cache[record_id] = cached_record
+        return cached_record
 
     def _matches_filter(
         self,
