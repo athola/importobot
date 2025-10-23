@@ -49,14 +49,15 @@ from __future__ import annotations
 
 import base64
 import time
+import warnings
 from collections.abc import Callable, Iterator
 from enum import Enum
-from typing import Any, ClassVar, NamedTuple, Protocol
+from typing import Any, ClassVar, NamedTuple, Protocol, runtime_checkable
 from urllib.parse import parse_qs, urlparse
 
 import requests
 
-try:  # pragma: no cover - fallback for older Python
+try:  # pragma: no cover - for compatibility with older Python versions
     from importlib import metadata
 except ImportError:  # pragma: no cover
     import importlib_metadata as metadata  # type: ignore
@@ -91,6 +92,7 @@ def _default_user_agent() -> str:
     return f"importobot-client/{version}"
 
 
+@runtime_checkable
 class APISource(Protocol):
     """Protocol for platform-specific API clients."""
 
@@ -135,6 +137,16 @@ class BaseAPIClient:
                 }
             )
         if not verify_ssl:
+            warning_msg = (
+                f"TLS certificate verification disabled for API client "
+                f"targeting {api_url}. This is insecure and should only be "
+                "used in development/testing. Set verify_ssl=True or fix "
+                "certificate issues in production."
+            )
+            # Use Python warnings to ensure visibility even without logger configuration
+            # UserWarning is the standard category for security-related user warnings
+            warnings.warn(warning_msg, category=UserWarning, stacklevel=2)
+            # Also log for those who have logging configured
             logger.warning(
                 "TLS certificate verification disabled for client targeting %s",
                 api_url,
@@ -229,7 +241,7 @@ class BaseAPIClient:
                 return self._session.post(url, json=json or {}, headers=headers)
             except TypeError:
                 return self._session.post(url, json=json or {})
-        raise ValueError(f"Unsupported HTTP method '{method}'")
+        raise ValueError(f'Unsupported HTTP method "{method}"')
 
 
 class JiraXrayClient(BaseAPIClient):

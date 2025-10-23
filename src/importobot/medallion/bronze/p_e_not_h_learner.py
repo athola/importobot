@@ -12,18 +12,18 @@ from typing import Any
 import numpy as np
 
 # Local imports for test data (moved here to avoid import-outside-toplevel issues)
+from importobot.medallion.interfaces.enums import SupportedFormat
+
 try:
-    from importobot.medallion.interfaces.enums import SupportedFormat
     from tests.unit.medallion.bronze.test_format_detection_integration import (
         TestFormatDetectionIntegration,
     )
 except ImportError:
-    # Fallback for when test modules aren't available
-    SupportedFormat: Any = None  # type: ignore[assignment,no-redef]
-    TestFormatDetectionIntegration: Any = None  # type: ignore[assignment,no-redef]
+    # To handle cases where test modules are not available
+    TestFormatDetectionIntegration: Any = None  # type: ignore[no-redef]
 
 try:
-    from scipy import optimize  # type: ignore[import-untyped]
+    from scipy import optimize  # pyright: ignore[reportMissingModuleSource]
 
     _SCIPY_AVAILABLE = True
 except ImportError:
@@ -139,7 +139,7 @@ class PENotHLearner:
         # Initial guess: current hardcoded values
         x0 = np.array([self.parameters.a, self.parameters.b, self.parameters.c])
 
-        result = optimize.minimize(  # type: ignore[call-overload]
+        result = optimize.minimize(
             objective,
             x0,
             method="SLSQP",
@@ -265,8 +265,10 @@ def load_test_data_for_learning() -> list[tuple[dict[str, Any], Any]]:
     if SupportedFormat is None or TestFormatDetectionIntegration is None:
         return []
 
-    test_instance = TestFormatDetectionIntegration()
-    test_instance.setUp()
+    if TestFormatDetectionIntegration is not None:
+        test_instance = TestFormatDetectionIntegration()
+        if hasattr(test_instance, "setUp"):
+            test_instance.setUp()  # type: ignore[no-untyped-call]
 
     labeled_samples = []
 

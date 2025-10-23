@@ -18,9 +18,9 @@ Importobot uses Bayesian confidence scoring to detect test management formats. T
 
 ### Bayesian statistics & format detection
 
-The Bayesian scorer is the backbone of the format confidence pipeline. This section maintains a high-level picture; the detailed derivation, parameter tables, and regression notes can be found in the [Bayesian scorer mathematical review](Bayesian-Scorer-Mathematical-Review.md).
+The Bayesian scorer is the backbone of the format confidence pipeline. This section provides a high-level overview; the detailed derivation, parameter tables, and regression notes can be found in the [Bayesian scorer mathematical review](Bayesian-Scorer-Mathematical-Review.md).
 
-Posteriors are computed directly instead of trusting the legacy noisy-OR shim. Ambiguous payloads stop at the 1.5:1 cap; confident cases can extend to 3:1 because the scorer uses format-specific ambiguity adjustments retrieved from calibration runs. The quadratic decay for `P(E|¬H)` and the configurable epsilon prevent a divide-by-zero exception when evidence dries up. See the [Bayesian scorer mathematical review](Bayesian-Scorer-Mathematical-Review.md) for the derivations, parameter ranges, and regression coverage.
+Posteriors are computed directly instead of relying on the legacy noisy-OR approximation. Ambiguous payloads stop at the 1.5:1 cap; confident cases can extend to 3:1 because the scorer uses format-specific ambiguity adjustments retrieved from calibration runs. The quadratic decay for `P(E|¬H)` and the configurable epsilon prevent a divide-by-zero exception when evidence is insufficient. See the [Bayesian scorer mathematical review](Bayesian-Scorer-Mathematical-Review.md) for the derivations, parameter ranges, and regression coverage.
 
 The independence assumption is violated in practice—`testCase` and `steps` fields appear together in 78% of Zephyr exports we analyzed. This correlation doesn't break the model but could improve accuracy if quantified.
 
@@ -48,11 +48,11 @@ This differs from the planned format family models (see Future Directions) - the
 
 ## Empirical Validation & Benchmarks [IMPLEMENTED]
 
-Every release runs the fixtures in `tests/fixtures/format_detection_fixtures.py`; the results are in `wiki/benchmarks/format_detection_benchmark.json`. A 14/14 accuracy was preserved after the 0.1.2 rewrite and the ambiguous ratio was clamped at 1.5:1, as enforced by `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`. Average detection time nudged from 53.8 ms to 55.0 ms over 200 conversions on a single core, which was within the tolerance instituted during performance triage.
+Every release runs the fixtures in `tests/fixtures/format_detection_fixtures.py`; the results are in `wiki/benchmarks/format_detection_benchmark.json`. A 14/14 accuracy was preserved after the 0.1.2 rewrite and the ambiguous ratio was clamped at 1.5:1, as enforced by `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`. Average detection time nudged from 53.8 ms to 55.0 ms over 200 conversions on a single core, which was within the tolerance established during performance analysis.
 
 #### Numerical Stability
 
-There were possible issues with division by zero in Bayesian calculations. The fix was straightforward - use a configurable epsilon instead of a hardcoded value:
+There were possible issues with division by zero in Bayesian calculations. The solution involved - use a configurable epsilon instead of a hardcoded value:
 
 ```python
 # Before: Hardcoded epsilon
@@ -84,7 +84,7 @@ class _SecurityRateLimiter:
                 event_queue.popleft()
 ```
 
-The lock prevents race conditions, and the automatic cleanup prevents unbounded memory growth. The string cache uses `functools.lru_cache(maxsize=1000)` which is thread-safe for reads and bounded in memory.
+The lock prevents race conditions, and the automatic cleanup prevents uncontrolled memory growth. The string cache uses `functools.lru_cache(maxsize=1000)` which is thread-safe for reads and bounded in memory.
 
 #### Historical Bayesian Implementation
 The previous Bayesian confidence scoring system (2025 Q2-Q3) used a simplified approach:
@@ -93,14 +93,14 @@ The previous Bayesian confidence scoring system (2025 Q2-Q3) used a simplified a
 P(Format|Evidence) = P(Evidence|Format) × P(Format) / P(Evidence)
 ```
 
-This Bayesian posterior probability underpins Importobot's confidence scoring system:
+This Bayesian posterior probability forms the basis of Importobot's confidence scoring system:
 
 - **P(Format|Evidence)**: Our confidence score (posterior probability)
 - **P(Evidence|Format)**: Evidence strength given format (likelihood)
 - **P(Format)**: Format prevalence (prior probability)
 - **P(Evidence)**: Normalization factor (marginal probability)
 
-With a blend of structural, semantic, and statistical evidence, execute a simple Bayesian model averaging sequence:
+With a blend of structural, semantic, and statistical evidence, a simple Bayesian model averaging sequence is applied:
 ```
 P(Format|Evidence) = Σ P(Format|Evidence,Model_i) × P(Model_i|Evidence)
 ```
@@ -191,8 +191,8 @@ while temperature > min_temperature:
 ```
 
 **Properties**
-- **Global optimization:** Simulated annealing is only relied upon when gradient descent stalls; dry runs in `tests/performance/test_bronze_storage_performance.py` demonstrated that it finds the baseline objective in under 40k iterations.
-- **Temperature schedule:** Exponential cooling remains the default because slower schedules stretched runtimes past five minutes on the Bronze fixtures. Revisit once we have telemetry from real optimization previews. 
+- **Global optimization:** Simulated annealing is used when gradient descent stalls; dry runs in `tests/performance/test_bronze_storage_performance.py` demonstrated that it finds the baseline objective in under 40k iterations.
+- **Temperature schedule:** Exponential cooling remains the default because slower schedules extended runtimes beyond five minutes on the Bronze fixtures. Revisit once we have telemetry from real optimization previews. 
 - **Cost profile:** Every iteration pays for a single objective evaluation, so runtime still scales with the function cost (`O(iterations × objective)`).
 
 ### Gold Layer Optimization Benchmark Plan
@@ -219,8 +219,7 @@ program built around three pillars:
 
 Each benchmark run captures wall-clock timings, iteration counts, and conversion
 metrics through the `conversion_optimization` metadata channel exposed in
-`GoldLayer.ingest`. Results flow back into placeholder previews so future maintainers
-can activate production-grade optimization without re-plumbing the math layer.
+`GoldLayer.ingest`.Results flow back into placeholder previews so future maintainers can activate production-grade optimization without reconfiguring the mathematical components.
 
 ## Advanced Mathematical Approaches
 
@@ -585,7 +584,7 @@ For a convex function f: ℝⁿ → ℝ with Lipschitz continuous gradient ∇f,
 
 #### Application in Importobot
 
-The conversion-quality objective is approximated as convex when running the experimental optimization service (`src/importobot/services/optimization_service.py`). Step sizes are truncated using the Lipschitz estimates produced in the same module, but can revert to a conservative default when the bound is unknown. Treat the formal convergence claim as guidance for future tuning rather than a guarantee. Production deployments allow more data to be gathered for the hand-tuned heuristic.
+The conversion-quality objective is approximated as convex when running the experimental optimization service (`src/importobot/services/optimization_service.py`). Step sizes are truncated using the Lipschitz estimates produced in the same module, but can revert to a conservative default when the bound is unknown. The formal convergence claim serves as guidance for future tuning rather than a guarantee. Production deployments allow more data to be gathered for the hand-tuned heuristic.
 
 ### Bootstrap Consistency Theorem
 
@@ -602,7 +601,7 @@ The bootstrap distribution of a statistic θ̂* converges in probability to the 
 
 #### Application in Importobot
 
-Bootstrap summaries remain optional because large suites amplify compute cost. When wanting data analysis improvements, typically in offline analysis notebooks, the fixtures contain hundreds of cases so the asymptotics matter. Judge the improvements to data quality results against the performance cost. TODO: capture concrete coverage numbers from those notebooks before recommending the approach for day-to-day use.
+Bootstrap summaries remain optional because large suites amplify compute cost. For data analysis improvements, typically in offline analysis notebooks, the fixtures contain hundreds of cases so the asymptotics matter. Judge the improvements to data quality results against the performance cost. TODO: capture concrete coverage numbers from those notebooks before recommending the approach for day-to-day use.
 
 ### Genetic Algorithm Convergence
 
@@ -618,7 +617,7 @@ A genetic algorithm with elitism and mutation rate p_m > 0 converges to the glob
 4. **Convergence**: Stationary distribution concentrates on optimum
 
 #### Application in Importobot
-Our prototype genetic optimiser keeps an elite slice of the population and enforces a non-zero mutation rate, matching the textbook assumptions. Nevertheless, the gold layer still prefers gradient descent because we have not benchmarked the GA on real customer data. Consider the proof above a justification for keeping the implementation around while we decide whether it earns its keep.
+Our prototype genetic optimiser keeps an elite slice of the population and enforces a non-zero mutation rate, matching the textbook assumptions. Nevertheless, the gold layer still prefers gradient descent because we have not benchmarked the GA on real customer data. Consider the proof above a justification for keeping the implementation around while we decide whether it proves its value.
 
 ### Simulated Annealing Convergence
 
@@ -853,7 +852,7 @@ This approach provides a principled alternative to forcing all formats to meet a
 
 ## Summary
 
-Rigorous mathematical implementation is only beneficial when it meets expectations in production:
+Rigorous mathematical implementation is beneficial only when it meets production expectations:
 - Regression tests (`tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`, `tests/unit/medallion/bronze/test_independent_bayesian_scorer.py`) pin the confidence scorer to the 1.5:1 ambiguity cap and verify posterior normalisation.
-- Numerical guardrails (`LOG_LIKELIHOOD_FLOOR`, configurable epsilon values) stopped the divide-by-zero crashes we saw in 0.1.0 while keeping wall-clock performance flat on the CI fixtures.
-- Optimisation experiments remain provisional: benchmark harnesses and Monte Carlo notebooks are checked in, but the production gold layer still ships the tuned heuristic by default. **TODO:** carry telemetry from pilot runs into this chapter before calling the optimization stack “ready.”
+- Numerical guardrails (`LOG_LIKELIHOOD_FLOOR`, configurable epsilon values) prevented the divide-by-zero crashes we saw in 0.1.0 while keeping wall-clock performance flat on the CI fixtures.
+- Optimisation experiments remain provisional: benchmark harnesses and Monte Carlo notebooks are checked in, but the production gold layer still uses the tuned heuristic by default. **TODO:** carry telemetry from pilot runs into this chapter before calling the optimization stack “ready.”

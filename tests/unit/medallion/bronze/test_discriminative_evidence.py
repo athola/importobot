@@ -327,7 +327,7 @@ class TestDiscriminativeEvidenceCollection(unittest.TestCase):
 
     # Helper methods
 
-    def _extract_likelihoods(self, data: dict) -> dict[str, float]:
+    def _extract_likelihoods(self, data: dict[str, Any]) -> dict[str, float]:
         """Extract research-backed likelihoods with ratio capping for all formats."""
         # Clear all existing evidence profiles
         self.detector.evidence_accumulator.evidence_profiles.clear()

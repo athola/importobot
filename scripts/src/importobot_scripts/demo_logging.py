@@ -231,7 +231,7 @@ class DemoLogger:
 
 
 class ErrorHandler:
-    """Comprehensive error handling for demo operations."""
+    """Manages error handling for demo operations."""
 
     def __init__(self, logger: DemoLogger):
         """Initialize the ErrorHandler with a logger."""

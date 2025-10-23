@@ -8,7 +8,7 @@ Deploy Importobot locally, in containers, or inside CI jobs using the steps belo
 - `uv` package manager (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
 - Access to target format exports (Zephyr/JIRA/etc.) OR API credentials for direct integration
 
-> Note: Only local storage is supported. Cloud storage interfaces were designed but not implemented due to competing priorities.
+> Note: Only local storage is supported. Cloud storage interfaces were designed but not implemented due to other development commitments.
 
 ## Local Development
 

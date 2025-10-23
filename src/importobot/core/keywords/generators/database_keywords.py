@@ -185,7 +185,7 @@ class DatabaseKeywordGenerator(BaseKeywordGenerator):
         lines.append(keyword)
         return lines
 
-    def _extract_with_pattern(self, pattern: re.Pattern, text: str) -> str:
+    def _extract_with_pattern(self, pattern: re.Pattern[str], text: str) -> str:
         """Extract using compiled pattern from text."""
         match = pattern.search(text)
         return match.group(1) if match else ""

@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.3] - 2025-10-23
 
 ### Added
 - Security regression tests covering API token masking, TLS flag handling, request verb injection, and rate limiter bypass attempts (`tests/unit/test_api_security.py`).
@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Security Best Practices** documentation for API token management and monitoring
 
 ### Changed
-- CI enforces a minimum pytest collection count via `scripts/devtools/check_test_count.py` to keep reported coverage numbers honest.
+- CI enforces a minimum pytest collection count via `scripts/devtools/check_test_count.py` to ensure the accuracy of reported coverage numbers.
 - Blueprint registry now caches sanitised templates to disk and logs ingestion progress so large template sets no longer stall startup.
 - LRU cache evicts in measured batches, warns on pathological inserts, and avoids unbounded eviction loops.
 - Project ID validation now enforces signed 64-bit limits (raising `ConfigurationError` when exceeded) and documents the constraint.
@@ -77,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implemented thread-local context storage for concurrent instance support
 - Created three-tier caching system with LRU cache for patterns, disk cache for templates, and session cache for API calls
 - Enhanced blueprint learning with cross-template pattern recognition
+
 
 ## [0.1.1] - 2025-09-29
 
@@ -159,7 +160,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Technical Features
 - **Multi-format support** for Zephyr, JIRA/Xray, and TestLink test management systems
-- **Error handling** with fail-fast principles and comprehensive validation
+- **Error handling** with fail-fast principles and validation including security checks for SSH parameters, and static and runtime type checking
 - **Type safety** with full mypy compliance and runtime type checking
 - **Code quality** achieving 10.00/10.00 pylint score with complete linting
 - **CI/CD integration** with GitHub Actions for automated testing and quality checks

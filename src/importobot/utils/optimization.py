@@ -122,7 +122,9 @@ class GradientDescentOptimizer:
         return self._create_optimization_result(state)
 
     def _initialize_optimization_state(
-        self, initial_parameters: dict[str, float], objective_function: Callable
+        self,
+        initial_parameters: dict[str, float],
+        objective_function: Callable[..., float],
     ) -> Any:
         """Initialize optimization state variables."""
 
@@ -151,13 +153,13 @@ class GradientDescentOptimizer:
 
     def _compute_gradients(
         self,
-        objective_function: Callable,
+        objective_function: Callable[..., float],
         parameters: dict[str, float],
-        gradient_function: Callable | None,
+        gradient_function: Callable[..., dict[str, float]] | None,
     ) -> dict[str, float]:
         """Compute gradients using provided function or numerical approximation."""
         if gradient_function:
-            return gradient_function(parameters)  # type: ignore[no-any-return]
+            return gradient_function(parameters)
         return self._compute_numerical_gradients(objective_function, parameters)
 
     def _apply_regularization(

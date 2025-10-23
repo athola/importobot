@@ -164,7 +164,7 @@ class EvidenceAccumulator:
                         self.original_test_data
                     )
                 except Exception as e:
-                    # Fallback to basic metrics if complexity analysis fails
+                    # Use basic metrics if complexity analysis fails
                     logger.warning(
                         "Complexity analysis failed for %s: %s", format_name, e
                     )
@@ -495,7 +495,7 @@ class EvidenceAccumulator:
 
     def _apply_tie_breaking_rules(
         self, format1: str, format2: str, confidence: float
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Apply tie-breaking rules when formats have similar confidence."""
         reasons = []
 

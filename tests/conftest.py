@@ -112,8 +112,8 @@ def sample_zephyr_json():
 def cleanup_test_files(tmp_path):
     """Automatically clean up any test-generated files after each test.
 
-    This fixture ensures that tests don't leave behind artifacts by using
-    isolated temporary directories and proper cleanup tracking.
+    This fixture uses isolated temporary directories and proper cleanup tracking
+    to prevent tests from leaving behind artifacts.
     """
     _ = tmp_path  # Mark as used to avoid linting warning
     cleanup_files = []

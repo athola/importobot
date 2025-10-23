@@ -307,7 +307,7 @@ class EnterpriseTestGenerator:
         """Generate an enterprise test case."""
         # Validate scenario exists
         if not self.template_manager.validate_scenario(category, scenario):
-            # Fallback to available scenario
+            # If scenario is not valid, use a default one
             available_scenarios = self.template_manager.get_available_scenarios()
             if category in available_scenarios:
                 scenario = next(iter(available_scenarios[category].values()))[0]

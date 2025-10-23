@@ -53,7 +53,7 @@ class SystemResources:
         except Exception:
             pass
 
-        # Fallback assumptions
+        # Default assumptions
         return {
             "total_bytes": 8 * 1024 * 1024 * 1024,  # 8GB
             "available_bytes": 4 * 1024 * 1024 * 1024,  # 4GB

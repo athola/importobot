@@ -157,12 +157,15 @@ class LRUCache(CacheStrategy[K, V]):
         if len(self._cache) >= self.config.max_size:
             self._evict_lru()
 
+        eviction_attempts = 0
         while (
             max_cache_bytes > 0
             and self._total_size + content_size > max_cache_bytes
             and self._cache
+            and eviction_attempts < self.config.max_size
         ):
             self._evict_lru()
+            eviction_attempts += 1
 
         self._cache[key] = CacheEntry(value=value, timestamp=time.time())
         self._total_size += content_size

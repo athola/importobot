@@ -349,4 +349,4 @@ class FormatDetector:
         }
 
 
-__all__ = ["FormatDetector"]
+__all__ = ["FormatDetector", "FormatRegistry"]

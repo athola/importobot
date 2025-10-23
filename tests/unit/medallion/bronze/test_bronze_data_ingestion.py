@@ -588,7 +588,7 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
         assert preview["detected_format"] in ["zephyr", "generic"]
         assert preview["stats"]["total_keys"] > 0
 
-    def preview_ingestion_dict(self, data):
+    def preview_ingestion_dict(self, data: dict[str, Any]) -> dict[str, Any]:
         """Helper method to preview dictionary data."""
         # This would be implemented in the actual class
         temp_file = self.temp_dir / "temp_preview.json"

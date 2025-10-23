@@ -29,7 +29,7 @@ def _detect_caller_module(depth: int = 2) -> str:
     for _ in range(depth):
         if frame is None:
             break
-        frame = frame.f_back  # type: ignore[assignment]
+        frame = frame.f_back
     module_name = "importobot"
     if frame and frame.f_globals.get("__name__"):
         module_name = frame.f_globals["__name__"]

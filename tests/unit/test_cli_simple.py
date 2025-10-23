@@ -42,14 +42,16 @@ class TestCLIBasics:
         """Test CLI fails with insufficient arguments."""
         with pytest.raises(SystemExit) as e:
             main()
-        assert e.value.code == 2  # type: ignore[attr-defined]
+        assert isinstance(e.value, SystemExit)
+        assert e.value.code == 2
 
     @patch("sys.argv", ["importobot", "too", "many", "args", "here"])
     def test_too_many_args(self):
         """Test CLI fails with too many arguments."""
         with pytest.raises(SystemExit) as e:
             main()
-        assert e.value.code == 2  # type: ignore[attr-defined]
+        assert isinstance(e.value, SystemExit)
+        assert e.value.code == 2
 
 
 class TestInputDetection:
@@ -334,7 +336,7 @@ class TestCLIUserErrorScenarios:
             check=False,
         )
 
-        # User should get comprehensive help
+        # User should get detailed help
         assert result.returncode == 0
         assert "usage:" in result.stdout.lower()
         assert "convert" in result.stdout.lower()
@@ -468,7 +470,8 @@ class TestErrorHandling:
                     with pytest.raises(SystemExit) as exc_info:
                         main()
 
-                    assert exc_info.value.code == 1  # type: ignore[attr-defined]
+                    assert isinstance(exc_info.value, SystemExit)
+                    assert exc_info.value.code == 1
                     stderr_output = captured_stderr.getvalue()
                     assert (
                         "An unexpected error occurred: Unexpected error"

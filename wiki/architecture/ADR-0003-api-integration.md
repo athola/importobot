@@ -89,7 +89,7 @@ class ZephyrClient(BaseAPIClient):
 ### API Discovery Process
 
 1. **Pattern Discovery**: Try endpoint patterns until finding working configuration
-2. **Authentication Fallback**: Attempt multiple auth strategies automatically
+2. **Secondary Authentication Strategies**: Attempt multiple auth strategies automatically
 3. **Pagination Adaptation**: Test page sizes (100, 200, 250, 500) to find optimal limits
 4. **Payload Structure Handling**: Extract results from various response formats
 
@@ -141,7 +141,7 @@ class ZephyrClient(BaseAPIClient):
 
 1. **Backward Compatibility**: Existing file-based conversion unchanged
 2. **Gradual Adoption**: Users can adopt API integration incrementally
-3. **Fallback Options**: File import remains available when API integration fails
+3. **Alternative Options**: File import remains available when API integration fails
 4. **Configuration Migration**: Environment variables provide easy credential management
 
 ## Future Enhancements

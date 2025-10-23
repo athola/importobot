@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from importobot.medallion.bronze.format_detector import FormatDetector
 from importobot.medallion.interfaces.enums import SupportedFormat
 from tests.fixtures.format_detection_fixtures import FormatTestDataGenerator
 
 
-def _collect_likelihoods(detector: FormatDetector, data: dict) -> dict[str, float]:
+def _collect_likelihoods(
+    detector: FormatDetector, data: dict[str, Any]
+) -> dict[str, float]:
     """Helper that mirrors the accumulator pipeline for deterministic likelihoods."""
     accumulator = detector.evidence_accumulator
     accumulator.evidence_profiles.clear()
@@ -47,7 +51,7 @@ def test_ambiguous_input_remains_low_ratio() -> None:
 def test_confident_formats_show_clear_separation() -> None:
     """Representative format samples must dominate alternative likelihoods."""
     detector = FormatDetector()
-    samples: list[tuple[str, dict, float]] = [
+    samples: list[tuple[str, dict[str, Any], float]] = [
         (
             "ZEPHYR",
             {

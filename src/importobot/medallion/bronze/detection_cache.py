@@ -406,4 +406,4 @@ class DetectionCache:
             )
 
 
-__all__ = ["DetectionCache"]
+__all__ = ["DetectionCache", "time"]

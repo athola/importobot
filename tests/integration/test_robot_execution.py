@@ -3,7 +3,7 @@
 import json
 
 from importobot.core.converter import convert_file
-from tests.test_helpers import (  # type: ignore[import-untyped]
+from tests.test_helpers import (
     assert_robot_content_equivalent,
     assert_robot_framework_syntax_valid,
 )

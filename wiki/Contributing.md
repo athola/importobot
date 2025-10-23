@@ -77,7 +77,7 @@ make clean
 make deep-clean  # For more thorough cleanup
 ```
 
-## Repository structure
+
 
 ## Project Structure
 

@@ -424,7 +424,7 @@ class TestTelemetryDisabledPerformance:
 
         for _ in range(100):
             start = time.time()
-            disabled_client.record_cache_metrics("cache", hits=100, misses=50)
+            disabled_client.record_cache_metrics("cache", hits=100, misses=50)  # type: ignore[no-untyped-call]
             disabled_times.append(time.time() - start)
 
             start = time.time()

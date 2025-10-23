@@ -15,7 +15,7 @@ If you discover a security vulnerability within Importobot, please follow these 
 
 1. **Do not create a public issue** - Vulnerabilities should be reported privately.
 2. **Preferred:** Open a [private security advisory](https://github.com/athola/importobot/security/advisories/new) on GitHub so maintainers are paged immediately.
-3. **Fallback:** If you must email, write to security@importobot.com *after* confirming the mailbox is monitored for your disclosure window (expect a human acknowledgement within one business day). Include:
+3. **Alternative Method:** If you must email, write to security@importobot.com *after* confirming the mailbox is monitored for your disclosure window (expect a human acknowledgement within one business day). Include:
    - Description of the vulnerability
    - Steps to reproduce the issue
    - Potential impact of the vulnerability
@@ -108,7 +108,7 @@ October&nbsp;2025, Importobot applies the following defenses:
   validated with the same controls, and binary or high-risk resources are
   ignored.
 - **Credential handling:** Password parameters are encrypted in memory using an
-  optional Fernet key (with a logged warning fallback) to keep plaintext secrets
+  optional Fernet key (a warning is logged if a key is not provided) to keep plaintext secrets
   out of diagnostic logs.
 - **Secrets detection:** Test generation performs regex-based scanning of
   templates and dynamic data, aborting when API keys, JWT tokens, or passwords

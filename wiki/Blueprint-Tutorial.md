@@ -15,7 +15,7 @@ When you run Importobot with `--robot-template`, it scans your existing Robot fi
 In practice, this means:
 - Web UI tests use your team's naming conventions (`${TEST_USER}`, `${TEST_PASSWORD}`)
 - API calls follow your session management patterns
-- Database queries use your preferred connection cleanup approach
+- Database queries use your team's connection cleanup approach
 
 ## Step 1: Prepare Your Template Files
 
@@ -53,7 +53,7 @@ cp tests/db/*.robot templates/database/
 cp tests/ops/*.robot templates/infrastructure/
 ```
 
-### Template Naming Conations
+### Template Naming Conventions
 
 Use descriptive names that indicate the domain:
 

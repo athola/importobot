@@ -42,7 +42,7 @@ tests/
 
 ### What Are Invariant Tests?
 
-Property-based tests validate rules that must hold regardless of input. Define a ruleset and allow Hypothesis to crack it.
+Property-based tests validate rules that must hold regardless of input. Define a ruleset and use Hypothesis to find counterexamples.
 
 ### Key Invariants
 
@@ -55,7 +55,7 @@ Property-based tests validate rules that must hold regardless of input. Define a
 **Format Detection Invariants**
 - Confidence scores always between 0.0 and 1.0
 - Same input produces same detection result (determinism)
-- Invalid input handled gracefully
+- Invalid input is handled robustly
 - Detection timing is consistent
 
 **Conversion Pipeline Invariants**
@@ -205,7 +205,7 @@ Falsifying example: test_confidence_bounds_invariant(
 
 **Steps to Debug**:
 
-1. **Examine the minimal example** - Hypothesis automatically shrinks to simplest failing case
+1. **Examine the minimal example** - Hypothesis automatically simplifies to the smallest failing case
 2. **Reproduce manually** - Run the function with that exact input
 3. **Verify the invariant** - Is the property actually always true?
 4. **Fix the code or test**:
@@ -214,14 +214,14 @@ Falsifying example: test_confidence_bounds_invariant(
 
 ### Best Practices
 
-✅ **Do**:
+**Do**:
 - Focus on properties, not specific examples
 - Test edge cases (empty collections, None, special characters)
 - Use `assume()` to filter invalid inputs
 - Handle expected exceptions explicitly
 - Keep tests fast (reasonable size limits)
 
-❌ **Don't**:
+**Don't**:
 - Test implementation details
 - Ignore expected exceptions
 - Generate extremely large data structures
@@ -469,10 +469,10 @@ Tests run automatically on:
 ### Test Requirements
 
 All tests must:
-- ✅ Pass linting (10.00/10 pylint score)
-- ✅ Pass all test cases
-- ✅ Maintain or improve code coverage
-- ✅ Run in < 2 minutes for fast feedback
+- Pass linting (10.00/10 pylint score)
+- Pass all test cases
+- Maintain or improve code coverage
+- Run in < 2 minutes for fast feedback
 
 ### Coverage Requirements
 

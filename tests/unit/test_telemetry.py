@@ -1,4 +1,4 @@
-"""Comprehensive unit tests for telemetry module.
+"""Unit tests for telemetry module.
 
 Following TDD principles, these tests verify:
 - Environment variable parsing with edge cases

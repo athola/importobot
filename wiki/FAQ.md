@@ -8,7 +8,7 @@ Frequently asked questions about Importobot.
 Importobot converts structured test exports (Zephyr today) into Robot Framework suites.
 
 ### Why use Importobot?
-Eliminates manual copy/paste work when migrating test cases, preserves metadata, and highlights items needing manual review.
+Eliminates manual copy/paste work when migrating test cases, retains original metadata, and highlights items needing manual review.
 
 ### What formats does Importobot support?
 Zephyr, TestRail, Xray, and TestLink formats are supported with JSON and XML inputs.
@@ -36,7 +36,7 @@ Run `uv run pytest` in the repo. The suite should pass.
 `uv run importobot --batch input_dir/ output_dir/`
 
 ### How does Importobot handle different test steps?
-Intent-based parsing maps steps to Robot keywords; ambiguous cases appear in the output for review.
+Parsing based on intent maps steps to Robot keywords; ambiguous cases appear in the output for review.
 
 ### Can I customize the output?
 Yes:
@@ -48,7 +48,7 @@ Yes:
 Provide documentation files (SOPs, READMEs, field guides) describing your test data format. Importobot extracts field definitions, aliases, and examples to improve parsing accuracy.
 
 ### What are blueprint templates?
-Blueprint templates learn patterns from your existing Robot Framework files and apply them to new conversions for consistency with your team's style.
+Blueprint templates learn patterns from your existing Robot Framework files and apply them to new conversions to maintain consistency with your team's style.
 
 ## Troubleshooting
 
@@ -61,7 +61,7 @@ Check the path and prefer absolute paths when scripting.
 3. Run `robot --dryrun` to surface syntax issues quickly.
 
 ### How do I handle custom fields?
-Custom fields are preserved in metadata but do not change the generated steps.
+Custom fields are retained in metadata but do not change the generated steps.
 
 ### What if my JSON format is different?
 Minor variations are fine. For major differences, open an issue with a sample export.
@@ -80,7 +80,7 @@ Read the API Reference plus the contributing notes on format parsers.
 ## Security
 
 ### Is Importobot secure?
-Yes. It runs locally, validates paths, and blocks obvious traversal attempts.
+Yes. It runs locally, validates paths, and prevents directory traversal attacks.
 
 ### How does Importobot handle sensitive information?
 It copies your test data verbatim. Scrub secrets before exporting if you do not want them in the Robot output.

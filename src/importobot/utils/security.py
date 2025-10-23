@@ -407,7 +407,7 @@ class SecurityValidator:
                         },
                         "INFO",
                     )
-                except Exception as exc:  # pragma: no cover - encryption fallback
+                except Exception as exc:  # pragma: no cover - encryption failed
                     logger.warning("Failed to encrypt password parameter: %s", exc)
 
         return warnings
@@ -431,7 +431,7 @@ class SecurityValidator:
                 try:
                     parameters[key] = self.credential_manager.encrypt_credential(value)
                     warnings.append(f"✓ {key} encrypted in memory to reduce exposure")
-                except Exception as exc:  # pragma: no cover - encryption fallback
+                except Exception as exc:  # pragma: no cover - encryption failed
                     logger.warning(
                         "Failed to encrypt credential parameter %s: %s",
                         key,

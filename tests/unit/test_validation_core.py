@@ -1,7 +1,7 @@
 """Unit tests for validation core module.
 
 Tests the core validation functions and utilities.
-Following TDD principles with comprehensive validation testing.
+Following TDD principles with thorough validation testing.
 """
 
 from typing import Any
@@ -384,7 +384,7 @@ class TestPathValidationUtilities:
         assert result.endswith("test.txt")
         assert result.startswith("/")  # Should be absolute
 
-    def test_sanitize_robot_string_comprehensive(self):
+    def test_sanitize_robot_string_thorough(self):
         """Test Robot Framework string sanitization."""
         # Test newline handling
         result = sanitize_robot_string("line1\nline2")
@@ -443,8 +443,8 @@ class TestIntegrationScenarios:
         assert validated_dict == json_data
         assert validated_string == json_string
 
-    def test_validation_context_comprehensive_scenario(self):
-        """Test ValidationContext in comprehensive scenario."""
+    def test_validation_context_full_scenario(self):
+        """Test ValidationContext in a full scenario."""
         with pytest.raises(ValidationError) as exc_info:
             with ValidationContext() as ctx:
                 # Mix of different validation types

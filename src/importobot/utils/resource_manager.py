@@ -101,7 +101,9 @@ class ResourceManager:
 
         self.logger.info("Resource validation passed for %d tests", total_tests)
 
-    def _validate_test_count(self, total_tests: int, validation_errors: list) -> None:
+    def _validate_test_count(
+        self, total_tests: int, validation_errors: list[str]
+    ) -> None:
         """Validate test count against limits."""
         if total_tests <= 0:
             validation_errors.append("total_tests must be greater than 0")
@@ -112,7 +114,7 @@ class ResourceManager:
             )
 
     def _validate_disk_space(
-        self, total_tests: int, output_dir: str, validation_errors: list
+        self, total_tests: int, output_dir: str, validation_errors: list[str]
     ) -> None:
         """Validate disk space requirements."""
         try:
@@ -133,7 +135,9 @@ class ResourceManager:
         except (OSError, AttributeError) as e:
             self.logger.warning("Could not check disk usage: %s", e)
 
-    def _validate_memory_usage(self, total_tests: int, validation_errors: list) -> None:
+    def _validate_memory_usage(
+        self, total_tests: int, validation_errors: list[str]
+    ) -> None:
         """Validate memory usage requirements."""
         try:
             memory = psutil.virtual_memory()

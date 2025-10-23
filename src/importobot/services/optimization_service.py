@@ -104,7 +104,7 @@ class OptimizationService:
         chosen_algorithm = algorithm or self.default_algorithm
         if chosen_algorithm not in self.SUPPORTED_ALGORITHMS:
             raise ValueError(
-                f"Unsupported algorithm '{chosen_algorithm}'. Supported algorithms: "
+                f'Unsupported algorithm "{chosen_algorithm}". Supported algorithms: '
                 f"{sorted(self.SUPPORTED_ALGORITHMS)}"
             )
         scenario = OptimizationScenario(
@@ -144,7 +144,7 @@ class OptimizationService:
         """Execute a registered optimization scenario and return the outcome."""
         self._purge_expired_entries()
         if name not in self._scenarios:
-            raise KeyError(f"Unknown optimization scenario '{name}'")
+            raise KeyError(f'Unknown optimization scenario "{name}"')
 
         scenario = self._scenarios[name]
         self._scenarios.move_to_end(name)
@@ -159,7 +159,7 @@ class OptimizationService:
             return self._run_genetic_algorithm(name, scenario, genetic_optimizer)
 
         raise ValueError(
-            f"Unsupported algorithm '{chosen_algorithm}'. Supported algorithms: "
+            f'Unsupported algorithm "{chosen_algorithm}". Supported algorithms: '
             f"{sorted(self.SUPPORTED_ALGORITHMS)}"
         )
 

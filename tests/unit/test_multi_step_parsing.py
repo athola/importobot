@@ -1,4 +1,4 @@
-"""Comprehensive tests for multi-step parsing capabilities.
+"""Tests for multi-step parsing capabilities.
 
 Tests enhanced step parsing that can map single JSON steps to multiple Robot Framework "
         "commands,

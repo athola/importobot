@@ -74,7 +74,7 @@ class EvidenceCollector:
         total_weight = sum(item.weight.value for item in evidence_items)
         return evidence_items, total_weight
 
-    def _extract_all_keys(self, data: Any, keys: set | None = None) -> set:
+    def _extract_all_keys(self, data: Any, keys: set[str] | None = None) -> set[str]:
         """Recursively extract all keys from nested dict structure.
 
         This ensures we check for actual field presence, not substring matches.
@@ -125,7 +125,7 @@ class EvidenceCollector:
         return patterns
 
     def _collect_required_keys(
-        self, all_keys: set, patterns: dict[str, Any]
+        self, all_keys: set[str], patterns: dict[str, Any]
     ) -> list[EvidenceItem]:
         return self._collect_field_evidence(
             all_keys,
@@ -135,7 +135,7 @@ class EvidenceCollector:
         )
 
     def _collect_optional_keys(
-        self, all_keys: set, patterns: dict[str, Any]
+        self, all_keys: set[str], patterns: dict[str, Any]
     ) -> list[EvidenceItem]:
         return self._collect_field_evidence(
             all_keys,
@@ -145,7 +145,7 @@ class EvidenceCollector:
         )
 
     def _collect_structure_indicators(
-        self, all_keys: set, patterns: dict[str, Any]
+        self, all_keys: set[str], patterns: dict[str, Any]
     ) -> list[EvidenceItem]:
         return self._collect_field_evidence(
             all_keys,
@@ -156,7 +156,7 @@ class EvidenceCollector:
 
     def _collect_field_evidence(
         self,
-        all_keys: set,
+        all_keys: set[str],
         fields: list[Any],  # List of FieldDefinition objects
         *,
         source: EvidenceSource,
@@ -236,7 +236,7 @@ class EvidenceCollector:
     def _collect_field_patterns(
         self,
         evidence_items: list[EvidenceItem],
-        all_keys: set,
+        all_keys: set[str],
         data: dict[str, Any],
         patterns: dict[str, Any],
     ) -> None:

@@ -7,11 +7,11 @@
 **Status**: Ready for production
 
 **Highlights**
-- **Application Context Pattern**: Replaced global variables with thread-local context for better test isolation
+- **Application Context Pattern**: Replaced global variables with thread-local context to improve test isolation
 - **Unified Caching System**: New `importobot.caching` module with LRU cache implementation
-- **Blueprint-driven templates**: Learn patterns from existing Robot files and apply them consistently across conversions
+- **Template-driven conversions**: Learn patterns from existing Robot files and apply them consistently across conversions
 - **Schema-aware parsing**: Extract field definitions from customer documentation (SOPs, READMEs) for improved accuracy
-- **Enhanced file operations**: Comprehensive JSON examples covering system administration tasks
+- **Improved file operations**: Expanded JSON examples for system administration tasks like file operations, SSH, and validation.
 - **Documentation cleanup**: Removed AI-generated content patterns and added authentic technical details
 - **Code quality improvements**: Removed pylint, streamlined linting workflow, improved test isolation
 - Configuration parsing handles control characters and whitespace inputs
@@ -20,7 +20,7 @@
 **New Features (added during 0.1.3 development)**
 
 ### JSON Template System
-- Blueprint-driven Robot Framework rendering with cross-template learning
+- Template-driven Robot Framework rendering with cross-template learning
 - Templates learn patterns from existing Robot files and apply them consistently
 - Support for custom template files via `--robot-template` flag
 - Improved pattern extraction and template matching algorithms
@@ -33,8 +33,8 @@
 
 ### Enhanced File Examples
 - Expanded JSON example library with realistic system administration tasks
-- Complete coverage for file operations, SSH commands, and validation workflows
-- Comprehensive test coverage for all example files
+- Comprehensive examples for file operations, SSH commands, and validation workflows
+- Test coverage for all example files, ensuring reliability.
 - Added sanitization scripts for customer data privacy
 
 **Documentation Improvements (0.1.3 ongoing)**
@@ -52,9 +52,9 @@
 **Bug Fixes**
 
 ### Configuration Resilience
-- Enhanced `_parse_project_identifier()` in `config.py` to handle control characters and whitespace-only inputs gracefully
+- Enhanced `_parse_project_identifier()` in `config.py` to handle control characters and whitespace-only inputs effectively
 - Added `raw.isspace()` check to treat whitespace-only strings as empty after stripping
-# Updated default-selection logic in `resolve_api_ingest_config()` so CLI arguments that don't parse to valid identifiers use environment variables instead
+# Updated default-selection logic in `resolve_api_ingest_config()`: CLI arguments that don't parse to valid identifiers now default to environment variables.
 - Fixes edge cases where non-printable characters (like `\x85`) would cause configuration parsing failures
 
 ### Test Coverage Completion
@@ -82,7 +82,7 @@ if not raw or raw.isspace():
 cli_project = getattr(args, "project", None)
 project_name, project_id = _parse_project_identifier(cli_project)
 
-# If CLI project doesn't parse to a valid identifier, fall back to environment
+# If CLI project doesn't parse to a valid identifier, default to environment variables
 if project_name is None and project_id is None:
     env_project = fetch_env(f"{prefix}_PROJECT")
     project_name, project_id = _parse_project_identifier(env_project)
@@ -123,9 +123,9 @@ cache = LRUCache(config)
 - No breaking changes - all existing functionality preserved
 - Better handling of malformed input data
 - More predictable default behavior for configuration issues
-- Internal API changes: caching and context management are now more robust
+- Internal API changes: caching and context management have been improved through a new thread-local application context and a unified LRU caching system.
 
----
+-- -
 
 ## v0.1.2 (October 2025)
 
@@ -136,7 +136,7 @@ cache = LRUCache(config)
 **Highlights**
 - Bronze layer in-memory cache for 50-80% performance improvement on repeated queries
 - Validation performance optimization with adaptive thresholds
-- Developer experience improvements with fast-lint options and progress indicators
+- Enhanced developer experience with fast-lint options and progress indicators
 - Code organization improvements with restructured test utilities and benchmarks
 
 **New Features**
@@ -146,7 +146,7 @@ cache = LRUCache(config)
 - Default capacity: 1024 records (~1MB memory footprint)
 - Optional TTL for cache expiration
 - 50-80% performance improvement for repeated queries
-- Graceful degradation when storage backend unavailable
+- Continued operation when storage backend unavailable
 
 **Configuration**:
 ```python
@@ -180,15 +180,15 @@ Environment variables:
 **Improvements**
 
 ### Documentation
-- Comprehensive Bronze layer cache configuration guide in Migration Guide
-- Memory impact analysis with usage examples
+- Bronze layer cache configuration guide in Migration Guide, with memory impact analysis.
+- Memory impact analysis, including usage examples
 - Default value rationale documented in config.py
 - Validation performance section added to Performance Characteristics wiki
 - CI/CD timing guidance in Deployment Guide
 
 ### Testing
 - All 1,946 tests passing with 0 skips
-- Comprehensive test coverage including unit, integration, invariant, and generative tests
+- Test coverage including unit, integration, invariant, and generative tests.
 - 4 benchmark tests covering new functionality
 - Property-based tests with Hypothesis
 - Invariant tests for architectural guarantees
@@ -198,15 +198,15 @@ Environment variables:
 ### Developer Experience
 - Makefile targets include timing estimates
 - Progress indicators during validation
-- Fast-lint option for development workflow
+- Fast-lint option for streamlined development
 - Clear error messages and logging
 
 **Breaking Changes**
-**None**. This release is fully backward compatible with v0.1.1.
+**None**. This release is backward compatible with v0.1.1.
 
 **Migration Notes**
 Upgrading from v0.1.0 or v0.1.1:
-1. **No code changes required** - defaults preserve existing behavior
+1. **No code changes required** - defaults maintain existing behavior
 2. **Memory usage increase** - Budget ~1MB additional memory (default cache)
 3. **Performance improvement** - Automatic 50-80% speedup for repeated queries
 4. **Optional tuning** - Profile your workload and adjust if needed
@@ -253,26 +253,26 @@ Planned improvements:
 ## v0.1.1 (September 2025)
 
 **Highlights**
-- Added medallion Bronze/Silver/Gold layers so raw exports, curated models, and Robot output each have their own checkpoints.
+- Added medallion Bronze/Silver/Gold layers to provide distinct checkpoints for raw exports, curated models, and Robot output.
 - Expanded format detection with a Bayesian confidence score and support for Xray, TestLink, TestRail, and a generic JSON path.
 - Tightened up the CLI with argument validation and conversion strategy hooks; the same engine now powers the interactive demo.
 - Extended the keyword libraries (SSH, API, database, web) and wired the suggestion engine into the standard conversion flow.
 
 **Quality & tooling**
-- Cleaned up `.gitignore`, added `make clean` / `make deep-clean`, and removed orphaned artifacts.
+- Cleaned up `.gitignore`, added `make clean` / `make deep-clean`, and removed untracked artifacts.
 - Brought ruff, mypy, and pylint back to zero warnings; unused imports and long docstrings were fixed instead of silenced.
 - Repaired flaky tests by restructuring shared fixtures and data files; the suite now runs 1,153 checks reliably.
 - Documented every Makefile target in the help output after repeatedly rediscovering them.
 
 **Infrastructure notes**
-- Added uv-managed dependency locks and baseline Ansible/Terraform scripts for environments that need repeatable VM setup.
+- Added uv-managed dependency locks and baseline Ansible/Terraform scripts for environments that require repeatable VM setup.
 - Introduced shared utilities (`utils/data_analysis.py`, pattern extraction, step comments) to remove duplicate code across converters and demos.
 
 **Interactive demo**
-- New `scripts/interactive_demo.py` shows cost comparisons, performance data, and conversion walkthroughs. It reuses the same helpers as the CLI so behaviour stays aligned between sales demos and production runs.
+- New `scripts/interactive_demo.py` shows cost comparisons, performance data, and conversion walkthroughs. It reuses the same helpers as the CLI so behavior remains consistent between sales demonstrations and production environments.
 
 **January 2025 cleanup (carried into this release)**
-- Removed ~200 lines of legacy compatibility code, enforced public/private API boundaries with explicit `__all__`, and trimmed extra layers of indirection.
+- Removed ~200 lines of legacy compatibility code, enforced public/private API boundaries with explicit `__all__`, and reduced unnecessary layers of indirection.
 - Refreshed documentation (README, PLAN, CLAUDE, wiki) to match the current architecture.
 
 ## v0.1.0 (Initial Release - September 2025)

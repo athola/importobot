@@ -3,6 +3,7 @@
 import json
 import tempfile
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -75,7 +76,7 @@ class TestIntegration:
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".json", delete=False, encoding="utf-8"
         ) as input_file:
-            sample_data: dict = {}
+            sample_data: dict[str, Any] = {}
             json.dump(sample_data, input_file)
             input_filename = input_file.name
 

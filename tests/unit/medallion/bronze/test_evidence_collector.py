@@ -42,7 +42,7 @@ if "importobot.medallion.bronze.format_detector" not in sys.modules:
     sys.modules["importobot.medallion.bronze.format_detector"] = stub_module
 
 try:
-    import numpy  # type: ignore
+    import numpy
 
     _ = numpy  # Mark as used to avoid F401
 except ImportError as exc:  # pragma: no cover - optional dependency guard

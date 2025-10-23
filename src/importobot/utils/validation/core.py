@@ -53,7 +53,7 @@ def validate_not_empty(value: Any, param_name: str) -> None:
         raise ValidationError(f"{param_name} cannot be empty or whitespace")
 
 
-def validate_json_dict(data: Any) -> dict:
+def validate_json_dict(data: Any) -> dict[str, Any]:
     """Validate that data is a dictionary suitable for JSON.
 
     Args:
@@ -111,7 +111,7 @@ def validate_json_size(json_string: Any, max_size_mb: int = 10) -> None:
         )
 
 
-def require_valid_input(*param_validations: Any) -> Callable:
+def require_valid_input(*param_validations: Any) -> Callable[..., Any]:
     """Validate function parameters using the given validations.
 
     Args:

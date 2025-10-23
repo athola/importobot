@@ -7,7 +7,7 @@ Current performance numbers for Importobot conversions. Use these to spot regres
 - Single-file conversion: 0.4s avg, 0.5s p95 (medium complexity)
 - Bulk conversion (25 files): 2.8s total (~0.11s per file)
 - Parallel conversion (10 workers): 6.1s total
-- Memory footprint: RSS Δ 1–3 MB for single conversion, <40 MB during bulk
+- Memory footprint: Resident Set Size (RSS) increase of 1–3 MB for single conversion, <40 MB during bulk
 - Cache stats (`PerformanceCache`): 85% hit rate in medallion preview runs
 
 Source: `uv run python -m importobot_scripts.benchmarks.performance_benchmark` on
@@ -45,7 +45,7 @@ raising or tightening limits.
 
 ## JSON Cache Serialization Optimization
 
-The `PerformanceCache` implements a key optimization that avoids double serialization for JSON caching operations.
+The `PerformanceCache` implements an important optimization that avoids double serialization for JSON caching operations.
 
 ### Implementation Details
 
@@ -65,17 +65,17 @@ def _build_cache_key(self, namespace: str, data: Any) -> _CacheKey:
 - **Hashable types** (strings, tuples, numbers): Use the value directly as cache key
 - **Unhashable types** (dicts, lists): Use `id(data)` (object identity) as cache key
 
-This optimization ensures:
-- ✅ **No serialization needed for cache key generation**
-- ✅ **Only one serialization happens** (to get the cached JSON string)
-- ✅ **Cache lookups are O(1) dictionary operations**
+This optimization provides the following benefits:
+- **No serialization needed for cache key generation**
+- **Only one serialization happens** (to get the cached JSON string)
+- **Cache lookups are O(1) dictionary operations**
 
 ### Performance Impact
 
-Based on comprehensive test coverage:
+Based on test coverage:
 
 - **Cache Miss:** 1 serialization (same as no cache)
-- **Cache Hit:** 0 serializations (massive speedup)
+- **Speedup:** >2x faster than direct serialization for complex nested structures
 - **Speedup:** >2x faster than direct serialization for complex nested structures
 - **Memory:** Bounded by `max_cache_size`, identity refs cleaned on eviction
 
@@ -87,7 +87,7 @@ For unhashable objects using identity-based keys, the cache maintains:
 
 ### Test Coverage
 
-Six comprehensive tests in `tests/unit/services/test_json_cache_serialization.py` validate:
+Six tests in `tests/unit/services/test_json_cache_serialization.py` validate:
 1. Single serialization per unique object
 2. Identity-based distinction for identical content
 3. Performance improvement on cache hits
@@ -106,7 +106,7 @@ The full validation suite (`make validate`) takes around 4 minutes. Breakdown:
 | Type checking | 5s | mypy covers main package plus scripts subproject |
 | Security scans | 15s | detect-secrets + bandit |
 
-Pylint's 95-second analysis prevents production issues by catching code duplicates, complexity violations, and import errors before they reach users.
+Pylint's 95-second analysis helps prevent production issues by identifying code duplicates, complexity violations, and import errors before they reach users.
 
 ### Quick validation during development
 

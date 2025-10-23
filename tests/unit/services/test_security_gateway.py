@@ -110,13 +110,13 @@ class TestSecurityGatewayRateLimiting:
             gateway.validate_file_operation(test_file, "read")
 
 
-class TestSecurityGatewayBleachFallback:
+class TestSecurityGatewayBleachNotAvailable:
     """Tests for bleach optional dependency handling."""
 
     def test_string_sanitization_without_bleach(
         self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
     ) -> None:
-        """Fallback sanitizer should warn when bleach is unavailable."""
+        """Sanitizer should warn when bleach is unavailable."""
         monkeypatch.setattr(security_gateway, "bleach", None, raising=False)
         monkeypatch.setattr(
             security_gateway._BleachState, "warned", False, raising=False

@@ -206,7 +206,7 @@ class SandboxedTemplate(string.Template):
         safe_mapping: dict[str, str] = {}
         for key, value in substitutions.items():
             if not _is_safe_placeholder_name(key):
-                logger.warning("Dropping unsafe placeholder '%s' in template", key)
+                logger.warning('Dropping unsafe placeholder "%s" in template', key)
                 continue
             safe_mapping[key] = _coerce_template_value(value)
         return self.safe_substitute(safe_mapping)

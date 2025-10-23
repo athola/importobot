@@ -13,12 +13,12 @@ This guide covers the switch to the medallion architecture introduced in v0.1.1.
 
 ## Migration from v0.1.2 to v0.1.3
 
-Version 0.1.3 introduces architectural improvements and new features with **no breaking changes** to the public API. All existing code will continue to work without modification.
+Version 0.1.3 introduces architectural enhancements and new features with **no breaking changes** to the public API. All existing code will continue to work without modification.
 
 ### What's New in v0.1.3
 
 #### Application Context Pattern
-- **Thread-local context** replaces global variables for better test isolation
+- **Thread-local context** replaces global variables to improve test isolation
 - **Concurrent instance support** enables multiple Importobot instances in the same process
 - **No action required** - existing code automatically benefits from improved isolation
 - **Need to migrate custom globals?** Follow the [Context Pattern Migration Guide](architecture/Context-Pattern-Migration) for a step-by-step process covering legacy singleton removal, thread handling, and testing updates.
@@ -35,7 +35,7 @@ Version 0.1.3 introduces architectural improvements and new features with **no b
 
 #### Configuration Improvements
 - Project identifiers now handle control characters and whitespace
-- CLI arguments that don't parse to valid identifiers revert to environment variables
+- CLI arguments that don't parse to valid identifiers default to environment variables
 - All existing environment variables continue to work unchanged
 
 ### Migration Checklist
@@ -78,7 +78,7 @@ uv run importobot \
 #### Architecture Updates
 - **Removed global state**: All modules now use thread-local application context
 - **Unified caching**: New `importobot.caching` module with LRU implementation
-- **Cleaner imports**: Improved module organization and dependency management
+- **Streamlined imports**: Improved module organization and dependency management
 
 #### Code Quality Improvements
 - **Removed pylint**: Now using ruff/mypy only for streamlined linting
@@ -86,7 +86,7 @@ uv run importobot \
 - **Test coverage**: All 1,946 tests pass with 0 skips
 
 #### Dependency Updates
-- **Robot Framework compatibility**: Removed `robot.utils` compatibility shim
+- **Robot Framework compatibility**: Removed `robot.utils` compatibility layer
 - **Optional dependencies**: Cleaner separation of core vs. advanced features
 
 ### Migration Steps
@@ -152,7 +152,7 @@ uv run importobot \
 
 **Internal Changes**:
 - Removed `WeightedEvidenceBayesianScorer` (was never public API)
-- Removed `robot.utils` compatibility shim - use Robot Framework directly if needed
+- Removed `robot.utils` compatibility layer - use Robot Framework directly if needed
 - Changed terminology from "fallback" to "default/secondary" helpers (old terms still work but deprecated)
 
 **Migration Required Only If**:
@@ -411,18 +411,18 @@ Previous internal implementations have been removed:
 2. **Introduce Bronze ingestion**
    - Wrap raw JSON ingestion with `BronzeLayer.ingest` to capture metadata,
      validation warnings, and lineage.
-   - Persist the returned `ProcessingResult` or propagate the `LayerMetadata`
+   - Persist the returned `ProcessingResult` or pass the `LayerMetadata`
      to downstream systems.
 
 3. **Plan Silver standardization**
    - Until MR2 ships, keep the existing normalization logic. Once available,
-     migrate the logic into `SilverLayer` helpers and feed Gold a curated payload.
+     migrate the logic into `SilverLayer` helpers and provide Gold with a curated payload.
 
 4. **Enable Gold previews**
    - Instantiate `GoldLayer` and pass curated suites plus the Bronze/Silver
      metadata.
-   - Add a `conversion_optimization` block to metadata when wanting the preview
-     optimization to run (see User Guide for a full example).
+   - Add a `conversion_optimization` block to metadata to enable preview
+     optimization (see User Guide for a full example).
    - Read the `optimization_preview` payload from `ProcessingResult.details` and
      decide whether to promote the suggested parameters.
 
@@ -448,7 +448,7 @@ Previous internal implementations have been removed:
 
 ## Alternative Strategy
 
-If the medallion layers uncover blocking issues, revert to the previous
+If the medallion layers uncover blocking issues, return to the previous
 `JsonToRobotConverter` path while undergoing triage. Disable the
 `conversion_optimization` metadata flag to skip the optimizer entirely.
 

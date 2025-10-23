@@ -54,7 +54,7 @@ class GenericTestFileParser(TestFileParser):
 
         return tests
 
-    def _get_step_field_names(self) -> frozenset:
+    def _get_step_field_names(self) -> frozenset[str]:
         """Get cached set of step field names."""
         # Using an instance-level cache to avoid lru_cache on methods
         return self._step_field_names_cache

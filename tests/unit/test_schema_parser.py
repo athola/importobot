@@ -5,13 +5,18 @@ import tempfile
 from pathlib import Path
 
 import pytest
+from _pytest.logging import LogCaptureFixture
 
+import importobot.core.schema_parser as sp
+from importobot import exceptions
+from importobot.config import MAX_SCHEMA_FILE_SIZE_BYTES
 from importobot.core.schema_parser import (
     MAX_SCHEMA_SECTIONS,
     FieldSchema,
     SchemaDocument,
     SchemaParser,
     SchemaRegistry,
+    get_schema_registry,
     register_schema_file,
 )
 
@@ -124,7 +129,7 @@ class TestSchemaParser:
         Objective
 
         The "Objective" section should capture final state and rationale.
-        Objective: fallback description that should not be used.
+        Objective: default description that should not be used.
         """
 
         parser = SchemaParser()
@@ -149,8 +154,8 @@ class TestSchemaParser:
         assert field is not None
         assert "What should happen" in field.description
 
-    def test_description_pattern_colon_fallback(self):
-        """Colon-separated definitions act as the final fallback."""
+    def test_description_pattern_colon_default(self):
+        """Colon-separated definitions act as a secondary parsing mechanism."""
         content = """
         Precondition
 
@@ -344,3 +349,113 @@ class TestSchemaParser:
         doc = parser.parse_content(content)
 
         assert len(doc.fields) == MAX_SCHEMA_SECTIONS
+
+    def test_multiple_schema_files_merged_in_registry(self, tmp_path: Path) -> None:
+        """Test that multiple schema files are merged correctly."""
+        # Create first schema file with test execution fields
+        schema1 = tmp_path / "test_fields.md"
+        schema1.write_text(
+            """
+            Step
+
+            The "Step" section describes the action to perform
+
+            Expected Result
+
+            The "Expected Result" section describes what should happen
+            """,
+            encoding="utf-8",
+        )
+
+        # Create second schema file with metadata fields
+        schema2 = tmp_path / "metadata_fields.md"
+        schema2.write_text(
+            """
+            Priority
+
+            The "Priority" field indicates test importance
+
+            Category
+
+            The "Category" field groups related tests
+            """,
+            encoding="utf-8",
+        )
+
+        # Register both files
+        registry = get_schema_registry()
+        registry.clear()  # Start fresh
+
+        register_schema_file(schema1)
+        register_schema_file(schema2)
+
+        # Should be able to find fields from both files
+        assert registry.find_field("Step") is not None
+        assert registry.find_field("Expected Result") is not None
+        assert registry.find_field("Priority") is not None
+        assert registry.find_field("Category") is not None
+
+        # Verify all fields are accessible
+        all_fields = registry.get_all_fields()
+        field_names = {f.name for f in all_fields}
+        assert "Step" in field_names
+        assert "Expected Result" in field_names
+        assert "Priority" in field_names
+        assert "Category" in field_names
+
+
+class TestSchemaParserSecurity:
+    """Security-focused tests for schema parser."""
+
+    def test_parse_content_rejects_pathologically_large_input(self):
+        """Test that extremely large inputs are rejected before processing."""
+        parser = SchemaParser()
+
+        # 10x the limit should be rejected
+        huge_content = "A" * (MAX_SCHEMA_FILE_SIZE_BYTES * 10 + 1)
+
+        with pytest.raises(exceptions.ValidationError) as exc_info:
+            parser.parse_content(huge_content)
+
+        assert "exceeds maximum reasonable size" in str(exc_info.value)
+
+    def test_parse_content_truncates_moderately_large_input(self):
+        """Test that moderately large inputs are truncated, not rejected."""
+        parser = SchemaParser()
+
+        # Create content that exceeds the limit but is reasonable to process
+        # Use 50KB over a hypothetical 10KB limit to keep test fast
+        test_limit = 10_000
+        large_content = "Name\n\nTest field\n\n" + "A" * (test_limit + 5000)
+
+        # Mock the limit temporarily
+        original_limit = sp.MAX_SCHEMA_CONTENT_LENGTH
+        sp.MAX_SCHEMA_CONTENT_LENGTH = test_limit
+
+        try:
+            # Should not raise, but will truncate
+            doc = parser.parse_content(large_content)
+            assert doc is not None
+        finally:
+            sp.MAX_SCHEMA_CONTENT_LENGTH = original_limit
+
+    def test_file_size_limit_error_suggests_splitting(
+        self, tmp_path: Path, caplog: LogCaptureFixture
+    ) -> None:
+        """Test that file size errors suggest splitting into multiple files."""
+        large_file = tmp_path / "huge_schema.md"
+        large_file.write_text(
+            "A" * (MAX_SCHEMA_FILE_SIZE_BYTES + 100), encoding="utf-8"
+        )
+
+        parser = SchemaParser()
+        doc = parser.parse_file(large_file)
+
+        # Should return empty document
+        assert doc.fields == {}
+
+        # Should suggest splitting files
+        assert any(
+            "splitting into multiple files" in record.message
+            for record in caplog.records
+        )

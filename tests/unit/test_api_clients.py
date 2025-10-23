@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 from collections.abc import Callable
 from typing import Any, cast
 
@@ -730,3 +731,82 @@ def test_zephyr_client_discovers_two_stage_strategy(
     # Progress callback should capture both key and detail stages.
     assert len(progress_calls) >= 2
     assert any(call.get("total") == 2 for call in progress_calls)
+
+
+class TestAPIClientSecurityWarnings:
+    """Test that security warnings are properly raised for insecure configurations."""
+
+    def test_ssl_verification_disabled_raises_user_warning(self) -> None:
+        """Verify that disabling SSL verification raises a UserWarning."""
+        with pytest.warns(UserWarning, match="TLS certificate verification disabled"):
+            JiraXrayClient(
+                api_url="https://insecure.example.com",
+                tokens=["test-token"],
+                user=None,
+                project_name="TEST",
+                project_id=None,
+                max_concurrency=None,
+                verify_ssl=False,  # This should trigger UserWarning
+            )
+
+    def test_ssl_verification_enabled_no_warning(self) -> None:
+        """Verify that SSL verification enabled does not raise warnings."""
+        # Catch all warnings to verify none are raised for SSL
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", UserWarning)
+            try:
+                # Should not raise UserWarning
+                JiraXrayClient(
+                    api_url="https://secure.example.com",
+                    tokens=["test-token"],
+                    user=None,
+                    project_name="TEST",
+                    project_id=None,
+                    max_concurrency=None,
+                    verify_ssl=True,
+                )
+            except UserWarning:
+                pytest.fail("UserWarning was raised when verify_ssl=True")
+
+    def test_zephyr_client_ssl_warning(self) -> None:
+        """Verify ZephyrClient also raises UserWarning for disabled SSL."""
+        with pytest.warns(UserWarning, match="TLS certificate verification disabled"):
+            ZephyrClient(
+                api_url="https://insecure-zephyr.example.com",
+                tokens=["test-token"],
+                user=None,
+                project_name="TEST",
+                project_id=None,
+                max_concurrency=None,
+                verify_ssl=False,
+            )
+
+    def test_warning_message_includes_guidance(self) -> None:
+        """Verify warning message provides guidance to users."""
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.simplefilter("always", UserWarning)
+
+            TestRailClient(
+                api_url="https://insecure-testrail.example.com",
+                tokens=["test-token"],
+                user="test@example.com",
+                project_name="TEST",
+                project_id=None,
+                max_concurrency=None,
+                verify_ssl=False,
+            )
+
+            # Find the UserWarning about SSL
+            ssl_warnings = [
+                w
+                for w in caught_warnings
+                if issubclass(w.category, UserWarning)
+                and "TLS certificate verification" in str(w.message)
+            ]
+            assert len(ssl_warnings) > 0
+
+            warning_msg = str(ssl_warnings[0].message)
+            # Check that the message includes helpful guidance
+            assert "development/testing" in warning_msg.lower()
+            assert "production" in warning_msg.lower()
+            assert "verify_ssl=True" in warning_msg

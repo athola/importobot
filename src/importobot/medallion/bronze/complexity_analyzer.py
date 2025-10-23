@@ -147,7 +147,7 @@ class ComplexityAnalyzer:
 
     @classmethod
     def _count_types_recursive(
-        cls, obj: Any, depth: int = 0, visited: set | None = None
+        cls, obj: Any, depth: int = 0, visited: set[int] | None = None
     ) -> dict[str, int]:
         """Recursively count types in data structure."""
         if visited is None:
@@ -172,7 +172,11 @@ class ComplexityAnalyzer:
 
     @classmethod
     def _count_dict_types(
-        cls, obj: dict, type_counts: dict[str, int], depth: int, visited: set
+        cls,
+        obj: dict[str, Any],
+        type_counts: dict[str, int],
+        depth: int,
+        visited: set[int],
     ) -> None:
         """Count types in dictionary values."""
         type_counts["dict"] = type_counts.get("dict", 0) + 1
@@ -182,7 +186,7 @@ class ComplexityAnalyzer:
 
     @classmethod
     def _count_list_types(
-        cls, obj: list, type_counts: dict[str, int], depth: int, visited: set
+        cls, obj: list[Any], type_counts: dict[str, int], depth: int, visited: set[int]
     ) -> None:
         """Count types in list items."""
         type_counts["list"] = type_counts.get("list", 0) + 1
@@ -213,7 +217,7 @@ class ComplexityAnalyzer:
 
     @classmethod
     def _count_text_recursive(
-        cls, obj: Any, depth: int = 0, visited: set | None = None
+        cls, obj: Any, depth: int = 0, visited: set[int] | None = None
     ) -> tuple[int, int]:
         """Recursively count text characters in data structure."""
         if visited is None:
@@ -236,7 +240,9 @@ class ComplexityAnalyzer:
         return cls._count_other_chars(obj)
 
     @classmethod
-    def _count_dict_chars(cls, obj: dict, depth: int, visited: set) -> tuple[int, int]:
+    def _count_dict_chars(
+        cls, obj: dict[str, Any], depth: int, visited: set[int]
+    ) -> tuple[int, int]:
         """Count characters in dictionary."""
         text_chars = 0
         total_chars = 0
@@ -252,7 +258,9 @@ class ComplexityAnalyzer:
         return text_chars, total_chars
 
     @classmethod
-    def _count_list_chars(cls, obj: list, depth: int, visited: set) -> tuple[int, int]:
+    def _count_list_chars(
+        cls, obj: list[Any], depth: int, visited: set[int]
+    ) -> tuple[int, int]:
         """Count characters in list."""
         text_chars = 0
         total_chars = 0

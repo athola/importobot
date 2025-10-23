@@ -34,13 +34,15 @@ from importobot.utils.validation import (
     validate_safe_path,
 )
 
+bleach: Any | None = None
+_BLEACH_AVAILABLE = False
 try:
-    import bleach  # type: ignore[import-untyped]
+    import bleach as _bleach_module  # type: ignore[import-untyped]
 
+    bleach = _bleach_module
     _BLEACH_AVAILABLE = True
 except ImportError:  # pragma: no cover - lightweight security mode
-    bleach = None  # type: ignore[assignment]
-    _BLEACH_AVAILABLE = False
+    pass
 
 
 class _BleachState:
@@ -315,7 +317,7 @@ class SecurityGateway:
                 retry_after,
             )
             raise SecurityError(
-                f"Security operation '{operation}' temporarily rate limited. "
+                f'Security operation "{operation}" temporarily rate limited. '
                 f"Retry after {retry_after:.2f}s"
             )
 

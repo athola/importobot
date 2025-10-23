@@ -31,11 +31,11 @@ class TestEvidenceWeight(unittest.TestCase):
 
     def test_evidence_weight_enum_values(self):
         """Test that EvidenceWeight enum has correct integer values."""
-        assert EvidenceWeight.NONE == 0
-        assert EvidenceWeight.WEAK == 1
-        assert EvidenceWeight.MODERATE == 2
-        assert EvidenceWeight.STRONG == 3
-        assert EvidenceWeight.UNIQUE == 5
+        assert EvidenceWeight.NONE == 0  # type: ignore[comparison-overlap]
+        assert EvidenceWeight.WEAK == 1  # type: ignore[comparison-overlap]
+        assert EvidenceWeight.MODERATE == 2  # type: ignore[comparison-overlap]
+        assert EvidenceWeight.STRONG == 3  # type: ignore[comparison-overlap]
+        assert EvidenceWeight.UNIQUE == 5  # type: ignore[comparison-overlap]
 
     def test_evidence_weight_ordering(self):
         """Test that evidence weights can be properly ordered."""
@@ -423,7 +423,7 @@ class TestFormatRegistry(unittest.TestCase):
 
         def register_format(suffix):
             try:
-                format_def = create_format(suffix)
+                format_def = create_format(suffix)  # type: ignore[no-untyped-call]
                 test_registry.register_format(format_def)
                 completed_registrations.append(suffix)
                 time.sleep(0.001)  # Small delay to encourage race conditions
