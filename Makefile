@@ -26,6 +26,8 @@ help:
 	@echo "  example-basic           - Basic login example"
 	@echo "  example-login           - Browser login example"
 	@echo "  example-suggestions     - Hash file example with suggestions"
+	@echo "  example-hash-compare    - Hash compare example showing auto-added comparison step"
+	@echo "  hash-compare            - Alias for example-hash-compare"
 	@echo "  example-parameters      - Parameter mapping example with cat_file.json"
 	@echo "  example-user-registration   - Web form automation example"
 	@echo "  example-file-transfer       - SSH file transfer example"
@@ -162,7 +164,7 @@ clean:
 
 # Examples
 .PHONY: examples
-examples: example-basic example-login example-suggestions example-user-registration example-file-transfer example-database-api example-usage-basic example-usage-advanced example-usage-cli
+examples: example-basic example-login example-suggestions example-hash-compare example-user-registration example-file-transfer example-database-api example-usage-basic example-usage-advanced example-usage-cli
 
 .PHONY: example-basic
 example-basic:
@@ -189,42 +191,59 @@ example-suggestions:
 	@cat examples/robot/hash_example.robot
 	uv run importobot --apply-suggestions --robot-template examples/resources/ examples/json/hash_file.json examples/robot/hash_applied.robot
 	@cat examples/robot/hash_applied.robot
-	uv run robot --dryrun examples/robot/hash_applied.robot
+	uv run robot --pythonpath examples/resources --dryrun examples/robot/hash_applied.robot
 	@printf '\n---- cat_small_file suggestions ----\n'
 	@cat examples/json/cat_small_file.json
 	uv run importobot examples/json/cat_small_file.json examples/robot/cat_small_file_example.robot
 	@cat examples/robot/cat_small_file_example.robot
 	uv run importobot --apply-suggestions --robot-template examples/resources/ examples/json/cat_small_file.json examples/robot/cat_small_file_applied.robot
 	@cat examples/robot/cat_small_file_applied.robot
-	uv run robot --dryrun examples/robot/cat_small_file_applied.robot
+	uv run robot --pythonpath examples/resources --dryrun examples/robot/cat_small_file_applied.robot
 	@printf '\n---- chmod_file suggestions ----\n'
 	@cat examples/json/chmod_file.json
 	uv run importobot examples/json/chmod_file.json examples/robot/chmod_file_example.robot
 	@cat examples/robot/chmod_file_example.robot
 	uv run importobot --apply-suggestions --robot-template examples/resources/ examples/json/chmod_file.json examples/robot/chmod_file_applied.robot
 	@cat examples/robot/chmod_file_applied.robot
-	uv run robot --dryrun examples/robot/chmod_file_applied.robot
+	uv run robot --pythonpath examples/resources --dryrun examples/robot/chmod_file_applied.robot
 	@printf '\n---- cp_file suggestions ----\n'
 	@cat examples/json/cp_file.json
 	uv run importobot examples/json/cp_file.json examples/robot/cp_file_example.robot
 	@cat examples/robot/cp_file_example.robot
 	uv run importobot --apply-suggestions --robot-template examples/resources/ examples/json/cp_file.json examples/robot/cp_file_applied.robot
 	@cat examples/robot/cp_file_applied.robot
-	uv run robot --dryrun examples/robot/cp_file_applied.robot
+	uv run robot --pythonpath examples/resources --dryrun examples/robot/cp_file_applied.robot
 	@printf '\n---- mkdir suggestions ----\n'
 	@cat examples/json/mkdir.json
 	uv run importobot examples/json/mkdir.json examples/robot/mkdir_example.robot
 	@cat examples/robot/mkdir_example.robot
 	uv run importobot --apply-suggestions --robot-template examples/resources/ examples/json/mkdir.json examples/robot/mkdir_applied.robot
 	@cat examples/robot/mkdir_applied.robot
-	uv run robot --dryrun examples/robot/mkdir_applied.robot
+	uv run robot --pythonpath examples/resources --dryrun examples/robot/mkdir_applied.robot
+
+.PHONY: example-hash-compare
+example-hash-compare:
+	$(info $(NEWLINE)==================== Running hash compare example ====================$(NEWLINE))
+	@mkdir -p examples/robot
+	@printf '---- hash_compare original ----\n'
+	@cat examples/json/hash_compare.json
+	IMPORTOBOT_DISABLE_BLUEPRINTS=1 uv run importobot examples/json/hash_compare.json examples/robot/hash_compare_example.robot
+	@printf '\n---- hash_compare generated robot (no suggestions) ----\n'
+	@cat examples/robot/hash_compare_example.robot
+	@printf '\n---- hash_compare suggestions ----\n'
+	IMPORTOBOT_DISABLE_BLUEPRINTS=1 uv run importobot --apply-suggestions examples/json/hash_compare.json examples/robot/hash_compare_applied.robot
+	@cat examples/robot/hash_compare_applied.robot
+	uv run robot --pythonpath examples/resources --dryrun examples/robot/hash_compare_applied.robot
+
+.PHONY: hash-compare
+hash-compare: example-hash-compare
 	@printf '\n---- rm_file suggestions ----\n'
 	@cat examples/json/rm_file.json
 	uv run importobot examples/json/rm_file.json examples/robot/rm_file_example.robot
 	@cat examples/robot/rm_file_example.robot
 	uv run importobot --apply-suggestions --robot-template examples/resources/ examples/json/rm_file.json examples/robot/rm_file_applied.robot
 	@cat examples/robot/rm_file_applied.robot
-	uv run robot --dryrun examples/robot/rm_file_applied.robot
+	uv run robot --pythonpath examples/resources --dryrun examples/robot/rm_file_applied.robot
 
 .PHONY: example-user-registration
 example-user-registration:

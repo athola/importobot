@@ -8,11 +8,12 @@ Addresses performance bottlenecks identified in the staff review:
 
 from __future__ import annotations
 
-import hashlib
 import importlib
 import json
 import time
 from collections import OrderedDict
+from collections.abc import Hashable
+from dataclasses import dataclass
 from typing import Any, Protocol, cast
 from weakref import WeakKeyDictionary
 
@@ -42,6 +43,18 @@ DEFAULT_MAX_SIZE = _int_from_env(
 DEFAULT_TTL_SECONDS = _int_from_env(
     "IMPORTOBOT_PERFORMANCE_CACHE_TTL_SECONDS", 0, minimum=0
 )
+
+
+@dataclass(frozen=True)
+class _CacheKey:
+    """Internal cache key encapsulating namespace and identity semantics."""
+
+    namespace: str
+    value: Any
+    uses_identity: bool
+
+    def __hash__(self) -> int:  # pragma: no cover - dataclass default hash is fine
+        return hash((self.namespace, self.value))
 
 
 class PerformanceCache:
@@ -77,10 +90,12 @@ class PerformanceCache:
         # TTL evicts stale entries automatically; defaults to
         # `IMPORTOBOT_PERFORMANCE_CACHE_TTL_SECONDS`.
 
-        self._string_cache: dict[str, str] = {}
-        self._string_cache_expiry: dict[str, float] = {}
-        self._json_cache: dict[str, str] = {}
-        self._json_cache_expiry: dict[str, float] = {}
+        self._string_cache: dict[_CacheKey, str] = {}
+        self._string_identity_refs: dict[_CacheKey, Any] = {}
+        self._string_cache_expiry: dict[_CacheKey, float] = {}
+        self._json_cache: dict[_CacheKey, str] = {}
+        self._json_identity_refs: dict[_CacheKey, Any] = {}
+        self._json_cache_expiry: dict[_CacheKey, float] = {}
         self._object_cache: WeakKeyDictionary = WeakKeyDictionary()
         self._manual_cache: dict[str, Any] = {}
         self._cache_hits = 0
@@ -105,13 +120,16 @@ class PerformanceCache:
             Cached lowercase string representation
         """
         # Create a cache key from the data
-        cache_key = self._create_data_hash(data)
+        cache_key = self._build_cache_key("string", data)
 
         # Check cache first
         if cache_key in self._string_cache:
             current_time = time.time()
             if self._is_expired(
                 self._string_cache_expiry.get(cache_key), now=current_time
+            ) or (
+                cache_key.uses_identity
+                and self._string_identity_refs.get(cache_key) is not data
             ):
                 self._evict_string_entry(cache_key)
             else:
@@ -130,6 +148,10 @@ class PerformanceCache:
 
         self._string_cache[cache_key] = result
         self._string_cache_expiry[cache_key] = time.time()
+        if cache_key.uses_identity:
+            self._string_identity_refs[cache_key] = data
+        else:
+            self._string_identity_refs.pop(cache_key, None)
         self._emit_cache_metrics()
         return result
 
@@ -144,12 +166,15 @@ class PerformanceCache:
         Returns:
             Cached JSON string representation
         """
-        cache_key = self._create_data_hash(data)
+        cache_key = self._build_cache_key("json", data)
 
         if cache_key in self._json_cache:
             current_time = time.time()
             if self._is_expired(
                 self._json_cache_expiry.get(cache_key), now=current_time
+            ) or (
+                cache_key.uses_identity
+                and self._json_identity_refs.get(cache_key) is not data
             ):
                 self._evict_json_entry(cache_key)
             else:
@@ -166,6 +191,10 @@ class PerformanceCache:
 
         self._json_cache[cache_key] = result
         self._json_cache_expiry[cache_key] = time.time()
+        if cache_key.uses_identity:
+            self._json_identity_refs[cache_key] = data
+        else:
+            self._json_identity_refs.pop(cache_key, None)
         self._emit_cache_metrics()
         return result
 
@@ -203,8 +232,10 @@ class PerformanceCache:
     def clear_cache(self) -> None:
         """Clear all caches."""
         self._string_cache.clear()
+        self._string_identity_refs.clear()
         self._string_cache_expiry.clear()
         self._json_cache.clear()
+        self._json_identity_refs.clear()
         self._json_cache_expiry.clear()
         self._object_cache.clear()
         self._manual_cache.clear()
@@ -246,15 +277,11 @@ class PerformanceCache:
                 },
             )
 
-    def _create_data_hash(self, data: Any) -> str:
-        """Create a hash key for data caching."""
-        if isinstance(data, dict):
-            # Sort keys for consistent hashing
-            data_str = json.dumps(data, sort_keys=True, separators=(",", ":"))
-        else:
-            data_str = str(data)
-
-        return hashlib.blake2b(data_str.encode()).hexdigest()[:24]
+    def _build_cache_key(self, namespace: str, data: Any) -> _CacheKey:
+        """Build an internal cache key without forcing serialization when possible."""
+        if isinstance(data, Hashable):
+            return _CacheKey(namespace, data, False)
+        return _CacheKey(namespace, id(data), True)
 
     def _evict_oldest_string_entry(self) -> None:
         """Evict the oldest entry from string cache (simple FIFO)."""
@@ -268,13 +295,15 @@ class PerformanceCache:
             oldest_key = next(iter(self._json_cache))
             self._evict_json_entry(oldest_key)
 
-    def _evict_string_entry(self, cache_key: str) -> None:
+    def _evict_string_entry(self, cache_key: _CacheKey) -> None:
         self._string_cache.pop(cache_key, None)
         self._string_cache_expiry.pop(cache_key, None)
+        self._string_identity_refs.pop(cache_key, None)
 
-    def _evict_json_entry(self, cache_key: str) -> None:
+    def _evict_json_entry(self, cache_key: _CacheKey) -> None:
         self._json_cache.pop(cache_key, None)
         self._json_cache_expiry.pop(cache_key, None)
+        self._json_identity_refs.pop(cache_key, None)
 
     def _is_expired(self, timestamp: float | None, *, now: float | None = None) -> bool:
         if self._ttl_seconds is None or timestamp is None:

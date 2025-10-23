@@ -118,6 +118,52 @@ class TestSchemaParser:
             field = doc.fields["Priority"]
             assert len(field.examples) > 0
 
+    def test_description_pattern_precedence_prefers_quoted_phrase(self):
+        """Zephyr-style prose should win over simpler colon matches."""
+        content = """
+        Objective
+
+        The "Objective" section should capture final state and rationale.
+        Objective: fallback description that should not be used.
+        """
+
+        parser = SchemaParser()
+        doc = parser.parse_content(content)
+
+        field = doc.fields.get("Objective")
+        assert field is not None
+        assert field.description.startswith("capture final state"), field.description
+
+    def test_description_pattern_handles_inline_quotes(self):
+        """Hyphenated descriptions should provide concise summaries."""
+        content = """
+        Expected Result
+
+        "Expected Result" - What should happen after execution completes.
+        """
+
+        parser = SchemaParser()
+        doc = parser.parse_content(content)
+
+        field = doc.fields.get("Expected Result")
+        assert field is not None
+        assert "What should happen" in field.description
+
+    def test_description_pattern_colon_fallback(self):
+        """Colon-separated definitions act as the final fallback."""
+        content = """
+        Precondition
+
+        Precondition: Environment must be provisioned.
+        """
+
+        parser = SchemaParser()
+        doc = parser.parse_content(content)
+
+        field = doc.fields.get("Precondition")
+        assert field is not None
+        assert field.description == "Environment must be provisioned."
+
     def test_schema_document_find_field_by_name(self):
         """Test finding fields by name."""
         doc = SchemaDocument()

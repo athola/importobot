@@ -5,14 +5,30 @@ from typing import ClassVar
 
 
 class PlatformCommandParser:
-    """Parse Zephyr-style platform-specific commands."""
+    """Parse platform-specific commands with schema-driven configuration.
 
-    PLATFORM_KEYWORDS: ClassVar[dict[str, list[str]]] = {
-        "PLATFORM1": ["target", "default", "standard"],
-        "PLATFORM2": ["alternative", "secondary"],
-        "PLATFORM3": ["embedded", "device"],
-        "OTHER": ["other", "misc"],
-    }
+    Platform keywords should be provided via --input-schema.
+    Default is empty to avoid customer-specific assumptions.
+    """
+
+    DEFAULT_PLATFORM_KEYWORDS: ClassVar[dict[str, list[str]]] = {}
+
+    def __init__(self) -> None:
+        """Initialise platform keyword mapping from module defaults."""
+        self._platform_keywords: dict[str, list[str]] = {
+            platform: keywords.copy()
+            for platform, keywords in self.DEFAULT_PLATFORM_KEYWORDS.items()
+        }
+
+    @property
+    def PLATFORM_KEYWORDS(self) -> dict[str, list[str]]:
+        """Return the active platform keyword mapping."""
+        return self._platform_keywords
+
+    @PLATFORM_KEYWORDS.setter
+    def PLATFORM_KEYWORDS(self, value: dict[str, list[str]]) -> None:
+        """Override the platform keyword mapping for this parser instance."""
+        self._platform_keywords = value
 
     def parse_platform_commands(self, test_data: str) -> dict[str, list[str]]:
         """Extract platform-specific command variations.
@@ -110,20 +126,32 @@ class PlatformCommandParser:
 
 
 class ZephyrTestLevelClassifier:
-    """Classify tests according to Zephyr methodology."""
+    """Classify tests using industry-standard QA terminology.
+
+    Uses generic test classification levels based on publicly available
+    software testing best practices. Customer-specific classification
+    criteria should be provided via --input-schema.
+    """
 
     TEST_LEVELS: ClassVar[dict[str, int]] = {
-        "Minimum Viable CRS": 1,  # Required for J9, CRS-linked
-        "Smoke": 0,  # Preliminary critical tests
-        "Edge Case": 2,  # Optional, edge cases
-        "Regression": 3,  # Bug fix validation, optional for J9
+        "Smoke": 0,  # Critical path tests - industry standard
+        "Sanity": 1,  # Requirement-linked tests - industry standard
+        "Edge Case": 2,  # Boundary and negative tests - industry standard
+        "Regression": 3,  # Functional regression tests - industry standard
     }
 
     def classify_test(self, test_data: dict) -> tuple[str, int]:
-        """Determine test level based on content and metadata."""
-        # Check for CRS links
-        if self._has_crs_links(test_data):
-            return ("Minimum Viable CRS", 1)
+        """Determine test level based on content and metadata.
+
+        Uses generic industry-standard classification:
+        - Smoke: Critical, basic functionality
+        - Sanity: Requirement-linked validation
+        - Edge Case: Boundary, negative, error handling
+        - Regression: Standard functional tests
+        """
+        # Check for requirement links (generic pattern)
+        if self._has_requirement_links(test_data):
+            return ("Sanity", 1)
 
         # Check for smoke test indicators
         if self._is_smoke_test(test_data):
@@ -136,17 +164,20 @@ class ZephyrTestLevelClassifier:
         # Default to regression
         return ("Regression", 3)
 
-    def _has_crs_links(self, test_data: dict) -> bool:
-        """Check if test case has CRS requirement links."""
-        traceability_fields = [
-            "issues",
-            "linkedCRS",
-            "requirements",
-            "confluence",
-            "webLinks",
-        ]
+    def _has_requirement_links(self, test_data: dict) -> bool:
+        """Check if test case has requirement or traceability links.
 
-        for field in traceability_fields:
+        Uses generic patterns from industry-standard test management:
+        - HTTP/HTTPS URLs in requirement/traceability fields
+        - Common JIRA-style keys (XXX-123) in traceability fields
+        """
+        # URL-containing fields that indicate requirement links
+        url_fields = {"confluence", "requirements", "webLinks", "traceability"}
+
+        # Fields that contain JIRA-style requirement keys (not generic issues)
+        requirement_key_fields = {"linkedRequirements", "requirements", "traceability"}
+
+        for field in url_fields | requirement_key_fields:
             if test_data.get(field):
                 # Handle different field types
                 values = test_data[field]
@@ -158,12 +189,17 @@ class ZephyrTestLevelClassifier:
                 # Check if any value represents a requirement link
                 for value in values:
                     if isinstance(value, str):
-                        # Check for CRS links (case-insensitive, must have dash)
-                        if value.upper().startswith("CRS-"):
-                            return True
-                        # Check for URLs in confluence/requirements fields
-                        if field in ["confluence", "requirements", "webLinks"] and (
+                        # Check for URLs (generic requirement documentation links)
+                        if field in url_fields and (
                             "http://" in value or "https://" in value
+                        ):
+                            return True
+                        # Check for JIRA-style requirement keys (generic pattern)
+                        # Only check requirement-specific fields; skip general "issues".
+                        # Format: 3+ letters (allowing hyphens), final dash, 1+ digits.
+                        # Examples: REQ-123, STORY-456, FEAT-REQ-001, AUTH-REQ-001.
+                        if field in requirement_key_fields and re.match(
+                            r"^[A-Z][A-Z\-]{2,}-\d+$", value
                         ):
                             return True
 
@@ -207,16 +243,12 @@ class ZephyrTestLevelClassifier:
 
 
 class ZephyrPreconditionAnalyzer:
-    """Analyze and structure test preconditions."""
+    """Analyze and structure test preconditions.
 
-    STANDARD_PRECONDITIONS: ClassVar[list[str]] = [
-        "Controller Installed",
-        "Communication Prepared",
-        "Socket(s) Open",
-        "Agent Stamped",
-        "Agent Deployed",
-        "CLI Connected to Active Agent",
-    ]
+    Provides generic parsing for precondition text using industry-standard
+    formats (numbered lists, bulleted lists, etc.). Does not assume specific
+    infrastructure or setup requirements.
+    """
 
     def analyze_preconditions(self, precondition_text: str) -> list[dict]:
         """Parse precondition text into structured steps."""

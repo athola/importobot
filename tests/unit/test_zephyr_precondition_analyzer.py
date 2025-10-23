@@ -12,18 +12,10 @@ class TestZephyrPreconditionAnalyzer:
         # Reinitialize for each test to ensure clean state
         self.analyzer = ZephyrPreconditionAnalyzer()
 
-    def test_standard_preconditions_structure(self):
-        """Test STANDARD_PRECONDITIONS contains expected values."""
-        expected_preconditions = [
-            "Controller Installed",
-            "Communication Prepared",
-            "Socket(s) Open",
-            "Agent Stamped",
-            "Agent Deployed",
-            "CLI Connected to Active Agent",
-        ]
-
-        assert expected_preconditions == self.analyzer.STANDARD_PRECONDITIONS
+    def test_no_hardcoded_preconditions(self):
+        """Test that analyzer has no hard-coded customer-specific preconditions."""
+        # Verify no STANDARD_PRECONDITIONS attribute exists (removed customer-specific data)
+        assert not hasattr(self.analyzer, "STANDARD_PRECONDITIONS")
 
     def test_analyze_preconditions_empty_string(self):
         """Test analyzing empty precondition text."""

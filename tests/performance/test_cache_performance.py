@@ -59,15 +59,6 @@ class TestCachePerformanceCharacteristics:
             f"(perf factor: {self.thresholds.system.performance_factor:.2f})"
         )
 
-    # NOTE: Test removed - see CLAUDE_REVIEW.md "Cache Performance Analysis"
-    # Simple string operations (str.lower) are too fast for hash-based caching
-    # to be beneficial. The blake2b hashing overhead (1.8μs) exceeds the
-    # operation cost (0.5μs). This is expected and correct behavior.
-    #
-    # The project correctly uses functools.lru_cache for simple operations
-    # (utils/string_cache.py) and unified hash-based cache for security-critical
-    # operations that need collision detection and content size limits.
-
     def test_cache_scales_to_large_datasets(self):
         """GIVEN a cache handling 10,000 entries
         WHEN accessing entries randomly
@@ -135,16 +126,6 @@ class TestCachePerformanceCharacteristics:
         assert avg_eviction_time_ms < threshold, (
             f"Eviction too slow: {avg_eviction_time_ms:.4f}ms > {threshold:.4f}ms"
         )
-
-    # NOTE: Test removed - see CLAUDE_REVIEW.md "Cache Performance Analysis"
-    # JSON caching with hash-based keys requires double serialization:
-    #   1. json.dumps() to generate the cache key (for hashing)
-    #   2. json.dumps() again to get the cached result
-    # This makes the cache SLOWER than direct serialization.
-    #
-    # The Performance Cache design is flawed for this use case. For JSON caching
-    # to be beneficial, the cache key should be the object's identity or a simple
-    # attribute, not the serialized form.
 
 
 class TestCacheMemoryEfficiency:

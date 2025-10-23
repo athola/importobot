@@ -64,7 +64,7 @@ Removed 200+ lines of compatibility code that were no longer needed, added `data
 **September 2025: Demo script**
 Added `scripts/interactive_demo.py` for customer demonstrations. It shares code with the CLI so we don't duplicate the conversion logic.
 
-**Test status**: All 1,946 tests pass with 0 skips.
+**Test status**: All 2,105 tests pass with 0 skips.
 **Code quality**: Removed pylint from the project (now using ruff/mypy only) and improved test isolation.
 
 ## API Integration Enhancements

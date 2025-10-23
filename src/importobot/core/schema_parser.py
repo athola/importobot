@@ -80,14 +80,23 @@ class SchemaParser:
         r"^([A-Z][A-Za-z\s]+)$|^([A-Z][A-Za-z\s]+):?\s*$", re.MULTILINE
     )
 
-    # Patterns for field descriptions
+    # Patterns for field descriptions.
+    # Order matters:
+    #   1. Zephyr-style prose: The "Field" section should contain ...
+    #   2. Markdown bullet syntax: "Field" - description
+    #   3. Generic colon form: Field: description
+    # Keeping the most specific expressions first prevents the simpler fallback
+    # pattern from stealing matches that carry richer context (e.g. quoting).
     DESCRIPTION_PATTERNS: ClassVar[list[re.Pattern]] = [
+        # Example: The "Objective" section should describe the test intent.
         re.compile(
             r'\s*The\s+"([^"]+)"\s+(?:section|field|portion)\s+'
             r"(?:of\s+the\s+)?(?:test\s+case\s+)?should\s+(.+?)(?:\.|\n|$)",
             re.IGNORECASE,
         ),
+        # Example: "Expected Result" - What should happen after execution.
         re.compile(r'\s*"([^"]+)"\s+-\s+(.+?)(?:\.|\n|$)', re.IGNORECASE),
+        # Example: Precondition: Environment must be online.
         re.compile(
             r"([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s*:\s*(.+?)(?:\n|$)",
             re.IGNORECASE,
@@ -95,6 +104,9 @@ class SchemaParser:
     ]
 
     # Patterns for examples
+    # Patterns for example extraction. The explicit prose form is prioritised
+    # over fenced code blocks so we keep short inline samples before grabbing
+    # entire snippets.
     EXAMPLE_PATTERNS: ClassVar[list[re.Pattern]] = [
         re.compile(
             r"(?:Ex|Example|e\.g\.|For example):\s*(.+?)(?:\n|$)",

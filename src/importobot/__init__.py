@@ -94,4 +94,3 @@ __version__ = "0.1.3"
 # Clean up namespace - remove internal imports from dir()
 del _config, _exceptions, _api
 del TYPE_CHECKING
-del annotations  # from __future__ import

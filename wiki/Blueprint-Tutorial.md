@@ -23,18 +23,9 @@ Gather your existing Robot Framework files that demonstrate good testing pattern
 
 ### What Makes a Good Template?
 
-**Good template characteristics**:
-- Well-structured test cases with clear steps
-- Consistent naming conventions
-- Proper use of Robot Framework keywords
-- Domain-specific commands relevant to your applications
-- Error handling and validation patterns
+Effective templates demonstrate clear testing patterns with well-structured steps and consistent naming. Use proper Robot Framework keywords and domain-specific commands that match your applications. Include error handling and validation patterns that make tests reliable.
 
-**Avoid templates with**:
-- Syntax errors or invalid Robot Framework code
-- Outdated or deprecated keywords
-- Overly complex or unclear test logic
-- Hardcoded values that should be variables
+Avoid templates with syntax errors, deprecated keywords, or overly complex logic. Hardcoded values should be replaced with variables to make tests reusable across different environments.
 
 ### Example Template Structure
 

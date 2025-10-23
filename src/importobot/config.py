@@ -5,13 +5,13 @@ from __future__ import annotations
 import os
 from collections.abc import Callable
 from dataclasses import dataclass
+from importlib import import_module
 from pathlib import Path
 from typing import Any
 
 from importobot import exceptions
 from importobot.cli.constants import FETCHABLE_FORMATS, SUPPORTED_FETCH_FORMATS
 from importobot.medallion.interfaces.enums import SupportedFormat
-from importobot.medallion.storage.config import StorageConfig
 from importobot.utils.logging import get_logger
 
 # Module-level logger for configuration warnings
@@ -33,6 +33,9 @@ ZEPHYR_MIN_TOKEN_COUNT = 2
 
 # Numeric project identifiers must stay within signed 64-bit bounds so downstream
 # systems (e.g. external SDKs, databases) do not overflow.
+# Numeric project identifiers must fit within a signed 64-bit integer. This aligns
+# with the largest BIGINT value supported by downstream databases and partner
+# APIs, preventing overflow when storing project references.
 MAX_PROJECT_ID = 9_223_372_036_854_775_807
 
 # Chrome options for headless browser testing
@@ -44,6 +47,12 @@ CHROME_OPTIONS = [
     "--disable-web-security",
     "--allow-running-insecure-content",
 ]
+
+# Cache cleanup defaults (seconds). Exposed for tuning via config imports.
+CACHE_MIN_CLEANUP_INTERVAL = 0.1
+CACHE_DEFAULT_CLEANUP_INTERVAL = 5.0
+CACHE_MAX_CLEANUP_INTERVAL = 300.0
+CACHE_SHORT_TTL_THRESHOLD = 5.0
 
 
 def _int_from_env(var_name: str, default: int, *, minimum: int | None = None) -> int:
@@ -277,13 +286,10 @@ def _parse_project_identifier(value: str | None) -> tuple[str | None, int | None
                 )
                 return raw, None
             if project_id > MAX_PROJECT_ID:
-                logger.warning(
-                    "Numeric project identifier %s exceeds max supported value %s; "
-                    "treating as project name",
-                    raw,
-                    MAX_PROJECT_ID,
+                raise exceptions.ConfigurationError(
+                    f"Project identifier {project_id} exceeds supported maximum "
+                    f"{MAX_PROJECT_ID} (signed 64-bit)."
                 )
-                return raw, None
             return None, project_id
         logger.warning(
             "Non-ASCII numeric project identifier %s treated as project name",
@@ -426,23 +432,36 @@ def resolve_api_ingest_config(args: Any) -> APIIngestConfig:
     )
 
 
-def update_medallion_config(
-    config: StorageConfig | None = None, **kwargs: Any
-) -> StorageConfig:
-    """Update medallion configuration placeholder.
+def update_medallion_config(config: Any = None, **kwargs: Any) -> Any:
+    """Update Medallion storage configuration with lazy dependency loading.
 
-    Relies on StorageConfig from ``medallion.storage.config`` when available.
+    This helper defers importing the Medallion storage stack until explicitly
+    requested, preventing circular import chains when the Medallion optional
+    component is not installed.
     """
-    # Placeholder implementation for testing
+    try:
+        storage_module = import_module("importobot.medallion.storage.config")
+        StorageConfig = storage_module.StorageConfig
+    except ImportError as exc:  # pragma: no cover - exercised without medallion
+        raise ImportError(
+            "The medallion storage configuration is unavailable. "
+            "Install the optional medallion extras to enable storage configuration."
+        ) from exc
+    except AttributeError as exc:
+        raise ImportError(
+            "StorageConfig is unavailable. Ensure the medallion extras are installed."
+        ) from exc
+
     if config is None:
         config = StorageConfig()
 
-    # kwargs used for potential future configuration updates
-    _ = kwargs  # Mark as used for linting
+    if not isinstance(config, StorageConfig):
+        raise TypeError("config must be an instance of StorageConfig or None")
+
+    for key, value in kwargs.items():
+        if hasattr(config, key):
+            setattr(config, key, value)
+        else:
+            logger.debug("Ignoring unknown storage config field '%s'", key)
+
     return config
-
-
-def validate_medallion_config(_config: StorageConfig) -> bool:
-    """Validate medallion configuration placeholder."""
-    # Placeholder implementation for testing
-    return True

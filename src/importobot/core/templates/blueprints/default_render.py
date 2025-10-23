@@ -113,10 +113,8 @@ def render_cli_task_metadata_comments(test_case: dict[str, Any]) -> list[str]:
     return lines
 
 
-def render_cli_task_metadata(
-    test_case: dict[str, Any], command: str, proc_name: str | None
-) -> list[str]:
-    """Render metadata fields (tags, documentation, etc.) for a CLI task."""
+def render_cli_task_metadata(test_case: dict[str, Any], command: str) -> list[str]:
+    """Render metadata fields for a command execution task."""
     lines: list[str] = []
 
     test_doc = render_cli_task_documentation(test_case, command)
@@ -128,8 +126,5 @@ def render_cli_task_metadata(
         lines.append(f"    [Tags]    {tags_str}")
 
     lines.extend(render_cli_task_metadata_comments(test_case))
-
-    if proc_name:
-        lines.append(f"    VAR    ${{proc_name}}    {proc_name}")
 
     return lines

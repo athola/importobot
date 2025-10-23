@@ -1,6 +1,6 @@
 # User Guide
 
-This guide covers how to use Importobot from the command line and API.
+This guide shows teams how to convert test cases from Zephyr, TestRail, JIRA/Xray, and TestLink to Robot Framework using Importobot's command-line interface and Python API.
 
 ## Supported Input Formats
 

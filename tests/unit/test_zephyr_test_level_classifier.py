@@ -11,8 +11,8 @@ class TestZephyrTestLevelClassifier:
         self.classifier = ZephyrTestLevelClassifier()
 
     def test_test_levels_structure(self):
-        """Test TEST_LEVELS contains expected structure."""
-        expected_levels = ["Minimum Viable CRS", "Smoke", "Edge Case", "Regression"]
+        """Test TEST_LEVELS contains expected industry-standard structure."""
+        expected_levels = ["Smoke", "Sanity", "Edge Case", "Regression"]
 
         for level in expected_levels:
             assert level in self.classifier.TEST_LEVELS
@@ -20,17 +20,17 @@ class TestZephyrTestLevelClassifier:
 
         # Verify the priority values (lower numbers = higher priority)
         assert self.classifier.TEST_LEVELS["Smoke"] == 0
-        assert self.classifier.TEST_LEVELS["Minimum Viable CRS"] == 1
+        assert self.classifier.TEST_LEVELS["Sanity"] == 1
         assert self.classifier.TEST_LEVELS["Edge Case"] == 2
         assert self.classifier.TEST_LEVELS["Regression"] == 3
 
-    def test_classify_test_minimum_viable_crs(self):
-        """Test classification of Minimum Viable CRS tests."""
+    def test_classify_test_sanity(self):
+        """Test classification of Sanity tests (requirement-linked)."""
         test_cases = [
             {
                 "name": "Authentication Test",
-                "issues": ["CRS-001", "CRS-002"],
-                "linkedCRS": ["CRS-AUTH-001"],
+                "issues": ["REQ-001", "STORY-002"],
+                "linkedRequirements": ["REQ-AUTH-001"],
                 "requirements": ["REQ-001"],
             },
             {
@@ -47,7 +47,7 @@ class TestZephyrTestLevelClassifier:
 
         for test_data in test_cases:
             level_name, _level_value = self.classifier.classify_test(test_data)
-            assert level_name == "Minimum Viable CRS"
+            assert level_name == "Sanity"
 
     def test_classify_test_smoke(self):
         """Test classification of Smoke tests."""
@@ -135,17 +135,17 @@ class TestZephyrTestLevelClassifier:
             assert level_name == "Regression"
 
     def test_classify_test_priority_order(self):
-        """Test that CRS links take priority over smoke test indicators."""
-        # Test with both CRS links and smoke indicators - should classify as CRS
+        """Test that requirement links take priority over smoke test indicators."""
+        # Test with both requirement links and smoke indicators - should classify as Sanity
         test_data = {
             "name": "Critical Authentication Smoke Test",
             "objective": "Basic smoke test for authentication",
-            "issues": ["CRS-001"],  # CRS link should take priority
+            "requirements": ["REQ-001"],  # Requirement link should take priority
             "description": "Critical startup test",
         }
 
         level_name, _level_value = self.classifier.classify_test(test_data)
-        assert level_name == "Minimum Viable CRS"
+        assert level_name == "Sanity"
 
     def test_classify_test_case_insensitive(self):
         """Test classification with case variations."""
@@ -176,13 +176,13 @@ class TestZephyrTestLevelClassifier:
             "name": "User Authentication Flow",
             "objective": "Test complete user authentication workflow",
             "description": "Critical smoke test for user login functionality",
-            "issues": ["BUG-123"],  # Regular bug, not CRS
-            "requirements": ["AUTH-REQ-001"],
+            "issues": ["BUG-123"],  # Regular bug issue
+            "requirements": ["AUTH-REQ-001"],  # Requirement link
         }
 
         level_name, _level_value = self.classifier.classify_test(complex_test)
-        # Should classify as Smoke due to smoke indicators and no CRS links
-        assert level_name == "Smoke"
+        # Should classify as Sanity because requirement links take priority
+        assert level_name == "Sanity"
 
         # Another complex test with edge case indicators
         edge_case_test = {
@@ -195,22 +195,38 @@ class TestZephyrTestLevelClassifier:
         level_name, _level_value = self.classifier.classify_test(edge_case_test)
         assert level_name == "Edge Case"
 
-    def test_has_crs_links_with_various_formats(self):
-        """Test CRS link detection with various formats."""
+    def test_has_requirement_links_with_various_formats(self):
+        """Test generic requirement link detection with various formats."""
         test_cases = [
-            {"issues": ["CRS-001", "PROJ-123"]},
-            {"linkedCRS": ["CRS-AUTH-001", "CRS-AUTH-002"]},
-            {"requirements": ["CRS-REQ-001"]},
-            {"confluence": ["CRS-DOC-001"]},
-            {"issues": ["PROJ-123"], "linkedCRS": ["CRS-001"]},  # Mixed
-            {"issues": ["proj-123"]},  # Should not match (case-sensitive)
-            {"issues": ["CRS123"]},  # Should not match (missing dash)
+            {"linkedRequirements": ["REQ-AUTH-001", "STORY-002"]},  # Requirement keys
+            {"requirements": ["FEAT-REQ-001"]},  # Requirement key
+            {"confluence": ["https://wiki.example.com/requirements"]},  # URL
+            {"linkedRequirements": ["REQ-001"]},  # Single requirement
+            {"webLinks": ["https://docs.example.com/spec"]},  # URL should match
+            {"traceability": ["REQ-TRACE-001"]},  # Traceability key
+            {"issues": ["REQ-001"]},  # Should NOT match (issues field not checked)
+            {"issues": ["BUG-456"]},  # Should NOT match (generic issue)
+            {"requirements": ["req-123"]},  # Should not match (lowercase)
+            {"requirements": ["REQ123"]},  # Should not match (missing dash)
+            {"requirements": ["AB-123"]},  # Should not match (less than 3 letters)
         ]
 
-        expected_results = [True, True, True, True, True, False, False]
+        expected_results = [
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+            False,
+            False,
+            False,
+            False,
+            False,
+        ]
 
         for test_data, expected in zip(test_cases, expected_results, strict=True):
-            result = self.classifier._has_crs_links(test_data)
+            result = self.classifier._has_requirement_links(test_data)
             assert result == expected, f"Failed for test data: {test_data}"
 
     def test_is_smoke_test_detection(self):

@@ -499,6 +499,83 @@ class TestCacheContains:
         assert cache.contains("key") is False
 
 
+class TestCleanupIntervalCalculation:
+    """Test cleanup interval logic for different TTL configurations."""
+
+    def test_no_cleanup_when_ttl_is_none(self):
+        """GIVEN a cache with TTL=None
+        WHEN checking cleanup interval
+        THEN cleanup interval is None (no periodic cleanup)
+        """
+        config = CacheConfig(ttl_seconds=None)
+        cache = LRUCache[str, str](config=config)
+
+        assert cache._cleanup_interval is None
+
+    def test_no_cleanup_when_ttl_is_zero(self):
+        """GIVEN a cache with TTL=0
+        WHEN checking cleanup interval
+        THEN cleanup interval is None (no periodic cleanup)
+        """
+        config = CacheConfig(ttl_seconds=0)
+        cache = LRUCache[str, str](config=config)
+
+        assert cache._cleanup_interval is None
+
+    def test_short_ttl_uses_minimum_interval(self):
+        """GIVEN a cache with very short TTL (0.1 seconds)
+        WHEN checking cleanup interval
+        THEN interval is capped at minimum (0.1s) to prevent CPU thrashing
+        """
+        config = CacheConfig(ttl_seconds=0.1)
+        cache = LRUCache[str, str](config=config)
+
+        # ttl/2 = 0.05, but should be capped at 0.1
+        assert cache._cleanup_interval == 0.1
+
+    def test_short_ttl_uses_half_interval(self):
+        """GIVEN a cache with short TTL (2 seconds)
+        WHEN checking cleanup interval
+        THEN interval is ttl/2 (1 second)
+        """
+        config = CacheConfig(ttl_seconds=2.0)
+        cache = LRUCache[str, str](config=config)
+
+        assert cache._cleanup_interval == 1.0
+
+    def test_medium_ttl_uses_default_interval(self):
+        """GIVEN a cache with medium TTL (6 seconds)
+        WHEN checking cleanup interval
+        THEN interval uses default minimum (5 seconds)
+        """
+        config = CacheConfig(ttl_seconds=6.0)
+        cache = LRUCache[str, str](config=config)
+
+        # ttl/2 = 3.0, but capped at 5.0 minimum for longer TTLs
+        assert cache._cleanup_interval == 5.0
+
+    def test_long_ttl_scales_with_ttl(self):
+        """GIVEN a cache with long TTL (100 seconds)
+        WHEN checking cleanup interval
+        THEN interval is ttl/2 (50 seconds)
+        """
+        config = CacheConfig(ttl_seconds=100.0)
+        cache = LRUCache[str, str](config=config)
+
+        assert cache._cleanup_interval == 50.0
+
+    def test_very_long_ttl_uses_maximum_interval(self):
+        """GIVEN a cache with very long TTL (1 hour)
+        WHEN checking cleanup interval
+        THEN interval is capped at maximum (300 seconds = 5 minutes)
+        """
+        config = CacheConfig(ttl_seconds=3600.0)
+        cache = LRUCache[str, str](config=config)
+
+        # ttl/2 = 1800, but capped at 300
+        assert cache._cleanup_interval == 300.0
+
+
 class TestCacheWithDifferentTypes:
     """Test cache with various key and value types."""
 
