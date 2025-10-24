@@ -480,4 +480,4 @@ class LRUCache(CacheStrategy[K, V]):
         self._last_metrics_emit = now if now is not None else time.time()
 
 
-__all__ = ["LRUCache", "SecurityPolicy"]
+__all__ = ["CacheConfig", "LRUCache", "SecurityPolicy"]
