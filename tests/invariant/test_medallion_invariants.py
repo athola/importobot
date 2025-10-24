@@ -258,9 +258,7 @@ class TestMedallionArchitectureInvariants:
                         if isinstance(result, dict):
                             detected_format = result.get("detected_format", "")
                             # Cast to str to satisfy mypy
-                            return (
-                                str(detected_format) if detected_format else ""
-                            )
+                            return str(detected_format) if detected_format else ""
                         else:  # BronzeRecord
                             return result.format_detection.detected_format
 

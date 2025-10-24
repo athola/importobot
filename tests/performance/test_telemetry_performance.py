@@ -411,7 +411,9 @@ class TestTelemetryDisabledPerformance:
         """Compare disabled vs enabled telemetry overhead."""
 
         class _NullTelemetry:
-            def record_cache_metrics(self, *args, **kwargs):
+            def record_cache_metrics(
+                self, name: str, hits: int = 0, misses: int = 0
+            ) -> None:
                 return None
 
         disabled_client = _NullTelemetry()
@@ -424,7 +426,6 @@ class TestTelemetryDisabledPerformance:
 
         for _ in range(100):
             start = time.time()
-            # type: ignore[no-untyped-call]
             disabled_client.record_cache_metrics("cache", hits=100, misses=50)
             disabled_times.append(time.time() - start)
 
