@@ -206,7 +206,11 @@ class TestWithProgressReporting:
             mock_reporter = MagicMock()
             mock_reporter_class.return_value = mock_reporter
 
-            result = test_function(3, 4)  # pylint: disable=no-value-for-parameter
+            result = test_function(
+                reporter=mock_reporter,
+                x=3,
+                y=4,
+            )
 
             assert result == 7
             mock_reporter.initialize.assert_called_once_with(10, None)
@@ -226,7 +230,9 @@ class TestWithProgressReporting:
             mock_reporter_class.return_value = mock_reporter
 
             with pytest.raises(ValueError, match="Test error"):
-                failing_function()  # pylint: disable=no-value-for-parameter
+                failing_function(
+                    reporter=mock_reporter,
+                )
 
             mock_reporter.initialize.assert_called_once()
             mock_reporter.logger.error.assert_called_once()
@@ -256,7 +262,9 @@ class TestWithProgressReporting:
             mock_reporter = MagicMock()
             mock_reporter_class.return_value = mock_reporter
 
-            result = custom_function()  # pylint: disable=no-value-for-parameter
+            result = custom_function(
+                reporter=mock_reporter,
+            )
 
             assert result == "done"
             mock_reporter.initialize.assert_called_once_with(20, 25)

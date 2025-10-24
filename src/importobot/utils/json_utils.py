@@ -2,10 +2,13 @@
 
 import json
 import os
-from typing import Any, Union
+from typing import Any
 
 from importobot import exceptions
+from importobot.services.performance_cache import get_performance_cache
 from importobot.utils.validation import validate_safe_path
+
+_MULTI_TEST_CONTAINER_KEY = "testCases"
 
 
 def load_json_file(json_file_path: str | None) -> dict[str, Any]:
@@ -115,11 +118,11 @@ def _read_json_file(file_path: str) -> Any:
     Returns:
         Raw JSON data
     """
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, encoding="utf-8") as f:
         return json.load(f)
 
 
-def _process_json_structure(data: Union[dict[str, Any], list[Any]]) -> dict[str, Any]:
+def _process_json_structure(data: dict[str, Any] | list[Any]) -> dict[str, Any]:
     """Process JSON data structure and validate format.
 
     Args:
@@ -131,16 +134,33 @@ def _process_json_structure(data: Union[dict[str, Any], list[Any]]) -> dict[str,
     Raises:
         ValidationError: For invalid data structure
     """
-    # Handle case where JSON is an array with a single test case
+    # Handle case where JSON is an array with one or more test cases
     if isinstance(data, list):
-        if len(data) == 1 and isinstance(data[0], dict):
-            # Extract the first test case from the array
-            return data[0]
-        raise exceptions.ValidationError(
-            "JSON array must contain exactly one test case dictionary."
-        )
+        if not data:
+            raise exceptions.ValidationError("JSON array cannot be empty.")
+
+        if not all(isinstance(item, dict) for item in data):
+            raise exceptions.ValidationError(
+                "JSON array must contain only test case dictionaries."
+            )
+
+        if len(data) == 1:
+            single_item = data[0]
+            if isinstance(single_item, dict):
+                return single_item
+            raise exceptions.ValidationError(
+                "Single item in JSON array must be a dictionary."
+            )
+
+        return {_MULTI_TEST_CONTAINER_KEY: data}
 
     if not isinstance(data, dict):
         raise exceptions.ValidationError("JSON content must be a dictionary or array.")
 
     return data
+
+
+def dumps_cached(data: Any) -> str:
+    """Serialize data to JSON using the shared performance cache."""
+    cache = get_performance_cache()
+    return cache.get_cached_json_string(data)

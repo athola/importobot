@@ -155,7 +155,9 @@ class TestGetDefaultValue:
     def test_get_nonexistent_values(self):
         """Test getting non-existent default values."""
         assert (
-            get_default_value("nonexistent", "nonexistent", fallback="custom_default")
+            get_default_value(
+                "nonexistent", "nonexistent", default_value="custom_default"
+            )
             == "custom_default"
         )
         assert get_default_value("web", "nonexistent") == ""

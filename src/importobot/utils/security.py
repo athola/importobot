@@ -5,29 +5,31 @@ import logging
 import re
 import time
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, ClassVar
 
+from importobot.utils.credential_manager import CredentialManager, EncryptedCredential
+from importobot.utils.logging import get_logger
 from importobot.utils.string_cache import data_to_lower_cached
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 class SecurityValidator:
     """Validates and sanitizes test parameters for security concerns.
 
     Supports configurable security policies for different environments.
-    Provides comprehensive audit logging for security validation failures.
+    Logs security validation failures with specific rule violations and context.
 
     Security Levels:
-        strict: Maximum security for enterprise/production environments.
+        strict: Maximum security for production environments.
             - Additional dangerous patterns: proc filesystem access, network
               process enumeration, user enumeration, external network
               requests
             - Additional sensitive paths: /proc/, /sys/, Kubernetes configs, Docker
               configs, system logs, Windows
               ProgramData
-            - Recommended for: Production systems, enterprise environments,
-              compliance scenarios
+            - Recommended for: Production systems, environments with
+              compliance requirements
 
         standard: Balanced security for general development and testing.
             - Default dangerous patterns: rm -rf, sudo, chmod 777, command substitution,
@@ -48,7 +50,7 @@ class SecurityValidator:
     """
 
     # Default dangerous command patterns
-    DEFAULT_DANGEROUS_PATTERNS = [
+    DEFAULT_DANGEROUS_PATTERNS: ClassVar[list[str]] = [
         r"rm\s+-rf",
         r"sudo\s+",
         r"chmod\s+777",
@@ -75,7 +77,7 @@ class SecurityValidator:
     ]
 
     # Default sensitive path patterns
-    DEFAULT_SENSITIVE_PATHS = [
+    DEFAULT_SENSITIVE_PATHS: ClassVar[list[str]] = [
         r"/etc/passwd",
         r"/etc/shadow",
         r"/home/[^/]+/\.ssh",
@@ -111,7 +113,9 @@ class SecurityValidator:
             sensitive_paths, security_level
         )
         self.enable_audit_logging = enable_audit_logging
-        self.audit_logger = logging.getLogger(f"{__name__}.audit")
+        self.audit_logger = get_logger(f"{__name__}.audit")
+
+        self.credential_manager = CredentialManager()
 
         # Set up audit logger with specific formatting if enabled
         if self.enable_audit_logging:
@@ -219,7 +223,7 @@ class SecurityValidator:
             List of dangerous command patterns for the specified security level
 
         Security Level Behavior:
-            strict: Adds enterprise patterns for proc filesystem, network enumeration,
+            strict: Adds patterns for proc filesystem, network enumeration,
                    process enumeration, user enumeration, and external network requests
             standard: Uses default patterns covering system commands, file operations,
                      and dangerous shell operations
@@ -229,7 +233,7 @@ class SecurityValidator:
         base_patterns = custom_patterns or self.DEFAULT_DANGEROUS_PATTERNS
 
         if level == "strict":
-            # Add stricter patterns for enterprise environments
+            # Add stricter patterns for production environments
             strict_additions = [
                 r"cat\s+/proc/",  # Reading proc filesystem
                 r"netstat\s",  # Network enumeration
@@ -260,7 +264,7 @@ class SecurityValidator:
             List of sensitive file path patterns for the specified security level
 
         Security Level Behavior:
-            strict: Adds enterprise paths for system directories (/proc/, /sys/),
+            strict: Add paths for system directories (/proc/, /sys/),
                    Kubernetes configs, Docker configs, system logs, and Windows
                    ProgramData
             standard: Uses default paths covering system files, SSH keys, cloud
@@ -271,7 +275,7 @@ class SecurityValidator:
         base_paths = custom_paths or self.DEFAULT_SENSITIVE_PATHS
 
         if level == "strict":
-            # Add more paths for enterprise environments
+            # Add more paths for production environments
             strict_additions = [
                 r"/proc/",
                 r"/sys/",
@@ -287,8 +291,7 @@ class SecurityValidator:
     def validate_ssh_parameters(self, parameters: dict[str, Any]) -> list[str]:
         """Validate SSH operation parameters for security issues.
 
-        Performs comprehensive security validation based on the configured security
-        level:
+        Performs security validation based on the configured security level:
         - Checks for hardcoded credentials and password exposure
         - Detects credential patterns in parameter values
         - Validates against dangerous command patterns
@@ -303,8 +306,8 @@ class SecurityValidator:
             List of security warnings found during validation
 
         Security Level Impact:
-            strict: Maximum pattern matching, most comprehensive validation
-            standard: Balanced validation with comprehensive coverage
+            strict: Maximum pattern matching, validation
+            standard: Balanced validation with coverage
             permissive: Reduced pattern matching, fewer false positives
         """
         start_time = time.time()
@@ -347,7 +350,12 @@ class SecurityValidator:
         """Check for hardcoded credentials in parameters."""
         warnings = []
 
-        if "password" in parameters:
+        password_value = parameters.get("password")
+        if isinstance(password_value, EncryptedCredential):
+            warnings.append("✓ Password encrypted in memory")
+            return warnings
+
+        if password_value:
             warning_msg = (
                 "⚠️  SSH password found - consider using key-based authentication"
             )
@@ -365,10 +373,7 @@ class SecurityValidator:
             )
 
             # Also flag as credential exposure
-            if (
-                isinstance(parameters.get("password"), str)
-                and len(parameters["password"]) > 1
-            ):
+            if isinstance(password_value, str) and len(password_value) > 1:
                 exposure_warning = (
                     "⚠️  Hardcoded credential detected - avoid exposing "
                     "secrets in test data"
@@ -380,11 +385,29 @@ class SecurityValidator:
                     "CREDENTIAL_EXPOSURE",
                     {
                         "parameter": "password",
-                        "credential_length": len(str(parameters["password"])),
+                        "credential_length": len(password_value),
                         "risk_level": "HIGH",
                     },
                     "ERROR",
                 )
+
+            if isinstance(password_value, str):
+                try:
+                    encrypted = self.credential_manager.encrypt_credential(
+                        password_value
+                    )
+                    parameters["password"] = encrypted
+                    warnings.append("✓ Password encrypted in memory")
+                    self._log_security_event(
+                        "PASSWORD_ENCRYPTED",
+                        {
+                            "parameter": "password",
+                            "credential_length": encrypted.length,
+                        },
+                        "INFO",
+                    )
+                except Exception as exc:  # pragma: no cover - encryption failed
+                    logger.warning("Failed to encrypt password parameter: %s", exc)
 
         return warnings
 
@@ -400,6 +423,21 @@ class SecurityValidator:
         ]
 
         for key, value in parameters.items():
+            if isinstance(value, EncryptedCredential):
+                continue
+
+            if isinstance(value, str) and "password" in key.lower():
+                try:
+                    parameters[key] = self.credential_manager.encrypt_credential(value)
+                    warnings.append(f"✓ {key} encrypted in memory to reduce exposure")
+                except Exception as exc:  # pragma: no cover - encryption failed
+                    logger.warning(
+                        "Failed to encrypt credential parameter %s: %s",
+                        key,
+                        exc,
+                    )
+                continue
+
             if isinstance(value, str):
                 for pattern in credential_patterns:
                     if re.search(pattern, value, re.IGNORECASE):
@@ -540,11 +578,9 @@ class SecurityValidator:
     def _check_production_indicators(self, parameters: dict[str, Any]) -> list[str]:
         """Check for production environment indicators."""
         warnings = []
+        lowered = data_to_lower_cached(parameters)
 
-        if any(
-            env in data_to_lower_cached(parameters)
-            for env in ["prod", "production", "live"]
-        ):
+        if any(env in lowered for env in ["prod", "production", "live"]):
             warning_msg = (
                 "⚠️  Production environment detected - ensure proper authorization"
             )
@@ -556,9 +592,7 @@ class SecurityValidator:
                 "PRODUCTION_ENVIRONMENT",
                 {
                     "detected_indicators": [
-                        env
-                        for env in ["prod", "production", "live"]
-                        if env in data_to_lower_cached(parameters)
+                        env for env in ["prod", "production", "live"] if env in lowered
                     ],
                     "parameter_preview": (
                         str(parameters)[:100] + "..."
@@ -597,15 +631,12 @@ class SecurityValidator:
         """Validate file operations for security concerns.
 
         Validates file operations against security threats:
-        - Path traversal detection (.., //
-              patterns)
-        - Sensitive file access based on security level
-              patterns
+        - Path traversal detection (.., // patterns)
+        - Sensitive file access based on security level patterns
         - Destructive operation warnings (delete, remove, truncate, drop)
 
         Args:
-            file_path: File path to
-                validate
+            file_path: File path to validate
             operation: Type of operation being performed (e.g., 'read', 'write',
                 'delete')
 
@@ -613,8 +644,8 @@ class SecurityValidator:
             List of security warnings found during validation
 
         Security Level Impact:
-            strict: Checks against expanded sensitive path list including
-            standard: Checks against default sensitive paths covering
+            strict: Checks against expanded sensitive path list
+            standard: Checks against default sensitive paths
             permissive: Uses standard sensitive path validation (no reduction)
         """
         warnings = []
@@ -758,11 +789,11 @@ class SecurityValidator:
     def validate_test_security(self, test_case: dict[str, Any]) -> dict[str, list[str]]:
         """Comprehensive security validation for test cases.
 
-        Performs end-to-end security validation of test cases:
+        Performs security validation of test cases:
         - Extracts and validates SSH parameters from test steps
         - Applies security validation based on configured security level
         - Generates security recommendations for different test types
-        - Provides structured results with warnings, recommendations, and
+        - Provides structured results with warnings, recommendations, and errors
 
         Args:
             test_case: Test case dictionary containing steps and test data
@@ -774,7 +805,7 @@ class SecurityValidator:
             - 'sanitized_errors': List of sanitized error messages
 
         Security Level Impact:
-            strict: Most comprehensive validation with expanded pattern matching
+            strict: Validation with expanded pattern matching
             standard: Balanced validation suitable for most environments
             permissive: Reduced validation to minimize false positives
         """
@@ -782,10 +813,10 @@ class SecurityValidator:
 
 
 def validate_test_security(test_case: dict[str, Any]) -> dict[str, list[str]]:
-    """Comprehensive security validation for test cases.
+    """Security validation for test cases.
 
     Standalone function that creates a SecurityValidator with standard security level
-    and performs comprehensive validation of test cases. This is the main entry point
+    and performs validation of test cases. This is the main entry point
     for test security validation.
 
     Args:

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 from importobot.utils.string_cache import data_to_lower_cached
 from importobot.utils.validation_models import (
     QualitySeverity,
@@ -14,7 +14,7 @@ from importobot.utils.validation_models import (
     create_validation_result,
 )
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 class ValidationThresholds:
@@ -172,7 +172,7 @@ class BronzeValidator:
                 )
                 error_count += 1
         except (TypeError, ValueError) as e:
-            issues.append(f"Unable to calculate data size: {str(e)}")
+            issues.append(f"Unable to calculate data size: {e!s}")
             error_count += 1
 
         # Check for extremely large individual fields
@@ -180,17 +180,17 @@ class BronzeValidator:
             large_fields = []
             problematic_fields = []
             for key, value in data.items():
-                try:
-                    field_str = json.dumps(value, default=str)
-                    field_size_mb = len(field_str.encode("utf-8")) / (1024 * 1024)
-                    if field_size_mb > ValidationThresholds.LARGE_FIELD_SIZE_MB:
-                        large_fields.append((key, field_size_mb))
-                except (TypeError, ValueError) as e:
+                field_size_mb, error_message = self._calculate_field_size(value)
+                if error_message is not None:
                     problematic_fields.append(key)
                     issues.append(
-                        f"Unable to calculate size for field '{key}': {str(e)}"
+                        f"Unable to calculate size for field '{key}': {error_message}"
                     )
                     error_count += 1
+                    continue
+
+                if field_size_mb > ValidationThresholds.LARGE_FIELD_SIZE_MB:
+                    large_fields.append((key, field_size_mb))
 
             if large_fields:
                 details["large_fields"] = large_fields
@@ -249,7 +249,7 @@ class BronzeValidator:
             warning_count += 1
 
         # Check for empty keys - indicates poor data quality
-        empty_keys = [key for key in data.keys() if not key or not key.strip()]
+        empty_keys = [key for key in data if not key or not key.strip()]
         if empty_keys:
             suspicious_patterns.append("empty_keys")
             issues.append(f"Found {len(empty_keys)} empty or whitespace-only keys")
@@ -281,9 +281,18 @@ class BronzeValidator:
             details=details,
         )
 
+    def _calculate_field_size(self, value: Any) -> tuple[float, str | None]:
+        """Calculate serialized field size, capturing serialization failures."""
+        try:
+            field_str = json.dumps(value, default=str)
+        except (TypeError, ValueError) as error:
+            return 0.0, str(error)
+
+        field_size_mb = len(field_str.encode("utf-8")) / (1024 * 1024)
+        return field_size_mb, None
+
     def _find_test_indicators(self, data: dict[str, Any]) -> list[str]:
         """Find indicators that suggest this is test data."""
-        indicators = []
         data_str = data_to_lower_cached(data)
 
         test_keywords = [
@@ -300,11 +309,7 @@ class BronzeValidator:
             "scenario",
         ]
 
-        for keyword in test_keywords:
-            if keyword in data_str:
-                indicators.append(keyword)
-
-        return indicators
+        return [keyword for keyword in test_keywords if keyword in data_str]
 
     def _contains_encoding_issues(self, data: dict[str, Any]) -> bool:
         """Check for common encoding issues in string values."""
@@ -355,7 +360,7 @@ class BronzeValidator:
             nonlocal total_values, null_values
             total_values += 1
 
-            if obj is None or obj == "" or obj == []:
+            if obj is None or obj in ("", []):
                 null_values += 1
             elif isinstance(obj, dict):
                 for value in obj.values():

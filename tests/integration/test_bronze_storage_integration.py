@@ -96,18 +96,18 @@ class TestBronzeStorageIntegration(unittest.TestCase):
         result = self.bronze_layer.ingest(self.zephyr_data, metadata)
 
         # Verify ingestion succeeded
-        self.assertEqual(result.status, ProcessingStatus.COMPLETED)
-        self.assertEqual(result.success_count, 1)
+        assert result.status == ProcessingStatus.COMPLETED
+        assert result.success_count == 1
 
         # Retrieve records from storage
         records = self.bronze_layer.get_bronze_records()
 
         # Verify retrieval
-        self.assertEqual(len(records), 1)
-        self.assertEqual(records[0].data["testCase"]["name"], "Authentication Test")
-        self.assertIsNotNone(records[0].metadata)
-        self.assertIsNotNone(records[0].format_detection)
-        self.assertIsNotNone(records[0].lineage)
+        assert len(records) == 1
+        assert records[0].data["testCase"]["name"] == "Authentication Test"
+        assert records[0].metadata is not None
+        assert records[0].format_detection is not None
+        assert records[0].lineage is not None
 
     def test_data_survives_bronze_layer_restart(self):
         """Test that ingested data persists across BronzeLayer instances.
@@ -132,8 +132,8 @@ class TestBronzeStorageIntegration(unittest.TestCase):
         records = new_bronze_layer.get_bronze_records()
 
         # Data should still be available
-        self.assertEqual(len(records), 1)
-        self.assertEqual(records[0].data["testCase"]["name"], "Authentication Test")
+        assert len(records) == 1
+        assert records[0].data["testCase"]["name"] == "Authentication Test"
 
     def test_multiple_ingestion_sessions_accumulate_data(self):
         """Test that multiple ingestion sessions accumulate records in storage.
@@ -160,7 +160,7 @@ class TestBronzeStorageIntegration(unittest.TestCase):
         records = self.bronze_layer.get_bronze_records()
 
         # Should have both records
-        self.assertEqual(len(records), 2)
+        assert len(records) == 2
 
         # Verify both formats present
         record_types = set()
@@ -170,10 +170,10 @@ class TestBronzeStorageIntegration(unittest.TestCase):
             if "testsuites" in record.data:
                 record_types.add("testlink")
 
-        self.assertEqual(len(record_types), 2)
+        assert len(record_types) == 2
 
-    def test_storage_fallback_respects_filter_dispatch(self):
-        """Ensure storage fallback honors filter criteria via dispatch map.
+    def test_storage_defaults_respect_filter_dispatch(self):
+        """Ensure storage defaults honor filter criteria via dispatch map.
 
         Business Case: After a restart, API queries by format type still return
         the expected subset sourced from persisted storage.
@@ -205,10 +205,10 @@ class TestBronzeStorageIntegration(unittest.TestCase):
             filter_criteria={"format_type": "TESTLINK"}
         )
 
-        self.assertEqual(len(zephyr_records), 1)
-        self.assertEqual(len(testlink_records), 1)
-        self.assertIn("testCase", zephyr_records[0].data)
-        self.assertIn("testsuites", testlink_records[0].data)
+        assert len(zephyr_records) == 1
+        assert len(testlink_records) == 1
+        assert "testCase" in zephyr_records[0].data
+        assert "testsuites" in testlink_records[0].data
 
     @unittest.skipUnless(
         RawDataProcessor is not None, "RawDataProcessor requires optional dependencies"
@@ -219,17 +219,18 @@ class TestBronzeStorageIntegration(unittest.TestCase):
         Business Case: High-level API must work seamlessly with storage.
         """
         # Use RawDataProcessor to ingest
+        assert self.processor is not None
         result = self.processor.ingest_data_dict(
             self.zephyr_data, "processor_test.json"
         )
 
-        self.assertEqual(result.status, ProcessingStatus.COMPLETED)
+        assert result.status == ProcessingStatus.COMPLETED
 
         # Retrieve using BronzeLayer
         records = self.bronze_layer.get_bronze_records()
 
-        self.assertEqual(len(records), 1)
-        self.assertEqual(records[0].data["testCase"]["name"], "Authentication Test")
+        assert len(records) == 1
+        assert records[0].data["testCase"]["name"] == "Authentication Test"
 
     def test_pagination_across_large_dataset(self):
         """Test pagination works correctly for large result sets.
@@ -253,19 +254,19 @@ class TestBronzeStorageIntegration(unittest.TestCase):
 
         # Retrieve first page (10 records)
         page1 = self.bronze_layer.get_bronze_records(limit=10)
-        self.assertEqual(len(page1), 10)
+        assert len(page1) == 10
 
         # Retrieve second page (10 records)
         page2 = self.bronze_layer.get_bronze_records(limit=10)
-        self.assertEqual(len(page2), 10)
+        assert len(page2) == 10
 
         # Retrieve remaining records
         page3 = self.bronze_layer.get_bronze_records(limit=10)
-        self.assertGreaterEqual(len(page3), 5)
+        assert len(page3) >= 5
 
         # Total should be all records when limit is high
         all_records = self.bronze_layer.get_bronze_records(limit=100)
-        self.assertEqual(len(all_records), 25)
+        assert len(all_records) == 25
 
     def test_storage_backend_isolation_between_layers(self):
         """Test that bronze layer storage is isolated from other layers.
@@ -282,17 +283,17 @@ class TestBronzeStorageIntegration(unittest.TestCase):
 
         # Check bronze has data
         bronze_records = self.bronze_layer.get_bronze_records()
-        self.assertEqual(len(bronze_records), 1)
+        assert len(bronze_records) == 1
 
         # Verify storage structure
         bronze_storage_path = self.temp_dir / "storage" / "bronze" / "data"
-        self.assertTrue(bronze_storage_path.exists())
+        assert bronze_storage_path.exists()
 
         # Verify no cross-contamination with other layers
         silver_storage_path = self.temp_dir / "storage" / "silver" / "data"
         if silver_storage_path.exists():
             silver_files = list(silver_storage_path.glob("*.json"))
-            self.assertEqual(len(silver_files), 0)
+            assert len(silver_files) == 0
 
     def test_concurrent_ingestion_and_retrieval(self):
         """Test that ingestion and retrieval can happen concurrently.
@@ -329,11 +330,11 @@ class TestBronzeStorageIntegration(unittest.TestCase):
         retrieve_thread.join()
 
         # Verify all data was ingested
-        self.assertEqual(results["ingested"], 5)
+        assert results["ingested"] == 5
 
         # Final retrieval should get all records
         final_records = self.bronze_layer.get_bronze_records()
-        self.assertEqual(len(final_records), 5)
+        assert len(final_records) == 5
 
     def test_storage_backend_error_recovery(self):
         """Test graceful handling when storage backend encounters errors.
@@ -347,7 +348,7 @@ class TestBronzeStorageIntegration(unittest.TestCase):
             ingestion_timestamp=datetime.now(),
         )
         result = self.bronze_layer.ingest(self.zephyr_data, metadata)
-        self.assertEqual(result.status, ProcessingStatus.COMPLETED)
+        assert result.status == ProcessingStatus.COMPLETED
 
         # Create a bronze layer without storage backend
         # This simulates storage failure by having no persistent backend
@@ -357,12 +358,12 @@ class TestBronzeStorageIntegration(unittest.TestCase):
         result2 = bronze_without_storage.ingest(self.zephyr_data, metadata)
 
         # In-memory storage should still work
-        self.assertEqual(result2.status, ProcessingStatus.COMPLETED)
+        assert result2.status == ProcessingStatus.COMPLETED
 
         # Retrieval without storage backend should fall back to in-memory data
         records = bronze_without_storage.get_bronze_records()
-        self.assertEqual(len(records), 1)
-        self.assertIn("testCase", records[0].data)
+        assert len(records) == 1
+        assert "testCase" in records[0].data
 
 
 class TestBronzeStorageBackendSwitching(unittest.TestCase):
@@ -405,7 +406,7 @@ class TestBronzeStorageBackendSwitching(unittest.TestCase):
 
         # Retrieve from first backend
         records1 = bronze1.get_bronze_records()
-        self.assertEqual(len(records1), 1)
+        assert len(records1) == 1
 
         # Create second storage backend
         storage2_config = {"base_path": str(self.temp_dir / "storage2")}
@@ -426,8 +427,8 @@ class TestBronzeStorageBackendSwitching(unittest.TestCase):
 
         # Verify data in second backend
         records2 = bronze2.get_bronze_records()
-        self.assertEqual(len(records2), 1)
-        self.assertEqual(records2[0].data["testCase"]["name"], "Migration Test")
+        assert len(records2) == 1
+        assert records2[0].data["testCase"]["name"] == "Migration Test"
 
 
 if __name__ == "__main__":

@@ -24,10 +24,10 @@ _UPDATE_PATTERN = re.compile(r"(UPDATE\s+.+?);?", re.IGNORECASE | re.DOTALL)
 _DELETE_PATTERN = re.compile(r"(DELETE\s+.+?);?", re.IGNORECASE | re.DOTALL)
 
 
-def _sanitize_identifier(name: str, fallback: str) -> str:
+def _sanitize_identifier(name: str, default_value: str) -> str:
     """Allow only safe characters in SQL identifiers to avoid injection."""
     cleaned = re.sub(r"[^A-Za-z0-9_]+", "", name)
-    return cleaned or fallback
+    return cleaned or default_value
 
 
 def _validate_sql_query(sql: str) -> str:
@@ -185,7 +185,7 @@ class DatabaseKeywordGenerator(BaseKeywordGenerator):
         lines.append(keyword)
         return lines
 
-    def _extract_with_pattern(self, pattern: re.Pattern, text: str) -> str:
+    def _extract_with_pattern(self, pattern: re.Pattern[str], text: str) -> str:
         """Extract using compiled pattern from text."""
         match = pattern.search(text)
         return match.group(1) if match else ""

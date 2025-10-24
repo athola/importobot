@@ -30,9 +30,7 @@ class TestTelemetryOverhead:
 
     def test_disabled_telemetry_has_minimal_overhead(self, benchmark):
         """Disabled telemetry should have near-zero overhead."""
-        client = TelemetryClient(
-            enabled=False, min_emit_interval=60.0, min_sample_delta=100
-        )
+        client = TelemetryClient(min_emit_interval=60.0, min_sample_delta=100)
 
         def record_metrics():
             client.record_cache_metrics("cache", hits=100, misses=50)
@@ -45,9 +43,7 @@ class TestTelemetryOverhead:
 
     def test_enabled_telemetry_overhead_acceptable(self, benchmark):
         """Enabled telemetry overhead should be acceptable for production."""
-        client = TelemetryClient(
-            enabled=True, min_emit_interval=0.0, min_sample_delta=0
-        )
+        client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
 
         # Use fast no-op exporter
@@ -64,9 +60,7 @@ class TestTelemetryOverhead:
 
     def test_rate_limiting_reduces_overhead(self, benchmark):
         """Rate limiting should reduce overhead for high-frequency calls."""
-        client = TelemetryClient(
-            enabled=True, min_emit_interval=60.0, min_sample_delta=1000
-        )
+        client = TelemetryClient(min_emit_interval=60.0, min_sample_delta=1000)
         client.clear_exporters()
 
         call_count = [0]
@@ -106,9 +100,7 @@ class TestConcurrentPerformance:
 
     def test_concurrent_metric_recording_throughput(self):
         """Measure throughput of concurrent metric recording."""
-        client = TelemetryClient(
-            enabled=True, min_emit_interval=0.0, min_sample_delta=0
-        )
+        client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
 
         emitted = []
@@ -123,7 +115,7 @@ class TestConcurrentPerformance:
         num_threads = 10
         ops_per_thread = 1000
 
-        start_time = time.time()
+        start_time = time.perf_counter()
 
         def worker():
             for i in range(ops_per_thread):
@@ -134,7 +126,7 @@ class TestConcurrentPerformance:
             for future in futures:
                 future.result()
 
-        elapsed = time.time() - start_time
+        elapsed = time.perf_counter() - start_time
         total_ops = num_threads * ops_per_thread
         ops_per_sec = total_ops / elapsed
 
@@ -144,9 +136,7 @@ class TestConcurrentPerformance:
 
     def test_lock_contention_minimal(self):
         """Lock contention should not significantly degrade performance."""
-        client = TelemetryClient(
-            enabled=True, min_emit_interval=0.0, min_sample_delta=0
-        )
+        client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
         client.register_exporter(lambda n, p: None)
 
@@ -174,9 +164,7 @@ class TestConcurrentPerformance:
 
     def test_exporter_processing_parallelization(self):
         """Multiple exporters should not significantly increase overhead."""
-        client = TelemetryClient(
-            enabled=True, min_emit_interval=0.0, min_sample_delta=0
-        )
+        client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
 
         # Add multiple fast exporters
@@ -201,9 +189,7 @@ class TestMemoryFootprint:
 
     def test_last_emit_tracking_bounded(self):
         """Last emit tracking should not grow unbounded."""
-        client = TelemetryClient(
-            enabled=True, min_emit_interval=60.0, min_sample_delta=100
-        )
+        client = TelemetryClient(min_emit_interval=60.0, min_sample_delta=100)
         client.clear_exporters()
         client.register_exporter(lambda n, p: None)
 
@@ -217,9 +203,7 @@ class TestMemoryFootprint:
 
     def test_exporter_list_memory_stable(self):
         """Exporter list should not leak memory."""
-        client = TelemetryClient(
-            enabled=True, min_emit_interval=0.0, min_sample_delta=0
-        )
+        client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
 
         initial_count = len(client._exporters)
 
@@ -239,9 +223,7 @@ class TestRateLimitingPerformance:
 
     def test_sample_delta_early_exit_fast(self, benchmark):
         """Rate-limited calls should exit early and fast."""
-        client = TelemetryClient(
-            enabled=True, min_emit_interval=0.0, min_sample_delta=1000
-        )
+        client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=1000)
         client.clear_exporters()
         client.register_exporter(lambda n, p: None)
 
@@ -262,9 +244,7 @@ class TestRateLimitingPerformance:
 
     def test_time_interval_check_efficient(self, benchmark, monkeypatch):
         """Time interval checking should be efficient."""
-        client = TelemetryClient(
-            enabled=True, min_emit_interval=60.0, min_sample_delta=0
-        )
+        client = TelemetryClient(min_emit_interval=60.0, min_sample_delta=0)
         client.clear_exporters()
         client.register_exporter(lambda n, p: None)
 
@@ -294,9 +274,7 @@ class TestScalability:
 
     def test_many_unique_caches_performance(self):
         """Performance should scale reasonably with many unique caches."""
-        client = TelemetryClient(
-            enabled=True, min_emit_interval=0.0, min_sample_delta=0
-        )
+        client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
         client.register_exporter(lambda n, p: None)
 
@@ -320,9 +298,7 @@ class TestScalability:
         timings = []
 
         for num_exporters in num_exporters_list:
-            client = TelemetryClient(
-                enabled=True, min_emit_interval=0.0, min_sample_delta=0
-            )
+            client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
             client.clear_exporters()
 
             for _ in range(num_exporters):
@@ -433,12 +409,15 @@ class TestTelemetryDisabledPerformance:
 
     def test_disabled_vs_enabled_overhead_comparison(self):
         """Compare disabled vs enabled telemetry overhead."""
-        disabled_client = TelemetryClient(
-            enabled=False, min_emit_interval=0.0, min_sample_delta=0
-        )
-        enabled_client = TelemetryClient(
-            enabled=True, min_emit_interval=0.0, min_sample_delta=0
-        )
+
+        class _NullTelemetry:
+            def record_cache_metrics(
+                self, name: str, hits: int = 0, misses: int = 0
+            ) -> None:
+                return None
+
+        disabled_client = _NullTelemetry()
+        enabled_client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         enabled_client.clear_exporters()
         enabled_client.register_exporter(lambda n, p: None)
 

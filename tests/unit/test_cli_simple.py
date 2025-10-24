@@ -2,6 +2,7 @@
 
 import json
 import subprocess
+import sys
 import tempfile
 from io import StringIO
 from pathlib import Path
@@ -41,14 +42,16 @@ class TestCLIBasics:
         """Test CLI fails with insufficient arguments."""
         with pytest.raises(SystemExit) as e:
             main()
-        assert e.value.code == 2  # type: ignore[attr-defined]
+        assert isinstance(e.value, SystemExit)
+        assert e.value.code == 2
 
     @patch("sys.argv", ["importobot", "too", "many", "args", "here"])
     def test_too_many_args(self):
         """Test CLI fails with too many arguments."""
         with pytest.raises(SystemExit) as e:
             main()
-        assert e.value.code == 2  # type: ignore[attr-defined]
+        assert isinstance(e.value, SystemExit)
+        assert e.value.code == 2
 
 
 class TestInputDetection:
@@ -103,7 +106,7 @@ class TestCLIUserWorkflows:
 
             # Run CLI command
             result = subprocess.run(
-                ["python", "-m", "importobot", str(input_file), str(output_file)],
+                [sys.executable, "-m", "importobot", str(input_file), str(output_file)],
                 capture_output=True,
                 text=True,
                 check=False,
@@ -148,11 +151,15 @@ class TestCLIUserWorkflows:
 
             # Run CLI command with --files flag (multiple arguments,
             # not comma-separated)
-            cmd = (
-                ["python", "-m", "importobot", "--files"]
-                + input_files
-                + ["--output", str(output_dir)]
-            )
+            cmd = [
+                sys.executable,
+                "-m",
+                "importobot",
+                "--files",
+                *input_files,
+                "--output",
+                str(output_dir),
+            ]
             result = subprocess.run(cmd, capture_output=True, text=True, check=False)
 
             # User should get successful conversion
@@ -195,7 +202,7 @@ class TestCLIUserWorkflows:
             # Run CLI command with --directory flag
             result = subprocess.run(
                 [
-                    "python",
+                    sys.executable,
                     "-m",
                     "importobot",
                     "--directory",
@@ -235,7 +242,13 @@ class TestCLIUserErrorScenarios:
             corrupted_file.write_text('{ "name": "Test", "incomplete": ')
 
             result = subprocess.run(
-                ["python", "-m", "importobot", str(corrupted_file), str(output_file)],
+                [
+                    sys.executable,
+                    "-m",
+                    "importobot",
+                    str(corrupted_file),
+                    str(output_file),
+                ],
                 capture_output=True,
                 text=True,
                 check=False,
@@ -245,7 +258,8 @@ class TestCLIUserErrorScenarios:
             assert result.returncode != 0
 
             # User should see the location of the error
-            assert "line" in result.stderr and "column" in result.stderr
+            assert "line" in result.stderr
+            assert "column" in result.stderr
 
             # User should get helpful guidance about what to do
             assert (
@@ -266,7 +280,13 @@ class TestCLIUserErrorScenarios:
             output_file = temp_path / "output.robot"
 
             result = subprocess.run(
-                ["python", "-m", "importobot", str(missing_file), str(output_file)],
+                [
+                    sys.executable,
+                    "-m",
+                    "importobot",
+                    str(missing_file),
+                    str(output_file),
+                ],
                 capture_output=True,
                 text=True,
                 check=False,
@@ -294,7 +314,7 @@ class TestCLIUserErrorScenarios:
             missing_dir = temp_path / "missing" / "output.robot"
 
             result = subprocess.run(
-                ["python", "-m", "importobot", str(input_file), str(missing_dir)],
+                [sys.executable, "-m", "importobot", str(input_file), str(missing_dir)],
                 capture_output=True,
                 text=True,
                 check=False,
@@ -310,13 +330,13 @@ class TestCLIUserErrorScenarios:
     def test_user_can_get_help_information(self):
         """User can easily get help on how to use the tool."""
         result = subprocess.run(
-            ["python", "-m", "importobot", "--help"],
+            [sys.executable, "-m", "importobot", "--help"],
             capture_output=True,
             text=True,
             check=False,
         )
 
-        # User should get comprehensive help
+        # User should get detailed help
         assert result.returncode == 0
         assert "usage:" in result.stdout.lower()
         assert "convert" in result.stdout.lower()
@@ -341,11 +361,15 @@ class TestCLIUserErrorScenarios:
             output_dir = temp_path / "output"
             output_dir.mkdir()
 
-            cmd = (
-                ["python", "-m", "importobot", "--files"]
-                + input_files
-                + ["--output", str(output_dir)]
-            )
+            cmd = [
+                sys.executable,
+                "-m",
+                "importobot",
+                "--files",
+                *input_files,
+                "--output",
+                str(output_dir),
+            ]
             result = subprocess.run(cmd, capture_output=True, text=True, check=False)
 
             # User should get feedback about batch processing
@@ -371,7 +395,7 @@ class TestCLIUserErrorScenarios:
 
             result = subprocess.run(
                 [
-                    "python",
+                    sys.executable,
                     "-m",
                     "importobot",
                     "--directory",
@@ -397,13 +421,13 @@ class TestErrorHandling:
     def test_user_gets_clear_feedback_when_file_missing(self):
         """User understands what went wrong when file doesn't exist."""
         result = subprocess.run(
-            ["python", "-m", "importobot", "non_existent.json"],
+            [sys.executable, "-m", "importobot", "non_existent.json"],
             capture_output=True,
             text=True,
             check=False,
         )
         # Focus on user value: clear error message, not specific exit code
-        assert not result.returncode == 0  # Should fail
+        assert result.returncode != 0  # Should fail
         assert "non_existent.json" in result.stderr  # Should mention the file
         assert (
             "No matching files found" in result.stderr
@@ -417,13 +441,13 @@ class TestErrorHandling:
             # Don't create the file to trigger the error
 
             result = subprocess.run(
-                ["python", "-m", "importobot", str(input_file)],
+                [sys.executable, "-m", "importobot", str(input_file)],
                 capture_output=True,
                 text=True,
                 check=False,
             )
             # User should understand this is about the file, not the directory
-            assert not result.returncode == 0
+            assert result.returncode != 0
             assert "missing.json" in result.stderr
             assert (
                 "No matching files found" in result.stderr
@@ -446,7 +470,8 @@ class TestErrorHandling:
                     with pytest.raises(SystemExit) as exc_info:
                         main()
 
-                    assert exc_info.value.code == 1  # type: ignore[attr-defined]
+                    assert isinstance(exc_info.value, SystemExit)
+                    assert exc_info.value.code == 1
                     stderr_output = captured_stderr.getvalue()
                     assert (
                         "An unexpected error occurred: Unexpected error"
@@ -456,7 +481,7 @@ class TestErrorHandling:
     def test_no_input(self):
         """Test that the script exits with an error if no input is provided."""
         result = subprocess.run(
-            ["python", "-m", "importobot"],
+            [sys.executable, "-m", "importobot"],
             capture_output=True,
             text=True,
             check=False,

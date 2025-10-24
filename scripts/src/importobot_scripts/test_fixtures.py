@@ -15,9 +15,9 @@ try:
         test_format_detection_integration.TestFormatDetectionIntegration
     )
 except ImportError:  # pragma: no cover - developer tooling dependency
-    # Fallback if test utils aren't available
+    # Default implementation if test utils aren't available
     def create_test_case_base(test_id: int, title: str, refs: str) -> dict[str, Any]:
-        """Fallback test case base creator."""
+        """Default test case base creator."""
         return {
             "id": test_id,
             "title": title,
@@ -32,7 +32,7 @@ except ImportError:  # pragma: no cover - developer tooling dependency
             ],
         }
 
-    # Fallback test data if integration test isn't available
+    # Default test data if integration test isn't available
     TEST_DATA_SAMPLES: dict[str, dict[str, Any]] = {}
 else:
     # Import test data from integration tests to avoid duplication

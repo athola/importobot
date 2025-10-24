@@ -192,6 +192,52 @@ class TestApplySuggestions:
         assert "tests" in improved_data
         assert len(improved_data["tests"]) == 2
 
+    def test_apply_suggestions_adds_hash_comparison_step(self):
+        """Hash commands should trigger an auto-generated comparison step."""
+        engine = GenericSuggestionEngine()
+        test_data: list[dict[str, Any]] = [
+            {
+                "name": "hash comparison",
+                "testScript": {
+                    "type": "STEP_BY_STEP",
+                    "steps": [
+                        {
+                            "description": "Calculate hash for source file",
+                            "testData": "blake2bsum source.txt",
+                            "expectedResult": "Hash captured",
+                        },
+                        {
+                            "description": "Calculate hash for target file",
+                            "testData": "blake2bsum target.txt",
+                            "expectedResult": "Hash captured",
+                        },
+                    ],
+                },
+            }
+        ]
+
+        improved_data, changes = engine.apply_suggestions(test_data)
+
+        assert isinstance(improved_data, list)
+        improved_case = improved_data[0]
+        steps = improved_case["testScript"]["steps"]
+
+        # A new step should be appended with auto-generated metadata
+        assert len(steps) == 3
+        comparison_step = steps[-1]
+        assert comparison_step["metadata"]["generator"] == "command_comparison"
+        assert "command_1" in comparison_step["testData"]
+        assert "command_2" in comparison_step["testData"]
+        assert (
+            comparison_step["description"].lower().startswith("verify command outputs")
+        )
+
+        # Changes should include a record of the addition
+        assert any(
+            change.get("reason") == "Added command comparison verification step"
+            for change in changes
+        )
+
     @patch("importobot.core.suggestions.suggestion_engine.GenericTestFileParser")
     def test_apply_suggestions_handles_errors(self, mock_parser_class):
         """Test that apply_suggestions handles errors appropriately."""

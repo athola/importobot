@@ -4,6 +4,7 @@
 import json
 import os
 import random
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -14,7 +15,7 @@ import pytest
 from importobot.core.converter import convert_file
 from importobot.core.keywords_registry import RobotFrameworkKeywordRegistry
 from importobot.core.suggestions.suggestion_engine import GenericSuggestionEngine
-from importobot.utils.test_generation.generators import EnterpriseTestGenerator
+from importobot.utils.test_generation.generators import TestSuiteGenerator
 from importobot.utils.test_generation.helpers import (
     generate_random_test_json,
     get_available_structures,
@@ -33,7 +34,7 @@ from tests.shared_ssh_test_data import (
 # RobotFrameworkKeywordRegistry is now imported from core.keywords_registry
 
 
-# JsonTestGenerator functionality is now part of EnterpriseTestGenerator
+# JsonTestGenerator functionality is now part of TestSuiteGenerator
 # in utils.test_generation
 
 
@@ -41,56 +42,135 @@ class RobotFrameworkExecutor:
     """Execute Robot Framework files and validate results."""
 
     @staticmethod
+    def _find_local_robot() -> Path | None:
+        """Return the local Robot Framework executable if available."""
+        venv_dir = Path.cwd() / ".venv"
+        candidates = [
+            venv_dir / "bin" / "robot",
+            venv_dir / "Scripts" / "robot",
+            venv_dir / "Scripts" / "robot.exe",
+            venv_dir / "Scripts" / "robot.bat",
+        ]
+        for candidate in candidates:
+            if candidate.exists() and os.access(candidate, os.X_OK):
+                return candidate
+        return None
+
+    @staticmethod
+    def _prepare_execution_attempts(
+        common_args: list[str], env: dict[str, str]
+    ) -> list[tuple[str, list[str], dict[str, str]]]:
+        attempts: list[tuple[str, list[str], dict[str, str]]] = []
+        uv_path = shutil.which("uv")
+        if uv_path:
+            uv_env = env.copy()
+            cache_dir = uv_env.get("UV_CACHE_DIR")
+            if not cache_dir:
+                cache_dir = str(Path.cwd() / ".uv-cache")
+                uv_env["UV_CACHE_DIR"] = cache_dir
+            Path(cache_dir).mkdir(parents=True, exist_ok=True)
+            uv_env.setdefault("UV_LINK_MODE", "copy")
+            uv_env.setdefault("UV_PROJECT_ENVIRONMENT", str(Path.cwd() / ".venv"))
+            uv_env.setdefault("UV_NO_SYNC", "1")
+            attempts.append(("uv", [uv_path, "run", "robot", *common_args], uv_env))
+
+        local_robot = RobotFrameworkExecutor._find_local_robot()
+        if local_robot:
+            attempts.append(("robot", [str(local_robot), *common_args], env.copy()))
+        return attempts
+
+    @staticmethod
+    def _execute_attempt(
+        label: str, cmd: list[str], cmd_env: dict[str, str]
+    ) -> tuple[subprocess.CompletedProcess[str] | None, str | None]:
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+                env=cmd_env,
+            )
+            return result, None
+        except subprocess.TimeoutExpired:
+            return None, f"{label} execution timed out after 30 seconds."
+        except FileNotFoundError:
+            return None, f"{label} executable not found."
+        except Exception as exc:  # pylint: disable=broad-except
+            return None, f"{label} execution error: {exc}"
+
+    @staticmethod
     def execute_robot_file(
         robot_file_path: str, dry_run: bool = True
     ) -> dict[str, Any]:
         """Execute Robot Framework file and return results."""
-        try:
-            # Use --dryrun for syntax validation without actual execution
-            cmd = [
-                "uv",
-                "run",
-                "robot",
-                "--dryrun" if dry_run else "",
-                "--outputdir",
-                str(Path(robot_file_path).parent),
-                robot_file_path,
-            ]
+        env = os.environ.copy()
+        common_args: list[str] = []
+        if dry_run:
+            common_args.append("--dryrun")
+        output_dir = str(Path(robot_file_path).parent)
+        common_args.extend(["--outputdir", output_dir, robot_file_path])
 
-            if dry_run:
-                # Remove empty string
-                cmd = [c for c in cmd if c]
+        attempts = RobotFrameworkExecutor._prepare_execution_attempts(common_args, env)
 
-            env = os.environ.copy()
+        if not attempts:
+            return {
+                "success": False,
+                "returncode": -1,
+                "stdout": "",
+                "stderr": (
+                    "No Robot Framework executable available (uv or local robot)."
+                ),
+                "syntax_valid": False,
+            }
 
-            proc_result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=30, check=False, env=env
+        attempt_messages: list[str] = []
+        last_result: subprocess.CompletedProcess[str] | None = None
+
+        for label, cmd, cmd_env in attempts:
+            result, error_message = RobotFrameworkExecutor._execute_attempt(
+                label, cmd, cmd_env
             )
+            if error_message:
+                attempt_messages.append(error_message)
+                continue
 
-            return {
-                "success": proc_result.returncode == 0,
-                "returncode": proc_result.returncode,
-                "stdout": proc_result.stdout,
-                "stderr": proc_result.stderr,
-                "syntax_valid": proc_result.returncode == 0,
-            }
+            if result and result.returncode == 0:
+                stderr_output = result.stderr
+                if attempt_messages:
+                    prefix = "\n".join(attempt_messages)
+                    stderr_output = f"{prefix}\n{stderr_output}".strip()
+                return {
+                    "success": True,
+                    "returncode": 0,
+                    "stdout": result.stdout,
+                    "stderr": stderr_output,
+                    "syntax_valid": True,
+                }
 
-        except subprocess.TimeoutExpired:
-            return {
-                "success": False,
-                "returncode": -1,
-                "stdout": "",
-                "stderr": "Execution timeout",
-                "syntax_valid": False,
-            }
-        except Exception as e:
-            return {
-                "success": False,
-                "returncode": -1,
-                "stdout": "",
-                "stderr": str(e),
-                "syntax_valid": False,
-            }
+            if result:
+                error_detail = (
+                    result.stderr.strip() or result.stdout.strip() or "no output"
+                )
+                attempt_messages.append(
+                    f"{label} execution failed with return code "
+                    f"{result.returncode}: {error_detail}"
+                )
+                last_result = result
+
+        failure_stdout = last_result.stdout if last_result else ""
+        failure_stderr = "\n".join(attempt_messages)
+        if last_result and last_result.stderr:
+            failure_stderr = f"{failure_stderr}\n{last_result.stderr}".strip()
+
+        return {
+            "success": False,
+            "returncode": last_result.returncode if last_result else -1,
+            "stdout": failure_stdout,
+            "stderr": failure_stderr,
+            "syntax_valid": False,
+        }
 
 
 @pytest.mark.parametrize("structure", get_available_structures())
@@ -258,7 +338,7 @@ def test_generative_keyword_combinations_produce_valid_robot(tmp_path, num_keywo
     random.seed(42 + num_keywords)
 
     # Create enterprise generator and use it to create test steps
-    generator = EnterpriseTestGenerator()
+    generator = TestSuiteGenerator()
     test_data = generator.generate_realistic_test_data()
 
     # Generate steps using the keyword data
@@ -328,15 +408,15 @@ def _extract_keywords_by_library() -> list[dict[str, Any]]:
 
 
 def _generate_builtin_keyword_data(
-    kw: dict[str, Any], generator: EnterpriseTestGenerator, test_data: dict[str, str]
+    kw: dict[str, Any], generator: TestSuiteGenerator, test_data: dict[str, str]
 ) -> str:
     """Generate proper data for BuiltIn keywords."""
     keyword_specific_data = generator.generate_keyword_specific_data(kw, test_data)
-    # Verify that BuiltIn keywords get proper structured data, not generic fallbacks
+    # Verify that BuiltIn keywords get proper structured data, not generic defaults
     if "test_data_for_" in keyword_specific_data and "#" in keyword_specific_data:
         # This indicates the generator didn't have a specific pattern
         # for this BuiltIn keyword
-        # Use a fallback that will at least be valid
+        # Use a default value that will at least be valid
         keyword_name = kw["keyword"].lower().replace(" ", "_")
         if "convert" in keyword_name:
             return "value: 123"
@@ -354,7 +434,7 @@ def _generate_builtin_keyword_data(
 
 def _create_test_steps(
     keywords_by_library: list[dict[str, Any]],
-    generator: EnterpriseTestGenerator,
+    generator: TestSuiteGenerator,
     test_data: dict[str, str],
 ) -> list[dict[str, Any]]:
     """Create test steps for each library keyword."""
@@ -385,7 +465,7 @@ def test_library_coverage(tmp_path):
     keywords_by_library = _extract_keywords_by_library()
 
     # Generate test using enterprise generator with enhanced BuiltIn support
-    generator = EnterpriseTestGenerator()
+    generator = TestSuiteGenerator()
     test_data = generator.generate_realistic_test_data()
 
     steps = _create_test_steps(keywords_by_library, generator, test_data)
@@ -394,15 +474,15 @@ def test_library_coverage(tmp_path):
         "name": "Library Coverage Test",
         "description": "Test covering all major Robot Framework libraries",
         "priority": "High",
-        "labels": ["comprehensive", "library_coverage"],
+        "labels": ["library_coverage"],
         "steps": steps,
     }
 
     # Convert
-    json_file = tmp_path / "comprehensive_test.json"
+    json_file = tmp_path / "library_coverage_test.json"
     json_file.write_text(json.dumps(json_data, indent=2))
 
-    robot_file = tmp_path / "comprehensive_test.robot"
+    robot_file = tmp_path / "library_coverage_test.robot"
     convert_file(str(json_file), str(robot_file))
 
     # Verify syntax
@@ -410,7 +490,7 @@ def test_library_coverage(tmp_path):
     syntax_result = syntax_executor.execute_robot_file(str(robot_file), dry_run=True)
 
     assert syntax_result["syntax_valid"], (
-        f"Comprehensive test failed validation: {syntax_result['stderr']}"
+        f"Library coverage test failed validation: {syntax_result['stderr']}"
     )
 
     # Verify all libraries are imported (except builtin)
@@ -422,8 +502,8 @@ def test_library_coverage(tmp_path):
         assert f"Library    {lib}" in content, f"Missing library import: {lib}"
 
 
-def test_builtin_keywords_comprehensive_coverage(tmp_path):
-    """Test comprehensive coverage of BuiltIn keywords with proper structured data."""
+def test_builtin_keywords_coverage(tmp_path):
+    """Test coverage of BuiltIn keywords with proper structured data."""
     # Create test scenarios for each major BuiltIn keyword category
     builtin_scenarios = [
         # Conversion keywords
@@ -560,21 +640,21 @@ def test_builtin_keywords_comprehensive_coverage(tmp_path):
     ]
 
     json_data = {
-        "name": "BuiltIn Keywords Comprehensive Test",
+        "name": "BuiltIn Keywords Coverage Test",
         "description": (
-            "Comprehensive test covering all major BuiltIn keyword categories "
+            "Test covering all major BuiltIn keyword categories "
             "with proper structured data"
         ),
         "priority": "High",
-        "labels": ["builtin", "comprehensive", "structured_data"],
+        "labels": ["builtin", "structured_data"],
         "steps": builtin_scenarios,
     }
 
     # Convert to Robot Framework
-    json_file = tmp_path / "builtin_comprehensive_test.json"
+    json_file = tmp_path / "builtin_coverage_test.json"
     json_file.write_text(json.dumps(json_data, indent=2))
 
-    robot_file = tmp_path / "builtin_comprehensive_test.robot"
+    robot_file = tmp_path / "builtin_coverage_test.robot"
     convert_file(str(json_file), str(robot_file))
 
     # Verify syntax
@@ -583,7 +663,7 @@ def test_builtin_keywords_comprehensive_coverage(tmp_path):
 
     # Should have valid syntax
     assert syntax_result["syntax_valid"], (
-        f"BuiltIn comprehensive test failed validation: {syntax_result['stderr']}"
+        f"BuiltIn coverage test failed validation: {syntax_result['stderr']}"
     )
 
     # Verify content includes proper BuiltIn keywords
@@ -916,7 +996,7 @@ if __name__ == "__main__":
         convert_file(json_path, robot_path)
         print(f"\nConverted to: {robot_path}")
 
-        with open(robot_path, "r", encoding="utf-8") as robot_content:
+        with open(robot_path, encoding="utf-8") as robot_content:
             print("\nGenerated Robot Framework:")
             print(robot_content.read())
 
@@ -940,7 +1020,7 @@ if __name__ == "__main__":
     print("Testing Enterprise Test Generator")
     print("=" * 50)
 
-    enterprise_generator = EnterpriseTestGenerator()
+    enterprise_generator = TestSuiteGenerator()
     enterprise_test = enterprise_generator.generate_enterprise_test_case(
         "web_automation", "user_authentication", 1001
     )
@@ -951,8 +1031,8 @@ if __name__ == "__main__":
     )  # Truncate for readability
 
 
-def test_ssh_comprehensive_keyword_coverage():
-    """Test comprehensive coverage of all 42 SSH keywords through generative testing."""
+def test_ssh_keyword_coverage():
+    """Test coverage of all 42 SSH keywords through generative testing."""
     ssh_generator = SSHKeywordTestGenerator()
 
     # Generate test cases for all SSH keywords
@@ -1039,8 +1119,8 @@ def test_ssh_comprehensive_keyword_coverage():
     print(f"- Keywords tested: {sorted(covered_keywords)}")
 
 
-def test_ssh_keyword_categories_comprehensive():
-    """Test that all SSH keyword categories are comprehensively covered."""
+def test_ssh_keyword_categories_coverage():
+    """Test that all SSH keyword categories are covered."""
     ssh_generator = SSHKeywordTestGenerator()
 
     # Define SSH keyword categories and their expected keywords

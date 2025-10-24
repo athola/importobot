@@ -1,7 +1,7 @@
-"""Public validation utilities for enterprise pipelines.
+"""Public validation utilities for integration pipelines.
 
-This module provides validation functions needed for robust
-enterprise integration and CI/CD pipeline integration.
+Provides validation functions for data structure validation, path safety checks,
+and integration with CI/CD systems.
 """
 
 from __future__ import annotations
@@ -12,4 +12,4 @@ from importobot.utils.validation import (
     validate_safe_path,
 )
 
-__all__ = ["validate_json_dict", "validate_safe_path", "ValidationError"]
+__all__ = ["ValidationError", "validate_json_dict", "validate_safe_path"]

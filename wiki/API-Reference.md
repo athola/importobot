@@ -1,6 +1,8 @@
 # API Reference
 
-Reference for Importobot’s public API surface. Everything here is supported; anything under `importobot.core.*` or `importobot.medallion.*` is considered private.
+Reference for Importobot's public API surface. Everything here is supported; anything under `importobot.core.*` or `importobot.medallion.*` is considered private.
+
+**Looking for practical examples?** See [API Examples](API-Examples) for detailed usage patterns with the newest features.
 
 ## API Architecture Overview
 
@@ -11,16 +13,16 @@ Importobot exposes two layers:
 ### Design notes
 
 - Public imports stay stable; internal modules can change without notice.
-- Type hints and `TYPE_CHECKING` guards keep IDE support strong.
+- Type hints and `TYPE_CHECKING` guards provide IDE support.
 
 ## Public API Structure
 
 ```
 importobot/
 ├── JsonToRobotConverter    # Core bulk conversion class
-├── config                  # Enterprise configuration
-├── exceptions              # Comprehensive error handling
-└── api/                    # Enterprise toolkit
+├── config                  # Configuration settings
+├── exceptions              # Error handling
+└── api/                    # Advanced API utilities
     ├── converters          # Advanced conversion engines
     ├── suggestions         # QA suggestion engine
     └── validation          # CI/CD validation utilities
@@ -51,12 +53,12 @@ converter = importobot.JsonToRobotConverter()
 
 ### Configuration
 
-Access enterprise configuration settings:
+Access configuration settings:
 
 ```python
 import importobot
 
-# Enterprise configuration
+# Configuration settings
 max_size = importobot.config.MAX_JSON_SIZE_MB
 test_url = importobot.config.TEST_SERVER_URL
 chrome_options = importobot.config.CHROME_OPTIONS
@@ -93,11 +95,11 @@ Key exceptions:
 - `FileAccessError`
 - `SuggestionError`
 
-## Enterprise Toolkit (importobot.api)
+## Advanced API Utilities (importobot.api)
 
 ### importobot.api.converters
 
-Advanced conversion engines for enterprise integration.
+Advanced conversion engines for integration.
 
 ```python
 from importobot.api import converters
@@ -119,7 +121,7 @@ converter = converters.JsonToRobotConverter()
 
 ### importobot.api.validation
 
-CI/CD pipeline validation utilities.
+CI/CD validation utilities.
 
 ```python
 from importobot.api import validation
@@ -164,8 +166,56 @@ fixes = engine.suggest_improvements(ambiguous_test_data)
 
 **`GenericSuggestionEngine`**
 - Analyzes problematic test cases
-- Provides intelligent suggestions for improvements
+- Provides suggestions for improvements
 - Handles ambiguous or incomplete test data
+
+## API Client Error Handling
+
+Importobot's HTTP clients (Zephyr, TestRail, Jira/Xray, TestLink) inherit from `BaseAPIClient` and raise familiar Python exceptions when requests fail.
+
+- `requests.HTTPError` — raised by `response.raise_for_status()` for non-success status codes. Inspect `err.response.status_code` and `err.response.text` for remediation guidance.
+- `RuntimeError("Exceeded retry budget ...")` — raised after the client retries the same request `_max_retries + 1` times (default: 3 retries). Wrap calls in your own retry loop if you need a longer budget.
+- `ValueError("Unsupported fetch format ...")` — raised by `get_api_client` when the supplied `SupportedFormat` is not mapped to a client, or when an unsupported HTTP method is invoked.
+- Standard `requests` exceptions (`ConnectionError`, `Timeout`, etc.) — bubbled up for network issues before any response is returned.
+
+```python
+import logging
+import os
+import requests
+from importobot.exceptions import ConfigurationError
+from importobot.integrations.clients import get_api_client, SupportedFormat
+
+logger = logging.getLogger(__name__)
+
+client = get_api_client(
+    SupportedFormat.ZEPHYR,
+    api_url="https://zephyr.example.com",
+    tokens=[os.environ["ZEPHYR_TOKEN"]],
+    user=None,
+    project_name="ENG-QA",
+    project_id=None,
+    max_concurrency=5,
+    verify_ssl=True,
+)
+
+try:
+    for page in client.fetch_all(progress_cb=lambda **kw: None):
+        process_page(page)
+except requests.HTTPError as err:
+    logger.error(
+        "Zephyr API request %s failed with %s",
+        err.request.url,
+        err.response.status_code,
+    )
+    raise
+except RuntimeError as retry_err:
+    logger.warning("Importobot exhausted built-in retries for %s", client.api_url)
+    raise
+except ValueError as config_err:
+    raise ConfigurationError(f"Misconfigured API client: {config_err}") from config_err
+```
+
+> Tip: Only disable TLS verification (`verify_ssl=False`) in trusted development environments. Importobot logs a warning whenever verification is turned off.
 
 ## Business Use Cases
 
@@ -174,7 +224,7 @@ fixes = engine.suggest_improvements(ambiguous_test_data)
 ```python
 import importobot
 
-# Enterprise bulk conversion
+# Bulk conversion
 converter = importobot.JsonToRobotConverter()
 results = converter.convert_directory("/zephyr/exports", "/robot/tests")
 
@@ -217,14 +267,14 @@ for test_case in problematic_tests:
 
 Following pandas-style API evolution:
 
-- **Public API Contracts**: `importobot.*` and `importobot.api.*` remain stable across versions
+- **Public API Stability**: `importobot.*` and `importobot.api.*` remain stable across versions
 - **Internal Implementation**: Core modules can be refactored freely without breaking public API
 - **Deprecation Warnings**: Any breaking changes include migration guidance
 - **Semantic Versioning**: Major.Minor.Patch versioning with clear upgrade paths
 
 ## Environment Variables
 
-Enterprise configuration can be customized via environment variables:
+Configuration can be customized via environment variables:
 
 - `IMPORTOBOT_TEST_SERVER_URL`: Test server URL (default: "http://localhost:8000")
 - `IMPORTOBOT_MAX_JSON_SIZE_MB`: Maximum JSON file size in MB (default: "10")
@@ -267,7 +317,7 @@ engine: suggestions.GenericSuggestionEngine = ...
 
 ## Confidence Scoring API
 
-Importobot provides access to its Bayesian confidence scoring system for advanced use cases:
+Access the Bayesian confidence scoring system for advanced use cases:
 
 ### Bayesian Configuration
 
@@ -354,7 +404,7 @@ if not custom_parameters.validate():
 ## Performance Considerations
 
 - **Bulk Operations**: Use `convert_directory()` for hundreds/thousands of files
-- **Memory Management**: Large files automatically handled within size limits
+- **Memory Management**: Large files are managed within defined size limits
 - **Parallel Processing**: Directory conversion uses efficient batching
 - **Error Recovery**: Individual file failures don't stop batch processing
 - **Bayesian Calculations**: Confidence scoring is O(1) per evaluation with optional Monte Carlo sampling for uncertainty quantification

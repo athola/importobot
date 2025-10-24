@@ -6,12 +6,14 @@ The goal is to verify business behaviour rather than just the existence
 of API shapes.
 """
 
+from typing import Any
+
 from importobot.api import suggestions
 
 
 def make_step(
     action: str, expected: str | None = None, data: str | None = None
-) -> dict:
+) -> dict[str, Any]:
     """Create a step payload using canonical field names."""
     step: dict[str, str] = {"action": action}
     if expected is not None:
@@ -25,9 +27,9 @@ def make_test_case(
     *,
     name: str = "Sample Test",
     description: str | None = "Sample description",
-    steps: list[dict] | None = None,
-    extra_fields: dict | None = None,
-) -> dict:
+    steps: list[dict[str, Any]] | None = None,
+    extra_fields: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Build a canonical test case structure recognised by the engine."""
     payload: dict[str, object] = {
         "name": name,

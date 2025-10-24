@@ -1,6 +1,6 @@
 """SSH test data generation module."""
 
-from typing import Any, Dict, List
+from typing import Any
 
 
 class SSHTestDataGenerator:
@@ -9,7 +9,7 @@ class SSHTestDataGenerator:
     def __init__(self) -> None:
         """Initialize the SSH test data generator."""
 
-    def generate_test_credentials(self, config: Dict[str, Any]) -> Dict[str, str]:
+    def generate_test_credentials(self, config: dict[str, Any]) -> dict[str, str]:
         """Generate test credentials.
 
         Args:
@@ -21,7 +21,7 @@ class SSHTestDataGenerator:
         _ = config  # Unused parameter
         return {}
 
-    def generate_test_hosts(self, config: Dict[str, Any]) -> List[str]:
+    def generate_test_hosts(self, config: dict[str, Any]) -> list[str]:
         """Generate test host configurations.
 
         Args:
@@ -33,7 +33,7 @@ class SSHTestDataGenerator:
         _ = config  # Unused parameter
         return []
 
-    def generate_test_commands(self, config: Dict[str, Any]) -> List[str]:
+    def generate_test_commands(self, config: dict[str, Any]) -> list[str]:
         """Generate test commands.
 
         Args:

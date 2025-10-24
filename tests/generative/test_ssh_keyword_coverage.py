@@ -1,4 +1,4 @@
-"""Comprehensive generative tests ensuring all 42 SSH keywords are covered."""
+"""Generative tests for SSH keywords, ensuring all 42 keywords are covered."""
 
 import json
 import sys
@@ -21,8 +21,8 @@ from tests.shared_ssh_test_data import (
 pytestmark = pytest.mark.slow
 
 
-class TestSSHComprehensiveCoverage:
-    """Comprehensive generative tests for all SSH keywords."""
+class TestSSHKeywordCoverage:
+    """Generative tests for all SSH keywords."""
 
     @pytest.fixture
     def ssh_generator(self):
@@ -329,8 +329,8 @@ class TestSSHComprehensiveCoverage:
         assert "write" in steps[0]["step"].lower()
         assert "read" in steps[1]["step"].lower()
 
-    def test_ssh_comprehensive_scenario_generation(self, ssh_generator):
-        """Generate a comprehensive SSH scenario using multiple keyword categories."""
+    def test_ssh_full_scenario_generation(self, ssh_generator):
+        """Generate a full SSH scenario using multiple keyword categories."""
         # Select representative keywords from each category
         scenario_keywords = [
             "Open Connection",  # Connection
@@ -344,9 +344,9 @@ class TestSSHComprehensiveCoverage:
             "Enable Ssh Logging",  # Logging
         ]
 
-        comprehensive_scenario: dict[str, Any] = {
+        full_scenario: dict[str, Any] = {
             "test_case": {
-                "name": "SSH Comprehensive Deployment Scenario",
+                "name": "SSH Full Deployment Scenario",
                 "description": "Complete SSH deployment and verification scenario",
                 "steps": [],
             }
@@ -356,16 +356,16 @@ class TestSSHComprehensiveCoverage:
         for keyword in scenario_keywords:
             individual_test = ssh_generator.generate_ssh_keyword_test(keyword)
             step = individual_test["test_case"]["steps"][0]
-            comprehensive_scenario["test_case"]["steps"].append(step)
+            full_scenario["test_case"]["steps"].append(step)
 
-        # Verify comprehensive scenario
-        assert len(comprehensive_scenario["test_case"]["steps"]) == 9
+        # Verify full scenario
+        assert len(full_scenario["test_case"]["steps"]) == 9
 
         # Test conversion to Robot Framework
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".json", delete=False
         ) as temp_file:
-            json.dump(comprehensive_scenario, temp_file, indent=2)
+            json.dump(full_scenario, temp_file, indent=2)
             temp_file_path = temp_file.name
 
         try:
@@ -389,8 +389,8 @@ class TestSSHComprehensiveCoverage:
                 ("SSH Configuration", ["Set Client Configuration"]),
                 (
                     "Command Execution",
-                    ["Execute Command", "Run Process"],
-                ),  # May use either SSH or Process library
+                    ["Execute Command", "Run Process", "List Directory", "Run"],
+                ),  # May use SSH, Process, or OperatingSystem library
                 ("File Transfer", ["Put File"]),
                 ("Directory Creation", ["Create Directory"]),
                 ("File Verification", ["File Should Exist"]),

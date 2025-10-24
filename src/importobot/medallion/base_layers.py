@@ -5,8 +5,9 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import date, datetime
+from importlib import import_module
 from pathlib import Path
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from importobot.medallion.interfaces.base_interfaces import DataLayer
 from importobot.medallion.interfaces.data_models import (
@@ -18,16 +19,18 @@ from importobot.medallion.interfaces.data_models import (
 )
 from importobot.medallion.interfaces.enums import SupportedFormat
 from importobot.medallion.utils.query_filters import matches_query_filters
-from importobot.utils.logging import setup_logger
-from importobot.utils.string_cache import data_to_lower_cached
+from importobot.utils.logging import get_logger
 
-logger = setup_logger(__name__)
+logger = get_logger()
+
+if TYPE_CHECKING:
+    from importobot.medallion.bronze.format_detector import FormatDetector
 
 
 class BaseMedallionLayer(DataLayer):
     """Base implementation for all Medallion layers with common functionality."""
 
-    def __init__(self, layer_name: str, storage_path: Optional[Path] = None) -> None:
+    def __init__(self, layer_name: str, storage_path: Path | None = None) -> None:
         """Initialize the base layer.
 
         Args:
@@ -42,8 +45,9 @@ class BaseMedallionLayer(DataLayer):
         self._data_store: dict[str, dict[str, Any]] = {}
         self._metadata_store: dict[str, LayerMetadata] = {}
         self._lineage_store: dict[str, LineageInfo] = {}
+        self._format_detector: FormatDetector | None = None
 
-        logger.info(
+        logger.debug(
             "Initialized %s layer with storage at %s", layer_name, self.storage_path
         )
 
@@ -51,7 +55,7 @@ class BaseMedallionLayer(DataLayer):
         """Serialize data to a canonical JSON string for hashing operations."""
 
         def _default(obj: Any) -> Any:
-            if isinstance(obj, (datetime, date)):
+            if isinstance(obj, datetime | date):
                 logger.debug(
                     "Serializing %s via ISO-8601 in %s layer",
                     type(obj).__name__,
@@ -79,7 +83,7 @@ class BaseMedallionLayer(DataLayer):
         data: Any,
         metadata: LayerMetadata,
         *,
-        serialized_data: Optional[str] = None,
+        serialized_data: str | None = None,
     ) -> str:
         """Generate a unique ID for data based on content and metadata."""
         content_str = serialized_data or self._serialize_data(data)
@@ -90,7 +94,7 @@ class BaseMedallionLayer(DataLayer):
         return hashlib.blake2b(hash_input.encode(), digest_size=8).hexdigest()
 
     def _calculate_data_hash(
-        self, data: Any, *, serialized_data: Optional[str] = None
+        self, data: Any, *, serialized_data: str | None = None
     ) -> str:
         """Calculate hash for data integrity verification."""
         content_str = serialized_data or self._serialize_data(data)
@@ -102,32 +106,15 @@ class BaseMedallionLayer(DataLayer):
         if not isinstance(data, dict):
             return SupportedFormat.UNKNOWN
 
-        # Check for Zephyr indicators
-        if any(key in data for key in ["testCase", "execution", "cycle"]):
-            return SupportedFormat.ZEPHYR
+        detector = self._get_format_detector()
+        return detector.detect_format(data)
 
-        # Check for TestLink indicators
-        if any(key in data for key in ["testsuites", "testsuite", "testcase"]):
-            return SupportedFormat.TESTLINK
-
-        # Check for JIRA/Xray indicators
-        data_str = data_to_lower_cached(data)
-        if any(key in data for key in ["issues", "key", "fields"]) and (
-            "xray" in data_str or "test" in data_str or "issuetype" in data_str
-        ):
-            return SupportedFormat.JIRA_XRAY
-
-        # Check for TestRail indicators
-        if any(
-            key in data for key in ["runs", "tests", "cases"]
-        ) and "testrail" in data_to_lower_cached(data):
-            return SupportedFormat.TESTRAIL
-
-        # Generic test structure detection
-        if any(key in data for key in ["tests", "test_cases", "testcases"]):
-            return SupportedFormat.GENERIC
-
-        return SupportedFormat.UNKNOWN
+    def _get_format_detector(self) -> FormatDetector:
+        if self._format_detector is None:
+            module = import_module("importobot.medallion.bronze.format_detector")
+            FormatDetectorCls: type[FormatDetector] = module.FormatDetector
+            self._format_detector = FormatDetectorCls()
+        return self._format_detector
 
     def _create_lineage(
         self,
@@ -136,7 +123,7 @@ class BaseMedallionLayer(DataLayer):
         target_layer: str,
         *,
         transformation_type: str,
-        parent_ids: Optional[list[str]] = None,
+        parent_ids: list[str] | None = None,
     ) -> LineageInfo:
         """Create lineage information for data transformation."""
         return LineageInfo(
@@ -170,7 +157,7 @@ class BaseMedallionLayer(DataLayer):
             retrieved_at=start_time,
         )
 
-    def _filter_records(self, query: LayerQuery) -> tuple[list, list]:
+    def _filter_records(self, query: LayerQuery) -> tuple[list[Any], list[Any]]:
         """Apply filters to records based on query parameters."""
         filtered_records = []
         filtered_metadata = []
@@ -187,7 +174,7 @@ class BaseMedallionLayer(DataLayer):
         return filtered_records, filtered_metadata
 
     def _record_matches_query(
-        self, data_id: str, record: dict, metadata: Any, query: LayerQuery
+        self, data_id: str, record: dict[str, Any], metadata: Any, query: LayerQuery
     ) -> bool:
         """Check if a record matches the query criteria."""
         # Use shared query filter logic
@@ -203,8 +190,8 @@ class BaseMedallionLayer(DataLayer):
         return True
 
     def _apply_pagination(
-        self, records: list, metadata: list, query: LayerQuery
-    ) -> tuple[list, list]:
+        self, records: list[Any], metadata: list[Any], query: LayerQuery
+    ) -> tuple[list[Any], list[Any]]:
         """Apply pagination to filtered results."""
         start_idx = query.offset
         end_idx = start_idx + query.limit if query.limit is not None else len(records)
@@ -243,7 +230,10 @@ class BaseMedallionLayer(DataLayer):
         # Basic consistency check (non-empty strings, proper types)
         consistent_fields = 0
         for value in data.values():
-            if isinstance(value, (str, int, float, bool, list, dict)) and value != "":
+            if (
+                isinstance(value, str | int | float | bool | list | dict)
+                and value != ""
+            ):
                 consistent_fields += 1
         consistency_score = (
             (consistent_fields / total_fields * 100) if total_fields > 0 else 0
