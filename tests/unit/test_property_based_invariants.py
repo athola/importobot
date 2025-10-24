@@ -227,7 +227,7 @@ class TestConversionDataCompletenessInvariants:
             result = converter.convert_json_string(test_json)
 
             # Property: Priority metadata preserved if present
-            if "priority" in test_case and test_case["priority"]:
+            if test_case.get("priority"):
                 # Priority should appear in output (in tags or documentation)
                 result_lower = result.lower()
                 priority_lower = test_case["priority"].lower()
@@ -236,7 +236,7 @@ class TestConversionDataCompletenessInvariants:
                 )
 
             # Property: Category metadata preserved if present
-            if "category" in test_case and test_case["category"]:
+            if test_case.get("category"):
                 result_lower = result.lower()
                 category_lower = test_case["category"].lower()
                 assert category_lower in result_lower, (

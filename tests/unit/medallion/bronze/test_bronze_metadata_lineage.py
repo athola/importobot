@@ -16,11 +16,36 @@ class TestBronzeMetadataAndLineage(unittest.TestCase):
 
     def setUp(self) -> None:
         self.bronze_layer = BronzeLayer()
+        # Use proper Zephyr format data so format detection works as expected
         self.sample_data = {
+            "project": {"key": "TEST", "name": "Test Project"},
             "testCase": {
                 "name": "Sanity Check",
                 "description": "Smoke test for metadata retrieval",
-            }
+                "priority": "HIGH",
+                "component": "Testing",
+                "steps": [
+                    {
+                        "stepDescription": "Test step description",
+                        "expectedResult": "Expected result",
+                        "stepId": 1,
+                    }
+                ],
+            },
+            "execution": {
+                "status": "PASSED",
+                "executedOn": "2024-01-15T10:30:00Z",
+                "executedBy": "tester@company.com",
+                "environment": "test",
+                "actualResult": "Test completed successfully",
+            },
+            "cycle": {
+                "name": "Test Cycle",
+                "version": "v1.0.0",
+                "environment": "test",
+                "startDate": "2024-01-01T00:00:00Z",
+                "endDate": "2024-01-31T23:59:59Z",
+            },
         }
         self.metadata = LayerMetadata(
             source_path=Path("tests/data/sample.json"),
@@ -41,32 +66,31 @@ class TestBronzeMetadataAndLineage(unittest.TestCase):
         """BronzeLayer should convert LayerMetadata into RecordMetadata."""
         retrieved = self.bronze_layer.get_record_metadata(self.record_id)
 
-        self.assertIsNotNone(retrieved)
+        assert retrieved is not None
         assert retrieved is not None  # mypy type narrowing
-        self.assertIsInstance(retrieved, RecordMetadata)
-        self.assertEqual(retrieved.record_id, self.record_id)
-        self.assertEqual(retrieved.source_system, str(self.metadata.source_path))
-        self.assertEqual(retrieved.source_file_size, self.metadata.file_size_bytes)
-        self.assertIn("record_count", retrieved.quality_checks)
-        self.assertEqual(
-            retrieved.custom_attributes["team"],
-            self.metadata.custom_metadata["team"],
+        assert isinstance(retrieved, RecordMetadata)
+        assert retrieved.record_id == self.record_id
+        assert retrieved.source_system == str(self.metadata.source_path)
+        assert retrieved.source_file_size == self.metadata.file_size_bytes
+        assert "record_count" in retrieved.quality_checks
+        assert (
+            retrieved.custom_attributes["team"] == self.metadata.custom_metadata["team"]
         )
 
     def test_get_record_metadata_returns_none_for_unknown_id(self) -> None:
         """BronzeLayer should return None when metadata is missing."""
-        self.assertIsNone(self.bronze_layer.get_record_metadata("missing-id"))
+        assert self.bronze_layer.get_record_metadata("missing-id") is None
 
     def test_get_record_lineage_maps_to_data_lineage(self) -> None:
         """Stored lineage info should map to DataLineage structure."""
         lineage = self.bronze_layer.get_record_lineage(self.record_id)
 
-        self.assertIsNotNone(lineage)
+        assert lineage is not None
         assert lineage is not None  # mypy type narrowing
-        self.assertEqual(lineage.source_id, self.record_id)
-        self.assertEqual(lineage.source_location, str(self.metadata.source_path))
-        self.assertEqual(lineage.parent_records, [])
-        self.assertGreaterEqual(len(lineage.transformation_history), 1)
+        assert lineage.source_id == self.record_id
+        assert lineage.source_location == str(self.metadata.source_path)
+        assert lineage.parent_records == []
+        assert len(lineage.transformation_history) >= 1
 
     def test_get_bronze_records_filters_by_record_id(self) -> None:
         """Record retrieval should support filter criteria."""
@@ -74,9 +98,9 @@ class TestBronzeMetadataAndLineage(unittest.TestCase):
             filter_criteria={"record_id": self.record_id}
         )
 
-        self.assertEqual(len(records), 1)
-        self.assertIsInstance(records[0], BronzeRecord)
-        self.assertEqual(records[0].metadata.record_id, self.record_id)
+        assert len(records) == 1
+        assert isinstance(records[0], BronzeRecord)
+        assert records[0].metadata.record_id == self.record_id
 
     def test_get_bronze_records_filters_by_nested_key(self) -> None:
         """Dot-notation filtering should work for nested data keys."""
@@ -84,13 +108,13 @@ class TestBronzeMetadataAndLineage(unittest.TestCase):
             filter_criteria={"testCase.name": "Sanity Check"}
         )
 
-        self.assertEqual(len(records), 1)
-        self.assertEqual(records[0].data["testCase"]["name"], "Sanity Check")
+        assert len(records) == 1
+        assert records[0].data["testCase"]["name"] == "Sanity Check"
 
     def test_get_bronze_records_respects_limit_zero(self) -> None:
         """Limit set to zero should short-circuit with no records."""
         records = self.bronze_layer.get_bronze_records(limit=0)
-        self.assertEqual(records, [])
+        assert records == []
 
     def test_get_bronze_records_filters_by_ingestion_timestamp_range(self) -> None:
         """Temporal filters should be applied to metadata timestamps."""
@@ -108,9 +132,9 @@ class TestBronzeMetadataAndLineage(unittest.TestCase):
             filter_criteria={"ingestion_timestamp_before": earlier.isoformat()}
         )
 
-        self.assertEqual(len(within_range), 1)
-        self.assertEqual(within_range[0].metadata.record_id, self.record_id)
-        self.assertEqual(outside_range, [])
+        assert len(within_range) == 1
+        assert within_range[0].metadata.record_id == self.record_id
+        assert outside_range == []
 
     def test_get_bronze_records_filters_by_format_type_case_insensitive(self) -> None:
         """Filtering by format type should ignore case via dispatch handlers."""
@@ -121,13 +145,13 @@ class TestBronzeMetadataAndLineage(unittest.TestCase):
             filter_criteria={"format_type": "ZEPHYR"}
         )
 
-        self.assertEqual(len(records_lower), 1)
-        self.assertEqual(len(records_upper), 1)
-        self.assertEqual(records_lower[0].metadata.record_id, self.record_id)
-        self.assertEqual(records_upper[0].metadata.record_id, self.record_id)
+        assert len(records_lower) == 1
+        assert len(records_upper) == 1
+        assert records_lower[0].metadata.record_id == self.record_id
+        assert records_upper[0].metadata.record_id == self.record_id
 
     def test_get_bronze_records_filters_by_custom_metadata(self) -> None:
-        """Custom metadata filters should surface through dispatch fallback."""
+        """Custom metadata filters should surface through dispatch defaults."""
         matching = self.bronze_layer.get_bronze_records(
             filter_criteria={"custom_metadata.team": "qa"}
         )
@@ -135,9 +159,9 @@ class TestBronzeMetadataAndLineage(unittest.TestCase):
             filter_criteria={"custom_metadata.team": "devops"}
         )
 
-        self.assertEqual(len(matching), 1)
-        self.assertEqual(matching[0].metadata.record_id, self.record_id)
-        self.assertEqual(non_matching, [])
+        assert len(matching) == 1
+        assert matching[0].metadata.record_id == self.record_id
+        assert non_matching == []
 
 
 if __name__ == "__main__":

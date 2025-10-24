@@ -1,0 +1,54 @@
+[
+    {
+        "owner": "USER001",
+        "updatedBy": "USER002",
+        "customFields": {
+            "Supported Platforms": "All Platforms",
+            "Test Level": "Minimum Viable"
+        },
+        "precondition": "Connection established with agent",
+        "updatedOn": "2025-08-29T17:27:06.945Z",
+        "priority": "Normal",
+        "createdOn": "2024-03-04T14:46:01.268Z",
+        "objective": "Verify new folders are created with correct permissions",
+        "labels": [
+            "Requirement"
+        ],
+        "projectKey": "DEMO",
+        "folder": "/Examples/TaskTests",
+        "latestVersion": true,
+        "createdBy": "USER003",
+        "testScript": {
+            "id": 12510,
+            "type": "STEP_BY_STEP",
+            "steps": [
+                {
+                    "testData": "stat {path/to/dir}",
+                    "expectedResult": "the folder was created",
+                    "index": 1,
+                    "description": "TARGET: check that the folder was created",
+                    "id": 76740
+                },
+                {
+                    "testData": "mkdir {path/to/dir}",
+                    "expectedResult": "task successful",
+                    "index": 0,
+                    "description": "CLI: enter the test data on the controller",
+                    "id": 76739
+                }
+            ]
+        },
+        "issueLinks": [
+            "Link1",
+            "Link2"
+        ],
+        "lastTestResultStatus": "Fail",
+        "name": "mkdir",
+        "parameters": {
+            "variables": [],
+            "entries": []
+        },
+        "key": "ABC-789",
+        "status": "Review"
+    }
+]

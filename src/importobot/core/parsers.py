@@ -13,9 +13,9 @@ from importobot.core.field_definitions import (
     is_test_case,
 )
 from importobot.core.interfaces import TestFileParser
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 class GenericTestFileParser(TestFileParser):
@@ -40,10 +40,13 @@ class GenericTestFileParser(TestFileParser):
             key_lower = key.lower()
             if isinstance(value, list) and key_lower in TEST_CONTAINER_FIELD_NAMES:
                 tests.extend([t for t in value if isinstance(t, dict)])
-            elif key_lower in TEST_CASE_WRAPPER_FIELD_NAMES and isinstance(value, dict):
+            elif (
+                key_lower in TEST_CASE_WRAPPER_FIELD_NAMES
+                and isinstance(value, dict)
+                and is_test_case(value)
+            ):
                 # Strategy 3: Look inside test_case/testCase key
-                if is_test_case(value):
-                    tests.append(value)
+                tests.append(value)
 
         # Strategy 2: Single test case (has name + steps or testScript)
         if not tests and is_test_case(data):
@@ -51,7 +54,7 @@ class GenericTestFileParser(TestFileParser):
 
         return tests
 
-    def _get_step_field_names(self) -> frozenset:
+    def _get_step_field_names(self) -> frozenset[str]:
         """Get cached set of step field names."""
         # Using an instance-level cache to avoid lru_cache on methods
         return self._step_field_names_cache

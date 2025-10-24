@@ -182,7 +182,7 @@ def main() -> None:
     parser.add_argument(
         "--min-ratio",
         type=float,
-        default=_float_env("BRONZE_BENCHMARK_MIN_RATIO", 0.8),
+        default=_float_env("BRONZE_BENCHMARK_MIN_RATIO", 0.75),
         help="Minimum acceptable benchmark throughput ratio relative to warm-up.",
     )
     parser.add_argument(

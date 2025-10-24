@@ -110,13 +110,13 @@ class TestSecurityGatewayRateLimiting:
             gateway.validate_file_operation(test_file, "read")
 
 
-class TestSecurityGatewayBleachFallback:
+class TestSecurityGatewayBleachNotAvailable:
     """Tests for bleach optional dependency handling."""
 
     def test_string_sanitization_without_bleach(
         self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
     ) -> None:
-        """Fallback sanitizer should warn when bleach is unavailable."""
+        """Sanitizer should warn when bleach is unavailable."""
         monkeypatch.setattr(security_gateway, "bleach", None, raising=False)
         monkeypatch.setattr(
             security_gateway._BleachState, "warned", False, raising=False
@@ -599,13 +599,15 @@ class TestEdgeCases:
 
     def test_sanitize_api_input_exception_handling(self, standard_security_gateway):
         """Test exception handling in sanitize_api_input."""
-        with patch.object(
-            standard_security_gateway,
-            "_sanitize_json_input",
-            side_effect=Exception("Test error"),
+        with (
+            patch.object(
+                standard_security_gateway,
+                "_sanitize_json_input",
+                side_effect=Exception("Test error"),
+            ),
+            pytest.raises(SecurityError),
         ):
-            with pytest.raises(SecurityError):
-                standard_security_gateway.sanitize_api_input({"test": "data"}, "json")
+            standard_security_gateway.sanitize_api_input({"test": "data"}, "json")
 
     def test_edge_cases(self, standard_security_gateway):
         """Test edge cases and boundary conditions."""

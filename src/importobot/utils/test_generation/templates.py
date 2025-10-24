@@ -1,8 +1,9 @@
 """Template management for test generation."""
 
-import logging
 import random
 from typing import Any
+
+from importobot.utils.logging import get_logger
 
 
 class TemplateManager:
@@ -12,7 +13,7 @@ class TemplateManager:
         """Initialize template manager with cached templates."""
         self._scenario_cache: dict[str, Any] = {}
         self._template_cache: dict[str, Any] = {}
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger()
         self._build_template_cache()
         self.logger.info(
             "TemplateManager initialized with %d categories", len(self._template_cache)
@@ -114,7 +115,7 @@ class TemplateManager:
             self.logger.warning(
                 "No templates found for scenario '%s' in "
                 "category '%s'. "
-                "Using fallback template. Available categories: %s",
+                "Using default template. Available categories: %s",
                 scenario,
                 category,
                 list(self._template_cache.keys()),

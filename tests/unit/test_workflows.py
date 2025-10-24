@@ -53,7 +53,7 @@ class TestGitHubWorkflows:
     def test_workflow_yaml_syntax(self, workflow_files):
         """Test that all workflow files have valid YAML syntax."""
         for workflow_file in workflow_files:
-            with open(workflow_file, "r", encoding="utf-8") as f:
+            with open(workflow_file, encoding="utf-8") as f:
                 try:
                     yaml.safe_load(f)
                 except yaml.YAMLError as e:
@@ -62,7 +62,7 @@ class TestGitHubWorkflows:
     def test_workflow_structure(self, workflow_files):
         """Test that workflows have required structure."""
         for workflow_file in workflow_files:
-            with open(workflow_file, "r", encoding="utf-8") as f:
+            with open(workflow_file, encoding="utf-8") as f:
                 workflow = yaml.safe_load(f)
 
                 # Check required top-level keys
@@ -88,7 +88,7 @@ class TestGitHubWorkflows:
         if not test_workflow_file.exists():
             pytest.skip("test.yml workflow not found")
 
-        with open(test_workflow_file, "r", encoding="utf-8") as f:
+        with open(test_workflow_file, encoding="utf-8") as f:
             workflow = yaml.safe_load(f)
 
         # Check test workflow has matrix strategy
@@ -113,7 +113,7 @@ class TestGitHubWorkflows:
     def test_cache_keys_include_python_version(self, workflows_dir):
         """Test that cache keys include Python version to avoid pollution."""
         for workflow_file in workflows_dir.glob("*.yml"):
-            with open(workflow_file, "r", encoding="utf-8") as f:
+            with open(workflow_file, encoding="utf-8") as f:
                 content = f.read()
 
             # If workflow uses caching and has matrix python-version, check cache key
@@ -130,7 +130,7 @@ class TestGitHubWorkflows:
         if not test_workflow_file.exists():
             pytest.skip("test.yml workflow not found")
 
-        with open(test_workflow_file, "r", encoding="utf-8") as f:
+        with open(test_workflow_file, encoding="utf-8") as f:
             content = f.read()
 
         if "codecov" in content.lower():
@@ -142,7 +142,7 @@ class TestGitHubWorkflows:
     def test_workflow_triggers(self, workflow_files):
         """Test that workflows have appropriate triggers."""
         for workflow_file in workflow_files:
-            with open(workflow_file, "r", encoding="utf-8") as f:
+            with open(workflow_file, encoding="utf-8") as f:
                 workflow = yaml.safe_load(f)
 
             triggers = workflow.get("on", workflow.get(True, {}))
@@ -168,7 +168,7 @@ class TestGitHubWorkflows:
     def test_ubuntu_latest_runner(self, workflow_files):
         """Test that workflows use ubuntu-latest runner for consistency."""
         for workflow_file in workflow_files:
-            with open(workflow_file, "r", encoding="utf-8") as f:
+            with open(workflow_file, encoding="utf-8") as f:
                 workflow = yaml.safe_load(f)
 
             for job_name, job_config in workflow["jobs"].items():
@@ -183,7 +183,7 @@ class TestGitHubWorkflows:
     def test_action_versions_pinned(self, workflow_files):
         """Test that GitHub Actions use pinned versions."""
         for workflow_file in workflow_files:
-            with open(workflow_file, "r", encoding="utf-8") as f:
+            with open(workflow_file, encoding="utf-8") as f:
                 content = f.read()
 
             # Check for common actions that should be pinned

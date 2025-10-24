@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import contextlib
 import re
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from importobot.medallion.interfaces.enums import EvidenceSource, SupportedFormat
 from importobot.utils.regex_cache import get_compiled_pattern
@@ -36,17 +37,17 @@ class EvidenceCollector:
         """Rebuild cached format patterns from the registry."""
         self._format_patterns = self._build_format_patterns()
 
-    def get_patterns(self, format_type: SupportedFormat) -> Dict[str, Any]:
+    def get_patterns(self, format_type: SupportedFormat) -> dict[str, Any]:
         """Return the cached pattern definition for the format."""
         return self._format_patterns.get(format_type, {})
 
-    def get_all_patterns(self) -> Dict[SupportedFormat, Dict[str, Any]]:
+    def get_all_patterns(self) -> dict[SupportedFormat, dict[str, Any]]:
         """Return patterns for all registered formats."""
         return self._format_patterns
 
     def collect_evidence(
-        self, data: Dict[str, Any], format_type: SupportedFormat
-    ) -> Tuple[List[EvidenceItem], float]:
+        self, data: dict[str, Any], format_type: SupportedFormat
+    ) -> tuple[list[EvidenceItem], float]:
         """Collect evidence for the given format and return items plus total weight.
 
         Uses proper structural matching: checks for actual keys in the dict
@@ -63,7 +64,7 @@ class EvidenceCollector:
         # Extract all keys from nested dict structure (preserve original case)
         all_keys = self._extract_all_keys(data)
 
-        evidence_items: List[EvidenceItem] = []
+        evidence_items: list[EvidenceItem] = []
         # Pass original keys; methods convert to lowercase when needed
         evidence_items.extend(self._collect_required_keys(all_keys, patterns))
         evidence_items.extend(self._collect_optional_keys(all_keys, patterns))
@@ -73,7 +74,7 @@ class EvidenceCollector:
         total_weight = sum(item.weight.value for item in evidence_items)
         return evidence_items, total_weight
 
-    def _extract_all_keys(self, data: Any, keys: set | None = None) -> set:
+    def _extract_all_keys(self, data: Any, keys: set[str] | None = None) -> set[str]:
         """Recursively extract all keys from nested dict structure.
 
         This ensures we check for actual field presence, not substring matches.
@@ -91,13 +92,13 @@ class EvidenceCollector:
 
         return keys
 
-    def _build_format_patterns(self) -> Dict[SupportedFormat, Dict[str, Any]]:
+    def _build_format_patterns(self) -> dict[SupportedFormat, dict[str, Any]]:
         """Construct indicator and pattern definitions for each registered format.
 
         Stores full field information including weights from format definitions,
         not just field names. This ensures discriminative evidence weighting.
         """
-        patterns: Dict[SupportedFormat, Dict[str, Any]] = {}
+        patterns: dict[SupportedFormat, dict[str, Any]] = {}
         for format_type, format_def in self._format_registry.get_all_formats().items():
             all_fields = format_def.get_all_fields()
 
@@ -124,8 +125,8 @@ class EvidenceCollector:
         return patterns
 
     def _collect_required_keys(
-        self, all_keys: set, patterns: Dict[str, Any]
-    ) -> List[EvidenceItem]:
+        self, all_keys: set[str], patterns: dict[str, Any]
+    ) -> list[EvidenceItem]:
         return self._collect_field_evidence(
             all_keys,
             patterns.get("required_fields", []),
@@ -134,8 +135,8 @@ class EvidenceCollector:
         )
 
     def _collect_optional_keys(
-        self, all_keys: set, patterns: Dict[str, Any]
-    ) -> List[EvidenceItem]:
+        self, all_keys: set[str], patterns: dict[str, Any]
+    ) -> list[EvidenceItem]:
         return self._collect_field_evidence(
             all_keys,
             patterns.get("optional_fields", []),
@@ -144,8 +145,8 @@ class EvidenceCollector:
         )
 
     def _collect_structure_indicators(
-        self, all_keys: set, patterns: Dict[str, Any]
-    ) -> List[EvidenceItem]:
+        self, all_keys: set[str], patterns: dict[str, Any]
+    ) -> list[EvidenceItem]:
         return self._collect_field_evidence(
             all_keys,
             patterns.get("structure_fields", []),
@@ -155,12 +156,12 @@ class EvidenceCollector:
 
     def _collect_field_evidence(
         self,
-        all_keys: set,
-        fields: List[Any],  # List of FieldDefinition objects
+        all_keys: set[str],
+        fields: list[Any],  # List of FieldDefinition objects
         *,
         source: EvidenceSource,
         template: str,
-    ) -> List[EvidenceItem]:
+    ) -> list[EvidenceItem]:
         """Collect evidence using actual field definitions with proper weights.
 
         Uses the EvidenceWeight from format definitions (UNIQUE=5, STRONG=3, etc.)
@@ -172,7 +173,7 @@ class EvidenceCollector:
           (camelCase like "cycleId", underscores like "suite_id", etc.)
         - Generic indicators (name, status, description): Case-insensitive
         """
-        evidence: List[EvidenceItem] = []
+        evidence: list[EvidenceItem] = []
         # Only process string keys - non-string keys indicate invalid test data
         all_keys_lower = {k.lower() for k in all_keys if isinstance(k, str)}
 
@@ -210,17 +211,16 @@ class EvidenceCollector:
                     )
                     matched = True
             # Use case-insensitive matching only for truly generic fields
-            else:
-                if field_name_lower in all_keys_lower:
-                    evidence.append(
-                        EvidenceItem(
-                            source=source,
-                            weight=field.evidence_weight,
-                            confidence=1.0,
-                            details=template.format(key=field.name),
-                        )
+            elif field_name_lower in all_keys_lower:
+                evidence.append(
+                    EvidenceItem(
+                        source=source,
+                        weight=field.evidence_weight,
+                        confidence=1.0,
+                        details=template.format(key=field.name),
                     )
-                    matched = True
+                )
+                matched = True
 
             if not matched and getattr(field, "is_required", False):
                 evidence.append(
@@ -235,10 +235,10 @@ class EvidenceCollector:
 
     def _collect_field_patterns(
         self,
-        evidence_items: List[EvidenceItem],
-        all_keys: set,
-        data: Dict[str, Any],
-        patterns: Dict[str, Any],
+        evidence_items: list[EvidenceItem],
+        all_keys: set[str],
+        data: dict[str, Any],
+        patterns: dict[str, Any],
     ) -> None:
         """Collect pattern-based evidence using field definitions.
 
@@ -284,10 +284,8 @@ class EvidenceCollector:
                 )
             else:
                 if existing_item:
-                    try:
+                    with contextlib.suppress(ValueError):
                         evidence_items.remove(existing_item)
-                    except ValueError:
-                        pass
                 evidence_items.append(
                     EvidenceItem(
                         source=EvidenceSource.FIELD_PATTERN_MISMATCH,
@@ -304,7 +302,7 @@ class EvidenceCollector:
 
     @staticmethod
     def _find_evidence_item(
-        evidence_items: List[EvidenceItem], field_name: str
+        evidence_items: list[EvidenceItem], field_name: str
     ) -> EvidenceItem | None:
         """Find an existing evidence item associated with the given field."""
         target = f"'{field_name}'"
@@ -313,9 +311,9 @@ class EvidenceCollector:
                 return item
         return None
 
-    def _extract_field_values(self, data: Any, field_name: str) -> List[Any]:
+    def _extract_field_values(self, data: Any, field_name: str) -> list[Any]:
         """Extract all values associated with a given field name."""
-        values: List[Any] = []
+        values: list[Any] = []
 
         if isinstance(data, dict):
             for key, value in data.items():

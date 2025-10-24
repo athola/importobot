@@ -9,7 +9,6 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import List, Optional
 
 from importobot.medallion.interfaces.enums import SupportedFormat
 
@@ -67,7 +66,7 @@ class FieldDefinition:
 
     name: str
     evidence_weight: EvidenceWeight
-    pattern: Optional[str] = None  # Regex pattern for validation
+    pattern: str | None = None  # Regex pattern for validation
     description: str = ""
     is_required: bool = False
 
@@ -86,16 +85,16 @@ class FormatDefinition:
     description: str
 
     # Field classifications based on evidence strength
-    unique_indicators: List[FieldDefinition] = field(
+    unique_indicators: list[FieldDefinition] = field(
         default_factory=list
     )  # UNIQUE (5 points)
-    strong_indicators: List[FieldDefinition] = field(
+    strong_indicators: list[FieldDefinition] = field(
         default_factory=list
     )  # STRONG (3 points)
-    moderate_indicators: List[FieldDefinition] = field(
+    moderate_indicators: list[FieldDefinition] = field(
         default_factory=list
     )  # MODERATE (2 points)
-    weak_indicators: List[FieldDefinition] = field(
+    weak_indicators: list[FieldDefinition] = field(
         default_factory=list
     )  # WEAK (1 point)
 
@@ -107,9 +106,9 @@ class FormatDefinition:
     # Metadata
     version: str = "1.0"
     author: str = ""
-    created_date: Optional[str] = None
+    created_date: str | None = None
 
-    def get_all_fields(self) -> List[FieldDefinition]:
+    def get_all_fields(self) -> list[FieldDefinition]:
         """Get all field definitions across all evidence levels."""
         return (
             self.unique_indicators
@@ -124,7 +123,7 @@ class FormatDefinition:
             field_def.evidence_weight.value for field_def in self.get_all_fields()
         )
 
-    def validate(self) -> List[str]:
+    def validate(self) -> list[str]:
         """Validate format definition and return list of issues."""
         issues = []
 

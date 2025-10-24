@@ -14,7 +14,7 @@ _SAFE_FILE_ROOT = os.path.join(os.path.expanduser("~"), "importobot", "files")
 
 
 def _safe_file_path(name: str) -> str:
-    """Return a predictable fallback path outside world-writable temp locations."""
+    """Return a predictable default path outside world-writable temp locations."""
     cleaned = name.lstrip("/\\")
     return os.path.join(_SAFE_FILE_ROOT, cleaned) if cleaned else _SAFE_FILE_ROOT
 
@@ -31,7 +31,7 @@ class FileKeywordGenerator(BaseKeywordGenerator):
             local_path = scp_match.group(2)
             return format_robot_framework_arguments("Get File", remote_path, local_path)
 
-        # Fallback to structured format
+        # Default to structured format
         remote = extract_pattern(test_data, r"Remote File Path:\s*([^,\s]+)")
         local = extract_pattern(test_data, r"Local Destination Path:\s*([^,\s]+)")
 

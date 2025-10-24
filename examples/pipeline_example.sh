@@ -30,7 +30,7 @@ for json_file in "$INPUT_DIR"/*.json; do
         echo "Processing: $json_file"
         TOTAL_COUNT=$((TOTAL_COUNT + 1))
 
-        # Attempt conversion with uv run first, then fallback
+        # Attempt conversion with uv run first, then use the secondary path
         if cd "/home/alext/importobot" && uv run python -m importobot \
             "$json_file" "$output_file" 2>/dev/null; then
             echo "✅ SUCCESS: $filename" >> \

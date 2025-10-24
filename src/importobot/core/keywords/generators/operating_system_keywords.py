@@ -2,7 +2,7 @@
 
 import os
 import re
-from typing import Any
+from typing import Any, ClassVar
 
 from importobot.core.keywords.base_generator import BaseKeywordGenerator
 from importobot.utils.pattern_extraction import extract_pattern
@@ -12,13 +12,63 @@ _SAFE_DEFAULT_ROOT = os.path.join(os.path.expanduser("~"), "importobot")
 
 
 def _safe_home_path(name: str) -> str:
-    """Return a predictable, non-world-writable fallback path."""
+    """Return a predictable, non-world-writable default path."""
     cleaned = name.lstrip("/\\")
     return os.path.join(_SAFE_DEFAULT_ROOT, cleaned) if cleaned else _SAFE_DEFAULT_ROOT
 
 
 class OperatingSystemKeywordGenerator(BaseKeywordGenerator):
     """Generates OperatingSystem library Robot Framework keywords."""
+
+    BINARY_EXTENSIONS: ClassVar[set[str]] = {
+        ".zip",
+        ".tar",
+        ".gz",
+        ".rar",
+        ".7z",
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".bmp",
+        ".ico",
+        ".tif",
+        ".tiff",
+        ".pdf",
+        ".doc",
+        ".docx",
+        ".xls",
+        ".xlsx",
+        ".ppt",
+        ".pptx",
+        ".exe",
+        ".dll",
+        ".so",
+        ".o",
+        ".class",
+        ".jar",
+        ".war",
+        ".ear",
+        ".pyc",
+        ".db",
+        ".sqlite",
+        ".mdb",
+        ".iso",
+        ".img",
+        ".bin",
+        ".dat",
+    }
+
+    COMMAND_TO_KEYWORD: ClassVar[dict[str, str]] = {
+        "cat": "Get File",
+        "ls": "List Directory",
+        "mkdir": "Create Directory",
+        "rmdir": "Remove Directory",
+        "touch": "Create File",
+        "cp": "Copy File",
+        "mv": "Move File",
+        "rm": "Remove File",
+    }
 
     def generate_command_keyword(self, test_data: str) -> str:
         """Generate appropriate command execution keyword."""
@@ -39,11 +89,8 @@ class OperatingSystemKeywordGenerator(BaseKeywordGenerator):
         # Determine which library to use based on command characteristics
         return self._choose_command_library(command)
 
-    def _choose_command_library(self, command: str) -> str:
-        """Choose between OperatingSystem.Run and Run Process based on command needs."""
-        command_lower = command.lower()
-
-        # Check if the command is a known Robot Framework keyword
+    def _check_known_keywords(self, command_lower: str) -> str | None:
+        """Check if the command is a known Robot Framework keyword."""
         known_keywords = [
             "should be equal",
             "should contain",
@@ -56,28 +103,91 @@ class OperatingSystemKeywordGenerator(BaseKeywordGenerator):
             "page should contain",
         ]
         if any(command_lower.startswith(kw) for kw in known_keywords):
-            return command
+            return command_lower
+        return None
 
-        # Special handling for network commands that should always use Run Process
+    def _handle_simple_command_mapping(
+        self, command: str, parts: list[str], first_word: str
+    ) -> str | None:
+        """Handle mapping of simple commands to specific keywords."""
+        if first_word not in self.COMMAND_TO_KEYWORD:
+            return None
+
+        keyword = self.COMMAND_TO_KEYWORD[first_word]
+        args = parts[1:]
+
+        # Handle different keywords with dedicated methods
+        if keyword == "Get File":
+            return self._handle_get_file_command(command, args)
+        if keyword == "Copy File":
+            return self._handle_copy_file_command(command, args)
+        if keyword == "Move File":
+            return self._handle_move_file_command(command, args)
+        if keyword == "Create File":
+            if not args:
+                return f"{keyword}    {_safe_home_path('new_file')}"
+            return f"{keyword}    {'    '.join(args)}"
+        if args:
+            return f"{keyword}    {'    '.join(args)}"
+        # For commands that need a path, default to current dir
+        if keyword in (
+            "Get File",
+            "List Directory",
+            "Remove File",
+            "Create Directory",
+            "Remove Directory",
+        ):
+            return f"{keyword}    ."
+        return f"Run    {command}"
+
+    def _handle_get_file_command(self, command: str, args: list[str]) -> str:
+        """Handle Get File command."""
+        if len(args) == 1:
+            filepath = args[0]
+            ext = os.path.splitext(filepath)[1].lower()
+            if ext in self.BINARY_EXTENSIONS:
+                return f"Get Binary File    {filepath}"
+            return f"Get File    {filepath}"
+        return f"Run    {command}"
+
+    def _handle_copy_file_command(self, command: str, args: list[str]) -> str:
+        """Handle Copy File command."""
+        if len(args) > 1:
+            sources = args[:-1]
+            destination = args[-1]
+            if len(sources) == 1:
+                return f"Copy File    {sources[0]}    {destination}"
+            return f"Copy Files    {'    '.join(sources)}    {destination}"
+        return f"Run    {command}"
+
+    def _handle_move_file_command(self, command: str, args: list[str]) -> str:
+        """Handle Move File command."""
+        if len(args) > 1:
+            sources = args[:-1]
+            destination = args[-1]
+            if len(sources) == 1:
+                return f"Move File    {sources[0]}    {destination}"
+            return f"Move Files    {'    '.join(sources)}    {destination}"
+        return f"Run    {command}"
+
+    def _handle_network_commands(
+        self, command: str, parts: list[str], first_word: str
+    ) -> str | None:
+        """Handle special network commands that should use Run Process."""
         network_commands = ["curl", "wget"]
-        first_word = command.split()[0] if command.split() else ""
-
-        # If it's a network command, always use Run Process
-        # and format arguments properly
         if any(first_word.startswith(net_cmd) for net_cmd in network_commands):
             # Split the command into arguments properly
-            parts = command.split()
             if len(parts) > 1:
                 # Format as "Run Process    cmd    arg1    arg2    ..."
                 formatted_args = "    ".join(parts)
                 return f"Run Process    {formatted_args}"
             return f"Run Process    {command}"
+        return None
 
-        # Check if it's a known simple command
+    def _handle_simple_commands(self, command: str, first_word: str) -> str | None:
+        """Check if it's a known simple command."""
         simple_commands = [
             "echo",
-            "cat",
-            "ls",
             "pwd",
             "whoami",
             "date",
@@ -97,12 +207,6 @@ class OperatingSystemKeywordGenerator(BaseKeywordGenerator):
             "tail",
             "chmod",
             "chown",
-            "mkdir",
-            "rmdir",
-            "touch",
-            "cp",
-            "mv",
-            "rm",
             "ping",
             "netstat",
             "ps",
@@ -113,8 +217,10 @@ class OperatingSystemKeywordGenerator(BaseKeywordGenerator):
 
         if any(first_word.startswith(simple_cmd) for simple_cmd in simple_commands):
             return f"Run    {command}"
+        return None
 
-        # Use Run Process for complex scenarios requiring process management
+    def _handle_complex_commands(self, command: str, command_lower: str) -> str | None:
+        """Use Run Process for complex scenarios requiring process management."""
         process_scenarios = [
             # Long-running or interactive commands
             "&" in command,  # Background processes
@@ -140,6 +246,38 @@ class OperatingSystemKeywordGenerator(BaseKeywordGenerator):
 
         if any(process_scenarios):
             return f"Run Process    {command}    shell=True"
+        return None
+
+    def _choose_command_library(self, command: str) -> str:
+        """Choose between OperatingSystem.Run and Run Process based on command needs."""
+        command_lower = command.lower()
+        parts = command.split()
+        first_word = parts[0].lower() if parts else ""
+
+        # Check if the command is a known Robot Framework keyword
+        known_result = self._check_known_keywords(command_lower)
+        if known_result is not None:
+            return known_result
+
+        # Handle simple command mappings
+        mapped_result = self._handle_simple_command_mapping(command, parts, first_word)
+        if mapped_result is not None:
+            return mapped_result
+
+        # Handle network commands
+        network_result = self._handle_network_commands(command, parts, first_word)
+        if network_result is not None:
+            return network_result
+
+        # Handle simple commands
+        simple_result = self._handle_simple_commands(command, first_word)
+        if simple_result is not None:
+            return simple_result
+
+        # Handle complex commands
+        complex_result = self._handle_complex_commands(command, command_lower)
+        if complex_result is not None:
+            return complex_result
 
         # Default to OperatingSystem.Run for unknown simple commands
         return f"Run    {command}"

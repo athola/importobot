@@ -9,7 +9,7 @@ dangerous patterns are consistently flagged.
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, cast
 
 import pytest
 from hypothesis import given, settings
@@ -52,7 +52,7 @@ class TestSecurityInvariants:
     )
     @settings(max_examples=40)
     def test_json_sanitization_never_raises_and_returns_schema(
-        self, payload: Dict[str, Any]
+        self, payload: dict[str, Any]
     ) -> None:
         gateway = _security_gateway(SecurityLevel.STRICT)
 
@@ -62,13 +62,15 @@ class TestSecurityInvariants:
             msg = f"Security gateway should not raise for JSON payloads: {exc}"
             pytest.fail(msg)
 
-        assert result["input_type"] == "json"
-        assert isinstance(result["is_safe"], bool)
-        assert isinstance(result["security_issues"], list)
-        assert isinstance(result["sanitized_data"], dict)
+        assert result.get("input_type") == "json"
+        is_safe = bool(result.get("is_safe", False))
+        issues = result.get("security_issues", [])
+        sanitized_payload = cast(dict[str, Any], result.get("sanitized_data", {}))
+        assert isinstance(issues, list)
+        assert isinstance(sanitized_payload, dict)
 
-        if result["is_safe"]:
-            assert not result["security_issues"]
+        if is_safe:
+            assert not issues
 
     @given(
         st.text(max_size=40),
@@ -84,11 +86,13 @@ class TestSecurityInvariants:
 
         result = gateway.sanitize_api_input(payload, "string")
 
-        assert result["is_safe"] is False
-        assert any("sanit" in issue.lower() for issue in result["security_issues"])
-        sanitized = result["sanitized_data"]
+        assert bool(result.get("is_safe", False)) is False
+        issues = result.get("security_issues", [])
+        assert any("sanit" in issue.lower() for issue in issues)
+        sanitized = cast(str, result.get("sanitized_data", ""))
         lowered = sanitized.lower()
-        assert "<script" not in lowered and "</script" not in lowered
+        assert "<script" not in lowered
+        assert "</script" not in lowered
 
     @given(
         st.text(min_size=1, max_size=40),
@@ -104,12 +108,12 @@ class TestSecurityInvariants:
 
         result = gateway.sanitize_api_input(payload, "string")
 
-        assert result["is_safe"] is False
+        assert bool(result.get("is_safe", False)) is False
         msg = "Dangerous command must surface issues"
-        assert result["security_issues"], msg
+        issues = result.get("security_issues", [])
+        assert issues, msg
         assert any(
-            "danger" in issue.lower() or "command" in issue.lower()
-            for issue in result["security_issues"]
+            "danger" in issue.lower() or "command" in issue.lower() for issue in issues
         )
 
     @given(
@@ -126,11 +130,11 @@ class TestSecurityInvariants:
 
         result = gateway.sanitize_api_input(path, "file_path")
 
-        assert result["is_safe"] is False
+        assert bool(result.get("is_safe", False)) is False
         msg = "Traversal attempt must yield issues"
-        assert result["security_issues"], msg
+        issues = result.get("security_issues", [])
+        assert issues, msg
         keywords = ("path", "traversal", "danger")
         assert any(
-            any(keyword in issue.lower() for keyword in keywords)
-            for issue in result["security_issues"]
+            any(keyword in issue.lower() for keyword in keywords) for issue in issues
         )

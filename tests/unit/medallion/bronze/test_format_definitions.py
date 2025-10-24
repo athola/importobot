@@ -31,11 +31,11 @@ class TestEvidenceWeight(unittest.TestCase):
 
     def test_evidence_weight_enum_values(self):
         """Test that EvidenceWeight enum has correct integer values."""
-        self.assertEqual(EvidenceWeight.NONE, 0)
-        self.assertEqual(EvidenceWeight.WEAK, 1)
-        self.assertEqual(EvidenceWeight.MODERATE, 2)
-        self.assertEqual(EvidenceWeight.STRONG, 3)
-        self.assertEqual(EvidenceWeight.UNIQUE, 5)
+        assert EvidenceWeight.NONE == 0  # type: ignore[comparison-overlap]
+        assert EvidenceWeight.WEAK == 1  # type: ignore[comparison-overlap]
+        assert EvidenceWeight.MODERATE == 2  # type: ignore[comparison-overlap]
+        assert EvidenceWeight.STRONG == 3  # type: ignore[comparison-overlap]
+        assert EvidenceWeight.UNIQUE == 5  # type: ignore[comparison-overlap]
 
     def test_evidence_weight_ordering(self):
         """Test that evidence weights can be properly ordered."""
@@ -55,37 +55,37 @@ class TestEvidenceWeight(unittest.TestCase):
             EvidenceWeight.STRONG,
             EvidenceWeight.UNIQUE,
         ]
-        self.assertEqual(sorted_weights, expected)
+        assert sorted_weights == expected
 
     def test_evidence_weight_math_operations(self):
         """Test that evidence weights support mathematical operations."""
         # Addition
         total = EvidenceWeight.STRONG + EvidenceWeight.MODERATE
-        self.assertEqual(total, 5)
+        assert total == 5
 
         # Comparison
-        self.assertTrue(EvidenceWeight.UNIQUE > EvidenceWeight.STRONG)
-        self.assertTrue(EvidenceWeight.MODERATE >= EvidenceWeight.WEAK)
+        assert EvidenceWeight.UNIQUE > EvidenceWeight.STRONG
+        assert EvidenceWeight.MODERATE >= EvidenceWeight.WEAK
 
     def test_evidence_threshold_classification(self):
         """Test classification of evidence thresholds."""
         # Test insufficient evidence threshold
-        self.assertTrue(EvidenceWeight.NONE < 2)
-        self.assertTrue(EvidenceWeight.WEAK < 2)
+        assert EvidenceWeight.NONE < 2
+        assert EvidenceWeight.WEAK < 2
 
         # Test moderate evidence threshold
-        self.assertTrue(EvidenceWeight.MODERATE >= 2)
-        self.assertTrue(EvidenceWeight.MODERATE < 4)
+        assert EvidenceWeight.MODERATE >= 2
+        assert EvidenceWeight.MODERATE < 4
 
         # Test strong evidence threshold (STRONG = 3, UNIQUE = 5)
-        self.assertTrue(EvidenceWeight.STRONG >= 3)
-        self.assertTrue(EvidenceWeight.UNIQUE >= 5)
+        assert EvidenceWeight.STRONG >= 3
+        assert EvidenceWeight.UNIQUE >= 5
 
     def test_evidence_weight_comparison(self):
         """Test evidence weight comparison functionality."""
         # Test that evidence weights can be compared
-        self.assertGreater(EvidenceWeight.UNIQUE, EvidenceWeight.STRONG)
-        self.assertGreater(EvidenceWeight.STRONG, EvidenceWeight.MODERATE)
+        assert EvidenceWeight.UNIQUE > EvidenceWeight.STRONG
+        assert EvidenceWeight.STRONG > EvidenceWeight.MODERATE
 
 
 class TestFieldDefinition(unittest.TestCase):
@@ -99,11 +99,11 @@ class TestFieldDefinition(unittest.TestCase):
             description="Zephyr test case structure",
         )
 
-        self.assertEqual(field.name, "testCase")
-        self.assertEqual(field.evidence_weight, EvidenceWeight.UNIQUE)
-        self.assertEqual(field.description, "Zephyr test case structure")
-        self.assertIsNone(field.pattern)
-        self.assertFalse(field.is_required)
+        assert field.name == "testCase"
+        assert field.evidence_weight == EvidenceWeight.UNIQUE
+        assert field.description == "Zephyr test case structure"
+        assert field.pattern is None
+        assert not field.is_required
 
     def test_field_definition_with_validation(self):
         """Test FieldDefinition with validation pattern."""
@@ -115,8 +115,8 @@ class TestFieldDefinition(unittest.TestCase):
             is_required=True,
         )
 
-        self.assertEqual(field.pattern, r"^[A-Z]+-\d+$")
-        self.assertTrue(field.is_required)
+        assert field.pattern == r"^[A-Z]+-\d+$"
+        assert field.is_required
 
     def test_field_definition_mutability(self):
         """Test that FieldDefinition instances are mutable dataclasses."""
@@ -125,8 +125,8 @@ class TestFieldDefinition(unittest.TestCase):
         # Dataclasses are mutable by default - test that we can modify
         original_name = field.name
         field.name = "modified"
-        self.assertEqual(field.name, "modified")
-        self.assertNotEqual(field.name, original_name)
+        assert field.name == "modified"
+        assert field.name != original_name
 
     def test_field_definition_equality(self):
         """Test equality comparison of FieldDefinition instances."""
@@ -134,8 +134,8 @@ class TestFieldDefinition(unittest.TestCase):
         field2 = FieldDefinition("testCase", EvidenceWeight.UNIQUE)
         field3 = FieldDefinition("execution", EvidenceWeight.STRONG)
 
-        self.assertEqual(field1, field2)
-        self.assertNotEqual(field1, field3)
+        assert field1 == field2
+        assert field1 != field3
 
     def test_field_definition_string_representation(self):
         """Test string representation of FieldDefinition."""
@@ -144,9 +144,9 @@ class TestFieldDefinition(unittest.TestCase):
         )
         repr_str = repr(field)
 
-        self.assertIn("testCase", repr_str)
-        self.assertIn("UNIQUE", repr_str)
-        self.assertIn("Test case structure", repr_str)
+        assert "testCase" in repr_str
+        assert "UNIQUE" in repr_str
+        assert "Test case structure" in repr_str
 
 
 class TestFormatDefinition(unittest.TestCase):
@@ -192,12 +192,12 @@ class TestFormatDefinition(unittest.TestCase):
             weak_indicators=self.zephyr_weak,
         )
 
-        self.assertEqual(format_def.format_type, SupportedFormat.ZEPHYR)
-        self.assertEqual(format_def.name, "Zephyr Test Management")
-        self.assertEqual(len(format_def.unique_indicators), 3)
-        self.assertEqual(len(format_def.strong_indicators), 1)
-        self.assertEqual(len(format_def.moderate_indicators), 1)
-        self.assertEqual(len(format_def.weak_indicators), 1)
+        assert format_def.format_type == SupportedFormat.ZEPHYR
+        assert format_def.name == "Zephyr Test Management"
+        assert len(format_def.unique_indicators) == 3
+        assert len(format_def.strong_indicators) == 1
+        assert len(format_def.moderate_indicators) == 1
+        assert len(format_def.weak_indicators) == 1
 
     def test_format_definition_default_values(self):
         """Test FormatDefinition with default values."""
@@ -208,11 +208,11 @@ class TestFormatDefinition(unittest.TestCase):
             unique_indicators=[],
         )
 
-        self.assertEqual(format_def.strong_indicators, [])
-        self.assertEqual(format_def.moderate_indicators, [])
-        self.assertEqual(format_def.weak_indicators, [])
-        self.assertEqual(format_def.confidence_boost_threshold, 0.33)
-        self.assertEqual(format_def.min_score_threshold, 4)
+        assert format_def.strong_indicators == []
+        assert format_def.moderate_indicators == []
+        assert format_def.weak_indicators == []
+        assert format_def.confidence_boost_threshold == 0.33
+        assert format_def.min_score_threshold == 4
 
     def test_format_definition_custom_thresholds(self):
         """Test FormatDefinition with custom detection thresholds."""
@@ -225,8 +225,8 @@ class TestFormatDefinition(unittest.TestCase):
             min_score_threshold=7,
         )
 
-        self.assertEqual(format_def.confidence_boost_threshold, 0.8)
-        self.assertEqual(format_def.min_score_threshold, 7)
+        assert format_def.confidence_boost_threshold == 0.8
+        assert format_def.min_score_threshold == 7
 
     def test_format_definition_mutability(self):
         """Test that FormatDefinition instances are mutable dataclasses."""
@@ -240,8 +240,8 @@ class TestFormatDefinition(unittest.TestCase):
         # Dataclasses are mutable by default
         original_name = format_def.name
         format_def.name = "Modified"
-        self.assertEqual(format_def.name, "Modified")
-        self.assertNotEqual(format_def.name, original_name)
+        assert format_def.name == "Modified"
+        assert format_def.name != original_name
 
     def test_format_definition_get_all_fields(self):
         """Test getting all fields from FormatDefinition."""
@@ -256,9 +256,7 @@ class TestFormatDefinition(unittest.TestCase):
         )
 
         all_fields = format_def.get_all_fields()
-        self.assertEqual(
-            len(all_fields), 6
-        )  # 3 unique + 1 strong + 1 moderate + 1 weak
+        assert len(all_fields) == 6  # 3 unique + 1 strong + 1 moderate + 1 weak
 
         # Check that all indicator types are included
         unique_names = {field.name for field in self.zephyr_unique}
@@ -267,10 +265,10 @@ class TestFormatDefinition(unittest.TestCase):
         weak_names = {field.name for field in self.zephyr_weak}
         all_names = {field.name for field in all_fields}
 
-        self.assertTrue(unique_names.issubset(all_names))
-        self.assertTrue(strong_names.issubset(all_names))
-        self.assertTrue(moderate_names.issubset(all_names))
-        self.assertTrue(weak_names.issubset(all_names))
+        assert unique_names.issubset(all_names)
+        assert strong_names.issubset(all_names)
+        assert moderate_names.issubset(all_names)
+        assert weak_names.issubset(all_names)
 
     def test_format_definition_calculate_max_score(self):
         """Test calculation of maximum possible score."""
@@ -294,7 +292,7 @@ class TestFormatDefinition(unittest.TestCase):
             + EvidenceWeight.MODERATE
             + EvidenceWeight.WEAK
         )
-        self.assertEqual(max_score, expected_max)
+        assert max_score == expected_max
 
 
 class TestFormatRegistry(unittest.TestCase):
@@ -306,9 +304,9 @@ class TestFormatRegistry(unittest.TestCase):
 
     def test_format_registry_creation(self):
         """Test creation of FormatRegistry instance."""
-        self.assertIsInstance(self.registry, FormatRegistry)
+        assert isinstance(self.registry, FormatRegistry)
         # Registry auto-loads built-in formats
-        self.assertGreater(len(self.registry.get_all_formats()), 0)
+        assert len(self.registry.get_all_formats()) > 0
 
     def test_register_format(self):
         """Test registering a format in the registry."""
@@ -329,14 +327,14 @@ class TestFormatRegistry(unittest.TestCase):
         empty_registry.register_format(format_def)
 
         formats_dict = empty_registry.get_all_formats()
-        self.assertEqual(len(formats_dict), 1)
-        self.assertEqual(formats_dict[SupportedFormat.UNKNOWN], format_def)
+        assert len(formats_dict) == 1
+        assert formats_dict[SupportedFormat.UNKNOWN] == format_def
 
     def test_register_duplicate_format_type(self):
         """Test that registering duplicate format types overwrites existing."""
         # Registry allows overwriting - this is the actual behavior
         original_format = self.registry.get_format(SupportedFormat.ZEPHYR)
-        self.assertIsNotNone(original_format)
+        assert original_format is not None
 
         format_def = FormatDefinition(
             name="New Zephyr",
@@ -351,22 +349,22 @@ class TestFormatRegistry(unittest.TestCase):
         # Verify it was overwritten
         retrieved = self.registry.get_format(SupportedFormat.ZEPHYR)
         assert retrieved is not None
-        self.assertEqual(retrieved.name, "New Zephyr")
+        assert retrieved.name == "New Zephyr"
 
     def test_get_format_by_type(self):
         """Test retrieving format by type."""
         # Get the auto-loaded Zephyr format
         retrieved = self.registry.get_format(SupportedFormat.ZEPHYR)
-        self.assertIsNotNone(retrieved)
         assert retrieved is not None
-        self.assertEqual(retrieved.format_type, SupportedFormat.ZEPHYR)
+        assert retrieved is not None
+        assert retrieved.format_type == SupportedFormat.ZEPHYR
 
     def test_get_existing_format(self):
         """Test retrieving existing format returns the format."""
         result = self.registry.get_format(SupportedFormat.ZEPHYR)
-        self.assertIsNotNone(result)
         assert result is not None
-        self.assertEqual(result.format_type, SupportedFormat.ZEPHYR)
+        assert result is not None
+        assert result.format_type == SupportedFormat.ZEPHYR
 
     def test_get_supported_format_types(self):
         """Test getting list of supported format types."""
@@ -374,8 +372,8 @@ class TestFormatRegistry(unittest.TestCase):
         supported_types = list(formats_dict.keys())
 
         # Should have auto-loaded formats
-        self.assertGreater(len(supported_types), 0)
-        self.assertIn(SupportedFormat.ZEPHYR, supported_types)
+        assert len(supported_types) > 0
+        assert SupportedFormat.ZEPHYR in supported_types
 
     @patch("importobot.medallion.bronze.formats.create_zephyr_format")
     @patch("importobot.medallion.bronze.formats.create_testlink_format")
@@ -405,7 +403,7 @@ class TestFormatRegistry(unittest.TestCase):
         formats = new_registry.get_all_formats()
 
         # Should have loaded built-in formats
-        self.assertGreater(len(formats), 0)
+        assert len(formats) > 0
 
         # Use different format types to avoid conflicts
         def create_format(suffix):
@@ -425,7 +423,7 @@ class TestFormatRegistry(unittest.TestCase):
 
         def register_format(suffix):
             try:
-                format_def = create_format(suffix)
+                format_def = create_format(suffix)  # type: ignore[no-untyped-call]
                 test_registry.register_format(format_def)
                 completed_registrations.append(suffix)
                 time.sleep(0.001)  # Small delay to encourage race conditions
@@ -445,9 +443,9 @@ class TestFormatRegistry(unittest.TestCase):
             thread.join()
 
         # Should have completed all registrations (last one wins for UNKNOWN type)
-        self.assertEqual(len(completed_registrations), 5)
+        assert len(completed_registrations) == 5
         formats_dict = test_registry.get_all_formats()
-        self.assertEqual(len(formats_dict), 1)  # Only one format type (UNKNOWN)
+        assert len(formats_dict) == 1  # Only one format type (UNKNOWN)
 
 
 class TestFormatDefinitionIntegration(unittest.TestCase):
@@ -487,15 +485,15 @@ class TestFormatDefinitionIntegration(unittest.TestCase):
 
         # Verify complete workflow
         retrieved = registry.get_format(SupportedFormat.UNKNOWN)
-        self.assertEqual(retrieved, format_def)
+        assert retrieved == format_def
         assert retrieved is not None
 
         all_fields = retrieved.get_all_fields()
-        self.assertEqual(len(all_fields), 3)
+        assert len(all_fields) == 3
 
         max_score = retrieved.get_max_possible_score()
         expected_score = 2 * EvidenceWeight.UNIQUE + EvidenceWeight.MODERATE
-        self.assertEqual(max_score, expected_score)
+        assert max_score == expected_score
 
     def test_format_definition_validation_edge_cases(self):
         """Test format definition validation with edge cases."""
@@ -507,8 +505,8 @@ class TestFormatDefinitionIntegration(unittest.TestCase):
             unique_indicators=[],
         )
 
-        self.assertEqual(len(format_def.get_all_fields()), 0)
-        self.assertEqual(format_def.get_max_possible_score(), 0)
+        assert len(format_def.get_all_fields()) == 0
+        assert format_def.get_max_possible_score() == 0
 
         # Test with custom threshold
         format_def_high_threshold = FormatDefinition(
@@ -519,7 +517,7 @@ class TestFormatDefinitionIntegration(unittest.TestCase):
             confidence_boost_threshold=0.99,
         )
 
-        self.assertEqual(format_def_high_threshold.confidence_boost_threshold, 0.99)
+        assert format_def_high_threshold.confidence_boost_threshold == 0.99
 
 
 if __name__ == "__main__":

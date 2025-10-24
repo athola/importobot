@@ -1,9 +1,7 @@
 """Shared SSH test data and expected keywords to reduce duplication."""
 
-from typing import List
-
 # SSH Connection Keywords
-SSH_CONNECTION_KEYWORDS: List[str] = [
+SSH_CONNECTION_KEYWORDS: list[str] = [
     "Open Connection",
     "Close Connection",
     "Close All Connections",
@@ -13,19 +11,19 @@ SSH_CONNECTION_KEYWORDS: List[str] = [
 ]
 
 # SSH Authentication Keywords
-SSH_AUTH_KEYWORDS: List[str] = [
+SSH_AUTH_KEYWORDS: list[str] = [
     "Login",
     "Login With Public Key",
 ]
 
 # SSH Configuration Keywords
-SSH_CONFIG_KEYWORDS: List[str] = [
+SSH_CONFIG_KEYWORDS: list[str] = [
     "Set Default Configuration",
     "Set Client Configuration",
 ]
 
 # SSH Verification Keywords
-SSH_VERIFICATION_KEYWORDS: List[str] = [
+SSH_VERIFICATION_KEYWORDS: list[str] = [
     "File Should Exist",
     "File Should Not Exist",
     "Directory Should Exist",
@@ -33,13 +31,13 @@ SSH_VERIFICATION_KEYWORDS: List[str] = [
 ]
 
 # SSH Logging Keywords
-SSH_LOGGING_KEYWORDS: List[str] = [
+SSH_LOGGING_KEYWORDS: list[str] = [
     "Enable Ssh Logging",
     "Disable Ssh Logging",
 ]
 
 # SSH Command Keywords
-SSH_COMMAND_KEYWORDS: List[str] = [
+SSH_COMMAND_KEYWORDS: list[str] = [
     "Execute Command",
     "Start Command",
     "Read Command Output",
@@ -53,7 +51,7 @@ SSH_COMMAND_KEYWORDS: List[str] = [
 ]
 
 # SSH File Transfer Keywords
-SSH_FILE_KEYWORDS: List[str] = [
+SSH_FILE_KEYWORDS: list[str] = [
     "Put File",
     "Put Directory",
     "Get File",
@@ -67,7 +65,7 @@ SSH_FILE_KEYWORDS: List[str] = [
 ]
 
 # SSH Directory Keywords
-SSH_DIRECTORY_KEYWORDS: List[str] = [
+SSH_DIRECTORY_KEYWORDS: list[str] = [
     "List Directory",
     "List Files In Directory",
     "List Directories In Directory",
@@ -77,7 +75,7 @@ SSH_DIRECTORY_KEYWORDS: List[str] = [
 ]
 
 # Combined lists for convenience
-ALL_SSH_KEYWORDS: List[str] = (
+ALL_SSH_KEYWORDS: list[str] = (
     SSH_CONNECTION_KEYWORDS
     + SSH_AUTH_KEYWORDS
     + SSH_CONFIG_KEYWORDS
@@ -98,7 +96,7 @@ EXPECTED_TOTAL_SSH_TESTS = EXPECTED_SSH_KEYWORD_COUNT * TESTS_PER_SSH_KEYWORD
 # Basic SSH connection test data
 
 
-def get_basic_ssh_connection_keywords() -> List[str]:
+def get_basic_ssh_connection_keywords() -> list[str]:
     """Get basic SSH connection keywords."""
     return [
         "Open Connection",

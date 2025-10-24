@@ -10,7 +10,7 @@ import hashlib
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 from importobot.medallion.bronze_layer import BronzeLayer
 from importobot.medallion.interfaces.base_interfaces import DataLayer
@@ -32,13 +32,13 @@ from importobot.services.metadata_service import MetadataService
 from importobot.services.quality_assessment_service import QualityAssessmentService
 from importobot.services.security_types import SecurityLevel
 from importobot.services.validation_service import ValidationService
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 from importobot.utils.validation_models import QualitySeverity, ValidationResult
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
-class BronzeRecordResponse(dict, BronzeRecord):
+class BronzeRecordResponse(dict[str, Any], BronzeRecord):
     """Hybrid response that behaves like both a BronzeRecord and a mapping."""
 
     def __init__(
@@ -81,7 +81,7 @@ class IngestionFacade:
         """Initialize ingestion facade."""
         self.ingestion_service = ingestion_service
 
-    def ingest_file(self, file_path: Union[str, Path]) -> ProcessingResult:
+    def ingest_file(self, file_path: str | Path) -> ProcessingResult:
         """Delegate to ingestion service."""
         return self.ingestion_service.ingest_file(file_path)
 
@@ -138,9 +138,9 @@ class QualityAssessmentFacade:
     def configure_thresholds(
         self,
         *,
-        high: Optional[float] = None,
-        medium: Optional[float] = None,
-        min_valid: Optional[float] = None,
+        high: float | None = None,
+        medium: float | None = None,
+        min_valid: float | None = None,
     ) -> None:
         """Configure quality thresholds."""
         self.quality_service.configure_thresholds(
@@ -157,11 +157,11 @@ class MetadataFacade:
         """Initialize metadata facade."""
         self.metadata_service = metadata_service
 
-    def get_record_metadata(self, record_id: str) -> Optional[RecordMetadata]:
+    def get_record_metadata(self, record_id: str) -> RecordMetadata | None:
         """Delegate to metadata service."""
         return self.metadata_service.get_record_metadata(record_id)
 
-    def get_record_lineage(self, record_id: str) -> Optional[DataLineage]:
+    def get_record_lineage(self, record_id: str) -> DataLineage | None:
         """Delegate to metadata service."""
         return self.metadata_service.get_record_lineage(record_id)
 
@@ -184,13 +184,13 @@ class PreviewOperations:
         self.quality_service = quality_service
         self.metadata_service = metadata_service
 
-    def preview_ingestion(self, file_path: Union[str, Path]) -> dict[str, Any]:
+    def preview_ingestion(self, file_path: str | Path) -> dict[str, Any]:
         """Preview data ingestion without actually ingesting."""
         file_path = Path(file_path)
 
         try:
             # Read file data
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 data = json.load(f)
 
             return self.preview_ingestion_dict(data)
@@ -445,8 +445,8 @@ class IntegrationOperations:
 
     def get_bronze_records(
         self,
-        filter_criteria: Optional[dict[str, Any]] = None,
-        limit: Optional[int] = None,
+        filter_criteria: dict[str, Any] | None = None,
+        limit: int | None = None,
     ) -> list[BronzeRecord]:
         """Retrieve Bronze records with optional filtering."""
         # This would typically query the bronze layer's storage
@@ -467,7 +467,7 @@ class SecurityOperations:
         self.ingestion_service = ingestion_service
 
     def enable_security(
-        self, security_level: Union[SecurityLevel, str] = SecurityLevel.STANDARD
+        self, security_level: SecurityLevel | str = SecurityLevel.STANDARD
     ) -> None:
         """Enable security gateway for data processing."""
         self.ingestion_service.enable_security(security_level)
@@ -502,11 +502,11 @@ class RawDataProcessor(DataLayer):
     def __init__(
         self,
         *,
-        bronze_layer: Optional[BronzeLayer] = None,
-        storage_backend: Optional[str] = None,
-        security_level: Union[SecurityLevel, str] = SecurityLevel.STANDARD,
+        bronze_layer: BronzeLayer | None = None,
+        storage_backend: str | None = None,
+        security_level: SecurityLevel | str = SecurityLevel.STANDARD,
         enable_security_gateway: bool = False,
-        quality_thresholds: Optional[dict[str, float]] = None,
+        quality_thresholds: dict[str, float] | None = None,
     ):
         """Initialize processor with service composition.
 
@@ -570,7 +570,7 @@ class RawDataProcessor(DataLayer):
         )
 
     # Data Ingestion Methods
-    def ingest_file(self, file_path: Union[str, Path]) -> ProcessingResult:
+    def ingest_file(self, file_path: str | Path) -> ProcessingResult:
         """Delegate to ingestion operations."""
         return self._ingestion_ops.ingest_file(file_path)
 
@@ -611,11 +611,11 @@ class RawDataProcessor(DataLayer):
         return self._quality_ops.validate_bronze_data(data)
 
     # Metadata Methods
-    def get_record_metadata(self, record_id: str) -> Optional[RecordMetadata]:
+    def get_record_metadata(self, record_id: str) -> RecordMetadata | None:
         """Delegate to metadata operations."""
         return self._metadata_ops.get_record_metadata(record_id)
 
-    def get_record_lineage(self, record_id: str) -> Optional[DataLineage]:
+    def get_record_lineage(self, record_id: str) -> DataLineage | None:
         """Delegate to metadata operations."""
         return self._metadata_ops.get_record_lineage(record_id)
 
@@ -624,7 +624,7 @@ class RawDataProcessor(DataLayer):
         return self._metadata_ops.get_lineage(data_id)
 
     # Preview Methods
-    def preview_ingestion(self, file_path: Union[str, Path]) -> dict[str, Any]:
+    def preview_ingestion(self, file_path: str | Path) -> dict[str, Any]:
         """Delegate to preview operations."""
         return self._preview_ops.preview_ingestion(file_path)
 
@@ -668,15 +668,15 @@ class RawDataProcessor(DataLayer):
 
     def get_bronze_records(
         self,
-        filter_criteria: Optional[dict[str, Any]] = None,
-        limit: Optional[int] = None,
+        filter_criteria: dict[str, Any] | None = None,
+        limit: int | None = None,
     ) -> list[BronzeRecord]:
         """Delegate to integration operations."""
         return self._integration_ops.get_bronze_records(filter_criteria, limit)
 
     # Security Management Methods
     def enable_security(
-        self, security_level: Union[SecurityLevel, str] = SecurityLevel.STANDARD
+        self, security_level: SecurityLevel | str = SecurityLevel.STANDARD
     ) -> None:
         """Delegate to security operations."""
         self._security_ops.enable_security(security_level)
@@ -693,9 +693,9 @@ class RawDataProcessor(DataLayer):
     def configure_quality_thresholds(
         self,
         *,
-        high: Optional[float] = None,
-        medium: Optional[float] = None,
-        min_valid: Optional[float] = None,
+        high: float | None = None,
+        medium: float | None = None,
+        min_valid: float | None = None,
     ) -> None:
         """Delegate to quality assessment operations."""
         self._quality_ops.configure_thresholds(

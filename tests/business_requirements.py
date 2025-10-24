@@ -36,7 +36,7 @@ MIN_FORMAT_CONFIDENCE_PERFECT_MATCH = 0.9
 FORMAT_DISAMBIGUATION_RATIO = 2.0  # Correct format >= 2x wrong format confidence
 
 # BR-FORMAT-003: Generic Format Acceptance
-# Business Justification: Generic formats are fallback cases with lower
+# Business Justification: Generic formats are default cases with lower
 # business priority, requiring lower confidence threshold
 # Stakeholder: Product Team (Approved: 2025-09-22)
 # Reference: Business Spec v2.3, Section 4.4
@@ -257,33 +257,33 @@ def format_requirement_violation(
 
 
 __all__ = [
-    # Format detection requirements
-    "MIN_FORMAT_CONFIDENCE_STANDARD",
+    "FORMAT_DISAMBIGUATION_RATIO",
+    "MALFORMED_INPUT_HANDLING_REQUIRED",
+    "MAX_CONFIDENCE_CALCULATION_TIME",
+    # Performance requirements
+    "MAX_FORMAT_DETECTION_TIME",
+    "MAX_MEMORY_USAGE_LARGE_DATASET",
+    "MIN_BULK_PROCESSING_SPEEDUP",
     "MIN_FORMAT_CONFIDENCE_HIGH_QUALITY",
     "MIN_FORMAT_CONFIDENCE_PERFECT_MATCH",
-    "FORMAT_DISAMBIGUATION_RATIO",
+    # Format detection requirements
+    "MIN_FORMAT_CONFIDENCE_STANDARD",
     "MIN_GENERIC_FORMAT_CONFIDENCE",
+    "MIN_PROPERTY_PRESERVATION_RATE",
+    # Security and reliability requirements
+    "MIN_SSH_SECURITY_COVERAGE",
+    "MIN_SYNTAX_VALIDATION_RATE",
+    # Quality assurance requirements
+    "MIN_TEST_GENERATION_SUCCESS_RATE",
     # Bayesian confidence requirements
     "STRONG_EVIDENCE_MIN_CONFIDENCE",
     "ZERO_EVIDENCE_MAX_CONFIDENCE",
     "ZERO_EVIDENCE_TOLERANCE",
-    # Performance requirements
-    "MAX_FORMAT_DETECTION_TIME",
-    "MAX_CONFIDENCE_CALCULATION_TIME",
-    "MIN_BULK_PROCESSING_SPEEDUP",
-    "MAX_MEMORY_USAGE_LARGE_DATASET",
-    # Security and reliability requirements
-    "MIN_SSH_SECURITY_COVERAGE",
-    "MALFORMED_INPUT_HANDLING_REQUIRED",
-    # Quality assurance requirements
-    "MIN_TEST_GENERATION_SUCCESS_RATE",
-    "MIN_SYNTAX_VALIDATION_RATE",
-    "MIN_PROPERTY_PRESERVATION_RATE",
     # Business requirements dataclass
     "BusinessRequirements",
+    "format_requirement_violation",
+    "get_adaptive_throughput_threshold",
     # Helper functions
     "get_adaptive_timing_threshold",
-    "get_adaptive_throughput_threshold",
     "validate_business_requirement",
-    "format_requirement_violation",
 ]

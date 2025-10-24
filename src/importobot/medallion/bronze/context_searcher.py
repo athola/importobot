@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 from .format_models import EvidenceWeight
 
@@ -11,7 +11,7 @@ class ContextSearcher:
     """Provides context-aware search for format-specific patterns."""
 
     @staticmethod
-    def search_with_testlink_context(data: Dict[str, Any], key: str) -> Dict[str, Any]:
+    def search_with_testlink_context(data: dict[str, Any], key: str) -> dict[str, Any]:
         """TestLink-specific context search - accept XML export patterns."""
         # TestLink XML has testsuites -> testsuite -> testcase structure
         if key == "testsuites" and key in data:
@@ -22,26 +22,26 @@ class ContextSearcher:
                 "context_info": "at root level (TestLink XML export)",
             }
 
-        if key == "testsuite":
+        if (
+            key == "testsuite"
+            and "testsuites" in data
+            and isinstance(data["testsuites"], list)
+        ):
             # Look for testsuite nested under testsuites
-            if "testsuites" in data and isinstance(data["testsuites"], list):
-                for suite_container in data["testsuites"]:
-                    if (
-                        isinstance(suite_container, dict)
-                        and "testsuite" in suite_container
-                    ):
-                        return {
-                            "found": True,
-                            "at_root": False,
-                            "appropriate_nesting": True,
-                            "context_info": "nested under testsuites (TestLink XML)",
-                        }
+            for suite_container in data["testsuites"]:
+                if isinstance(suite_container, dict) and "testsuite" in suite_container:
+                    return {
+                        "found": True,
+                        "at_root": False,
+                        "appropriate_nesting": True,
+                        "context_info": "nested under testsuites (TestLink XML)",
+                    }
 
         # Generic search for other TestLink keys
         return ContextSearcher.search_with_generic_context(data, key)
 
     @staticmethod
-    def search_with_jira_context(data: Dict[str, Any], key: str) -> Dict[str, Any]:
+    def search_with_jira_context(data: dict[str, Any], key: str) -> dict[str, Any]:
         """JIRA-specific context search."""
         # JIRA structure: issues -> array of issue objects
         if key == "issues" and key in data:
@@ -74,7 +74,7 @@ class ContextSearcher:
         return ContextSearcher.search_with_generic_context(data, key)
 
     @staticmethod
-    def search_with_testrail_context(data: Dict[str, Any], key: str) -> Dict[str, Any]:
+    def search_with_testrail_context(data: dict[str, Any], key: str) -> dict[str, Any]:
         """TestRail-specific context search."""
         # TestRail API responses have runs/tests/cases at root
         if key in ["runs", "tests", "cases"] and key in data:
@@ -110,12 +110,12 @@ class ContextSearcher:
         }
 
     @staticmethod
-    def search_with_generic_context(data: Dict[str, Any], key: str) -> Dict[str, Any]:
-        """Search with generic context as fallback behavior."""
+    def search_with_generic_context(data: dict[str, Any], key: str) -> dict[str, Any]:
+        """Search with generic context as default behavior."""
 
         def search_recursive(
             obj: Any, target_key: str, path: str = ""
-        ) -> Dict[str, Any]:
+        ) -> dict[str, Any]:
             """Perform simple recursive search with basic context info."""
             if isinstance(obj, dict):
                 if target_key in obj:

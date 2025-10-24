@@ -21,28 +21,28 @@ class TestMedallionInterfaces(unittest.TestCase):
 
     def test_test_format_type_enum(self):
         """Test SupportedFormat enum values."""
-        self.assertEqual(SupportedFormat.ZEPHYR.value, "zephyr")
-        self.assertEqual(SupportedFormat.TESTLINK.value, "testlink")
-        self.assertEqual(SupportedFormat.JIRA_XRAY.value, "jira_xray")
-        self.assertEqual(SupportedFormat.TESTRAIL.value, "testrail")
-        self.assertEqual(SupportedFormat.GENERIC.value, "generic")
-        self.assertEqual(SupportedFormat.UNKNOWN.value, "unknown")
+        assert SupportedFormat.ZEPHYR.value == "zephyr"
+        assert SupportedFormat.TESTLINK.value == "testlink"
+        assert SupportedFormat.JIRA_XRAY.value == "jira_xray"
+        assert SupportedFormat.TESTRAIL.value == "testrail"
+        assert SupportedFormat.GENERIC.value == "generic"
+        assert SupportedFormat.UNKNOWN.value == "unknown"
 
     def test_quality_severity_enum(self):
         """Test QualitySeverity enum values."""
-        self.assertEqual(QualitySeverity.CRITICAL.value, "critical")
-        self.assertEqual(QualitySeverity.HIGH.value, "high")
-        self.assertEqual(QualitySeverity.MEDIUM.value, "medium")
-        self.assertEqual(QualitySeverity.LOW.value, "low")
-        self.assertEqual(QualitySeverity.INFO.value, "info")
+        assert QualitySeverity.CRITICAL.value == "critical"
+        assert QualitySeverity.HIGH.value == "high"
+        assert QualitySeverity.MEDIUM.value == "medium"
+        assert QualitySeverity.LOW.value == "low"
+        assert QualitySeverity.INFO.value == "info"
 
     def test_processing_status_enum(self):
         """Test ProcessingStatus enum values."""
-        self.assertEqual(ProcessingStatus.PENDING.value, "pending")
-        self.assertEqual(ProcessingStatus.IN_PROGRESS.value, "in_progress")
-        self.assertEqual(ProcessingStatus.COMPLETED.value, "completed")
-        self.assertEqual(ProcessingStatus.FAILED.value, "failed")
-        self.assertEqual(ProcessingStatus.SKIPPED.value, "skipped")
+        assert ProcessingStatus.PENDING.value == "pending"
+        assert ProcessingStatus.IN_PROGRESS.value == "in_progress"
+        assert ProcessingStatus.COMPLETED.value == "completed"
+        assert ProcessingStatus.FAILED.value == "failed"
+        assert ProcessingStatus.SKIPPED.value == "skipped"
 
     def test_layer_metadata_creation(self):
         """Test LayerMetadata dataclass creation."""
@@ -58,13 +58,13 @@ class TestMedallionInterfaces(unittest.TestCase):
             file_size_bytes=1024,
         )
 
-        self.assertEqual(metadata.source_path, source_path)
-        self.assertEqual(metadata.layer_name, "bronze")
-        self.assertEqual(metadata.ingestion_timestamp, timestamp)
-        self.assertEqual(metadata.format_type, SupportedFormat.ZEPHYR)
-        self.assertEqual(metadata.record_count, 10)
-        self.assertEqual(metadata.file_size_bytes, 1024)
-        self.assertEqual(metadata.version, "1.0")  # Default value
+        assert metadata.source_path == source_path
+        assert metadata.layer_name == "bronze"
+        assert metadata.ingestion_timestamp == timestamp
+        assert metadata.format_type == SupportedFormat.ZEPHYR
+        assert metadata.record_count == 10
+        assert metadata.file_size_bytes == 1024
+        assert metadata.version == "1.0"  # Default value
 
     def test_data_quality_metrics_creation(self):
         """Test DataQualityMetrics dataclass creation."""
@@ -77,14 +77,14 @@ class TestMedallionInterfaces(unittest.TestCase):
             overall_score=91.7,
         )
 
-        self.assertEqual(metrics.completeness_score, 85.5)
-        self.assertEqual(metrics.consistency_score, 90.0)
-        self.assertEqual(metrics.validity_score, 95.0)
-        self.assertEqual(metrics.accuracy_score, 88.0)
-        self.assertEqual(metrics.uniqueness_score, 100.0)
-        self.assertEqual(metrics.overall_score, 91.7)
-        self.assertEqual(metrics.validation_errors, 0)  # Default value
-        self.assertEqual(len(metrics.quality_issues), 0)  # Default empty list
+        assert metrics.completeness_score == 85.5
+        assert metrics.consistency_score == 90.0
+        assert metrics.validity_score == 95.0
+        assert metrics.accuracy_score == 88.0
+        assert metrics.uniqueness_score == 100.0
+        assert metrics.overall_score == 91.7
+        assert metrics.validation_errors == 0  # Default value
+        assert len(metrics.quality_issues) == 0  # Default empty list
 
     def test_validation_result_creation(self):
         """Test ValidationResult dataclass creation."""
@@ -96,12 +96,12 @@ class TestMedallionInterfaces(unittest.TestCase):
             issues=["Minor formatting issue", "Optional field missing"],
         )
 
-        self.assertTrue(validation.is_valid)
-        self.assertEqual(validation.severity, QualitySeverity.LOW)
-        self.assertEqual(validation.error_count, 0)
-        self.assertEqual(validation.warning_count, 2)
-        self.assertEqual(len(validation.issues), 2)
-        self.assertIn("Minor formatting issue", validation.issues)
+        assert validation.is_valid
+        assert validation.severity == QualitySeverity.LOW
+        assert validation.error_count == 0
+        assert validation.warning_count == 2
+        assert len(validation.issues) == 2
+        assert "Minor formatting issue" in validation.issues
 
     def test_lineage_info_creation(self):
         """Test LineageInfo dataclass creation."""
@@ -115,13 +115,13 @@ class TestMedallionInterfaces(unittest.TestCase):
             parent_ids=["parent1", "parent2"],
         )
 
-        self.assertEqual(lineage.data_id, "test123")
-        self.assertEqual(lineage.source_layer, "bronze")
-        self.assertEqual(lineage.target_layer, "silver")
-        self.assertEqual(lineage.transformation_type, "standardization")
-        self.assertEqual(lineage.transformation_timestamp, timestamp)
-        self.assertEqual(lineage.parent_ids, ["parent1", "parent2"])
-        self.assertEqual(len(lineage.child_ids), 0)  # Default empty list
+        assert lineage.data_id == "test123"
+        assert lineage.source_layer == "bronze"
+        assert lineage.target_layer == "silver"
+        assert lineage.transformation_type == "standardization"
+        assert lineage.transformation_timestamp == timestamp
+        assert lineage.parent_ids == ["parent1", "parent2"]
+        assert len(lineage.child_ids) == 0  # Default empty list
 
     def test_processing_result_creation(self):
         """Test ProcessingResult dataclass creation."""
@@ -146,15 +146,15 @@ class TestMedallionInterfaces(unittest.TestCase):
             quality_metrics=quality_metrics,
         )
 
-        self.assertEqual(result.status, ProcessingStatus.COMPLETED)
-        self.assertEqual(result.processed_count, 100)
-        self.assertEqual(result.success_count, 95)
-        self.assertEqual(result.error_count, 2)
-        self.assertEqual(result.warning_count, 3)
-        self.assertEqual(result.skipped_count, 0)
-        self.assertEqual(result.processing_time_ms, 1500.0)
-        self.assertEqual(result.metadata, metadata)
-        self.assertEqual(result.quality_metrics, quality_metrics)
+        assert result.status == ProcessingStatus.COMPLETED
+        assert result.processed_count == 100
+        assert result.success_count == 95
+        assert result.error_count == 2
+        assert result.warning_count == 3
+        assert result.skipped_count == 0
+        assert result.processing_time_ms == 1500.0
+        assert result.metadata == metadata
+        assert result.quality_metrics == quality_metrics
 
     def test_layer_query_creation(self):
         """Test LayerQuery dataclass creation."""
@@ -172,14 +172,14 @@ class TestMedallionInterfaces(unittest.TestCase):
             filters={"status": "active", "priority": "high"},
         )
 
-        self.assertEqual(query.layer_name, "bronze")
-        self.assertEqual(len(query.data_ids), 3)
-        self.assertEqual(query.date_range, (start_date, end_date))
-        self.assertEqual(len(query.format_types), 2)
-        self.assertEqual(query.quality_threshold, 80.0)
-        self.assertEqual(query.limit, 50)
-        self.assertEqual(query.offset, 10)
-        self.assertEqual(query.filters["status"], "active")
+        assert query.layer_name == "bronze"
+        assert len(query.data_ids) == 3
+        assert query.date_range == (start_date, end_date)
+        assert len(query.format_types) == 2
+        assert query.quality_threshold == 80.0
+        assert query.limit == 50
+        assert query.offset == 10
+        assert query.filters["status"] == "active"
 
     def test_layer_data_creation(self):
         """Test LayerData dataclass creation."""
@@ -198,12 +198,12 @@ class TestMedallionInterfaces(unittest.TestCase):
             query=query,
         )
 
-        self.assertEqual(len(layer_data.records), 2)
-        self.assertEqual(len(layer_data.metadata), 2)
-        self.assertEqual(layer_data.total_count, 100)
-        self.assertEqual(layer_data.retrieved_count, 2)
-        self.assertEqual(layer_data.query, query)
-        self.assertIsInstance(layer_data.retrieved_at, datetime)
+        assert len(layer_data.records) == 2
+        assert len(layer_data.metadata) == 2
+        assert layer_data.total_count == 100
+        assert layer_data.retrieved_count == 2
+        assert layer_data.query == query
+        assert isinstance(layer_data.retrieved_at, datetime)
 
     def test_layer_metadata_defaults(self):
         """Test LayerMetadata default values."""
@@ -213,31 +213,31 @@ class TestMedallionInterfaces(unittest.TestCase):
             ingestion_timestamp=datetime.now(),
         )
 
-        self.assertEqual(metadata.data_hash, "")
-        self.assertEqual(metadata.version, "1.0")
-        self.assertEqual(metadata.format_type, SupportedFormat.UNKNOWN)
-        self.assertEqual(metadata.record_count, 0)
-        self.assertEqual(metadata.file_size_bytes, 0)
-        self.assertEqual(metadata.processing_duration_ms, 0.0)
-        self.assertEqual(metadata.user_id, "system")
-        self.assertEqual(metadata.session_id, "")
-        self.assertEqual(len(metadata.custom_metadata), 0)
+        assert metadata.data_hash == ""
+        assert metadata.version == "1.0"
+        assert metadata.format_type == SupportedFormat.UNKNOWN
+        assert metadata.record_count == 0
+        assert metadata.file_size_bytes == 0
+        assert metadata.processing_duration_ms == 0.0
+        assert metadata.user_id == "system"
+        assert metadata.session_id == ""
+        assert len(metadata.custom_metadata) == 0
 
     def test_data_quality_metrics_defaults(self):
         """Test DataQualityMetrics default values."""
         metrics = DataQualityMetrics()
 
-        self.assertEqual(metrics.completeness_score, 0.0)
-        self.assertEqual(metrics.consistency_score, 0.0)
-        self.assertEqual(metrics.validity_score, 0.0)
-        self.assertEqual(metrics.accuracy_score, 0.0)
-        self.assertEqual(metrics.uniqueness_score, 0.0)
-        self.assertEqual(metrics.overall_score, 0.0)
-        self.assertEqual(len(metrics.quality_issues), 0)
-        self.assertEqual(metrics.validation_errors, 0)
-        self.assertEqual(metrics.validation_warnings, 0)
-        self.assertEqual(metrics.data_anomalies, 0)
-        self.assertIsInstance(metrics.calculated_at, datetime)
+        assert metrics.completeness_score == 0.0
+        assert metrics.consistency_score == 0.0
+        assert metrics.validity_score == 0.0
+        assert metrics.accuracy_score == 0.0
+        assert metrics.uniqueness_score == 0.0
+        assert metrics.overall_score == 0.0
+        assert len(metrics.quality_issues) == 0
+        assert metrics.validation_errors == 0
+        assert metrics.validation_warnings == 0
+        assert metrics.data_anomalies == 0
+        assert isinstance(metrics.calculated_at, datetime)
 
     def test_validation_result_defaults(self):
         """Test ValidationResult default values."""
@@ -246,13 +246,13 @@ class TestMedallionInterfaces(unittest.TestCase):
             severity=QualitySeverity.INFO,
         )
 
-        self.assertTrue(validation.is_valid)
-        self.assertEqual(validation.severity, QualitySeverity.INFO)
-        self.assertEqual(validation.error_count, 0)
-        self.assertEqual(validation.warning_count, 0)
-        self.assertEqual(len(validation.issues), 0)
-        self.assertEqual(len(validation.details), 0)
-        self.assertIsInstance(validation.validation_timestamp, datetime)
+        assert validation.is_valid
+        assert validation.severity == QualitySeverity.INFO
+        assert validation.error_count == 0
+        assert validation.warning_count == 0
+        assert len(validation.issues) == 0
+        assert len(validation.details) == 0
+        assert isinstance(validation.validation_timestamp, datetime)
 
 
 if __name__ == "__main__":

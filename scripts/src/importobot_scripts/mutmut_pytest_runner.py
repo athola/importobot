@@ -1,6 +1,6 @@
 """Pytest entrypoint for mutation testing.
 
-Ensures the project source directory is on ``sys.path`` before delegating to
+Verifies the project source directory is on ``sys.path`` before delegating to
 pytest. Mutmut executes tests from a temporary working tree (`mutants/`), so
 relative imports would otherwise fail without this shim.
 """

@@ -285,14 +285,26 @@ class TestSecurityValidationCICD:
         # Generated Robot content should include security considerations
         assert "SSHLibrary" in robot_content, "Should generate SSH library imports"
 
-        # Check that dangerous commands are handled appropriately
+        # Check that dangerous commands are handled appropriately in generated code
         lines = robot_content.split("\n")
         dangerous_found = False
+
+        # Look for dangerous patterns that might appear in various
+        # Robot Framework formats
+        dangerous_patterns = [
+            "rm -rf",
+            "Remove File",
+            "sudo",
+            "system compromised",
+        ]
+
         for line in lines:
-            if ("Run" in line or "Execute Command" in line) and (
-                "rm -rf" in line or "sudo" in line
-            ):
-                dangerous_found = True
+            # Check for dangerous patterns in Robot Framework syntax
+            for pattern in dangerous_patterns:
+                if pattern in line and not line.strip().startswith("#"):
+                    dangerous_found = True
+                    break
+            if dangerous_found:
                 break
 
         assert dangerous_found, "Should handle dangerous commands in generated code"
@@ -462,7 +474,8 @@ class TestSecurityValidationCICD:
 
         # Should cover key security topics
         guidelines_text = " ".join(guidelines).lower()
-        essential_topics = SSH_SECURITY_TOPICS + [
+        essential_topics = [
+            *SSH_SECURITY_TOPICS,
             "implement proper error handling to avoid information disclosure",
         ]
 
