@@ -12,12 +12,12 @@ on:
 
 jobs:
   claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
-    
+    # Only run if commit message explicitly requests review
+    if: |
+      contains(github.event.head_commit.message, '[review]') ||
+      contains(github.event.head_commit.message, '[claude-review]') ||
+      contains(github.event.head_commit.message, '[code-review]')
+
     runs-on: ubuntu-latest
     permissions:
       contents: read
