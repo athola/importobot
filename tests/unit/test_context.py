@@ -503,7 +503,7 @@ class TestContextPerformanceMonitoring:
         assert stats["last_cleanup_time"] is not None
 
     def test_cleanup_performance_stats_accumulate_across_operations(self):
-        """Test that performance statistics accumulate across multiple cleanup operations."""
+        """Test performance statistics accumulate across cleanups."""
         reset_cleanup_performance_stats()
 
         # First batch of threads

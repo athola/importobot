@@ -221,8 +221,8 @@ class TestMedallionArchitectureInvariants:
                     "timestamp": "2024-01-01T00:00:00",
                 }
 
-                # Test functional consistency instead of timing consistency
-                # Run the same operation multiple times and check for deterministic results
+                # Test functional consistency instead of timing
+                # Run same operation multiple times for determinism
                 results = []
                 for _run in range(3):
                     result = processor.ingest_with_detection(test_data, source_info)
@@ -240,7 +240,7 @@ class TestMedallionArchitectureInvariants:
                             "detected_format",
                         ]
                         for key in expected_keys:
-                            # Some implementations might return different keys, so check gracefully
+                            # Some implementations return different keys
                             if key in ["processing_result", "quality_metrics"]:
                                 # These are essential for the test
                                 assert key in result, f"Missing essential key: {key}"
@@ -249,7 +249,7 @@ class TestMedallionArchitectureInvariants:
                         assert hasattr(result, "metadata")
                         assert hasattr(result, "format_detection")
 
-                # Check deterministic behavior: same input should produce equivalent results
+                # Check determinism: same input yields equivalent results
                 if len(results) >= 2:
                     # Compare format detection results (should be deterministic)
                     def get_format(
@@ -257,8 +257,10 @@ class TestMedallionArchitectureInvariants:
                     ) -> SupportedFormat | str:
                         if isinstance(result, dict):
                             detected_format = result.get("detected_format", "")
-                            # Cast to str to satisfy mypy - we know this could be any format from dict access
-                            return str(detected_format) if detected_format else ""
+                            # Cast to str to satisfy mypy
+                            return (
+                                str(detected_format) if detected_format else ""
+                            )
                         else:  # BronzeRecord
                             return result.format_detection.detected_format
 

@@ -1015,7 +1015,7 @@ class TestCustomErrorHandlers:
     def test_error_handler_can_suppress_exceptions(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Error handler should be able to suppress exceptions for graceful degradation."""
+        """Error handler can suppress exceptions for graceful degradation."""
         responses = [
             DummyResponse(status_code=503, payload={"error": "Overloaded"})
             for _ in range(10)

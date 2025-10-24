@@ -43,7 +43,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         else:
             super().do_GET()
 
-    def log_message(self, format, *args):  # pylint: disable=redefined-builtin,unused-argument
+    # pylint: disable=redefined-builtin,unused-argument
+    def log_message(self, format, *args):
         """Suppress default logging to keep test output clean."""
         return
 
