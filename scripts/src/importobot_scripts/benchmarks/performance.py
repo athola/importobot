@@ -199,7 +199,7 @@ class ContextPerformanceBenchmark:
         """Benchmark context registry cleanup performance."""
         results = {}
 
-        def worker_thread(thread_id: int, duration: float):
+        def worker_thread(thread_id: int, duration: float) -> None:
             """Worker thread that creates and uses context."""
             get_context()
             # Simulate some work
