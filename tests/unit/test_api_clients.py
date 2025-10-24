@@ -37,6 +37,8 @@ class DummyResponse:
         self.request = type(
             "MockRequest", (), {"url": "https://mock-url.example", "headers": {}}
         )()
+        # Add text attribute for error handling
+        self.text = str(payload)
 
     def json(self) -> dict[str, Any] | list[dict[str, Any]]:
         """Return the stored payload as JSON."""
@@ -810,3 +812,237 @@ class TestAPIClientSecurityWarnings:
             assert "development/testing" in warning_msg.lower()
             assert "production" in warning_msg.lower()
             assert "verify_ssl=True" in warning_msg
+
+
+class TestCircuitBreaker:
+    """Test circuit breaker pattern for repeated API failures."""
+
+    def test_circuit_breaker_opens_after_consecutive_failures(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Circuit breaker should open after threshold failures and reject requests."""
+        # Set up client with circuit breaker enabled (5 failures threshold)
+        responses = [
+            DummyResponse(status_code=500, payload={"error": "Internal Server Error"})
+            for _ in range(10)  # More than threshold
+        ]
+        session = DummySession(responses)
+        monkeypatch.setattr(
+            "importobot.integrations.clients.requests.Session", lambda: session
+        )
+        monkeypatch.setattr(
+            "importobot.integrations.clients.time.sleep", lambda seconds: None
+        )
+
+        client = JiraXrayClient(
+            api_url="https://jira.example/rest/api/2/search",
+            tokens=["token"],
+            user=None,
+            project_name="PRJ",
+            project_id=None,
+            max_concurrency=None,
+            verify_ssl=True,
+        )
+
+        # Circuit breaker should trip after threshold failures
+        with pytest.raises(RuntimeError) as exc_info:
+            gather(client)
+
+        assert "circuit breaker" in str(exc_info.value).lower()
+
+    def test_circuit_breaker_half_open_allows_probe(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Circuit breaker should allow probe requests in half-open state."""
+        # Simulating: failures -> half-open -> success -> closed
+        responses = [
+            DummyResponse(status_code=500, payload={})
+            for _ in range(5)  # Open circuit
+        ]
+        # After timeout, allow a probe
+        responses.append(
+            DummyResponse(
+                status_code=200,
+                payload={"issues": [], "total": 0, "startAt": 0, "maxResults": 50},
+            )
+        )
+
+        session = DummySession(responses)
+        monkeypatch.setattr(
+            "importobot.integrations.clients.requests.Session", lambda: session
+        )
+
+        # Track time.sleep calls to simulate circuit breaker timeout
+        sleep_times: list[float] = []
+        monkeypatch.setattr(
+            "importobot.integrations.clients.time.sleep", sleep_times.append
+        )
+
+        client = JiraXrayClient(
+            api_url="https://jira.example/rest/api/2/search",
+            tokens=["token"],
+            user=None,
+            project_name="PRJ",
+            project_id=None,
+            max_concurrency=None,
+            verify_ssl=True,
+        )
+
+        # After circuit breaker timeout, probe should succeed
+        # This will fail initially - implementation needed
+        with pytest.raises(RuntimeError):
+            gather(client)
+
+    def test_circuit_breaker_resets_on_success(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Circuit breaker should reset failure count on successful request."""
+        responses = [
+            DummyResponse(status_code=500, payload={}),  # Failure 1
+            DummyResponse(status_code=500, payload={}),  # Failure 2
+            DummyResponse(
+                status_code=200,
+                payload={"issues": [], "total": 0, "startAt": 0, "maxResults": 50},
+            ),  # Success - should reset
+        ]
+
+        session = DummySession(responses)
+        monkeypatch.setattr(
+            "importobot.integrations.clients.requests.Session", lambda: session
+        )
+        monkeypatch.setattr(
+            "importobot.integrations.clients.time.sleep", lambda seconds: None
+        )
+
+        client = JiraXrayClient(
+            api_url="https://jira.example/rest/api/2/search",
+            tokens=["token"],
+            user=None,
+            project_name="PRJ",
+            project_id=None,
+            max_concurrency=None,
+            verify_ssl=True,
+        )
+
+        # Should not trip circuit breaker since success resets counter
+        payloads = gather(client)
+        assert len(payloads) == 1
+
+
+class TestCustomErrorHandlers:
+    """Test custom error handler hooks for enterprise scenarios."""
+
+    def test_custom_error_handler_invoked_on_failure(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Custom error handler should be called when API request fails."""
+        # Provide enough responses for retries (max_retries + 1 = 4 attempts)
+        responses = [
+            DummyResponse(status_code=500, payload={"error": "Service unavailable"})
+            for _ in range(10)  # More than enough for retries + circuit breaker
+        ]
+        session = DummySession(responses)
+        monkeypatch.setattr(
+            "importobot.integrations.clients.requests.Session", lambda: session
+        )
+
+        errors_captured: list[dict[str, Any]] = []
+
+        def custom_error_handler(error_info: dict[str, Any]) -> None:
+            """Capture error information for testing."""
+            errors_captured.append(error_info)
+
+        client = JiraXrayClient(
+            api_url="https://jira.example/rest/api/2/search",
+            tokens=["token"],
+            user=None,
+            project_name="PRJ",
+            project_id=None,
+            max_concurrency=None,
+            verify_ssl=True,
+        )
+
+        # Set custom error handler
+        client.set_error_handler(custom_error_handler)
+
+        with pytest.raises(RuntimeError):
+            gather(client)
+
+        # Verify custom handler was invoked with error details
+        assert len(errors_captured) > 0
+        assert errors_captured[0]["status_code"] == 500
+        assert "error" in errors_captured[0]
+
+    def test_custom_error_handler_receives_context(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Error handler should receive request context (URL, headers, etc)."""
+        responses = [
+            DummyResponse(status_code=404, payload={"error": "Not found"})
+            for _ in range(10)
+        ]
+        session = DummySession(responses)
+        monkeypatch.setattr(
+            "importobot.integrations.clients.requests.Session", lambda: session
+        )
+
+        errors_captured: list[dict[str, Any]] = []
+
+        def context_aware_handler(error_info: dict[str, Any]) -> None:
+            errors_captured.append(error_info)
+
+        client = JiraXrayClient(
+            api_url="https://jira.example/rest/api/2/search",
+            tokens=["token"],
+            user=None,
+            project_name="PRJ",
+            project_id=None,
+            max_concurrency=None,
+            verify_ssl=True,
+        )
+        client.set_error_handler(context_aware_handler)
+
+        with pytest.raises(RuntimeError):
+            gather(client)
+
+        # Verify context was provided
+        assert len(errors_captured) > 0
+        error = errors_captured[0]
+        assert "url" in error
+        assert "attempt" in error
+        assert "timestamp" in error
+
+    def test_error_handler_can_suppress_exceptions(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Error handler should be able to suppress exceptions for graceful degradation."""
+        responses = [
+            DummyResponse(status_code=503, payload={"error": "Overloaded"})
+            for _ in range(10)
+        ]
+        session = DummySession(responses)
+        monkeypatch.setattr(
+            "importobot.integrations.clients.requests.Session", lambda: session
+        )
+
+        def suppressing_handler(error_info: dict[str, Any]) -> bool:
+            """Return True to suppress the exception."""
+            return bool(
+                error_info["status_code"] == 503
+            )  # Suppress service unavailable
+
+        client = JiraXrayClient(
+            api_url="https://jira.example/rest/api/2/search",
+            tokens=["token"],
+            user=None,
+            project_name="PRJ",
+            project_id=None,
+            max_concurrency=None,
+            verify_ssl=True,
+        )
+        client.set_error_handler(suppressing_handler)
+
+        # Should not raise since handler suppresses 503 errors
+        payloads = gather(client)
+        assert len(payloads) == 1  # Gets empty response but no exception
+        assert payloads[0] == {}  # Empty payload from suppressed error

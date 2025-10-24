@@ -15,7 +15,7 @@ import pytest
 from importobot.core.converter import convert_file
 from importobot.core.keywords_registry import RobotFrameworkKeywordRegistry
 from importobot.core.suggestions.suggestion_engine import GenericSuggestionEngine
-from importobot.utils.test_generation.generators import EnterpriseTestGenerator
+from importobot.utils.test_generation.generators import TestSuiteGenerator
 from importobot.utils.test_generation.helpers import (
     generate_random_test_json,
     get_available_structures,
@@ -34,7 +34,7 @@ from tests.shared_ssh_test_data import (
 # RobotFrameworkKeywordRegistry is now imported from core.keywords_registry
 
 
-# JsonTestGenerator functionality is now part of EnterpriseTestGenerator
+# JsonTestGenerator functionality is now part of TestSuiteGenerator
 # in utils.test_generation
 
 
@@ -338,7 +338,7 @@ def test_generative_keyword_combinations_produce_valid_robot(tmp_path, num_keywo
     random.seed(42 + num_keywords)
 
     # Create enterprise generator and use it to create test steps
-    generator = EnterpriseTestGenerator()
+    generator = TestSuiteGenerator()
     test_data = generator.generate_realistic_test_data()
 
     # Generate steps using the keyword data
@@ -408,7 +408,7 @@ def _extract_keywords_by_library() -> list[dict[str, Any]]:
 
 
 def _generate_builtin_keyword_data(
-    kw: dict[str, Any], generator: EnterpriseTestGenerator, test_data: dict[str, str]
+    kw: dict[str, Any], generator: TestSuiteGenerator, test_data: dict[str, str]
 ) -> str:
     """Generate proper data for BuiltIn keywords."""
     keyword_specific_data = generator.generate_keyword_specific_data(kw, test_data)
@@ -434,7 +434,7 @@ def _generate_builtin_keyword_data(
 
 def _create_test_steps(
     keywords_by_library: list[dict[str, Any]],
-    generator: EnterpriseTestGenerator,
+    generator: TestSuiteGenerator,
     test_data: dict[str, str],
 ) -> list[dict[str, Any]]:
     """Create test steps for each library keyword."""
@@ -465,7 +465,7 @@ def test_library_coverage(tmp_path):
     keywords_by_library = _extract_keywords_by_library()
 
     # Generate test using enterprise generator with enhanced BuiltIn support
-    generator = EnterpriseTestGenerator()
+    generator = TestSuiteGenerator()
     test_data = generator.generate_realistic_test_data()
 
     steps = _create_test_steps(keywords_by_library, generator, test_data)
@@ -1020,7 +1020,7 @@ if __name__ == "__main__":
     print("Testing Enterprise Test Generator")
     print("=" * 50)
 
-    enterprise_generator = EnterpriseTestGenerator()
+    enterprise_generator = TestSuiteGenerator()
     enterprise_test = enterprise_generator.generate_enterprise_test_case(
         "web_automation", "user_authentication", 1001
     )

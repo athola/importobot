@@ -1,6 +1,6 @@
 # Security Standards
 
-This document outlines essential security practices for development, CI/CD, and runtime. It integrates optimization efforts and requires regular updates.
+This document outlines security practices for development, CI/CD, and runtime.
 
 ## Input Validation
 
@@ -18,15 +18,14 @@ This document outlines essential security practices for development, CI/CD, and 
 
 - Temporary files must be created with restrictive permissions (`0600`) using
   `temporary_json_file` or equivalent wrappers.
-- Never write sensitive data to world-readable paths; prefer project-specific
+- Do not write sensitive data to world-readable paths. Use project-specific
   directories under `os.path.expanduser("~")` with `os.path.join`.
 - Validate and normalise paths with `Path.resolve()` before use, and apply security validator checks where available.
-- Restoration flows must use atomic move/copy/commit sequences with rollback to
-  avoid partial state.
+- Use atomic operations (move/copy/commit) with rollback for file restoration to prevent partial state.
 
 ## Credential hygiene
 
-- Disallow hard-coded credentials anywhere in source or tests.
+- Do not hard-code credentials in source code or tests.
 - `SecurityValidator` inspects SSH and remote command parameters for exposure.
 - Block credential-like patterns during validation and log structured warnings.
 - Record security-relevant events with the structured logger (no raw secrets in
@@ -37,7 +36,7 @@ This document outlines essential security practices for development, CI/CD, and 
 - Raise specific exception types (e.g., `ValidationError`, `SecurityError`);
   avoid bare `Exception`.
 - Scrub sensitive details (paths, secrets) from user-facing error messages.
-- Keep stack traces internal; surface actionable summaries externally.
+- Do not expose stack traces to users. Show actionable summaries instead.
 - Log security failures with context to aid auditing.
 
 ## Dependency management
@@ -47,27 +46,21 @@ This document outlines essential security practices for development, CI/CD, and 
   production code.
 - Pin runtime dependencies in `pyproject.toml` (lockfiles kept under version
   control).
-- Generate software bill of materials (SBOM) artifacts as part of release prep
-  when required by compliance.
+- Generate a Software Bill of Materials (SBOM) for each release if required for compliance.
 
 ## CI/CD security gates
 
 - `.github/workflows/security.yml` runs Bandit, Safety, SQL pattern detection,
   and credential leak checks on each push/PR; artifacts are uploaded to support audit
   trails.
-- Treat security workflow failures as release blockers; investigate before
-  merging.
+- Security workflow failures are release blockers. Investigate them before merging.
 
 ## Operational checklist
 
-1. **Development** – Use the security gateway helpers during feature work and
-   keep new endpoints behind validation mechanisms.
-2. **Code Review** – Confirm new filesystem, SQL, and JSON entry points follow
-   these patterns; flag deviations early.
-3. **Release Readiness** – Ensure security workflow results are attached to the
-   release record; document residual risk or accepted exceptions.
-4. **Incident Response** – Reference structured logs and workflow artifacts for
-   triage; restore data using the atomic patterns outlined above.
+1. **Development**: Use security gateway helpers and keep new endpoints behind validation.
+2. **Code Review**: Confirm that new code handling files, SQL, or JSON follows these standards. Flag any deviations.
+3. **Release**: Attach security workflow results to the release record. Document any accepted risks.
+4. **Incident Response**: Use structured logs and workflow artifacts to investigate incidents. Use the atomic patterns for data restoration.
 
 ## Related References
 

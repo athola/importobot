@@ -51,7 +51,7 @@ import atexit
 import os
 import threading
 import time
-from typing import cast
+from typing import Literal, TypedDict, cast
 from weakref import WeakKeyDictionary
 
 from importobot.services.performance_cache import PerformanceCache
@@ -116,6 +116,30 @@ class ApplicationContext:
         self._performance_cache = None
         self._telemetry_client = None
 
+    def __enter__(self) -> ApplicationContext:
+        """Context manager entry - return self for use in with statement."""
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: object,
+    ) -> Literal[False]:
+        """Context manager exit - perform cleanup when exiting with statement.
+
+        Args:
+            exc_type: Exception type if an exception occurred (None otherwise)
+            exc_val: Exception value if an exception occurred (None otherwise)
+            exc_tb: Exception traceback if an exception occurred (None otherwise)
+
+        Returns:
+            False to propagate exceptions (standard context manager behavior)
+        """
+        self.reset()
+        clear_context()
+        return False
+
 
 _context_storage = threading.local()
 _context_lock = threading.Lock()
@@ -128,6 +152,104 @@ _CONTEXT_MAX_SIZE = int(os.getenv("IMPORTOBOT_CONTEXT_MAX_SIZE", "100"))
 _CLEANUP_INTERVAL = float(os.getenv("IMPORTOBOT_CONTEXT_CLEANUP_INTERVAL", "0"))
 _cleanup_state = {"last_cleanup_time": time.time()}
 _cleanup_enabled = _CLEANUP_INTERVAL > 0
+
+
+class CleanupStats(TypedDict):
+    """Type definition for cleanup performance statistics."""
+
+    cleanup_count: int
+    total_cleanup_time_ms: float
+    total_threads_processed: int
+    average_cleanup_time_ms: float
+    last_cleanup_time: float | None
+    last_cleanup_duration_ms: float | None
+    max_cleanup_duration_ms: float
+    min_cleanup_duration_ms: float
+
+
+class CleanupPerformanceTracker:
+    """Thread-safe tracker for context cleanup performance statistics."""
+
+    def __init__(self) -> None:
+        """Initialize performance tracker with default values."""
+        self._stats = {
+            "cleanup_count": 0,
+            "total_cleanup_time_ms": 0.0,
+            "total_threads_processed": 0,
+            "average_cleanup_time_ms": 0.0,
+            "last_cleanup_time": None,
+            "last_cleanup_duration_ms": None,
+            "max_cleanup_duration_ms": 0.0,
+            "min_cleanup_duration_ms": float("inf"),
+        }
+        self._lock = threading.RLock()
+
+    def record_cleanup(self, cleanup_duration_ms: float, total_threads: int) -> None:
+        """Record a cleanup operation with its performance metrics.
+
+        Args:
+            cleanup_duration_ms: Duration of the cleanup operation in milliseconds
+            total_threads: Total number of threads processed
+        """
+        with self._lock:
+            # Update running totals - cast to ensure proper types
+            cleanup_count = int(self._stats["cleanup_count"] or 0)
+            total_time = float(self._stats["total_cleanup_time_ms"] or 0.0)
+            threads_processed = int(self._stats["total_threads_processed"] or 0)
+
+            self._stats["cleanup_count"] = cleanup_count + 1
+            self._stats["total_cleanup_time_ms"] = total_time + cleanup_duration_ms
+            self._stats["total_threads_processed"] = threads_processed + total_threads
+
+            # Update average
+            new_count = int(self._stats["cleanup_count"] or 0)
+            new_total_time = float(self._stats["total_cleanup_time_ms"] or 0.0)
+            if new_count > 0:
+                self._stats["average_cleanup_time_ms"] = new_total_time / new_count
+            else:
+                self._stats["average_cleanup_time_ms"] = 0.0
+
+            # Update timestamps
+            self._stats["last_cleanup_time"] = time.time()
+            self._stats["last_cleanup_duration_ms"] = cleanup_duration_ms
+
+            # Update min/max
+            current_max = float(self._stats["max_cleanup_duration_ms"] or 0.0)
+            self._stats["max_cleanup_duration_ms"] = max(
+                current_max, cleanup_duration_ms
+            )
+
+            current_min = float(self._stats["min_cleanup_duration_ms"] or float("inf"))
+            self._stats["min_cleanup_duration_ms"] = min(
+                current_min, cleanup_duration_ms
+            )
+
+    def get_stats(self) -> CleanupStats:
+        """Get a copy of current performance statistics.
+
+        Returns:
+            Dictionary containing all performance metrics
+        """
+        with self._lock:
+            return self._stats.copy()  # type: ignore[return-value]
+
+    def reset(self) -> None:
+        """Reset all performance statistics to default values."""
+        with self._lock:
+            self._stats = {
+                "cleanup_count": 0,
+                "total_cleanup_time_ms": 0.0,
+                "total_threads_processed": 0,
+                "average_cleanup_time_ms": 0.0,
+                "last_cleanup_time": None,
+                "last_cleanup_duration_ms": None,
+                "max_cleanup_duration_ms": 0.0,
+                "min_cleanup_duration_ms": float("inf"),
+            }
+
+
+# Global performance tracker instance
+_performance_tracker = CleanupPerformanceTracker()
 
 
 def _register_context(context: ApplicationContext) -> None:
@@ -172,7 +294,7 @@ def _temporal_cleanup_stale_contexts() -> None:
 
 
 def _cleanup_stale_contexts_locked() -> None:
-    """Remove contexts for dead threads.
+    """Remove contexts for dead threads with performance monitoring.
 
     Must be called with _context_lock held.
 
@@ -180,16 +302,39 @@ def _cleanup_stale_contexts_locked() -> None:
     thread objects may be kept alive by the interpreter. This explicitly
     removes contexts for threads that are no longer alive.
     """
+    start_time = time.perf_counter()
+    total_threads = len(_context_registry)
+
     stale_threads = [t for t in list(_context_registry.keys()) if not t.is_alive()]
     for thread in stale_threads:
         _context_registry.pop(thread, None)
 
+    end_time = time.perf_counter()
+    cleanup_duration_ms = (end_time - start_time) * 1000
+
+    # Update performance statistics using the tracker
+    _performance_tracker.record_cleanup(cleanup_duration_ms, total_threads)
+
     if stale_threads:
         logger.debug(
-            "Cleaned up %d stale context(s) for dead threads: %s",
+            "Cleaned up %d stale context(s) for dead threads: %s in %.2fms "
+            "(processed %d total threads)",
             len(stale_threads),
             [t.name for t in stale_threads],
+            cleanup_duration_ms,
+            total_threads,
         )
+
+        # Log performance warning if cleanup takes too long
+        if cleanup_duration_ms > 50.0:  # 50ms threshold
+            logger.warning(
+                "Context registry cleanup took %.2fms (threshold: 50ms). "
+                "Registry size: %d, Stale threads: %d. "
+                "Consider reviewing thread lifecycle management.",
+                cleanup_duration_ms,
+                total_threads,
+                len(stale_threads),
+            )
 
 
 def get_context() -> ApplicationContext:
@@ -279,6 +424,39 @@ def get_registry_stats() -> dict[str, int | list[str]]:
         }
 
 
+def get_cleanup_performance_stats() -> CleanupStats:
+    """Get performance statistics for context registry cleanup operations.
+
+    Returns:
+        Dictionary with cleanup performance statistics:
+        - cleanup_count: Number of cleanup operations performed
+        - total_cleanup_time_ms: Total time spent in cleanup operations (ms)
+        - average_cleanup_time_ms: Average cleanup time per operation (ms)
+        - max_cleanup_duration_ms: Maximum cleanup duration observed (ms)
+        - min_cleanup_duration_ms: Minimum cleanup duration observed (ms)
+        - last_cleanup_time: Timestamp of last cleanup operation
+        - last_cleanup_duration_ms: Duration of last cleanup operation (ms)
+        - total_threads_processed: Total number of threads processed across all cleanups
+
+    Example:
+        >>> from importobot.context import get_cleanup_performance_stats
+        >>> stats = get_cleanup_performance_stats()
+        >>> if (stats['average_cleanup_time_ms'] and
+        ...     stats['average_cleanup_time_ms'] > 50):
+        ...     print("Cleanup performance may be problematic")
+    """
+    # Return a copy to prevent external modification
+    return _performance_tracker.get_stats()
+
+
+def reset_cleanup_performance_stats() -> None:
+    """Reset cleanup performance statistics.
+
+    Useful for testing or when monitoring specific time periods.
+    """
+    _performance_tracker.reset()
+
+
 def _cleanup_on_exit() -> None:
     """Clean up all contexts on application exit."""
     with _context_lock:
@@ -293,7 +471,9 @@ __all__ = [
     "ApplicationContext",
     "cleanup_stale_contexts",
     "clear_context",
+    "get_cleanup_performance_stats",
     "get_context",
     "get_registry_stats",
+    "reset_cleanup_performance_stats",
     "set_context",
 ]

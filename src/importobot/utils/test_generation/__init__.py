@@ -1,6 +1,6 @@
 """Test generation package for enterprise-scale Robot Framework test suites."""
 
-from .generators import EnterpriseTestGenerator
+from .generators import TestSuiteGenerator
 from .ssh_authentication_tests import SSHAuthenticationTestGenerator
 from .ssh_command_tests import SSHCommandTestGenerator
 from .ssh_connection_tests import SSHConnectionTestGenerator
@@ -12,7 +12,6 @@ from .ssh_test_data import SSHTestDataGenerator
 from .templates import TemplateManager
 
 __all__ = [
-    "EnterpriseTestGenerator",
     "SSHAuthenticationTestGenerator",
     "SSHCommandTestGenerator",
     "SSHConnectionTestGenerator",
@@ -22,4 +21,5 @@ __all__ = [
     "SSHLoggingTestGenerator",
     "SSHTestDataGenerator",
     "TemplateManager",
+    "TestSuiteGenerator",
 ]

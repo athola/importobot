@@ -16,11 +16,17 @@ from importobot.context import (
     ApplicationContext,
     cleanup_stale_contexts,
     clear_context,
+    get_cleanup_performance_stats,
     get_context,
     get_registry_stats,
+    reset_cleanup_performance_stats,
     set_context,
 )
-from importobot.services.performance_cache import get_performance_cache
+from importobot.services.performance_cache import (
+    PerformanceCache,
+    get_performance_cache,
+)
+from importobot.telemetry import TelemetryClient
 
 
 class TestApplicationContext:
@@ -323,3 +329,296 @@ class TestContextMemoryManagement:
         stats = get_registry_stats()
         # Allow for main thread and a few stragglers, but not 10+
         assert cast(int, stats["size"]) < 5
+
+
+class TestContextManager:
+    """Test ApplicationContext as a context manager."""
+
+    def test_direct_application_context_as_context_manager(self):
+        """Test that ApplicationContext can be used directly as a context manager."""
+        initial_size = cast(int, get_registry_stats()["size"])
+
+        context = ApplicationContext()
+
+        with context as ctx:
+            # Should receive the same context object
+            assert ctx is context
+
+            # Should be able to use context functionality
+            cache = ctx.performance_cache
+            telemetry = ctx.telemetry_client
+
+            assert cache is not None
+            assert telemetry is not None
+            assert isinstance(cache, PerformanceCache)
+            assert isinstance(telemetry, TelemetryClient)
+
+        # After exiting, context should be cleaned up
+        assert context._performance_cache is None
+        assert context._telemetry_client is None
+
+        # Registry should be cleaned up
+        final_size = cast(int, get_registry_stats()["size"])
+        assert final_size <= initial_size
+
+    def test_get_context_as_context_manager(self):
+        """Test that get_context() can be used as a context manager."""
+        initial_size = cast(int, get_registry_stats()["size"])
+
+        with get_context() as ctx:
+            # Should receive a valid ApplicationContext
+            assert isinstance(ctx, ApplicationContext)
+
+            # Should be able to use context functionality
+            cache = ctx.performance_cache
+            telemetry = ctx.telemetry_client
+
+            assert cache is not None
+            assert telemetry is not None
+
+        # After exiting, global context should be cleared
+        # This verifies that clear_context() was called
+        final_size = cast(int, get_registry_stats()["size"])
+        assert final_size <= initial_size
+
+    def test_context_manager_cleanup_on_exception(self):
+        """Test that context manager cleanup works even when exceptions occur."""
+        context = ApplicationContext()
+
+        with pytest.raises(ValueError):
+            with context as ctx:
+                # Use the context normally
+                cache = ctx.performance_cache
+                assert cache is not None
+
+                # Raise an exception
+                raise ValueError("Test exception")
+
+        # Context should still be cleaned up despite the exception
+        assert context._performance_cache is None
+        assert context._telemetry_client is None
+
+    def test_context_manager_preserves_exception_propagation(self):
+        """Test that context manager doesn't suppress exceptions."""
+        context = ApplicationContext()
+
+        try:
+            with context:
+                raise ValueError("Test exception")
+        except ValueError as e:
+            # Exception should be propagated normally
+            assert str(e) == "Test exception"
+        else:
+            pytest.fail("Exception should have been propagated")
+
+    def test_nested_context_managers(self):
+        """Test nested context managers work correctly."""
+        initial_size = cast(int, get_registry_stats()["size"])
+
+        with ApplicationContext() as outer_ctx:
+            outer_cache = outer_ctx.performance_cache
+            assert outer_cache is not None
+
+            with ApplicationContext() as inner_ctx:
+                inner_cache = inner_ctx.performance_cache
+                assert inner_cache is not None
+                assert inner_cache is not outer_cache  # Different instances
+
+            # Inner context should be cleaned up
+            assert inner_ctx._performance_cache is None
+
+        # Outer context should also be cleaned up
+        assert outer_ctx._performance_cache is None
+
+        # Both should be removed from registry
+        final_size = cast(int, get_registry_stats()["size"])
+        assert final_size <= initial_size
+
+
+class TestContextPerformanceMonitoring:
+    """Test context registry cleanup performance monitoring."""
+
+    def test_reset_cleanup_performance_stats(self):
+        """Test that performance statistics can be reset."""
+        reset_cleanup_performance_stats()
+
+        stats = get_cleanup_performance_stats()
+        assert stats["cleanup_count"] == 0
+        assert stats["total_cleanup_time_ms"] == 0.0
+        assert stats["total_threads_processed"] == 0
+        assert stats["average_cleanup_time_ms"] == 0.0
+        assert stats["last_cleanup_time"] is None
+        assert stats["last_cleanup_duration_ms"] is None
+        assert stats["max_cleanup_duration_ms"] == 0.0
+        assert stats["min_cleanup_duration_ms"] == float("inf")
+
+    def test_cleanup_performance_stats_track_multiple_cleanups(self):
+        """Test that performance statistics track multiple cleanup operations."""
+        reset_cleanup_performance_stats()
+
+        # Create and cleanup multiple thread contexts
+        thread_contexts = []
+        for _i in range(3):
+
+            def worker():
+                ctx = get_context()
+                thread_contexts.append(ctx)
+                time.sleep(0.01)  # Small work to create measurable timing
+
+            thread = threading.Thread(target=worker)
+            thread.start()
+            thread.join()
+
+        # Force cleanup - contexts might already be cleaned up as threads finish
+        removed_count = cleanup_stale_contexts()
+        # Allow for some contexts to be auto-cleaned up during thread execution
+        assert removed_count >= 0
+
+        stats = get_cleanup_performance_stats()
+
+        # Verify statistics are tracked (cleanup operation occurred)
+        assert stats["cleanup_count"] == 1
+        assert stats["total_cleanup_time_ms"] >= 0
+        assert stats["total_threads_processed"] >= 0
+        assert stats["last_cleanup_time"] is not None
+        assert stats["last_cleanup_duration_ms"] is not None
+        assert stats["max_cleanup_duration_ms"] >= 0
+        assert stats["min_cleanup_duration_ms"] < float("inf")
+
+    def test_cleanup_performance_stats_handle_no_threads(self):
+        """Test that performance stats handle cleanup when no contexts exist."""
+        reset_cleanup_performance_stats()
+        clear_context()  # Ensure clean state
+
+        # Try cleanup with no contexts
+        removed_count = cleanup_stale_contexts()
+        assert removed_count == 0
+
+        stats = get_cleanup_performance_stats()
+
+        # Stats should still be recorded (cleanup happened, even if nothing was removed)
+        assert stats["cleanup_count"] == 1
+        assert stats["total_cleanup_time_ms"] >= 0
+        assert stats["total_threads_processed"] == 0
+        assert stats["last_cleanup_time"] is not None
+
+    def test_cleanup_performance_stats_accumulate_across_operations(self):
+        """Test that performance statistics accumulate across multiple cleanup operations."""
+        reset_cleanup_performance_stats()
+
+        # First batch of threads
+        def worker_batch1():
+            get_context()
+            time.sleep(0.005)
+
+        for _ in range(2):
+            thread = threading.Thread(target=worker_batch1)
+            thread.start()
+            thread.join()
+
+        removed_count1 = cleanup_stale_contexts()
+        # Some contexts might already be cleaned up
+        assert removed_count1 >= 0
+
+        stats_after_first = get_cleanup_performance_stats()
+        assert stats_after_first["cleanup_count"] == 1
+
+        # Second batch of threads
+        def worker_batch2():
+            get_context()
+            time.sleep(0.005)
+
+        for _ in range(3):
+            thread = threading.Thread(target=worker_batch2)
+            thread.start()
+            thread.join()
+
+        removed_count2 = cleanup_stale_contexts()
+        assert removed_count2 >= 0
+
+        stats_after_second = get_cleanup_performance_stats()
+
+        # Verify accumulation - we should have 2 cleanup operations
+        assert stats_after_second["cleanup_count"] == 2
+        assert (
+            stats_after_second["total_cleanup_time_ms"]
+            >= stats_after_first["total_cleanup_time_ms"]
+        )
+        assert stats_after_second["average_cleanup_time_ms"] >= 0
+
+    def test_cleanup_performance_stats_min_max_tracking(self):
+        """Test that min/max cleanup times are tracked correctly."""
+        reset_cleanup_performance_stats()
+
+        # Create varying workloads to create different cleanup times
+        cleanup_times = []
+
+        for workload in [1, 5, 10]:  # Different workload sizes
+
+            def worker(current_workload: int = workload) -> None:
+                get_context()
+                time.sleep(current_workload * 0.001)  # Variable work duration
+
+            threads = []
+            for _ in range(workload):
+                thread = threading.Thread(target=worker)
+                threads.append(thread)
+                thread.start()
+
+            for thread in threads:
+                thread.join()
+
+            cleanup_stale_contexts()
+            stats = get_cleanup_performance_stats()
+            cleanup_times.append(stats["last_cleanup_duration_ms"])
+
+        final_stats = get_cleanup_performance_stats()
+
+        # Verify min/max tracking
+        assert (
+            final_stats["min_cleanup_duration_ms"]
+            <= final_stats["max_cleanup_duration_ms"]
+        )
+        assert final_stats["min_cleanup_duration_ms"] < float("inf")
+        assert final_stats["max_cleanup_duration_ms"] > 0
+        assert final_stats["average_cleanup_time_ms"] > 0
+
+    def test_cleanup_performance_stats_thread_safety(self):
+        """Test that performance stats collection is thread-safe."""
+        reset_cleanup_performance_stats()
+
+        def concurrent_cleanup_worker():
+            """Worker that performs concurrent cleanup operations."""
+            for _ in range(3):
+
+                def context_worker():
+                    get_context()
+                    time.sleep(0.001)
+
+                threads = []
+                for _ in range(2):
+                    thread = threading.Thread(target=context_worker)
+                    threads.append(thread)
+                    thread.start()
+
+                for thread in threads:
+                    thread.join()
+
+                cleanup_stale_contexts()
+
+        # Run multiple cleanup workers concurrently
+        workers = []
+        for _ in range(3):
+            worker_thread = threading.Thread(target=concurrent_cleanup_worker)
+            workers.append(worker_thread)
+            worker_thread.start()
+
+        for worker_thread in workers:
+            worker_thread.join()
+
+        stats = get_cleanup_performance_stats()
+
+        # Should have completed multiple cleanup operations safely
+        assert stats["cleanup_count"] >= 3
+        assert stats["total_threads_processed"] >= 6  # At least 2 threads per cleanup
+        assert stats["average_cleanup_time_ms"] > 0

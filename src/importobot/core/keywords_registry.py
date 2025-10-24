@@ -1,7 +1,7 @@
-"""Comprehensive Robot Framework keyword registry and library mappings.
+"""Robot Framework keyword registry and library mappings.
 
-This module provides centralized keyword definitions, library patterns,
-and intent recognition patterns used throughout the conversion system.
+Provides centralized keyword definitions, library patterns, and intent recognition
+for Robot Framework conversion operations.
 """
 
 import re

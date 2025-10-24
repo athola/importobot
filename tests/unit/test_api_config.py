@@ -1,6 +1,7 @@
 """Tests for API ingest configuration resolution."""
 
 from argparse import Namespace
+from typing import cast
 
 import pytest
 
@@ -9,6 +10,8 @@ from importobot.config import (
     MAX_PROJECT_ID,
     APIIngestConfig,
     _parse_project_identifier,
+    _ProjectReferenceArgs,
+    _resolve_project_reference,
     resolve_api_ingest_config,
 )
 from importobot.medallion.interfaces.enums import SupportedFormat
@@ -143,7 +146,9 @@ def test_parse_project_identifier_trims_ascii_name() -> None:
     assert project_id is None
 
 
-def test_parse_project_identifier_handles_unicode_digits() -> None:
+def test_parse_project_identifier_handles_unicode_digits(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Explicit regression: Non-ASCII numerals treated as name."""
     unicode_digits = "１２３４５"
 
@@ -151,6 +156,7 @@ def test_parse_project_identifier_handles_unicode_digits() -> None:
 
     assert name == unicode_digits
     assert project_id is None
+    assert "treated as project name (not numeric ID)" in caplog.text
 
 
 def test_parse_project_identifier_accepts_upper_bound() -> None:
@@ -184,3 +190,205 @@ def test_cli_project_identifier_invalid_raises_configuration_error() -> None:
         resolve_api_ingest_config(args)
 
     assert "Invalid CLI project identifier" in str(exc_info.value)
+
+
+def test_parse_project_identifier_handles_empty_string() -> None:
+    """Empty string should return None for both name and ID."""
+    name, project_id = _parse_project_identifier("")
+
+    assert name is None
+    assert project_id is None
+
+
+def test_parse_project_identifier_handles_whitespace_only() -> None:
+    """Whitespace-only string should return None for both name and ID."""
+    name, project_id = _parse_project_identifier("   \t\n  ")
+
+    assert name is None
+    assert project_id is None
+
+
+def test_parse_project_identifier_handles_mixed_unicode() -> None:
+    """Mixed ASCII and non-ASCII should be treated as project name."""
+    mixed = "Project-１２３"
+
+    name, project_id = _parse_project_identifier(mixed)
+
+    assert name == mixed
+    assert project_id is None
+
+
+def test_parse_project_identifier_handles_zero() -> None:
+    """Zero should be accepted as a valid project ID."""
+    name, project_id = _parse_project_identifier("0")
+
+    assert name is None
+    assert project_id == 0
+
+
+class TestProjectReferenceArgsProtocol:
+    """Test the _ProjectReferenceArgs Protocol for typing improvements."""
+
+    def test_resolve_project_reference_accepts_namespace_args(self):
+        """Test that _resolve_project_reference accepts Namespace arguments."""
+        # Create a Namespace with project attribute (compatible with Protocol)
+        args = make_args(project="test_project")
+
+        def mock_fetch_env(key: str) -> str | None:
+            return None
+
+        name, project_id = _resolve_project_reference(
+            args=args,  # pyright: ignore[reportArgumentType]
+            fetch_env=mock_fetch_env,
+            prefix="TEST_",
+            fetch_format=SupportedFormat.TESTRAIL,
+        )
+
+        assert name == "test_project"
+        assert project_id is None
+
+    def test_resolve_project_reference_accepts_custom_object(self):
+        """Test that _resolve_project_reference accepts any object with project attribute."""
+
+        class CustomArgs:
+            def __init__(self, project: str | None):
+                self.project = project
+
+        # Create a custom object with project attribute (compatible with Protocol)
+        args = CustomArgs(project="custom_project")
+
+        def mock_fetch_env(key: str) -> str | None:
+            return None
+
+        name, project_id = _resolve_project_reference(
+            args=args,
+            fetch_env=mock_fetch_env,
+            prefix="CUSTOM_",
+            fetch_format=SupportedFormat.ZEPHYR,
+        )
+
+        assert name == "custom_project"
+        assert project_id is None
+
+    def test_resolve_project_reference_handles_missing_project_attribute(self):
+        """Test that function gracefully handles objects without project attribute."""
+
+        class IncompatibleArgs:
+            def __init__(self, other_attr: str):
+                self.other_attr = other_attr
+
+        args = IncompatibleArgs(other_attr="no_project")
+
+        def mock_fetch_env(key: str) -> str | None:
+            return None
+
+        # Function should handle missing attribute gracefully with getattr
+        name, project_id = _resolve_project_reference(
+            args=args,  # type: ignore
+            fetch_env=mock_fetch_env,
+            prefix="TEST_",
+            fetch_format=SupportedFormat.TESTRAIL,
+        )
+
+        # Should return None when project attribute is missing
+        assert name is None
+        assert project_id is None
+
+    def test_resolve_project_reference_handles_none_project(self):
+        """Test that _resolve_project_reference handles None project values."""
+        args = make_args(project=None)
+
+        def mock_fetch_env(key: str) -> str | None:
+            return None
+
+        name, project_id = _resolve_project_reference(
+            args=args,  # pyright: ignore[reportArgumentType]
+            fetch_env=mock_fetch_env,
+            prefix="TEST_",
+            fetch_format=SupportedFormat.TESTRAIL,
+        )
+
+        assert name is None
+        assert project_id is None
+
+    def test_resolve_project_reference_handles_numeric_string(self):
+        """Test that _resolve_project_reference handles numeric string values."""
+        # Test with numeric string (should parse as project ID)
+        args = make_args(project="123")
+
+        def mock_fetch_env(key: str) -> str | None:
+            return None
+
+        name, project_id = _resolve_project_reference(
+            args=args,  # pyright: ignore[reportArgumentType]
+            fetch_env=mock_fetch_env,
+            prefix="IMPORTOBOT_TESTRAIL",
+            fetch_format=SupportedFormat.TESTRAIL,
+        )
+
+        # Numeric string should be parsed as project ID
+        assert name is None
+        assert project_id == 123
+
+    def test_resolve_project_reference_environment_secondary(self):
+        """Test that _resolve_project_reference uses environment as a secondary source when CLI is invalid."""
+        # Test with invalid CLI project (empty string)
+        args = make_args(project="")
+
+        def mock_fetch_env(key: str) -> str | None:
+            if key == "IMPORTOBOT_TESTRAIL_PROJECT":
+                return "env_project"
+            return None
+
+        name, project_id = _resolve_project_reference(
+            args=args,  # pyright: ignore[reportArgumentType]
+            fetch_env=mock_fetch_env,
+            prefix="IMPORTOBOT_TESTRAIL",
+            fetch_format=SupportedFormat.TESTRAIL,
+        )
+
+        # Empty string should use the environment variable as a secondary source
+        assert name == "env_project"
+        assert project_id is None
+
+    def test_protocol_type_safety_example(self):
+        """Test that demonstrates Protocol type safety through runtime behavior."""
+
+        # This demonstrates that any object with a `project` attribute works
+        class WorkingArgs:
+            def __init__(self, project: str | None):
+                self.project = project
+
+        def mock_fetch_env(key: str) -> str | None:
+            return None
+
+        # Valid usage - object has required project attribute
+        valid_args: _ProjectReferenceArgs = WorkingArgs(project="valid")
+        result = _resolve_project_reference(
+            args=valid_args,
+            fetch_env=mock_fetch_env,
+            prefix="TEST_",
+            fetch_format=SupportedFormat.TESTRAIL,
+        )
+        assert result == ("valid", None)
+
+        # This would be caught by static type checkers:
+        # invalid_args: _ProjectReferenceArgs = object()  # Error: object doesn't implement protocol
+
+        # But at runtime, the function uses getattr and handles missing attributes gracefully
+        class BrokenArgs:
+            def __init__(self, wrong_attr: str):
+                self.wrong_attr = wrong_attr
+
+        broken_args = BrokenArgs(wrong_attr="test")
+
+        # Function handles missing attributes gracefully at runtime
+        # Using cast() to bypass type checkers - the test verifies graceful handling
+        result = _resolve_project_reference(
+            args=cast(_ProjectReferenceArgs, broken_args),
+            fetch_env=mock_fetch_env,
+            prefix="TEST_",
+            fetch_format=SupportedFormat.TESTRAIL,
+        )
+        # Returns None for both when project attribute is missing
+        assert result == (None, None)

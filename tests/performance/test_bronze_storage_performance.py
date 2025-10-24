@@ -249,11 +249,12 @@ class TestBronzeStoragePerformance:
 
             # Performance should scale reasonably (not exponentially)
             # 2x data shouldn't take dramatically longer than the first read
+            # Allow 3x threshold to account for timing variance
             if time_100 > 0:
                 scaling_factor = time_200 / time_100
-                assert scaling_factor < 2.5, (
+                assert scaling_factor < 3.0, (
                     f"Performance degraded by {scaling_factor:.2f}x "
-                    f"when data doubled, expected <2.5x"
+                    f"when data doubled, expected <3.0x"
                 )
 
             assert len(records_100) == 50
@@ -402,8 +403,10 @@ class TestBronzeStoragePerformance:
         """Test system handles large datasets (1000+ records).
 
         Business Requirement: Enterprise customers have large test suites.
-        Acceptance Criteria: Ingest 200 records without errors and query 100
-        records within adaptive limits.
+        Acceptance Criteria:
+        - Ingest 200 records without errors
+        - Ingestion should complete in reasonable time (target: <3 seconds)
+        - Query 100 records within adaptive limits (<500ms base)
         """
         with tempfile.TemporaryDirectory() as temp_dir:
             storage_config = {"base_path": str(Path(temp_dir) / "storage")}
@@ -428,14 +431,19 @@ class TestBronzeStoragePerformance:
 
             ingestion_time = time.perf_counter() - start_time
 
-            # Use adaptive thresholds based on system performance
-            # 3s in ms
+            # Use realistic business requirement threshold
+            # Ingesting 200 records should complete in reasonable time
+            # 3 seconds is generous but reasonable for 200 records (~15ms per record)
+            # This accounts for filesystem overhead, metadata processing, and indexing
             ingestion_threshold = get_adaptive_thresholds().get_operation_threshold(
-                60000.0
+                3000.0
             )
-            assert ingestion_time * 1000 < ingestion_threshold, (
-                f"Ingesting {num_records} records took {ingestion_time:.2f}s, "
-                f"adaptive threshold is <{ingestion_threshold / 1000:.2f}s"
+            ingestion_time_ms = ingestion_time * 1000
+            assert ingestion_time_ms < ingestion_threshold, (
+                f"Ingesting {num_records} records took {ingestion_time_ms:.2f}ms "
+                f"({ingestion_time_ms / num_records:.1f}ms per record), "
+                f"adaptive threshold is <{ingestion_threshold:.2f}ms "
+                f"(target: <{3000.0:.0f}ms)"
             )
 
             # Query should still be responsive

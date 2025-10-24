@@ -8,9 +8,9 @@ from typing import Any
 from .default_render import (
     build_suite_documentation,
     format_test_name,
-    render_cli_task_documentation,
-    render_cli_task_metadata,
-    render_cli_task_settings,
+    render_test_documentation,
+    render_test_metadata,
+    render_test_settings,
 )
 from .expectations import render_expectation
 from .models import BlueprintResult, MatchContext, Step
@@ -21,6 +21,10 @@ from .registry import (
     template_name_candidates,
 )
 from .utils import resolve_cli_command as _resolve_cli_command
+
+# Constants for execution context
+CONTEXT_LOCAL = "local"
+CONTEXT_REMOTE = "remote"
 
 
 class RenderState:
@@ -33,7 +37,7 @@ class RenderState:
         self.outputs: dict[int, str] = {}
 
 
-def _build_cli_task_suite(
+def _build_command_suite(
     test_cases: list[dict[str, Any]],
     step_groups: list[list[Step]],
     contexts: list[MatchContext],
@@ -43,7 +47,7 @@ def _build_cli_task_suite(
 
     commands = _resolve_cli_commands(test_cases, contexts)
     suite_doc = build_suite_documentation(commands)
-    default_rendering = _render_cli_task_default(
+    default_rendering = _render_default_suite(
         test_cases, step_groups, commands, suite_doc
     )
 
@@ -97,9 +101,7 @@ def _build_suite_substitutions(
         "suite_doc": suite_doc,
         "test_doc": f"Execute {primary_command}",
         "command_result": _var_token(base_for_cli_var or "result", suffix="result"),
-        "documentation": render_cli_task_documentation(
-            primary_test_case, primary_command
-        ),
+        "documentation": render_test_documentation(primary_test_case, primary_command),
     }
     return substitutions
 
@@ -122,7 +124,7 @@ def _suggest_template_candidates(
     )
 
 
-def _render_cli_task_default(
+def _render_default_suite(
     test_cases: list[dict[str, Any]],
     step_groups: list[list[Step]],
     commands: list[str],
@@ -132,7 +134,7 @@ def _render_cli_task_default(
 
     # Settings section
     resource_imports = get_resource_imports()
-    lines.extend(render_cli_task_settings(suite_doc, resource_imports))
+    lines.extend(render_test_settings(suite_doc, resource_imports))
 
     lines.append("*** Test Cases ***")
 
@@ -146,7 +148,7 @@ def _render_cli_task_default(
         lines.append(test_name)
 
         # Metadata
-        lines.extend(render_cli_task_metadata(test_case, command))
+        lines.extend(render_test_metadata(test_case, command))
 
         # Steps
         state = RenderState()
@@ -246,9 +248,21 @@ def _render_with_default_library(
     """Render command using Robot Framework standard libraries.
 
     Uses SSHLibrary for remote execution (default), OperatingSystem for local.
+
+    Args:
+        command_text: The command to execute
+        expected: Optional expected result for validation
+        context: Execution context - CONTEXT_LOCAL for OperatingSystem library,
+                 CONTEXT_REMOTE or custom name for SSHLibrary connections
+        state: Current render state
+        step_index: Index of this step
+        step_lines: Accumulated lines for this step
+
+    Returns:
+        Updated step_lines with rendered command execution
     """
     # Determine library based on context
-    if context == "local":
+    if context == CONTEXT_LOCAL:
         # Local execution using OperatingSystem library
         var_name = _command_to_identifier(command_text)
         result_var = _var_token(var_name or "result")
@@ -258,7 +272,7 @@ def _render_with_default_library(
         state.outputs[step_index] = result_var
     else:
         # Remote execution using SSHLibrary (default)
-        connection_name = "Remote" if context == "remote" else context.title()
+        connection_name = "Remote" if context == CONTEXT_REMOTE else context.title()
         _ensure_connection(step_lines, state, connection_name)
 
         var_name = _command_to_identifier(command_text)
@@ -278,9 +292,26 @@ def _render_with_default_library(
 def _parse_execution_context(test_data: str) -> tuple[str, str]:
     """Parse execution context from test data.
 
+    Args:
+        test_data: Test data string that may contain context prefix
+
     Returns:
         Tuple of (context_name, command_text)
-        Context can be "remote", "local", or generic descriptor
+
+        Context values:
+        - CONTEXT_LOCAL ("local"): Uses OperatingSystem library for local execution
+        - CONTEXT_REMOTE ("remote"): Uses SSHLibrary with "Remote" connection (default)
+        - Other string: Uses SSHLibrary with custom connection name
+
+    Examples:
+        >>> _parse_execution_context("local: echo hello")
+        ('local', 'echo hello')
+        >>> _parse_execution_context("remote: ls /tmp")
+        ('remote', 'ls /tmp')
+        >>> _parse_execution_context("database: SELECT * FROM users")
+        ('database', 'SELECT * FROM users')
+        >>> _parse_execution_context("uptime")
+        ('remote', 'uptime')
     """
     # Try explicit context pattern (e.g., "remote: ls", "local: echo")
     match = re.match(r"(?i)\s*(?:on\s+)?([a-z_]+)\s*:\s*(.*)", test_data)
@@ -291,7 +322,7 @@ def _parse_execution_context(test_data: str) -> tuple[str, str]:
 
     # No explicit context - return command as-is
     command_text = test_data.strip()
-    return "remote", command_text  # Default to remote execution
+    return CONTEXT_REMOTE, command_text  # Default to remote execution
 
 
 def _normalize_command(command_text: str) -> str:

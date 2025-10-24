@@ -83,7 +83,7 @@ class DistributionManager:
                 "Total weight cannot be zero (Weights dictionary cannot be empty)"
             )
 
-        # Check for non-positive weights
+        # Check for non-positive weights (negative or zero)
         invalid_weights = {k: v for k, v in weights.items() if v <= 0}
         if invalid_weights:
             raise ValueError(f"Weights contain non-positive values: {invalid_weights}")

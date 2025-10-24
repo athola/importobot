@@ -6,7 +6,7 @@ import re
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:  # pragma: no cover
-    from .cli_builder import RenderState
+    from .default_builder import RenderState
 
 __all__ = ["extract_literal", "extract_step_reference", "render_expectation"]
 

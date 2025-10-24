@@ -1,6 +1,6 @@
 # Roadmap
 
-This document outlines the future development plans for Importobot.
+This document outlines our future development plans for Importobot.
 
 ## Completed highlights (v0.3.0)
 
@@ -10,21 +10,21 @@ This document outlines the future development plans for Importobot.
 
 ## Q3 2025 — in-flight
 
-- Refinement of bulk conversion so recursive runs handle large Zephyr exports without manual cleanup.
-- Xray/TestLink parser review; merge once validation matches the existing Zephyr flow.
-- Simple timing metrics and I/O profiling to pinpoint performance bottlenecks.
+- Improve bulk conversion to handle large, recursive Zephyr exports without manual cleanup.
+- Review and merge the Xray/TestLink parser once its validation matches the Zephyr parser.
+- Add timing metrics and I/O profiling to find performance bottlenecks.
 
 ## Q4 2025 – Q1 2026 — queued next
 
-- REST API for CI/CD users who want a service instead of CLI access.
-- Plugin architecture study to enable integration of new formats without touching the converter core.
-- Lightweight reporting (success/error counts, skipped fields) to allow operations teams to track trends.
+- A REST API for CI/CD users who prefer a service over the CLI.
+- Investigate a plugin architecture to allow adding new formats without changing the core converter.
+- Add lightweight reporting (success/error counts, skipped fields) to help teams track conversion trends.
 
 ## Later — ideas parked until demand is clear
 
 - Converters targeting frameworks beyond Robot Framework.
-- ML-assisted suggestions that suggest tag/step modifications.
-- Hosted Importobot for teams that cannot run the CLI themselves.
+- Use machine learning to suggest tag and step modifications.
+- A hosted version of Importobot for teams that cannot run the CLI.
 
 ## Zephyr Scale Enhancement Plan (Future Work)
 
@@ -34,30 +34,30 @@ Zephyr Scale introduces complex test case structures with nested preconditions a
 ### Key Enhancements Planned
 
 #### Phase 1: Improved Field Recognition
-- Zephyr-specific field groups for test case details, preconditions, and traceability
-- Improved test case detection for Zephyr structure patterns
-- Platform-specific command parsing for multi-platform test designs
+- Add Zephyr-specific field groups for test case details, preconditions, and traceability.
+- Improve test case detection for Zephyr's structure patterns.
+- Add platform-specific command parsing for multi-platform test designs.
 
 #### Phase 2: Test Analysis & Classification
-- Zephyr test level classifier (Minimum Viable CRS, Smoke, Edge Case, Regression)
-- Precondition analyzer for structured setup requirements
-- Improved Bayesian scoring with Zephyr-specific evidence patterns
+- Add a Zephyr test level classifier (Minimum Viable CRS, Smoke, Edge Case, Regression).
+- Add a precondition analyzer for structured setup requirements.
+- Improve Bayesian scoring with Zephyr-specific evidence patterns.
 
 #### Phase 3: Cross-Platform Generation
-- Robot Framework generation supporting platform variations
-- Variable extraction from Zephyr {variable} format to ${variable} format
-- Conditional step generation for different target platforms
+- Generate Robot Framework tests that support platform variations.
+- Convert Zephyr's {variable} format to ${variable}.
+- Generate conditional steps for different target platforms.
 
 #### Phase 4: Complete API Integration
-- Improved Zephyr client for improved test case retrieval
-- Full field mapping and traceability data extraction
-- Support for Zephyr's complete test case structure
+- Improve the Zephyr client for better test case retrieval.
+- Extract full field mapping and traceability data.
+- Support Zephyr's complete test case structure.
 
 ### Success Metrics
-- 95%+ accuracy in parsing Zephyr test case structures
-- Retain all test case metadata and requirement traceability
-- Handle 90%+ of platform variation patterns
-- Generate executable Robot Framework tests for 95%+ of cases
+- 95%+ accuracy in parsing Zephyr test case structures.
+- Retain all test case metadata and requirement traceability.
+- Handle 90%+ of platform variation patterns.
+- Generate executable Robot Framework tests for 95%+ of cases.
 
 ### Implementation Timeline
 Planned for 2026 based on customer demand and Zephyr adoption patterns.
@@ -66,12 +66,12 @@ Planned for 2026 based on customer demand and Zephyr adoption patterns.
 
 ### Phase 1: S3 backend
 
-- Build `S3StorageBackend` using boto3, including endpoint overrides so MinIO/Wasabi/Backblaze/DigitalOcean work with the same code path.
-- Provide the dependency via `pip install importobot[aws]` so the base install stays light.
+- Build an `S3StorageBackend` using boto3. It will include endpoint overrides to support MinIO, Wasabi, Backblaze, and DigitalOcean.
+- Provide the dependency via `pip install importobot[aws]` to keep the base installation light.
 
 ### Phase 2: Azure & GCP
 
-- Implement the interface with `azure-storage-blob` and `google-cloud-storage` when demand requires it.
+- Implement the interface with `azure-storage-blob` and `google-cloud-storage` when there is demand.
 - Offer `importobot[azure]` and `importobot[gcp]` extras instead of bundling everything.
 
 ### Phase 3: Future Considerations
@@ -81,8 +81,8 @@ Planned for 2026 based on customer demand and Zephyr adoption patterns.
 
 ### Current status
 
-- Local filesystem backend is the production path today.
-- `StorageBackend` abstractions, configuration plumbing, and optional-dependency stubs already exist, so the cloud work can slot in when priorities allow.
+- The local filesystem backend is the only production-ready option today.
+- The `StorageBackend` abstractions, configuration, and optional-dependency stubs are already in place, so cloud backends can be added when priorities allow.
 
 ## Feedback
 

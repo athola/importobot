@@ -21,15 +21,15 @@ class SecurityValidator:
     Logs security validation failures with specific rule violations and context.
 
     Security Levels:
-        strict: Maximum security for enterprise/production environments.
+        strict: Maximum security for production environments.
             - Additional dangerous patterns: proc filesystem access, network
               process enumeration, user enumeration, external network
               requests
             - Additional sensitive paths: /proc/, /sys/, Kubernetes configs, Docker
               configs, system logs, Windows
               ProgramData
-            - Recommended for: Production systems, enterprise environments,
-              compliance scenarios
+            - Recommended for: Production systems, environments with
+              compliance requirements
 
         standard: Balanced security for general development and testing.
             - Default dangerous patterns: rm -rf, sudo, chmod 777, command substitution,
@@ -223,7 +223,7 @@ class SecurityValidator:
             List of dangerous command patterns for the specified security level
 
         Security Level Behavior:
-            strict: Adds enterprise patterns for proc filesystem, network enumeration,
+            strict: Adds patterns for proc filesystem, network enumeration,
                    process enumeration, user enumeration, and external network requests
             standard: Uses default patterns covering system commands, file operations,
                      and dangerous shell operations
@@ -233,7 +233,7 @@ class SecurityValidator:
         base_patterns = custom_patterns or self.DEFAULT_DANGEROUS_PATTERNS
 
         if level == "strict":
-            # Add stricter patterns for enterprise environments
+            # Add stricter patterns for production environments
             strict_additions = [
                 r"cat\s+/proc/",  # Reading proc filesystem
                 r"netstat\s",  # Network enumeration
@@ -264,7 +264,7 @@ class SecurityValidator:
             List of sensitive file path patterns for the specified security level
 
         Security Level Behavior:
-            strict: Adds enterprise paths for system directories (/proc/, /sys/),
+            strict: Add paths for system directories (/proc/, /sys/),
                    Kubernetes configs, Docker configs, system logs, and Windows
                    ProgramData
             standard: Uses default paths covering system files, SSH keys, cloud
@@ -275,7 +275,7 @@ class SecurityValidator:
         base_paths = custom_paths or self.DEFAULT_SENSITIVE_PATHS
 
         if level == "strict":
-            # Add more paths for enterprise environments
+            # Add more paths for production environments
             strict_additions = [
                 r"/proc/",
                 r"/sys/",
@@ -291,8 +291,7 @@ class SecurityValidator:
     def validate_ssh_parameters(self, parameters: dict[str, Any]) -> list[str]:
         """Validate SSH operation parameters for security issues.
 
-        Performs comprehensive security validation based on the configured security
-        level:
+        Performs security validation based on the configured security level:
         - Checks for hardcoded credentials and password exposure
         - Detects credential patterns in parameter values
         - Validates against dangerous command patterns
@@ -307,8 +306,8 @@ class SecurityValidator:
             List of security warnings found during validation
 
         Security Level Impact:
-            strict: Maximum pattern matching, most comprehensive validation
-            standard: Balanced validation with comprehensive coverage
+            strict: Maximum pattern matching, validation
+            standard: Balanced validation with coverage
             permissive: Reduced pattern matching, fewer false positives
         """
         start_time = time.time()
@@ -632,15 +631,12 @@ class SecurityValidator:
         """Validate file operations for security concerns.
 
         Validates file operations against security threats:
-        - Path traversal detection (.., //
-              patterns)
-        - Sensitive file access based on security level
-              patterns
+        - Path traversal detection (.., // patterns)
+        - Sensitive file access based on security level patterns
         - Destructive operation warnings (delete, remove, truncate, drop)
 
         Args:
-            file_path: File path to
-                validate
+            file_path: File path to validate
             operation: Type of operation being performed (e.g., 'read', 'write',
                 'delete')
 
@@ -648,8 +644,8 @@ class SecurityValidator:
             List of security warnings found during validation
 
         Security Level Impact:
-            strict: Checks against expanded sensitive path list including
-            standard: Checks against default sensitive paths covering
+            strict: Checks against expanded sensitive path list
+            standard: Checks against default sensitive paths
             permissive: Uses standard sensitive path validation (no reduction)
         """
         warnings = []
@@ -793,11 +789,11 @@ class SecurityValidator:
     def validate_test_security(self, test_case: dict[str, Any]) -> dict[str, list[str]]:
         """Comprehensive security validation for test cases.
 
-        Performs end-to-end security validation of test cases:
+        Performs security validation of test cases:
         - Extracts and validates SSH parameters from test steps
         - Applies security validation based on configured security level
         - Generates security recommendations for different test types
-        - Provides structured results with warnings, recommendations, and
+        - Provides structured results with warnings, recommendations, and errors
 
         Args:
             test_case: Test case dictionary containing steps and test data
@@ -809,7 +805,7 @@ class SecurityValidator:
             - 'sanitized_errors': List of sanitized error messages
 
         Security Level Impact:
-            strict: Most comprehensive validation with expanded pattern matching
+            strict: Validation with expanded pattern matching
             standard: Balanced validation suitable for most environments
             permissive: Reduced validation to minimize false positives
         """
@@ -817,10 +813,10 @@ class SecurityValidator:
 
 
 def validate_test_security(test_case: dict[str, Any]) -> dict[str, list[str]]:
-    """Comprehensive security validation for test cases.
+    """Security validation for test cases.
 
     Standalone function that creates a SecurityValidator with standard security level
-    and performs comprehensive validation of test cases. This is the main entry point
+    and performs validation of test cases. This is the main entry point
     for test security validation.
 
     Args:
