@@ -160,6 +160,64 @@ for thread in threads:
     thread.join()
 ```
 
+### Context Manager Usage (Recommended)
+The `ApplicationContext` supports Python's context manager protocol for automatic cleanup and memory leak prevention:
+
+```python
+from importobot.context import get_context, ApplicationContext
+
+# Direct usage with automatic cleanup
+def process_batch():
+    with ApplicationContext() as context:
+        cache = context.performance_cache
+        telemetry = context.telemetry_client
+
+        # Process items...
+
+    # Context automatically cleaned up on exit
+    # No manual cleanup required!
+
+# Using with global context function
+def api_handler():
+    with get_context() as context:
+        # Context is automatically set and cleaned up
+        result = process_request(context)
+        return result
+    # Global context cleared automatically
+
+# Exception handling - cleanup always occurs
+def risky_operation():
+    with ApplicationContext() as context:
+        try:
+            result = perform_operation(context)
+            return result
+        except Exception:
+            # Handle error
+            raise
+    # Context cleaned up even if exception occurs
+
+# Nested context managers for isolation
+def isolated_work():
+    with ApplicationContext() as outer_ctx:
+        # Outer context setup
+        outer_cache = outer_ctx.performance_cache
+
+        with ApplicationContext() as inner_ctx:
+            # Inner context isolated from outer
+            inner_cache = inner_ctx.performance_cache
+            # Work here with clean inner context
+
+        # Inner context automatically cleaned up
+        # Back to outer context
+```
+
+**Benefits of Context Manager Usage:**
+- **Automatic Cleanup**: No need to manually call `reset()` or `clear_context()`
+- **Exception Safety**: Cleanup occurs even when exceptions are raised
+- **Memory Leak Prevention**: Prevents accumulation of contexts in thread pools
+- **Cleaner Code**: Clear resource management with `with` statements
+- **Thread Pool Safe**: Perfect for use in concurrent environments
+
 ## Benefits Achieved
 
 ### Test Isolation

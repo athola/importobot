@@ -64,12 +64,12 @@ class HierarchicalClassificationResult:
 class HierarchicalClassifier:
     """Two-stage hierarchical Bayesian classifier for format detection.
 
-    This classifier implements a principled hierarchical approach:
+    This classifier implements a hierarchical approach:
     1. First validates that input represents test management data
     2. Then discriminates between specific test management formats
 
     This prevents the system from confidently classifying random data as a
-    specific format while maintaining strong discrimination between actual formats.
+    specific format while maintaining discrimination between actual formats.
 
     Fast paths are integrated at both stages while maintaining mathematical rigor:
     - Stage 1 fast path: Check for strong test data indicators
@@ -142,7 +142,7 @@ class HierarchicalClassifier:
         Stage 2: Discriminate between specific test formats (if Stage 1 passes)
 
         Fast paths maintain mathematical rigor by only short-circuiting when
-        evidence is overwhelmingly strong.
+        evidence is strong.
 
         Args:
             data: Input data to classify
@@ -268,7 +268,7 @@ class HierarchicalClassifier:
         """Stage 1: Validate that input represents test management data.
 
         This stage checks for generic test data indicators that are common
-        across ALL test management formats, not format-specific patterns.
+        across test management formats, not format-specific patterns.
 
         Returns:
             Tuple of (is_test_data, confidence, evidence_dict)
@@ -347,7 +347,7 @@ class HierarchicalClassifier:
     ) -> tuple[dict[str, float], dict[str, float]]:
         """Stage 2: Discriminate between specific test management formats.
 
-        This stage uses format-specific UNIQUE indicators and proper multi-class
+        This stage uses format-specific indicators and multi-class
         Bayesian normalization to discriminate between formats.
 
         Returns:
@@ -513,7 +513,6 @@ class HierarchicalClassifier:
         """Check if Stage 1 can fast-pass based on strong test data indicators.
 
         Fast path activates when multiple strong test data indicators are present.
-        This maintains mathematical rigor: strong evidence → high confidence.
 
         Args:
             key_tokens: Set of normalized tokens derived from keys in the data
@@ -533,8 +532,6 @@ class HierarchicalClassifier:
         """Check if Stage 2 can fast-pass based on unique format combinations.
 
         Fast path activates when a format's unique field combination is present.
-        This maintains mathematical rigor: unique evidence →
-        high posterior for that format.
 
         Args:
             all_keys_lower: Set of all lowercased keys in the data

@@ -29,7 +29,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Security Best Practices** documentation for API token management and monitoring
 
 ### Changed
-- CI enforces a minimum pytest collection count via `scripts/devtools/check_test_count.py` to ensure the accuracy of reported coverage numbers.
 - Blueprint registry now caches sanitised templates to disk and logs ingestion progress so large template sets no longer stall startup.
 - LRU cache evicts in measured batches, warns on pathological inserts, and avoids unbounded eviction loops.
 - Project ID validation now enforces signed 64-bit limits (raising `ConfigurationError` when exceeded) and documents the constraint.

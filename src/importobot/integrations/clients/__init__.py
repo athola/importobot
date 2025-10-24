@@ -102,9 +102,28 @@ class APISource(Protocol):
 
 
 class BaseAPIClient:
-    """Shared functionality for API clients."""
+    """Shared functionality for API clients.
+
+    Retry Behavior:
+        - Maximum retries: 3 attempts per request
+        - Backoff strategy: Exponential with base 2.0
+        - Maximum retry delay: 30 seconds
+        - Respects Retry-After headers from server
+
+    Circuit Breaker:
+        - Failure threshold: 5 consecutive failures
+        - Half-open timeout: 60 seconds
+        - Resets on successful request
+
+    Error Handler Hooks:
+        - Custom error handlers can be registered via set_error_handler()
+        - Handlers receive error context (URL, attempt, status code, timestamp)
+        - Handlers can suppress exceptions by returning True
+    """
 
     _max_retries = 3
+    _circuit_breaker_threshold = 5  # Open circuit after 5 consecutive failures
+    _circuit_breaker_timeout = 60.0  # Half-open state after 60 seconds
 
     def __init__(
         self,
@@ -153,6 +172,91 @@ class BaseAPIClient:
             )
         self._rate_limiter = RateLimiter(max_calls=100, time_window=60.0)
 
+        # Circuit breaker state
+        self._circuit_failure_count = 0
+        self._circuit_last_failure_time: float | None = None
+        self._circuit_open = False
+
+        # Error handler hook
+        self._error_handler: Callable[[dict[str, Any]], bool | None] | None = None
+
+    def set_error_handler(
+        self, handler: Callable[[dict[str, Any]], bool | None]
+    ) -> None:
+        """Register a custom error handler for enterprise scenarios.
+
+        The handler receives error context and can optionally suppress exceptions.
+
+        Args:
+            handler: Callable that receives error_info dict with keys:
+                - url: Request URL
+                - status_code: HTTP status code
+                - error: Error message or payload
+                - attempt: Current retry attempt number
+                - timestamp: Error timestamp
+
+        Returns:
+            None if exception should be raised, True to suppress exception
+
+        Example:
+            def log_and_suppress_503(error_info):
+                if error_info['status_code'] == 503:
+                    logger.warning("Service unavailable, gracefully degrading")
+                    return True  # Suppress exception
+                return None  # Let exception propagate
+
+            client.set_error_handler(log_and_suppress_503)
+        """
+        self._error_handler = handler
+
+    def _check_circuit_breaker(self) -> None:
+        """Check circuit breaker state and raise if circuit is open."""
+        if not self._circuit_open:
+            return
+
+        # Check if we should transition to half-open state
+        if self._circuit_last_failure_time is not None:
+            elapsed = time.time() - self._circuit_last_failure_time
+            if elapsed >= self._circuit_breaker_timeout:
+                # Transition to half-open - allow one probe request
+                logger.info(
+                    "Circuit breaker entering half-open state after %.1fs timeout",
+                    elapsed,
+                )
+                self._circuit_open = False
+                return
+
+        # Circuit is still open - reject request
+        raise RuntimeError(
+            f"Circuit breaker is open for {self.api_url} after "
+            f"{self._circuit_failure_count} consecutive failures. "
+            f"Will retry after timeout."
+        )
+
+    def _record_failure(self) -> None:
+        """Record a failure for circuit breaker tracking."""
+        self._circuit_failure_count += 1
+        self._circuit_last_failure_time = time.time()
+
+        if self._circuit_failure_count >= self._circuit_breaker_threshold:
+            self._circuit_open = True
+            logger.warning(
+                "Circuit breaker opened for %s after %d failures",
+                self.api_url,
+                self._circuit_failure_count,
+            )
+
+    def _record_success(self) -> None:
+        """Record a successful request - resets circuit breaker."""
+        if self._circuit_failure_count > 0:
+            logger.debug(
+                "Resetting circuit breaker after successful request (had %d failures)",
+                self._circuit_failure_count,
+            )
+        self._circuit_failure_count = 0
+        self._circuit_open = False
+        self._circuit_last_failure_time = None
+
     def _auth_headers(self) -> dict[str, str]:
         """Return default authorization headers."""
         headers: dict[str, str] = {"Accept": "application/json"}
@@ -160,16 +264,27 @@ class BaseAPIClient:
             headers["Authorization"] = f"Bearer {self.tokens[0]}"
         return headers
 
-    def _compute_retry_delay(self, response: requests.Response, attempt: int) -> float:
-        """Determine retry delay using Retry-After header or exponential backoff."""
-        retry_after = response.headers.get("Retry-After")
-        if retry_after:
-            try:
-                value = float(retry_after)
-                if value >= 0:
-                    return value
-            except ValueError:
-                logger.debug("Invalid Retry-After header %s", retry_after)
+    def _compute_retry_delay(
+        self, response: requests.Response | None, attempt: int
+    ) -> float:
+        """Determine retry delay using Retry-After header or exponential backoff.
+
+        Args:
+            response: HTTP response object (None if request failed before response)
+            attempt: Current retry attempt number
+
+        Returns:
+            Delay in seconds before next retry
+        """
+        if response:
+            retry_after = response.headers.get("Retry-After")
+            if retry_after:
+                try:
+                    value = float(retry_after)
+                    if value >= 0:
+                        return value
+                except ValueError:
+                    logger.debug("Invalid Retry-After header %s", retry_after)
         return float(min(BACKOFF_BASE**attempt, MAX_RETRY_DELAY_SECONDS))
 
     def _sleep(self, seconds: float) -> None:
@@ -197,31 +312,126 @@ class BaseAPIClient:
         headers: dict[str, str] | None = None,
         json: dict[str, Any] | None = None,
     ) -> requests.Response:
-        """Perform HTTP request with basic retry semantics."""
+        """Perform HTTP request with retry, circuit breaker, and error handling."""
+        # Check circuit breaker before attempting request
+        self._check_circuit_breaker()
+
         headers = headers or {}
+        last_error: Exception | None = None
+
         for attempt in range(self._max_retries + 1):
-            response = self._dispatch_request(
-                method, url, params=params, headers=headers, json=json
+            try:
+                response = self._dispatch_request(
+                    method, url, params=params, headers=headers, json=json
+                )
+
+                # Handle rate limiting with retry (not a circuit breaker failure)
+                if response.status_code == 429:
+                    if attempt < self._max_retries:
+                        delay = self._compute_retry_delay(response, attempt)
+                        logger.info(
+                            "Rate limited by %s (attempt %s/%s); retrying in %.2fs",
+                            url,
+                            attempt + 1,
+                            self._max_retries,
+                            delay,
+                        )
+                        self._sleep(delay)
+                        continue
+                    # Exhausted retries on rate limit
+                    raise RuntimeError(f"Exceeded retry budget for {url}")
+
+                # Check for HTTP errors
+                if response.status_code >= 400:
+                    should_suppress = self._handle_http_error(response, url, attempt)
+                    if should_suppress:
+                        return self._create_empty_response()
+                    # Error not suppressed - continue to next retry attempt
+                    continue
+
+                # Success - update circuit breaker and return response
+                self._record_success()
+                return response
+
+            except Exception as err:
+                last_error = err
+                # Check if this is a circuit breaker error - don't retry these
+                if "circuit breaker" in str(err).lower():
+                    logger.error("Circuit breaker error not retryable: %s", err)
+                    raise
+
+                if attempt < self._max_retries:
+                    delay = self._compute_retry_delay(None, attempt)
+                    logger.warning(
+                        "Request to %s failed (attempt %s/%s): %s; retrying in %.2fs",
+                        url,
+                        attempt + 1,
+                        self._max_retries,
+                        err,
+                        delay,
+                    )
+                    self._sleep(delay)
+                    continue
+
+        # All retries exhausted
+        self._record_failure()
+        # Check if circuit breaker just opened due to final retry failure
+        if self._circuit_open:
+            raise RuntimeError(
+                f"Circuit breaker is open for {self.api_url} after "
+                f"{self._circuit_failure_count} consecutive failures"
+            )
+        raise last_error or RuntimeError(f"Request to {url} failed")
+
+    def _handle_http_error(
+        self, response: requests.Response, url: str, attempt: int
+    ) -> bool:
+        """Handle HTTP error responses.
+
+        Returns True if the error should be suppressed (return empty response),
+        False if the error should be raised.
+        """
+        error_info = {
+            "url": url,
+            "status_code": response.status_code,
+            "error": response.text,
+            "attempt": attempt,
+            "timestamp": time.time(),
+        }
+
+        # Call custom error handler if registered
+        should_suppress = False
+        if self._error_handler:
+            result = self._error_handler(error_info)
+            should_suppress = result is True
+
+        # Record failure for circuit breaker
+        self._record_failure()
+
+        # Check if circuit just opened - raise circuit breaker error instead
+        if self._circuit_open:
+            logger.error(
+                "Circuit breaker is OPEN - raising circuit breaker error for %s",
+                self.api_url,
+            )
+            raise RuntimeError(
+                f"Circuit breaker is open for {self.api_url} after "
+                f"{self._circuit_failure_count} consecutive failures"
             )
 
-            if response.status_code == 429 and attempt < self._max_retries:
-                delay = self._compute_retry_delay(response, attempt)
-                logger.info(
-                    "Rate limited by %s (attempt %s/%s); retrying in %.2fs",
-                    url,
-                    attempt + 1,
-                    self._max_retries,
-                    delay,
-                )
-                self._sleep(delay)
-                continue
+        return should_suppress
 
-            response.raise_for_status()
-            if response.status_code == 429:
-                break
-            return response
+    def _create_empty_response(self) -> requests.Response:
+        """Create an empty response for graceful degradation."""
 
-        raise RuntimeError(f"Exceeded retry budget for {url}")
+        class EmptyResponse:
+            status_code = 0
+            headers: ClassVar[dict[str, str]] = {}
+
+            def json(self) -> dict[str, Any]:
+                return {}
+
+        return EmptyResponse()  # type: ignore
 
     def _dispatch_request(
         self,

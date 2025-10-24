@@ -7,7 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from importlib import import_module
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 from importobot import exceptions
 from importobot.cli.constants import FETCHABLE_FORMATS, SUPPORTED_FETCH_FORMATS
@@ -280,32 +280,44 @@ def _parse_project_identifier(value: str | None) -> tuple[str | None, int | None
     raw = value.strip()
     if not raw or raw.isspace():
         return None, None
-    if raw.isdigit():
-        if raw.isascii():
-            try:
-                project_id = int(raw)
-            except ValueError:
-                logger.warning(
-                    "Numeric project identifier %s failed to parse; treating as name",
-                    raw,
-                )
-                return raw, None
-            if project_id > MAX_PROJECT_ID:
-                raise exceptions.ConfigurationError(
-                    f"Project identifier {project_id} exceeds supported maximum "
-                    f"{MAX_PROJECT_ID} (signed 64-bit)."
-                )
-            return None, project_id
+
+    # Check ASCII first (cheaper operation) then digit status
+    if raw.isascii() and raw.isdigit():
+        try:
+            project_id = int(raw)
+        except ValueError:
+            logger.warning(
+                "Numeric project identifier %s failed to parse; treating as name",
+                raw,
+            )
+            return raw, None
+        if project_id > MAX_PROJECT_ID:
+            raise exceptions.ConfigurationError(
+                f"Project identifier {project_id} exceeds supported maximum "
+                f"{MAX_PROJECT_ID} (signed 64-bit)."
+            )
+        return None, project_id
+
+    # Non-ASCII input or non-digit ASCII string treated as project name
+    if not raw.isascii():
         logger.warning(
-            "Non-ASCII numeric project identifier %s treated as project name",
+            "Non-ASCII project identifier %s treated as project name (not numeric ID)",
             raw,
         )
-        return raw, None
     return raw, None
 
 
+class _ProjectReferenceArgs(Protocol):
+    """Protocol for arguments containing project reference information."""
+
+    @property
+    def project(self) -> str | None:
+        """The project identifier from CLI arguments."""
+        ...
+
+
 def _resolve_project_reference(
-    args: Any,
+    args: _ProjectReferenceArgs,
     fetch_env: Callable[[str], str | None],
     prefix: str,
     fetch_format: SupportedFormat,

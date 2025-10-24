@@ -133,7 +133,7 @@ def mock_server():
     try:
         server = HTTPServer(("127.0.0.1", 0), MyHandler)
     except OSError:  # pragma: no cover - sandboxed environments
-        # Fall back to a static URL when networking is unavailable.
+        # Use a default URL when networking is unavailable.
         yield "http://example.com"
         return
     port = server.server_address[1]

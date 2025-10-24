@@ -16,7 +16,7 @@ from importobot.utils.test_generation.categories import CategoryEnum, CategoryIn
 from importobot.utils.test_generation.distributions import DistributionDict, WeightsDict
 from importobot.utils.test_generation.generators import (
     CategoryTestParams,
-    EnterpriseTestGenerator,
+    TestSuiteGenerator,
 )
 from importobot.utils.test_generation.helpers import (
     generate_random_test_json,
@@ -97,12 +97,12 @@ class TestCategoryEnumEnum:
         assert abs(total_weight - 1.0) < 0.0001
 
 
-class EnterpriseTestGeneratorWeights:
-    """Test the weight distribution functionality in EnterpriseTestGenerator."""
+class TestSuiteGeneratorWeights:
+    """Test the weight distribution functionality in TestSuiteGenerator."""
 
-    def __init__(self):
+    def setup_method(self):
         """Initialize test fixtures."""
-        self.generator = EnterpriseTestGenerator()
+        self.generator = TestSuiteGenerator()
 
     def test_enum_based_weights(self):
         """Test distribution calculation with enum-based weights."""
@@ -150,7 +150,7 @@ class EnterpriseTestGeneratorWeights:
         self, total_tests, weights, expected
     ):
         """Test distribution calculation with various total counts and weights."""
-        generator = EnterpriseTestGenerator()
+        generator = TestSuiteGenerator()
 
         # pylint: disable=protected-access,no-member
         distribution = generator._get_test_distribution(total_tests, None, weights)
@@ -185,7 +185,7 @@ class EnterpriseTestGeneratorWeights:
         weights = {"regression": 0.0, "smoke": 0.0}
 
         # pylint: disable=protected-access,no-member
-        with pytest.raises(ValueError, match="Total weight cannot be zero"):
+        with pytest.raises(ValueError, match="non-positive values"):
             self.generator._get_test_distribution(100, None, weights)
 
     def test_default_weights_when_none_provided(self):
@@ -256,12 +256,12 @@ class TestTypeAliases:
         assert isinstance(distribution, dict)
 
 
-class EnterpriseTestGeneratorCore:
-    """Test core EnterpriseTestGenerator functionality."""
+class TestSuiteGeneratorCore:
+    """Test core TestSuiteGenerator functionality."""
 
-    def __init__(self):
+    def setup_method(self):
         """Initialize test fixtures."""
-        self.generator = EnterpriseTestGenerator()
+        self.generator = TestSuiteGenerator()
 
     def test_generate_realistic_test_data(self):
         """Test realistic test data generation."""
@@ -269,16 +269,27 @@ class EnterpriseTestGeneratorCore:
 
         # Should return a dictionary with expected keys
         assert isinstance(data, dict)
-        assert "base_url" in data
-        assert "username" in data
-        assert "password" in data
-        assert "api_version" in data
-        assert "test_environment" in data
+        assert "environment" in data
+        assert "region" in data
+        assert "auth_method" in data
+        assert "database" in data
+        assert "system" in data
+        assert "timestamp" in data
+        assert "correlation_id" in data
+        assert "user_role" in data
+        assert "business_unit" in data
 
         # Values should be realistic strings
-        assert data["base_url"].startswith("https://")
-        assert len(data["username"]) > 0
-        assert len(data["password"]) > 0
+        assert len(data["environment"]) > 0
+        assert len(data["region"]) > 0
+        assert len(data["auth_method"]) > 0
+        assert len(data["database"]) > 0
+        assert len(data["system"]) > 0
+        assert isinstance(data["timestamp"], str)
+        assert data["timestamp"].isdigit()  # Should be timestamp format
+        assert data["correlation_id"].startswith("test_")
+        assert len(data["user_role"]) > 0
+        assert len(data["business_unit"]) > 0
 
     def test_generate_enterprise_test_step(self):
         """Test enterprise test step generation."""
@@ -682,7 +693,7 @@ class TestErrorHandlingAndEdgeCases:
     @pytest.fixture
     def generator(self):
         """Get test generator instance."""
-        return EnterpriseTestGenerator()
+        return TestSuiteGenerator()
 
     def test_invalid_category_in_generate_test_suite(self):
         """Ensure invalid categories are rejected and valid ones succeed."""
@@ -796,11 +807,11 @@ class TestProgressReporting:
     @property
     def generator(self):
         """Get test generator instance."""
-        return EnterpriseTestGenerator()
+        return TestSuiteGenerator()
 
     def test_progress_reporting_in_category_generation(self):
         """Test that progress reporting works during category test generation."""
-        generator = EnterpriseTestGenerator()
+        generator = TestSuiteGenerator()
 
         # Mock the logger to capture progress messages
         with patch.object(generator.logger, "info") as mock_info:
@@ -845,7 +856,7 @@ class TestProgressReporting:
 
     def test_progress_milestone_calculation(self):
         """Test that progress milestones are calculated correctly."""
-        generator = EnterpriseTestGenerator()
+        generator = TestSuiteGenerator()
 
         with tempfile.TemporaryDirectory() as temp_dir:
             category_info: CategoryInfo = {"dir": Path(temp_dir), "count": 0}
@@ -874,7 +885,7 @@ class TestProgressReporting:
 
     def test_progress_reporting_for_small_counts(self):
         """Test progress reporting behavior with small test counts."""
-        generator = EnterpriseTestGenerator()
+        generator = TestSuiteGenerator()
 
         with tempfile.TemporaryDirectory() as temp_dir:
             category_info: CategoryInfo = {"dir": Path(temp_dir), "count": 0}
@@ -911,7 +922,7 @@ class TestProgressReporting:
 
     def test_file_write_progress_reporting(self):
         """Test progress reporting during file write operations."""
-        generator = EnterpriseTestGenerator()
+        generator = TestSuiteGenerator()
 
         with patch.object(generator.logger, "info") as mock_info:
             # Create a large enough batch to trigger progress reporting
@@ -943,7 +954,7 @@ class TestProgressReporting:
 
     def test_no_progress_reporting_for_small_batches(self):
         """Test that small file batches don't trigger progress reporting."""
-        generator = EnterpriseTestGenerator()
+        generator = TestSuiteGenerator()
 
         with patch.object(generator.logger, "info") as mock_info:
             # Queue small number of files (should not trigger progress reporting)
@@ -962,7 +973,7 @@ class TestProgressReporting:
 
     def test_progress_reporting_accuracy(self):
         """Test that progress percentages are calculated accurately."""
-        generator = EnterpriseTestGenerator()
+        generator = TestSuiteGenerator()
 
         with tempfile.TemporaryDirectory() as temp_dir:
             category_info: CategoryInfo = {"dir": Path(temp_dir), "count": 0}
@@ -1004,7 +1015,7 @@ class TestProgressReporting:
 
     def test_progress_reporting_integration_with_resource_manager(self):
         """Test that progress reporting works with resource manager context."""
-        generator = EnterpriseTestGenerator()
+        generator = TestSuiteGenerator()
 
         with tempfile.TemporaryDirectory() as temp_dir:
             with patch.object(generator.logger, "info") as mock_info:
@@ -1031,7 +1042,7 @@ class TestProgressReporting:
 
     def test_concurrent_progress_reporting(self):
         """Test progress reporting behavior with multiple concurrent operations."""
-        generator = EnterpriseTestGenerator()
+        generator = TestSuiteGenerator()
 
         with tempfile.TemporaryDirectory() as temp_dir:
             with patch.object(generator.logger, "info") as mock_info:

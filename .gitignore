@@ -126,8 +126,5 @@ tests/output/
 # Generated documentation
 docs/
 
-# Development tools and analysis
-scripts/devtools/
-
 # Temporary test files
 tmp.robot

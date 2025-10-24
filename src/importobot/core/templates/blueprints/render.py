@@ -6,7 +6,7 @@ import os
 import re
 from typing import Any
 
-from .cli_builder import _build_cli_task_suite
+from .default_builder import _build_command_suite
 from .models import Blueprint
 from .registry import TEMPLATE_STATE
 
@@ -28,7 +28,7 @@ BLUEPRINTS: tuple[Blueprint, ...] = (
                 re.IGNORECASE,
             ),
         ),
-        builder=_build_cli_task_suite,
+        builder=_build_command_suite,
     ),
 )
 

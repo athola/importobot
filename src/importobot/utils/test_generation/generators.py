@@ -7,6 +7,9 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+# Export the test generator
+__all__ = ["TestSuiteGenerator"]
+
 from importobot.core.business_domains import BusinessDomainTemplates, TestCaseTemplates
 from importobot.core.keywords_registry import RobotFrameworkKeywordRegistry
 from importobot.utils.defaults import (
@@ -66,17 +69,20 @@ class CategoryTestParams:
         return valid_scenarios
 
 
-class EnterpriseTestGenerator:
+class TestSuiteGenerator:
     """
-    Advanced test generator for enterprise-scale Robot Framework test suites.
+    Test generator for Robot Framework test suites.
 
-    Generates realistic, production-ready test cases across multiple business domains
-    with sophisticated test data, enterprise-grade scenarios, and comprehensive
-    metadata.
+    Generates realistic test cases with appropriate metadata for different
+    business domains. The generator handles template processing, data extraction,
+    and step formatting.
     """
+
+    # Tell pytest this is not a test class
+    __test__ = False
 
     def __init__(self) -> None:
-        """Initialize enterprise test generator with domain templates and keywords."""
+        """Initialize test generator with domain templates and keywords."""
         self.domain_templates = BusinessDomainTemplates()
         self.test_templates = TestCaseTemplates()
         self.keyword_registry = RobotFrameworkKeywordRegistry()
@@ -107,7 +113,7 @@ class EnterpriseTestGenerator:
             "auth_method": random.choice(auth_methods),
             "database": random.choice(databases),
             "system": random.choice(systems),
-            "timestamp": datetime.now().strftime("%Y%m%d_%H%M%S"),
+            "timestamp": datetime.now().strftime("%Y%m%d%H%M%S"),
             "correlation_id": f"test_{random.randint(100000, 999999)}",
             "user_role": random.choice(["admin", "manager", "analyst", "operator"]),
             "business_unit": random.choice(["finance", "hr", "operations", "sales"]),
@@ -170,7 +176,7 @@ class EnterpriseTestGenerator:
             )
             step_description = f"Step {step_index}: Template error - {template}"
 
-        # Enhanced step metadata for enterprise scenarios
+        # Step metadata for business scenarios
         return {
             "description": step_description,
             "testData": self._extract_test_data_from_template(template, test_data),
@@ -179,14 +185,16 @@ class EnterpriseTestGenerator:
             "index": step_index,
             "estimatedDuration": self._estimate_step_duration(template),
             "riskLevel": self._assess_step_risk_level(step_description),
+            "criticalityLevel": self._determine_criticality(step_description),
             "automationComplexity": self._evaluate_automation_complexity(template),
+            "dependencies": [],
         }
 
     def _extract_test_data_from_template(
         self, template: str, test_data: dict[str, str]
     ) -> str:
         """Extract relevant test data from template context."""
-        # Enhanced test data extraction for enterprise scenarios
+        # Test data extraction from template context
         if "database" in template.lower():
             return (
                 f"Database: {test_data.get('database', 'N/A')}, "
@@ -212,7 +220,7 @@ class EnterpriseTestGenerator:
 
     def _generate_expected_result_for_step(self, step_description: str) -> str:
         """Generate realistic expected results for enterprise test steps."""
-        # Enhanced expected result generation
+        # Expected result generation
         if "login" in step_description.lower():
             return "User successfully authenticated and redirected to dashboard"
         if (
@@ -232,6 +240,9 @@ class EnterpriseTestGenerator:
     def _determine_step_type(self, template: str) -> str:
         """Determine the type of test step for enterprise categorization."""
         template_lower = template.lower()
+        # Check navigation first (higher priority than authentication)
+        if any(keyword in template_lower for keyword in ["navigate", "open", "go"]):
+            return "navigation"
         if any(
             keyword in template_lower
             for keyword in ["verify", "check", "assert", "validate"]
@@ -239,27 +250,47 @@ class EnterpriseTestGenerator:
             return "verification"
         if any(
             keyword in template_lower
+            for keyword in ["authenticate", "login", "auth", "oauth"]
+        ):
+            return "authentication"
+        if any(
+            keyword in template_lower for keyword in ["monitor", "observe", "watch"]
+        ):
+            return "monitoring"
+        if any(
+            keyword in template_lower
+            for keyword in ["configure", "setup", "config", "setting"]
+        ):
+            return "configuration"
+        if any(
+            keyword in template_lower
+            for keyword in ["execute", "run", "call", "invoke"]
+        ):
+            return "execution"
+        if any(
+            keyword in template_lower
             for keyword in ["click", "input", "select", "enter"]
         ):
             return "action"
-        if any(keyword in template_lower for keyword in ["navigate", "open", "go"]):
-            return "navigation"
         if any(keyword in template_lower for keyword in ["wait", "pause", "sleep"]):
             return "synchronization"
         return "operation"
 
-    def _estimate_step_duration(self, template: str) -> int:
+    def _estimate_step_duration(self, template: str) -> str:
         """Estimate step execution duration in seconds for enterprise planning."""
         template_lower = template.lower()
         if "database" in template_lower or "query" in template_lower:
-            return random.randint(2, 8)  # Database operations
-        if "api" in template_lower:
-            return random.randint(1, 4)  # API calls
-        if "web" in template_lower or "browser" in template_lower:
-            return random.randint(3, 10)  # Web interactions
-        if "file" in template_lower:
-            return random.randint(1, 5)  # File operations
-        return random.randint(1, 3)  # Basic operations
+            duration = random.randint(2, 8)  # Database operations
+        elif "api" in template_lower:
+            duration = random.randint(1, 4)  # API calls
+        elif "web" in template_lower or "browser" in template_lower:
+            duration = random.randint(3, 10)  # Web interactions
+        elif "file" in template_lower:
+            duration = random.randint(1, 5)  # File operations
+        else:
+            duration = random.randint(1, 3)  # Basic operations
+        unit = "second" if duration == 1 else "seconds"
+        return f"{duration} {unit}"
 
     def _assess_step_risk_level(self, step_description: str) -> str:
         """Assess risk level for enterprise test step planning."""
@@ -275,13 +306,27 @@ class EnterpriseTestGenerator:
 
     def _determine_criticality(self, step_description: str) -> str:
         """Determine criticality level for enterprise test step planning."""
-        high_risk_keywords = ["delete", "remove", "truncate", "drop", "production"]
-        medium_risk_keywords = ["update", "modify", "insert", "create", "admin"]
+        critical_keywords = [
+            "delete",
+            "remove",
+            "truncate",
+            "drop",
+            "production",
+            "payment",
+        ]
+        high_keywords = [
+            "modify",
+            "insert",
+            "admin",
+            "authenticate",
+            "auth",
+            "login",
+        ]
 
         step_lower = step_description.lower()
-        if any(keyword in step_lower for keyword in high_risk_keywords):
+        if any(keyword in step_lower for keyword in critical_keywords):
             return "critical"
-        if any(keyword in step_lower for keyword in medium_risk_keywords):
+        if any(keyword in step_lower for keyword in high_keywords):
             return "high"
         return "medium"
 
@@ -376,7 +421,7 @@ class EnterpriseTestGenerator:
         complexity: str,
         test_context: dict[str, Any],
     ) -> dict[str, Any]:
-        """Generate comprehensive test case metadata."""
+        """Generate test case metadata."""
         created_date = datetime.now() - timedelta(days=random.randint(1, 180))
         updated_date = created_date + timedelta(days=random.randint(1, 30))
 
@@ -424,7 +469,13 @@ class EnterpriseTestGenerator:
         """Calculate estimated execution time in seconds."""
         total_time = 0
         for step in steps:
-            total_time += step.get("estimatedDuration", 2)
+            duration = step.get("estimatedDuration", "2 seconds")
+            # Parse duration string to extract the integer (e.g., "3 seconds" -> 3)
+            if isinstance(duration, str):
+                duration_int = int(duration.split()[0])
+            else:
+                duration_int = duration
+            total_time += duration_int
 
         # Add buffer time for setup and teardown
         buffer_time = int(total_time * 0.2)
@@ -931,6 +982,18 @@ class EnterpriseTestGenerator:
         weights: WeightsDict | None = None,
     ) -> DistributionDict:
         """Get test distribution (delegate to DistributionManager)."""
+        # Validate category names if weights are provided as strings
+        if weights is not None:
+            valid_categories = {member.value for member in CategoryEnum}
+            # Check if weights use string keys (not CategoryEnum)
+            if weights and not isinstance(next(iter(weights.keys())), CategoryEnum):
+                invalid_categories = [
+                    cat for cat in weights if str(cat) not in valid_categories
+                ]
+                if invalid_categories:
+                    invalid_cat_str = ", ".join(str(c) for c in invalid_categories)
+                    raise ValueError(f"Invalid test category: {invalid_cat_str}")
+
         return DistributionManager.get_test_distribution(
             total_tests, distribution, weights
         )

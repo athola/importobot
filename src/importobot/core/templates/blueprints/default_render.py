@@ -6,6 +6,7 @@ from typing import Any
 
 from importobot.utils.validation import sanitize_robot_string
 
+from .registry import get_suite_settings
 from .utils import (
     build_suite_documentation as _build_suite_documentation,
 )
@@ -16,11 +17,11 @@ from .utils import (
 __all__ = [
     "build_suite_documentation",
     "format_test_name",
-    "render_cli_task_documentation",
-    "render_cli_task_metadata",
-    "render_cli_task_metadata_comments",
-    "render_cli_task_settings",
-    "render_cli_task_tags",
+    "render_test_documentation",
+    "render_test_metadata",
+    "render_test_metadata_comments",
+    "render_test_settings",
+    "render_test_tags",
 ]
 
 
@@ -28,8 +29,19 @@ build_suite_documentation = _build_suite_documentation
 format_test_name = _format_test_name
 
 
-def render_cli_task_settings(suite_doc: str, resource_imports: list[str]) -> list[str]:
-    """Render the Settings section of a CLI task."""
+def render_test_settings(suite_doc: str, resource_imports: list[str]) -> list[str]:
+    """Render the Settings section for command execution tests.
+
+    Uses learned Suite Setup/Teardown from templates if available,
+    otherwise uses minimal generic defaults.
+
+    Args:
+        suite_doc: Documentation string for the suite
+        resource_imports: List of resource file paths to import
+
+    Returns:
+        List of lines for the Settings section
+    """
     lines: list[str] = []
     lines.append("*** Settings ***")
     lines.append(f"Documentation       {suite_doc}")
@@ -52,19 +64,35 @@ def render_cli_task_settings(suite_doc: str, resource_imports: list[str]) -> lis
             "--robot-template."
         )
     lines.append("")
-    lines.append("Suite Setup         Run Keywords")
-    lines.append("...                     Connect Hosts SSH")
-    lines.append("...                     CLI Entry")
-    lines.append("Suite Teardown      Run Keywords")
-    lines.append("...                     Quit CLI")
-    lines.append("...                     Close All Connections")
+
+    # Use learned suite settings if available
+    suite_settings = get_suite_settings()
+
+    if suite_settings and suite_settings.has_setup_keywords():
+        # Use learned setup/teardown from customer templates
+        if suite_settings.suite_setup:
+            lines.extend(suite_settings.suite_setup)
+        if suite_settings.suite_teardown:
+            lines.extend(suite_settings.suite_teardown)
+        if suite_settings.test_setup:
+            lines.extend(suite_settings.test_setup)
+        if suite_settings.test_teardown:
+            lines.extend(suite_settings.test_teardown)
+    else:
+        # Default to minimal generic teardown
+        lines.append("# No Suite Setup/Teardown learned from templates.")
+        lines.append("# Provide --robot-template with your infrastructure keywords.")
+        lines.append("")
+        lines.append("# Generic SSHLibrary teardown:")
+        lines.append("Suite Teardown      Close All Connections")
+
     lines.append("")
     lines.append("")
     return lines
 
 
-def render_cli_task_documentation(test_case: dict[str, Any], command: str) -> str:
-    """Generate documentation string for a CLI task."""
+def render_test_documentation(test_case: dict[str, Any], command: str) -> str:
+    """Generate documentation string for a command execution test."""
     objective = (
         test_case.get("objective")
         or test_case.get("summary")
@@ -77,7 +105,7 @@ def render_cli_task_documentation(test_case: dict[str, Any], command: str) -> st
     return test_doc
 
 
-def render_cli_task_tags(test_case: dict[str, Any]) -> list[str]:
+def render_test_tags(test_case: dict[str, Any]) -> list[str]:
     """Extract tags from test case metadata."""
     tags: list[str] = []
     if test_case.get("priority"):
@@ -93,7 +121,7 @@ def render_cli_task_tags(test_case: dict[str, Any]) -> list[str]:
     return tags
 
 
-def render_cli_task_metadata_comments(test_case: dict[str, Any]) -> list[str]:
+def render_test_metadata_comments(test_case: dict[str, Any]) -> list[str]:
     """Generate metadata comment lines for traceability."""
     lines: list[str] = []
     metadata_fields = {
@@ -113,18 +141,18 @@ def render_cli_task_metadata_comments(test_case: dict[str, Any]) -> list[str]:
     return lines
 
 
-def render_cli_task_metadata(test_case: dict[str, Any], command: str) -> list[str]:
-    """Render metadata fields for a command execution task."""
+def render_test_metadata(test_case: dict[str, Any], command: str) -> list[str]:
+    """Render metadata fields for a command execution test."""
     lines: list[str] = []
 
-    test_doc = render_cli_task_documentation(test_case, command)
+    test_doc = render_test_documentation(test_case, command)
     lines.append(f"    [Documentation]    {test_doc}")
 
-    tags = render_cli_task_tags(test_case)
+    tags = render_test_tags(test_case)
     if tags:
         tags_str = "    ".join(tags)
         lines.append(f"    [Tags]    {tags_str}")
 
-    lines.extend(render_cli_task_metadata_comments(test_case))
+    lines.extend(render_test_metadata_comments(test_case))
 
     return lines

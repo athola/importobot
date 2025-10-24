@@ -618,3 +618,344 @@ class TestCacheWithDifferentTypes:
 
         assert cache.get(("a", "b")) == "value1"
         assert cache.get((1, 2, 3)) == "value2"
+
+
+class TestSizeEstimationEdgeCases:
+    """Test size estimation edge cases and default behavior."""
+
+    def test_estimate_size_uses_conservative_default_on_failure(
+        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """GIVEN a cache with an object that fails sys.getsizeof()
+        WHEN estimating size
+        THEN conservative default (1024 bytes) is used with warning
+        """
+        cache = LRUCache[str, str]()
+
+        # Mock sys.getsizeof to raise TypeError
+        def failing_getsizeof(obj):
+            raise TypeError("Cannot get size")
+
+        monkeypatch.setattr(
+            "importobot.caching.lru_cache.sys.getsizeof", failing_getsizeof
+        )
+
+        with caplog.at_level("WARNING"):
+            size = cache._estimate_size("test_value")
+
+        assert size == 1024
+        assert "conservative estimate of 1024 bytes" in caplog.text
+
+    def test_size_estimation_failure_prevents_security_bypass(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """GIVEN a cache with max_content_size=500 bytes
+        WHEN size estimation fails for a value
+        THEN the conservative estimate (1024) triggers security rejection
+        """
+        security = SecurityPolicy(max_content_size=500)
+        cache = LRUCache[str, str](security_policy=security)
+
+        # Mock sys.getsizeof to raise TypeError
+        def failing_getsizeof(obj):
+            raise TypeError("Cannot get size")
+
+        monkeypatch.setattr(
+            "importobot.caching.lru_cache.sys.getsizeof", failing_getsizeof
+        )
+
+        cache.set("key", "value")
+
+        # Value should be rejected because conservative estimate (1024) > max (500)
+        assert cache.get("key") is None
+        stats = cache.get_stats()
+        assert stats["rejections"] >= 1
+
+    def test_size_estimation_failure_counts_toward_total_size(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """GIVEN a cache with max_content_size_bytes configured
+        WHEN size estimation fails for multiple values
+        THEN conservative estimates count toward total size tracking
+        """
+        config = CacheConfig(max_content_size_bytes=2000, max_size=10)
+        cache = LRUCache[str, str](config=config)
+
+        # Mock sys.getsizeof to raise TypeError
+        def failing_getsizeof(obj):
+            raise TypeError("Cannot get size")
+
+        monkeypatch.setattr(
+            "importobot.caching.lru_cache.sys.getsizeof", failing_getsizeof
+        )
+
+        # Try to add 3 items (3 * 1024 = 3072 bytes > 2000 limit)
+        cache.set("key1", "value1")
+        cache.set("key2", "value2")
+        cache.set("key3", "value3")  # Should trigger eviction
+
+        # Total size should be tracked even with failed size estimation
+        stats = cache.get_stats()
+        # Should have evicted some entries to stay under limit
+        assert stats["current_bytes"] <= 2000
+        assert stats["evictions"] > 0
+
+    def test_size_estimation_handles_attribute_error(
+        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """GIVEN a cache with an object that raises AttributeError
+        WHEN estimating size
+        THEN conservative default is used with appropriate warning
+        """
+        cache = LRUCache[str, Any]()
+
+        # Mock sys.getsizeof to raise AttributeError
+        def failing_getsizeof(obj):
+            raise AttributeError("No size attribute")
+
+        monkeypatch.setattr(
+            "importobot.caching.lru_cache.sys.getsizeof", failing_getsizeof
+        )
+
+        with caplog.at_level("WARNING"):
+            size = cache._estimate_size({"test": "value"})
+
+        assert size == 1024
+        assert "Failed to estimate cache entry size" in caplog.text
+        assert "conservative estimate" in caplog.text
+
+
+class TestHeapBasedCleanupOptimizations:
+    """Test heap-based cleanup performance optimizations."""
+
+    def test_cleanup_uses_heap_for_efficiency(self):
+        """Test that cleanup uses heap for efficient O(log n) operations."""
+        config = CacheConfig(max_size=1000, ttl_seconds=1)
+        cache = LRUCache[str, str](config=config)
+
+        # Fill cache with many entries to test heap performance
+        for i in range(100):
+            cache.set(f"key_{i}", f"value_{i}")
+
+        # Wait for entries to expire
+        time.sleep(1.1)
+
+        # Measure cleanup time - should be fast due to heap optimization
+        start_time = time.perf_counter()
+        cache._cleanup_expired_entries()
+        cleanup_time = time.perf_counter() - start_time
+
+        # Cleanup should be very fast (< 5ms for 100 entries)
+        assert cleanup_time < 0.005, (
+            f"Cleanup took {cleanup_time * 1000:.2f}ms, expected < 5ms"
+        )
+
+        # All entries should be removed
+        assert len(cache) == 0
+
+    def test_heap_cleanup_handles_large_caches_efficiently(self):
+        """Test that heap cleanup scales well with large cache sizes."""
+        config = CacheConfig(max_size=5000, ttl_seconds=1)
+        cache = LRUCache[str, str](config=config)
+
+        # Fill with many entries to stress test heap performance
+        for i in range(5000):
+            cache.set(f"key_{i}", f"value_{i}")
+
+        # Wait for expiration
+        time.sleep(1.1)
+
+        # Cleanup should remain fast even with large caches
+        start_time = time.perf_counter()
+        cache._cleanup_expired_entries()
+        cleanup_time = time.perf_counter() - start_time
+
+        # Even with 5000 entries, cleanup should be fast (< 50ms)
+        assert cleanup_time < 0.05, (
+            f"Cleanup took {cleanup_time * 1000:.2f}ms for 5000 entries"
+        )
+        assert len(cache) == 0
+
+    def test_heap_cleanup_handles_partial_expiration(self):
+        """Test that heap cleanup correctly handles partially expired entries."""
+        config = CacheConfig(max_size=100, ttl_seconds=2)
+        cache = LRUCache[str, str](config=config)
+
+        # Add first batch
+        for i in range(50):
+            cache.set(f"old_key_{i}", f"old_value_{i}")
+
+        # Wait a bit, then add second batch
+        time.sleep(1.1)
+        for i in range(50):
+            cache.set(f"new_key_{i}", f"new_value_{i}")
+
+        # Wait for old entries to expire but not new ones
+        time.sleep(1.1)
+
+        cache._cleanup_expired_entries()
+
+        # Only old entries should be removed
+        assert len(cache) == 50
+        for i in range(50):
+            assert cache.get(f"new_key_{i}") == f"new_value_{i}"
+            assert cache.get(f"old_key_{i}") is None
+
+    def test_heap_cleanup_handles_fresh_entries_after_update(self):
+        """Test that heap cleanup handles updated entries correctly."""
+        config = CacheConfig(max_size=50, ttl_seconds=1)
+        cache = LRUCache[str, str](config=config)
+
+        # Add entries
+        for i in range(10):
+            cache.set(f"key_{i}", f"initial_value_{i}")
+
+        # Wait a bit, then update some entries to refresh them
+        time.sleep(0.5)
+        for i in range(5):
+            cache.set(f"key_{i}", f"refreshed_value_{i}")
+
+        # Wait long enough for original TTL but not for refreshed entries
+        time.sleep(0.6)
+
+        cache._cleanup_expired_entries()
+
+        # Updated entries should remain, non-updated should be removed
+        assert len(cache) == 5
+        for i in range(5):
+            assert cache.get(f"key_{i}") == f"refreshed_value_{i}"
+        for i in range(5, 10):
+            assert cache.get(f"key_{i}") is None
+
+    def test_heap_cleanup_handles_get_refresh(self):
+        """Test that heap cleanup handles TTL refresh on get operations."""
+        config = CacheConfig(max_size=20, ttl_seconds=1)
+        cache = LRUCache[str, str](config=config)
+
+        # Add entries
+        for i in range(10):
+            cache.set(f"key_{i}", f"value_{i}")
+
+        # Wait a bit, then access some entries to refresh them
+        time.sleep(0.5)
+        for i in range(5):
+            _ = cache.get(f"key_{i}")  # This should refresh TTL
+
+        # Wait long enough for non-accessed entries to expire
+        time.sleep(0.6)
+
+        cache._cleanup_expired_entries()
+
+        # Accessed entries should remain, non-accessed should be removed
+        assert len(cache) == 5
+        for i in range(5):
+            assert cache.get(f"key_{i}") == f"value_{i}"
+        for i in range(5, 10):
+            assert cache.get(f"key_{i}") is None
+
+    def test_heap_cleanup_handles_mixed_key_types(self):
+        """Test that heap cleanup works with different key types."""
+        config = CacheConfig(max_size=50, ttl_seconds=1)
+        cache = LRUCache[object, str](config=config)
+
+        # Add entries with different key types
+        string_key = "string_key"
+        int_key = 42
+        tuple_key = ("nested", "tuple")
+        custom_object = object()
+
+        cache.set(string_key, "string_value")
+        cache.set(int_key, "int_value")
+        cache.set(tuple_key, "tuple_value")
+        cache.set(custom_object, "object_value")
+
+        # Wait for expiration
+        time.sleep(1.1)
+
+        cache._cleanup_expired_entries()
+
+        # All entries should be removed regardless of key type
+        assert len(cache) == 0
+        assert cache.get(string_key) is None
+        assert cache.get(int_key) is None
+        assert cache.get(tuple_key) is None
+        assert cache.get(custom_object) is None
+
+    def test_heap_cleanup_no_ttl(self):
+        """Test that heap cleanup does nothing when TTL is disabled."""
+        config = CacheConfig(max_size=50, ttl_seconds=None)
+        cache = LRUCache[str, str](config=config)
+
+        # Add entries
+        for i in range(20):
+            cache.set(f"key_{i}", f"value_{i}")
+
+        # Wait (shouldn't matter with no TTL)
+        time.sleep(0.1)
+
+        cache._cleanup_expired_entries()
+
+        # No entries should be removed when TTL is None
+        assert len(cache) == 20
+        for i in range(20):
+            assert cache.get(f"key_{i}") == f"value_{i}"
+
+    def test_heap_cleanup_with_zero_ttl(self):
+        """Test that heap cleanup handles TTL=0 (no expiration)."""
+        config = CacheConfig(max_size=50, ttl_seconds=0)
+        cache = LRUCache[str, str](config=config)
+
+        # Add entries
+        for i in range(10):
+            cache.set(f"key_{i}", f"value_{i}")
+
+        # Force cleanup
+        cache._cleanup_expired_entries()
+
+        # No entries should be removed when TTL is 0
+        assert len(cache) == 10
+        for i in range(10):
+            assert cache.get(f"key_{i}") == f"value_{i}"
+
+    def test_heap_cleanup_with_reference_time(self):
+        """Test that heap cleanup respects custom reference time."""
+        config = CacheConfig(max_size=20, ttl_seconds=10)
+        cache = LRUCache[str, str](config=config)
+
+        # Add entries
+        for i in range(5):
+            cache.set(f"key_{i}", f"value_{i}")
+
+        # Use reference time in the future to simulate checking at a future time
+        future_time = time.time() + 20  # 20 seconds in the future
+        cache._cleanup_expired_entries(reference_time=future_time)
+
+        # All entries should be considered expired (they would have expired after 10s)
+        assert len(cache) == 0
+
+    def test_heap_cleanup_empty_cache(self):
+        """Test that heap cleanup handles empty cache gracefully."""
+        config = CacheConfig(max_size=50, ttl_seconds=1)
+        cache = LRUCache[str, str](config=config)
+
+        # Cleanup on empty cache should not fail
+        cache._cleanup_expired_entries()
+        assert len(cache) == 0
+
+    def test_heap_cleanup_preserves_non_expired_entries(self):
+        """Test that heap cleanup preserves entries that haven't expired."""
+        config = CacheConfig(max_size=30, ttl_seconds=5)
+        cache = LRUCache[str, str](config=config)
+
+        # Add entries
+        for i in range(10):
+            cache.set(f"key_{i}", f"value_{i}")
+
+        # Use recent reference time to ensure entries are not expired
+        recent_time = time.time() - 1  # 1 second ago
+        cache._cleanup_expired_entries(reference_time=recent_time)
+
+        # All entries should be preserved
+        assert len(cache) == 10
+        for i in range(10):
+            assert cache.get(f"key_{i}") == f"value_{i}"

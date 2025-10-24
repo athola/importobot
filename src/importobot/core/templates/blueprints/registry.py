@@ -70,12 +70,58 @@ class StepPattern:
 
 
 @dataclass
+class SuiteSettings:
+    """Suite-level configuration learned from Robot Framework templates.
+
+    Captures Suite Setup, Suite Teardown, Test Setup, and Test Teardown
+    settings from the *** Settings *** section of Robot Framework files.
+    This allows generated tests to match the customer's infrastructure
+    instead of using hardcoded assumptions.
+
+    Example:
+        From template:
+            *** Settings ***
+            Suite Setup         Run Keywords
+            ...                     Connect To Production Servers
+            ...                     CLI Entry
+
+        Learned:
+            SuiteSettings(
+                suite_setup=["Suite Setup         Run Keywords",
+                             "...                     Connect To Production Servers",
+                             "...                     CLI Entry"]
+            )
+    """
+
+    suite_setup: list[str] | None = None  # Lines for Suite Setup
+    suite_teardown: list[str] | None = None  # Lines for Suite Teardown
+    test_setup: list[str] | None = None  # Lines for Test Setup
+    test_teardown: list[str] | None = None  # Lines for Test Teardown
+
+    def has_setup_keywords(self) -> bool:
+        """Check if any setup/teardown was learned from templates.
+
+        Returns:
+            True if at least one setup/teardown setting was found
+        """
+        return any(
+            [
+                self.suite_setup,
+                self.suite_teardown,
+                self.test_setup,
+                self.test_teardown,
+            ]
+        )
+
+
+@dataclass
 class TemplateAnalysis:
     """Container for derived template metadata used by caches."""
 
     patterns: list[StepPattern]
     keywords: set[str]
     resource_imports: list[str]
+    suite_settings: SuiteSettings | None = None
 
 
 class TemplateRegistry:
@@ -182,6 +228,7 @@ TEMPLATE_REGISTRY = TemplateRegistry()
 KNOWLEDGE_BASE = KnowledgeBase()
 KEYWORD_LIBRARY = KeywordLibrary()
 RESOURCE_IMPORTS: list[str] = []
+SUITE_SETTINGS_REGISTRY: list[SuiteSettings] = []
 TEMPLATE_STATE: dict[str, Path | None | bool] = {"base_dir": None, "enabled": False}
 
 
@@ -291,6 +338,7 @@ def configure_template_sources(entries: Sequence[str]) -> None:
     KNOWLEDGE_BASE.clear()
     KEYWORD_LIBRARY.clear()
     RESOURCE_IMPORTS.clear()
+    SUITE_SETTINGS_REGISTRY.clear()
     TEMPLATE_STATE["base_dir"] = None
     TEMPLATE_STATE["enabled"] = False
     ingested_files = 0
@@ -410,6 +458,23 @@ def find_step_pattern(
 def get_resource_imports() -> list[str]:
     """Return discovered Robot resource references."""
     return list(RESOURCE_IMPORTS)
+
+
+def get_suite_settings() -> SuiteSettings | None:
+    """Retrieve learned suite settings from configured templates.
+
+    Returns the first SuiteSettings found from analyzed templates,
+    or None if no templates were configured or no suite settings
+    were discovered.
+
+    Returns:
+        SuiteSettings with learned Suite Setup/Teardown, or None
+    """
+    if not SUITE_SETTINGS_REGISTRY:
+        return None
+
+    # Return the first suite settings from the registry
+    return SUITE_SETTINGS_REGISTRY[0]
 
 
 def _ingest_source_file(
@@ -653,6 +718,106 @@ def _format_resource_reference(path: Path, *, base_dir: Path | None) -> str:
     return f"${{CURDIR}}/{posix}"
 
 
+def _detect_setting_name(stripped: str) -> str | None:
+    """Detect which setting type a line starts (if any).
+
+    Args:
+        stripped: Stripped line content
+
+    Returns:
+        Setting name ('suite_setup', 'suite_teardown', etc.) or None
+    """
+    if stripped.startswith("Suite Setup"):
+        return "suite_setup"
+    elif stripped.startswith("Suite Teardown"):
+        return "suite_teardown"
+    elif stripped.startswith("Test Setup"):
+        return "test_setup"
+    elif stripped.startswith("Test Teardown"):
+        return "test_teardown"
+    return None
+
+
+def _extract_suite_settings(lines: list[str]) -> SuiteSettings:
+    """Extract Suite Setup/Teardown from Robot Framework Settings section.
+
+    Parses the *** Settings *** section to extract:
+    - Suite Setup
+    - Suite Teardown
+    - Test Setup
+    - Test Teardown
+
+    Args:
+        lines: Lines from Robot Framework template file
+
+    Returns:
+        SuiteSettings with extracted configuration lines
+    """
+    settings = SuiteSettings()
+    in_settings = False
+    current_setting: str | None = None
+    setting_lines: list[str] = []
+
+    for line in lines:
+        stripped = line.strip()
+
+        # Detect Settings section
+        if stripped.startswith("***") and "Settings" in stripped:
+            in_settings = True
+            continue
+
+        # Exit Settings section when hitting next section
+        if in_settings and stripped.startswith("***"):
+            _save_setting(settings, current_setting, setting_lines)
+            break
+
+        if not in_settings:
+            continue
+
+        # Handle multi-line settings (continuations with ...)
+        if stripped.startswith("..."):
+            if current_setting and setting_lines:
+                setting_lines.append(line)
+            continue
+
+        # Check if this starts a new setting
+        detected_setting = _detect_setting_name(stripped)
+        if detected_setting:
+            _save_setting(settings, current_setting, setting_lines)
+            current_setting = detected_setting
+            setting_lines = [line]
+
+    # Save final setting if we reached end of file
+    _save_setting(settings, current_setting, setting_lines)
+
+    return settings
+
+
+def _save_setting(
+    settings: SuiteSettings,
+    setting_name: str | None,
+    lines: list[str],
+) -> None:
+    """Save accumulated setting lines to SuiteSettings object.
+
+    Args:
+        settings: SuiteSettings object to update
+        setting_name: Name of setting (suite_setup, suite_teardown, etc.)
+        lines: Lines to save for this setting
+    """
+    if not setting_name or not lines:
+        return
+
+    if setting_name == "suite_setup":
+        settings.suite_setup = lines.copy()
+    elif setting_name == "suite_teardown":
+        settings.suite_teardown = lines.copy()
+    elif setting_name == "test_setup":
+        settings.test_setup = lines.copy()
+    elif setting_name == "test_teardown":
+        settings.test_teardown = lines.copy()
+
+
 def _learn_from_template(content: str) -> TemplateAnalysis:
     analysis = _analyze_template_content(content)
     _apply_template_analysis(analysis)
@@ -697,10 +862,14 @@ def _analyze_template_content(content: str) -> TemplateAnalysis:
     _extract_keywords_from_lines(lines, keywords)
     resource_imports.extend(_collect_resource_imports_from_lines(lines))
 
+    # Extract suite settings from Settings section
+    suite_settings = _extract_suite_settings(lines)
+
     return TemplateAnalysis(
         patterns=patterns,
         keywords=keywords,
         resource_imports=resource_imports,
+        suite_settings=suite_settings,
     )
 
 
@@ -857,12 +1026,22 @@ def _collect_resource_imports_from_lines(lines: list[str]) -> list[str]:
 
 
 def _apply_template_analysis(analysis: TemplateAnalysis) -> None:
+    """Apply learned template analysis to global registries.
+
+    Args:
+        analysis: TemplateAnalysis with patterns, keywords, resources,
+            and suite settings
+    """
     for pattern in analysis.patterns:
         KNOWLEDGE_BASE.add_pattern(pattern)
     for keyword in analysis.keywords:
         KEYWORD_LIBRARY.add(keyword)
     for resource in analysis.resource_imports:
         _add_resource_import(resource)
+
+    # Store suite settings if present
+    if analysis.suite_settings and analysis.suite_settings.has_setup_keywords():
+        SUITE_SETTINGS_REGISTRY.append(analysis.suite_settings)
 
 
 def _template_cache_enabled() -> bool:

@@ -10,7 +10,7 @@ from .expectations import render_expectation
 from .registry import StepPattern
 
 if TYPE_CHECKING:  # pragma: no cover
-    from .cli_builder import RenderState
+    from .default_builder import RenderState
 
 __all__ = [
     "apply_cli_pattern",
