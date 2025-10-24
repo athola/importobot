@@ -248,7 +248,7 @@ class TestProjectReferenceArgsProtocol:
         assert project_id is None
 
     def test_resolve_project_reference_accepts_custom_object(self):
-        """Test that _resolve_project_reference accepts any object with project attribute."""
+        """Test _resolve_project_reference accepts custom objects."""
 
         class CustomArgs:
             def __init__(self, project: str | None):
@@ -331,7 +331,7 @@ class TestProjectReferenceArgsProtocol:
         assert project_id == 123
 
     def test_resolve_project_reference_environment_secondary(self):
-        """Test that _resolve_project_reference uses environment as a secondary source when CLI is invalid."""
+        """Test _resolve_project_reference uses env as secondary source."""
         # Test with invalid CLI project (empty string)
         args = make_args(project="")
 
@@ -373,9 +373,10 @@ class TestProjectReferenceArgsProtocol:
         assert result == ("valid", None)
 
         # This would be caught by static type checkers:
-        # invalid_args: _ProjectReferenceArgs = object()  # Error: object doesn't implement protocol
+        # invalid_args: _ProjectReferenceArgs = object()
+        # Error: object doesn't implement protocol
 
-        # But at runtime, the function uses getattr and handles missing attributes gracefully
+        # But at runtime, function uses getattr gracefully
         class BrokenArgs:
             def __init__(self, wrong_attr: str):
                 self.wrong_attr = wrong_attr
