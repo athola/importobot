@@ -1,3 +1,23 @@
+# Claude Code Review
+#
+# This workflow runs automated code review using Claude Code when explicitly
+# requested via commit message tags.
+#
+# HOW TO REQUEST A REVIEW:
+# Include one of these tags anywhere in your commit message:
+#   - [review]        - Request general code review
+#   - [claude-review] - Explicitly request Claude review
+#   - [code-review]   - Request code review
+#
+# EXAMPLES:
+#   git commit -m "feat: add new feature [review]"
+#   git commit -m "[claude-review] fix: resolve bug in parser"
+#   git commit -m "refactor: improve performance [code-review]
+#
+#   This refactor optimizes the cache layer for better performance."
+#
+# The review will run automatically when you push commits with these tags.
+
 name: Claude Code Review
 
 on:
