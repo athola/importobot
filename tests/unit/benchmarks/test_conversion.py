@@ -16,7 +16,7 @@ import pytest
 benchmark_dir = Path(__file__).parent.parent.parent.parent / "benchmarks"
 sys.path.insert(0, str(benchmark_dir))
 
-from conversion import (  # noqa: E402
+from benchmarks.conversion import (  # noqa: E402
     DirectoryConversionSuite,
     ValidationSuite,
     ZephyrConversionSuite,
@@ -325,7 +325,7 @@ class TestConversionBenchmarkIntegration:
             assert hasattr(suite_class, "timeout"), (
                 f"{suite_class.__name__} missing timeout attribute"
             )
-            assert isinstance(suite_class.timeout, (int, float))
+            assert isinstance(suite_class.timeout, int | float)
             assert suite_class.timeout > 0
 
     def test_parameterized_suite_configuration(self):
@@ -383,7 +383,7 @@ class TestConversionBenchmarkIntegration:
 
     def test_all_suites_cleanup_properly(self):
         """Verify all suites clean up their temporary resources."""
-        suites = [
+        suites: list[ZephyrConversionSuite | ValidationSuite] = [
             ZephyrConversionSuite(),
             ValidationSuite(),
         ]

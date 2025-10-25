@@ -40,8 +40,11 @@ We fixed several specific issues that were causing problems in production:
 
 ### 2025 Changes
 
+**October 2025: Linting Consolidation and ASV Merge**
+Completed migration from pylint to ruff/mypy-only workflow. Removed pylintrc and ASV-generated build artifacts (.asv/html/*). Updated all linting configurations to exclude benchmark and example directories. Merged main branch into asv-benchmark with modern type hints (dict vs Dict, Python 3.9+ style), improved Windows file locking compatibility, and consolidated documentation. All 22 merge conflicts resolved with consistent code quality improvements across the codebase.
+
 **October 2025: ASV Benchmarking Integration**
-ASV (Airspeed Velocity) now tracks performance across releases with automated chart generation. CI workflow publishes benchmark visualizations to wiki on tagged releases. Three benchmark suites cover conversion performance, memory usage, and bulk operations with ~55ms average detection time.
+ASV (Airspeed Velocity) now tracks performance across releases with automated chart generation. CI workflow publishes benchmark visualizations to wiki on tagged releases. Three benchmark suites cover conversion performance, memory usage, and bulk operations with ~55ms average detection time. Configuration in `asv.conf.json`, benchmark suites in `benchmarks/conversion.py`, chart generation in `scripts/src/importobot_scripts/benchmarks/generate_asv_charts.py`.
 
 **October 2025: Tag-based Release Workflow**
 PyPI publishing now triggers only on version tags (v*.*.*), preventing accidental releases from main branch pushes. Ensures controlled releases with proper versioning.

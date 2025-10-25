@@ -149,6 +149,7 @@ addopts = [
 markers = [
     "timeout: Set timeout for individual tests (provided by configure_timeout fixture)",
     "slow: Marks long-running generative tests",
+    "web_tests: marks tests that should run before SSH tests",
 ]
 
 [tool.coverage.run]

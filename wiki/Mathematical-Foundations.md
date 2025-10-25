@@ -1,50 +1,58 @@
 # Mathematical Foundations
 
+This document covers the mathematical principles behind Importobot's format detection and optimization algorithms. It is intended for engineers who want to understand the 'why' behind the code, not just the 'how'.
+
+## Motivation
+
+Importobot needs to reliably identify different test export formats (Zephyr, TestRail, etc.) from a variety of JSON structures. A simple string search or a series of `if/else` statements would be brittle and difficult to maintain. Instead, we use Bayesian confidence scoring to make an educated guess about the format, based on the evidence found in the file.
+
+This approach allows us to:
+
+- **Handle ambiguity:** When a file could be multiple formats, the Bayesian scorer provides a probability for each, allowing us to either pick the most likely one or flag it for manual review.
+- **Learn from new data:** As we encounter new examples of export formats, we can update our model to improve its accuracy.
+- **Provide better feedback:** Instead of a simple "format not recognized" error, we can tell the user *why* we think a file is a certain format, based on the evidence we found.
+
+Similarly, the optimization algorithms described in this document are used to fine-tune the conversion process, ensuring that the generated Robot Framework code is as accurate and efficient as possible.
+
 Importobot uses Bayesian confidence scoring to detect test management formats. The current implementation handles two-stage classification: first validating that input is test data, then discriminating between specific formats like Zephyr vs TestRail.
 
 ## Overview
 
 **Currently Implemented (v0.1.x):**
 - Bayesian confidence scoring for format detection
-- Two-stage hierarchical classification (test data validation → format discrimination)
-- Basic numerical stability handling
+- Two-stage classification: test data validation → format discrimination
+- Numerical stability handling
 
 **Future Work:**
-- Format family models could group related formats (Atlassian family: Zephyr + JIRA)
+- Format family models to group related formats (Atlassian: Zephyr + JIRA)
 - Semantic boosting for domain-specific formats like TestLink
-- Test format threshold optimization using ROC curves from production data
+- Threshold optimization using ROC curves from production data
 
 ## Core Mathematical Framework
 
-### Bayesian statistics & format detection
+The heart of Importobot's format detection is a Bayesian scorer. This section explains the key concepts behind it.
 
-The Bayesian scorer is the backbone of the format confidence pipeline. This section provides a high-level overview; the detailed derivation, parameter tables, and regression notes can be found in the [Bayesian scorer mathematical review](Bayesian-Scorer-Mathematical-Review.md).
+### Bayesian Confidence Scoring
 
-Posteriors are computed directly instead of relying on the legacy noisy-OR approximation. Ambiguous payloads stop at the 1.5:1 cap; confident cases can extend to 3:1 because the scorer uses format-specific ambiguity adjustments retrieved from calibration runs. The quadratic decay for `P(E|¬H)` and the configurable epsilon prevent a divide-by-zero exception when evidence is insufficient. See the [Bayesian scorer mathematical review](Bayesian-Scorer-Mathematical-Review.md) for the derivations, parameter ranges, and regression coverage.
+Instead of writing a complex set of rules to identify each format, we use probabilities. The core idea is to calculate the probability of a file being a certain format, given the evidence we see in the file. This is expressed by Bayes' theorem:
 
-The independence assumption is violated in practice—`testCase` and `steps` fields appear together in 78% of Zephyr exports we analyzed. This correlation doesn't break the model but could improve accuracy if quantified.
+`P(Format | Evidence) = [P(Evidence | Format) * P(Format)] / P(Evidence)`
 
-### Two-Stage Hierarchical Classification [IMPLEMENTED]
+- `P(Format | Evidence)` is the **posterior probability**: what we want to calculate. It's the probability that the file is a specific `Format` given the `Evidence` we've seen.
+- `P(Evidence | Format)` is the **likelihood**: the probability of seeing this `Evidence` if the file *is* that `Format`.
+- `P(Format)` is the **prior probability**: our initial belief about how common a `Format` is.
+- `P(Evidence)` is a **normalization factor**.
 
-The 0.1.2 release introduced hierarchical classification with two stages:
+In the codebase, you'll find this implemented in `src/importobot/medallion/bronze/confidence_calculator.py`. The `calculate_confidence()` method takes the evidence collected by the `EvidenceCollector` and uses it to compute the posterior probability for each supported format.
 
-**Stage 1: Test Data Validation Gate**
-```
-P(is_test_data|E) >= threshold
-```
-- Determines if input represents ANY test management format vs random data
-- Uses completeness and structural quality metrics
-- Prevents false positives on non-test JSON
+### Two-Stage Classification
 
-**Stage 2: Format-Specific Discrimination**
-```
-P(format_i|E, is_test_data) for all formats i
-```
-- Only executes if Stage 1 passes
-- Uses format-specific unique indicators
-- Applies multi-class Bayesian normalization
+To avoid running the full Bayesian analysis on every file, we use a two-stage process:
 
-This differs from the planned format family models (see Future Directions) - the current implementation uses a validation gate rather than sharing evidence across related formats.
+1.  **Test Data Validation Gate:** First, we do a quick check to see if the file looks like a test export at all. This is a simple check for the presence of common keywords and structures. If it doesn't pass this gate, we don't proceed to the next stage.
+2.  **Format-Specific Discrimination:** If the file passes the first stage, we then run the full Bayesian analysis to determine the specific format (Zephyr, TestRail, etc.).
+
+This approach, implemented in `src/importobot/medallion/bronze/format_detector.py`, significantly improves performance by avoiding unnecessary computation on irrelevant files.
 
 ## Empirical Validation & Benchmarks [IMPLEMENTED]
 
@@ -139,270 +147,22 @@ Uses sigmoid transformation for smooth, theoretically justified confidence adjus
 
 ## Optimization Algorithms
 
-### Gradient Descent Optimizer
+Beyond format detection, Importobot uses optimization algorithms to fine-tune the conversion process. The goal is to generate Robot Framework code that is not only syntactically correct, but also efficient and idiomatic. This is an experimental area of the codebase, and the algorithms described here are used to explore different approaches to this problem.
 
-**Algorithm**:
-```python
-for iteration in range(max_iterations):
-    gradients = compute_gradients(parameters)
-    velocity = momentum * velocity - learning_rate * gradients
-    parameters += velocity
-    current_value = objective_function(parameters)
-```
+### Gradient Descent
 
-**Properties**:
-- **Convergence**: Guaranteed for convex functions
-- **Momentum**: Accelerates convergence in ravines
-- **Complexity**: O(i×g×n) where i=iterations, g=gradient cost, n=parameters
+Gradient descent is a common optimization algorithm used to find the minimum of a function. In our case, we use it to tune the parameters of our conversion engine to minimize a "cost function" that represents the quality of the generated code. For example, we might penalize the use of deprecated keywords or reward the use of more efficient ones.
 
-### Genetic Algorithm Optimizer
+You can see the implementation of this in `src/importobot/services/optimization_service.py`.
 
-**Algorithm**:
-```python
-for generation in range(max_generations):
-    fitness_scores = [fitness_function(individual) for individual in population]
-    new_population = select_elite(population, fitness_scores)
-    
-    while len(new_population) < population_size:
-        parent1 = tournament_selection(population, fitness_scores)
-        parent2 = tournament_selection(population, fitness_scores)
-        child = crossover(parent1, parent2)
-        child = mutate(child, parameter_ranges)
-        new_population.append(child)
-```
+### Genetic Algorithms
 
-**Properties**:
-- **Global Optimization**: Escapes local minima
-- **Population-Based**: Maintains solution diversity
-- **Complexity**: O(g×p×f) where g=generations, p=population, f=fitness cost
+Genetic algorithms are inspired by the process of natural selection. They are particularly useful for exploring a large search space of possible solutions. We use a genetic algorithm to experiment with different combinations of conversion strategies and select the one that produces the best results.
 
 ### Simulated Annealing
 
-**Algorithm**:
-```python
-while temperature > min_temperature:
-    neighbor = generate_neighbor(current_parameters)
-    delta = objective_function(neighbor) - objective_function(current_parameters)
-    
-    if delta < 0 or random.random() < math.exp(-delta / temperature):
-        current_parameters = neighbor
-    
-    temperature *= cooling_rate
-```
+Simulated annealing is another optimization technique that is good at escaping local minima. It is used in our experimental optimization service to explore the solution space more thoroughly than gradient descent alone.
 
-**Properties**
-- **Global optimization:** Simulated annealing is used when gradient descent stalls; dry runs in `tests/performance/test_bronze_storage_performance.py` demonstrated that it finds the baseline objective in under 40k iterations.
-- **Temperature schedule:** Exponential cooling remains the default because slower schedules extended runtimes beyond five minutes on the Bronze fixtures. Revisit once we have telemetry from real optimization previews. 
-- **Cost profile:** Every iteration pays for a single objective evaluation, so runtime still scales with the function cost (`O(iterations × objective)`).
-
-### Gold Layer Optimization Benchmark Plan
-
-Importobot's Gold layer will use these optimizers to tune conversion heuristics
-before exporting Robot Framework suites. The new `OptimizationService`
-(`src/importobot/services/optimization_service.py`) provides a lightweight
-integration point that the Gold layer can call during ingestion to preview
-parameter tuning runs. The OptimizedConverter rollout will execute a benchmark
-program built around three pillars:
-
-- **Objectives** – Measure conversion quality uplift, latency reduction, and
-  algorithm runtime for gradient descent, simulated annealing, and the genetic
-  algorithm relative to the tuned heuristic baseline.
-- **Datasets** – Bronze/Silver fixtures representing small (<25 tests), medium
-  (25-150), and large (150+) suites across Zephyr, TestRail, and JIRA/Xray; the
-  OptimizedConverter synthetic stress scenarios; and existing regression corpora
-  from the performance benchmark harness.
-- **Success Criteria** – Gradient descent must reach the target quality scores
-  (≥0.90) while cutting preview latency by at least 15% within 30 iterations.
-  Simulated annealing or genetic algorithms must deliver ≥5% additional
-  improvement beyond gradient descent to remain enabled for the preview path;
-  otherwise they will be candidates for removal to keep the system lean.
-
-Each benchmark run captures wall-clock timings, iteration counts, and conversion
-metrics through the `conversion_optimization` metadata channel exposed in
-`GoldLayer.ingest`.Results flow back into placeholder previews so future maintainers can activate production-grade optimization without reconfiguring the mathematical components.
-
-## Advanced Mathematical Approaches
-
-### Structural Density Compensation
-
-**Principle**: Information density theory - fewer fields with high discriminative power deserve proportionally higher confidence
-
-```
-Confidence_enhanced = Confidence_base × (1 + density_factor × structure_bonus)
-```
-
-**TestRail Example**: ID-heavy structures get confidence boosts
-- **Pattern**: Multiple numeric IDs (suite_id, run_id, status_id, etc.)
-- **Result**: TestRail confidence improved from 0.468 → 0.813 (+73.7%)
-
-### Conditional Evidence Space Modeling
-
-**Principle**: Different format variants have different evidence spaces
-
-```
-P(evidence | format_variant) ≠ P(evidence | format_general)
-```
-
-**JIRA Example**: Single issue vs. multi-issue API responses
-- **Multi-issue**: `{"issues": [{"key": "...", "fields": {...}}, ...]}`
-- **Single issue**: `{"key": "XTS-789", "fields": {"summary": "...", "issuetype": {...}}}`
-
-### Multi-Pattern Structural Recognition
-
-**Discriminative Feature Selection**: Format-specific field combinations
-
-**TestRail API Patterns**:
-1. **Full API**: `{"runs": [...], "tests": [...]}`
-2. **Cases API**: `{"cases": [...], "suite_id": ..., "project_id": ...}`
-3. **Results API**: `{"results": [...], "test_id": ..., "status_id": ...}`
-
-### Format-Specific Semantic Enhancement
-
-**Domain Adaptation**: Tailored semantic analysis for format-specific terminology
-
-**TestRail Semantic Patterns**:
-```python
-api_patterns = ["api", "run", "case", "test", "suite", "milestone", "status"]
-api_density = matches / total_patterns
-semantic_boost = api_density × 0.3
-```
-
-**Numeric ID Detection**: TestRail API responses are ID-heavy
-```python
-id_pattern_count = len(re.findall(r'\d+', text_content))
-if id_pattern_count >= 3:  # Multiple numeric IDs suggest TestRail
-    semantic_boost += 0.2
-```
-
-### Enhanced Calibration with Structural Awareness
-
-**Advanced Calibration Factors**: Beyond simple multipliers
-
-```python
-# Base calibration with validation quality awareness
-if validation_quality >= 0.8:
-    base_boost = 1.4  # High quality validation
-elif validation_quality >= 0.5:
-    base_boost = 1.2  # Medium quality validation
-else:
-    base_boost = 1.0  # Low quality - no boost
-
-# Evidence strength boost with validation gating
-if evidence_likelihood > 0.15 and validation_quality >= 0.7:
-    evidence_boost = 0.4  # Strong evidence with good validation
-elif evidence_likelihood > 0.03 and validation_quality >= 0.5:
-    evidence_boost = 0.3  # Moderate evidence with decent validation
-else:
-    evidence_boost = 0.1  # Weak evidence or poor validation
-```
-
-**Format-Specific Enhancements**:
-```python
-# TestRail structural density compensation
-if target_format == SupportedFormat.TESTRAIL:
-    calibration_factor *= 1.15  # Base structural boost
-    
-    # ID-rich structure additional boost
-    if id_count >= 3:
-        calibration_factor *= 1.05  # Information density bonus
-```
-
-## Algorithmic Complexity Analysis
-
-### Pattern Matching Algorithms
-
-#### Regex Pattern Optimization
-
-**Location**: `core/pattern_matcher.py:630-633`
-
-**Algorithm**:
-```python
-combined_sql_pattern = r"((?:SELECT|INSERT|UPDATE|DELETE)\s+.+?)(?:;|$)"
-```
-
-**Complexity Analysis**:
-- **Time Complexity**: O(n×m) where n is text length, m is pattern complexity
-- **Space Complexity**: O(1) for compiled patterns
-- **Optimization**: Non-capturing groups reduce memory overhead
-
-#### Priority-Based Pattern Matching
-
-**Location**: `core/pattern_matcher.py:116-117`
-
-**Algorithm**:
-```python
-self.patterns.sort(key=lambda p: p.priority, reverse=True)
-```
-
-**Complexity Analysis**:
-- **Time Complexity**: O(n log n) for sorting, O(1) for lookup
-- **Space Complexity**: O(n) for pattern storage
-- **Optimization**: Priority sorting enables early termination
-
-### Distribution Algorithms
-
-#### Weight Normalization
-
-**Location**: `utils/test_generation/distributions.py:106-108`
-
-**Algorithm**:
-```python
-normalized_weights = {
-    k: v / total_weight for k, v in string_weights.items()
-}
-```
-
-**Complexity Analysis**:
-- **Time Complexity**: O(n) where n is number of categories
-- **Space Complexity**: O(n) for normalized weights
-- **Numerical Stability**: Division by zero protection
-
-#### Remainder Distribution Algorithm
-
-**Location**: `utils/test_generation/distributions.py:117-127`
-
-**Algorithm**:
-```python
-fractional_parts = [(total_tests * normalized_weights[k]) % 1 for k in categories]
-remainder_indices = argsort(fractional_parts, reverse=True)[:remainder]
-```
-
-**Complexity Analysis**:
-- **Time Complexity**: O(n log n) for sorting fractional parts
-- **Space Complexity**: O(n) for fractional parts storage
-- **Allocation rule**: The largest remainder pass hands leftover slots to the biggest fractional weights; TODO: add a property test that exercises the extreme cases.
-
-### Cache Operations
-
-#### Cache Hit Rate Calculation
-
-**Location**: `services/performance_cache.py:134-137`
-
-**Algorithm**:
-```python
-hit_rate = (
-    (self._cache_hits / total_requests * 100) if total_requests > 0 else 0
-)
-```
-
-**Complexity Analysis**:
-- **Time Complexity**: O(1) constant time
-- **Space Complexity**: O(1) constant space
-- **Numerical Stability**: Division by zero protection
-
-#### Hash Generation
-
-**Location**: `services/performance_cache.py:152-157`
-
-**Algorithm**:
-```python
-return hashlib.sha256(data_str.encode()).hexdigest()[:24]
-```
-
-**Complexity Analysis**:
-- **Time Complexity**: O(n) where n is data length
-- **Space Complexity**: O(1) fixed output size
-- **Collision Probability**: P(collision) ≈ 2^(-96) for 24-character hex
 
 ## Statistical Methods & Validation
 
@@ -657,153 +417,6 @@ Simulated annealing with logarithmic cooling schedule T_k = T₀/log(k+1) conver
 - **Improvement**: +26.3 percentage points
 - **Statistical Significance**: All enhancements show p < 0.01
 
-## Future Mathematical Directions [PLANNED WORK]
-
-### Hierarchical Bayesian Models (For Zephyr - Atlassian Family)
-
-#### Problem
-
-Zephyr confidence 0.410 → 0.8 (95.1% increase needed)
-
-#### Mathematical Framework
-
-```
-P(Zephyr|Evidence) = P(Evidence|Zephyr) × P(Zephyr|Atlassian) × P(Atlassian|Evidence)
-```
-
-#### Hierarchical Structure
-
-```
-Atlassian Suite
-├── JIRA/Xray (P = 0.6)
-└── Zephyr (P = 0.4)
-```
-
-#### Implementation Strategy
-
-1. **Family Prior**: P(Atlassian) = 0.3 (enterprise prevalence)
-2. **Conditional Priors**: P(Zephyr|Atlassian) = 0.4, P(JIRA|Atlassian) = 0.6
-3. **Evidence Sharing**: Cross-format evidence accumulation
-4. **Hierarchical Calibration**: Family-aware confidence boosting
-
-#### Mathematical Justification
-
-- **Hierarchical Bayesian Models**: Established framework for nested categorical data
-- **Evidence Propagation**: Format family membership provides additional evidence
-- **Shrinkage Estimation**: Family priors reduce individual format uncertainty
-
-#### Expected Results
-
-- Zephyr formats benefit from Atlassian family evidence
-- Shared terminology and structural patterns boost confidence
-- Hierarchical priors reduce sparse data uncertainty
-
-### Domain-Specific Execution-Focused Semantic Boosting (For TestLink)
-
-#### Problem
-
-TestLink confidence 0.448 → 0.8 (78.6% increase needed)
-
-#### Mathematical Framework
-
-```
-Semantic_score = base_score + execution_pattern_density × domain_weight
-```
-
-#### Execution-Focused Patterns
-
-```python
-execution_patterns = [
-    "execution", "passed", "failed", "status", "time", "result",
-    "testsuite", "testcase", "failures", "errors", "skipped"
-]
-```
-
-#### Implementation Strategy
-
-1. **Execution Density Calculation**:
-   ```
-   density = execution_matches / total_semantic_indicators
-   ```
-
-2. **Temporal Pattern Recognition**:
-   ```python
-   time_patterns = ["time", "duration", "timestamp", "created_on"]
-   temporal_boost = time_pattern_count × 0.15
-   ```
-
-3. **XML Structure Bonus** (TestLink exports are XML-based):
-   ```python
-   xml_indicators = ["testsuite", "testcase", "name", "status"]
-   xml_structure_bonus = xml_match_ratio × 0.25
-   ```
-
-#### Mathematical Justification
-
-- **Domain Adaptation**: Execution-focused terminology is highly discriminative for TestLink
-- **Temporal Analysis**: Test execution systems have strong temporal patterns
-- **Structural Recognition**: XML export format has distinctive hierarchical patterns
-
-#### Expected Enhancement
-
-```
-Enhanced_confidence = base_confidence + execution_boost + temporal_boost + xml_boost
-```
-
-#### Expected Results
-
-- TestLink execution patterns provide strong discriminative evidence
-- Temporal and XML structural patterns add cumulative confidence
-- Domain-specific semantic analysis captures TestLink's unique characteristics
-
-### Adaptive Threshold Calibration
-
-#### Problem
-
-Different formats may require different confidence thresholds
-
-#### Current Uniform Thresholds
-
-- Generic: 0.5 (achieved ✅)
-- All others: 0.8 (some failing)
-
-#### Empirical Bayes Threshold Learning
-
-```
-θ_format = α × θ_global + (1-α) × θ_format_specific
-```
-
-Where:
-- `θ_global = 0.8` (current universal threshold)
-- `θ_format_specific` = learned from validation data
-- `α` = shrinkage parameter based on format prevalence
-
-#### Mathematical Framework
-
-1. **Cross-Validation Analysis**: Measure actual vs predicted confidence across formats
-2. **ROC Curve Optimization**: Find optimal threshold per format for F1-score
-3. **Shrinkage Estimation**: Balance format-specific and global thresholds
-
-#### Implementation Strategy
-
-```python
-# Format-specific threshold learning
-optimal_thresholds = {
-    SupportedFormat.GENERIC: 0.5,      # Empirically validated
-    SupportedFormat.JIRA_XRAY: 0.8,    # High precision required
-    SupportedFormat.TESTRAIL: 0.75,    # Moderate adjustment
-    SupportedFormat.TESTLINK: 0.65,    # Execution-focused adjustment
-    SupportedFormat.ZEPHYR: 0.7        # Atlassian family adjustment
-}
-```
-
-#### Mathematical Justification
-
-- **Empirical Bayes**: Data-driven threshold learning
-- **Format Heterogeneity**: Different formats have different confidence distributions
-- **ROC Optimization**: Balanced precision/recall for business requirements
-
-This approach provides a principled alternative to forcing all formats to meet a uniform 0.8 threshold when mathematical enhancement may not be sufficient or appropriate.
 
 ## References
 
@@ -852,7 +465,4 @@ This approach provides a principled alternative to forcing all formats to meet a
 
 ## Summary
 
-Rigorous mathematical implementation is beneficial only when it meets production expectations:
-- Regression tests (`tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`, `tests/unit/medallion/bronze/test_independent_bayesian_scorer.py`) pin the confidence scorer to the 1.5:1 ambiguity cap and verify posterior normalisation.
-- Numerical guardrails (`LOG_LIKELIHOOD_FLOOR`, configurable epsilon values) prevented the divide-by-zero crashes we saw in 0.1.0 while keeping wall-clock performance flat on the CI fixtures.
-- Optimisation experiments remain provisional: benchmark harnesses and Monte Carlo notebooks are checked in, but the production gold layer still uses the tuned heuristic by default. **TODO:** carry telemetry from pilot runs into this chapter before calling the optimization stack “ready.”
+The mathematical foundations of Importobot are designed to solve real-world problems in a pragmatic way. The Bayesian confidence scorer provides a robust and extensible way to identify file formats, while the optimization algorithms allow for experimentation with different conversion strategies. The code is heavily tested to ensure that the mathematical implementations are correct and performant.

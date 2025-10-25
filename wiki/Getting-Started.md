@@ -61,7 +61,7 @@ uv run importobot zephyr_export.json converted_tests.robot
 uv run importobot --batch input_dir/ output_dir/
 ```
 
-## Migration Workflow
+## Example Workflow
 
 1. Export test suite from Zephyr/Xray/etc.
 2. Convert it with a single Importobot command.
@@ -84,6 +84,8 @@ robot automated_suite.robot          # Execute tests
 ```
 
 ## Configuration
+
+Importobot can be configured with environment variables for advanced use cases, such as overriding server settings for API-based formats or running browser tests in headless mode.
 
 The most useful environment variables:
 

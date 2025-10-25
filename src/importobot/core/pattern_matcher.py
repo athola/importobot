@@ -291,11 +291,11 @@ class PatternMatcher:
                 r"\blist.*deployment.*contents\b",
                 priority=6,
             ),
-            # Browser operations
+            # Browser operations (higher priority than SSH patterns)
             IntentPattern(
                 IntentType.BROWSER_OPEN,
                 r"\b(?:open|navigate|visit).*(?:browser|page|url|application)\b",
-                priority=6,
+                priority=8,
             ),
             IntentPattern(
                 IntentType.BROWSER_NAVIGATE,
@@ -303,7 +303,7 @@ class PatternMatcher:
                     r"\b(?:go to|navigate(?:\s+to)?)\b.*\b(?:url|page|site|screen|"
                     r"login|portal|dashboard|home)\b"
                 ),
-                priority=6,
+                priority=8,
             ),
             IntentPattern(
                 IntentType.BROWSER_NAVIGATE,

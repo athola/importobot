@@ -196,6 +196,23 @@ class LRUCache(CacheStrategy[K, V]):
         self._total_size += content_size
         self._record_metric_event()
 
+    def contains(self, key: K) -> bool:
+        """Check if key exists in cache and is not expired.
+
+        Returns:
+            True if key exists and is not expired, False otherwise
+        """
+        if key not in self._cache:
+            return False
+
+        entry = self._cache[key]
+        if self._is_expired(entry.timestamp):
+            # Clean up expired entry
+            self.delete(key)
+            return False
+
+        return True
+
     def delete(self, key: K) -> None:
         """Remove entry from cache."""
         if key in self._cache:
