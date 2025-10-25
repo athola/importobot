@@ -6,10 +6,16 @@ formats (Zephyr, TestLink, Xray) into Robot Framework files across different
 file sizes and complexity levels.
 """
 
+# Standard library imports
+import contextlib
 import json
+import shutil
 import tempfile
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, ClassVar
+
+# Importobot imports
+import importobot
 
 
 class ZephyrConversionSuite:
@@ -112,34 +118,29 @@ class ZephyrConversionSuite:
 
     def teardown(self) -> None:
         """Clean up temporary files."""
-        import shutil
 
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def time_convert_simple_single_test(self) -> None:
         """Benchmark converting a single simple test case."""
-        import importobot
 
         converter = importobot.JsonToRobotConverter()
         converter.convert_file(str(self.simple_file), str(self.simple_output))
 
     def time_convert_moderate_multiple_tests(self) -> None:
         """Benchmark converting 20 moderate complexity test cases."""
-        import importobot
 
         converter = importobot.JsonToRobotConverter()
         converter.convert_file(str(self.moderate_file), str(self.moderate_output))
 
     def time_convert_large_complex_suite(self) -> None:
         """Benchmark converting 100 complex test cases with metadata."""
-        import importobot
 
         converter = importobot.JsonToRobotConverter()
         converter.convert_file(str(self.complex_file), str(self.complex_output))
 
     def peakmem_convert_large_suite(self) -> None:
         """Memory usage for converting large test suite."""
-        import importobot
 
         converter = importobot.JsonToRobotConverter()
         converter.convert_file(str(self.complex_file), str(self.complex_output))
@@ -149,8 +150,8 @@ class DirectoryConversionSuite:
     """Benchmark suite for bulk directory conversion operations."""
 
     timeout: float = 180.0
-    params: list[int] = [5, 10, 25]
-    param_names: list[str] = ["num_files"]
+    params: ClassVar[list[int]] = [5, 10, 25]
+    param_names: ClassVar[list[str]] = ["num_files"]
     temp_dir: str
     input_dir: Path
     output_dir: Path
@@ -184,13 +185,11 @@ class DirectoryConversionSuite:
 
     def teardown(self, num_files: int) -> None:
         """Clean up directory structure."""
-        import shutil
 
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def time_convert_directory(self, num_files: int) -> None:
         """Benchmark recursive directory conversion."""
-        import importobot
 
         converter = importobot.JsonToRobotConverter()
         # Assuming directory conversion method exists
@@ -206,9 +205,9 @@ class ValidationSuite:
     """Benchmark suite for input validation and error detection."""
 
     timeout: float = 60.0
-    valid_data: Dict[str, Any]
-    invalid_missing_fields: Dict[str, Any]
-    invalid_malformed: Dict[str, Any]
+    valid_data: dict[str, Any]
+    invalid_missing_fields: dict[str, Any]
+    invalid_malformed: dict[str, Any]
     temp_dir: str
     valid_file: Path
 
@@ -245,13 +244,11 @@ class ValidationSuite:
 
     def teardown(self) -> None:
         """Clean up temporary files."""
-        import shutil
 
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def time_validate_valid_input(self) -> None:
         """Benchmark validation of valid test input."""
-        import importobot
 
         converter = importobot.JsonToRobotConverter()
         output = Path(self.temp_dir) / "output.robot"
@@ -259,12 +256,10 @@ class ValidationSuite:
 
     def time_validate_invalid_input(self) -> None:
         """Benchmark validation and error handling for invalid input."""
-        import importobot
 
         converter = importobot.JsonToRobotConverter()
         output = Path(self.temp_dir) / "output.robot"
 
-        try:
+        with contextlib.suppress(Exception):
             converter.convert_file(str(self.invalid_missing_file), str(output))
-        except Exception:
-            pass  # Expected to fail validation
+            # Expected to fail validation

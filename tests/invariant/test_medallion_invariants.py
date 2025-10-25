@@ -260,6 +260,7 @@ class TestMedallionArchitectureInvariants:
                             # Cast to str to satisfy mypy
                             return str(detected_format) if detected_format else ""
                         else:  # BronzeRecord
+                            assert isinstance(result, BronzeRecord)  # Type narrowing
                             return result.format_detection.detected_format
 
                     first_format = get_format(results[0])
@@ -277,6 +278,7 @@ class TestMedallionArchitectureInvariants:
                             proc_result = result.get("processing_result")
                             return proc_result.status if proc_result else None
                         else:  # BronzeRecord
+                            assert isinstance(result, BronzeRecord)  # Type narrowing
                             return result.metadata.processing_status
 
                     first_status = get_status(results[0])

@@ -21,11 +21,13 @@ In practice, this means:
 
 Gather your existing Robot Framework files that demonstrate good testing patterns in your organization.
 
-### What Makes a Good Template?
+## Template Guidelines
 
-Effective templates demonstrate clear testing patterns with well-structured steps and consistent naming. Use proper Robot Framework keywords and domain-specific commands that match your applications. Include error handling and validation patterns that make tests reliable.
-
-Avoid templates with syntax errors, deprecated keywords, or overly complex logic. Hardcoded values should be replaced with variables to make tests reusable across different environments.
+-   **Focus on patterns:** Each template should demonstrate a specific testing pattern (e.g., web authentication, API validation).
+-   **Use consistent naming:** Variables, test cases, and keywords should follow a consistent naming convention.
+-   **Include proper structure:** Templates should include setup, test steps, validation, and teardown.
+-   **Avoid hardcoded values:** Use variables for values that may change between environments.
+-   **Keep it clean:** Avoid syntax errors, deprecated keywords, and overly complex logic.
 
 ### Example Template Structure
 
@@ -166,15 +168,14 @@ Notice how the learned template added:
 - Proper teardown
 - Team-specific timing patterns
 
-## Advanced Template Usage
+## Advanced Usage
 
 ### Conditional Template Loading
 
-Use environment variables to conditionally load different template sets:
+You can use environment variables to conditionally load different template sets for different environments.
 
 ```bash
 #!/bin/bash
-# Environment-specific template selection
 
 if [ "$ENVIRONMENT" = "production" ]; then
     TEMPLATE_DIRS="templates/prod/"
@@ -189,229 +190,11 @@ uv run importobot \
     input.json output.robot
 ```
 
-### Template Validation
+### Troubleshooting
 
-Before using templates in production, validate them:
-
-```bash
-# Check template syntax
-robot --dry-run templates/*.robot
-
-# Test template-based conversion
-uv run importobot \
-    --robot-template templates/ \
-    --verbose \
-    sample_input.json sample_output.robot
-
-# Review generated output
-robot --dry-run sample_output.robot
-```
-
-## Template Pattern Examples
-
-### Web UI Patterns
-
-Templates can teach Importobot your team's web testing patterns:
-
-```robot
-# Template: web_authentication.robot
-*** Test Cases ***
-User Login Flow
-    [Documentation]    Standard user login procedure
-    [Tags]    authentication    smoke
-    Open Browser    ${BASE_URL}    chrome
-    Maximize Browser Window
-    Input Text    id=username    ${USER_NAME}
-    Input Text    id=password    ${USER_PASSWORD}
-    Click Button    id=login-button
-    Wait Until Page Contains    Dashboard
-    [Teardown]    Close Browser
-```
-
-**Learned patterns:**
-- Standard browser setup sequence
-- Variable naming conventions (`${USER_NAME}`, `${USER_PASSWORD}`)
-- Page validation patterns
-- Proper teardown procedures
-
-### API Testing Patterns
-
-```robot
-# Template: api_validation.robot
-*** Test Cases ***
-API Endpoint Validation
-    [Documentation]    Validate API response structure
-    Create Session    api    ${API_BASE_URL}
-    ${response}=    GET On Session    api    /users/1
-    Should Be Equal As Strings    ${response.status_code}    200
-    ${json}=    To Json    ${response.content}
-    Should Contain    ${json['username']}    testuser
-    [Teardown]    Delete All Sessions
-```
-
-**Learned patterns:**
-- API session management
-- Response validation approach
-- JSON parsing patterns
-- Session cleanup procedures
-
-### Database Testing Patterns
-
-```robot
-# Template: database_operations.robot
-*** Test Cases ***
-Database Record Validation
-    [Documentation]    Verify database record integrity
-    Connect To Database    ${DB_CONNECTION_STRING}
-    ${count}=    Row Count    SELECT COUNT(*) FROM users WHERE active = 1
-    Should Be True    ${count} > 0
-    Disconnect From Database
-```
-
-**Learned patterns:**
-- Database connection handling
-- Query execution patterns
-- Validation approach
-- Connection cleanup
-
-## Troubleshooting Template Issues
-
-### Common Problems
-
-**Problem**: Template loading warnings
-```bash
-WARNING: Skipping template file: syntax_error.robot - Parse error
-```
-
-**Solution**: Fix Robot Framework syntax errors in template files:
-```bash
-# Validate template syntax
-robot --dry-run templates/syntax_error.robot
-```
-
-**Problem**: No patterns learned from templates
-```bash
-INFO: Template ingestion complete: 4 files, 0 patterns learned
-```
-
-**Solution**: Ensure templates contain recognizable patterns:
-- Check that templates have `*** Test Cases ***` sections
-- Verify templates contain actual test steps
-- Use `--verbose` to see detailed ingestion logs
-
-**Problem**: Generated tests don't use template patterns
-
-**Solution**:
-- Verify template patterns match your JSON step descriptions
-- Check that template and JSON use similar terminology
-- Use `--verbose` to see pattern matching attempts
-
-### Debugging Template Learning
-
-Enable detailed logging to understand pattern learning:
-
-```bash
-# Enable debug logging
-export IMPORTOBOT_LOG_LEVEL=DEBUG
-
-uv run importobot \
-    --robot-template templates/ \
-    --verbose \
-    input.json output.robot
-```
-
-Look for debug messages like:
-```
-DEBUG: Analyzing step: "Enter username 'testuser'"
-DEBUG: Searching for pattern with command: "Enter"
-DEBUG: Found match: "Input Text    id=username    ${USER}"
-DEBUG: Applied template pattern with variable substitution
-```
-
-## Best Practices
-
-### Template Quality Guidelines
-
-1. **Keep templates focused**: Each template should demonstrate specific testing patterns
-2. **Use consistent naming**: Variable names, test case names, and keywords should follow conventions
-3. **Include proper structure**: Setup, test steps, validation, and teardown
-4. **Regular maintenance**: Update templates as testing practices evolve
-5. **Version control**: Track template changes in git like other test assets
-
-### Template Organization
-
-```
-templates/
-├── core/                    # Essential patterns used by all teams
-│   ├── setup_teardown.robot
-│   └── validation.robot
-├── web/                     # Web application testing patterns
-│   ├── authentication.robot
-│   ├── navigation.robot
-│   └── forms.robot
-├── api/                     # API testing patterns
-│   ├── rest_calls.robot
-│   └── response_validation.robot
-└── infrastructure/          # Infrastructure testing patterns
-    ├── database.robot
-    └── ssh_commands.robot
-```
-
-### Performance Considerations
-
-- **Template ingestion time**: 50-200ms per typical Robot file
-- **Memory usage**: ~1KB per learned pattern
-- **Recommended limits**: Keep template directory under 50 files total
-- **Caching**: Patterns are cached after first conversion
-
-### Integration with CI/CD
-
-Add template validation to your CI pipeline:
-
-```yaml
-# .github/workflows/template-validation.yml
-name: Template Validation
-on:
-  push:
-    paths: ['templates/**']
-
-jobs:
-  validate-templates:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install Importobot
-        run: pip install importobot
-
-      - name: Validate Template Syntax
-        run: |
-          for template in templates/**/*.robot; do
-            robot --dry-run "$template" || exit 1
-          done
-
-      - name: Test Template Conversion
-        run: |
-          uv run importobot \
-            --robot-template templates/ \
-            --verbose \
-            tests/fixtures/sample_input.json \
-            /tmp/test_output.robot
-
-          robot --dry-run /tmp/test_output.robot
-```
-
-## Next Steps
-
-1. **Start small**: Begin with 2-3 high-quality template files
-2. **Measure improvement**: Compare conversions with and without templates
-3. **Iterate**: Add more templates based on conversion quality needs
-4. **Share**: Distribute template collections across teams for consistency
-5. **Maintain**: Regularly review and update templates as practices evolve
+-   **Template loading warnings:** If you see warnings about syntax errors, use `robot --dry-run` to validate your template files.
+-   **No patterns learned:** Ensure your templates have `*** Test Cases ***` sections and contain recognizable test steps. Use the `--verbose` flag to see detailed ingestion logs.
+-   **Generated tests don't use template patterns:** Check that your template patterns match your JSON step descriptions and use similar terminology. The `--verbose` flag can help you debug pattern matching issues.
 
 ## Related Documentation
 

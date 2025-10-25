@@ -102,9 +102,10 @@ def generate_conversion_performance_chart(
                         commit_dates.append(datetime.fromtimestamp(timestamp / 1000))
 
         if times and commit_dates:
-            ax.plot(
-                commit_dates, times, marker="o", label=labels[idx], color=colors[idx]
-            )
+            # Convert datetime objects to matplotlib date format
+            mdates = matplotlib.dates
+            date_nums = mdates.date2num(commit_dates)
+            ax.plot(date_nums, times, marker="o", label=labels[idx], color=colors[idx])
 
     ax.set_xlabel("Commit Date", fontsize=12)
     ax.set_ylabel("Time (seconds)", fontsize=12)
@@ -155,8 +156,10 @@ def generate_memory_usage_chart(data: dict[str, Any], output_path: Path) -> None
                     commit_dates.append(datetime.fromtimestamp(timestamp / 1000))
 
     if memory_values and commit_dates:
-        ax.plot(commit_dates, memory_values, marker="s", color="#9b59b6", linewidth=2)
-        ax.fill_between(commit_dates, memory_values, alpha=0.3, color="#9b59b6")
+        # Convert datetime objects to matplotlib date format
+        date_nums = mdates.date2num(commit_dates)
+        ax.plot(date_nums, memory_values, marker="s", color="#9b59b6", linewidth=2)
+        ax.fill_between(date_nums, memory_values, alpha=0.3, color="#9b59b6")
 
     ax.set_xlabel("Commit Date", fontsize=12)
     ax.set_ylabel("Peak Memory (MB)", fontsize=12)
@@ -215,8 +218,10 @@ def generate_bulk_conversion_chart(data: dict[str, Any], output_path: Path) -> N
                             )
 
         if times and commit_dates:
+            # Convert datetime objects to matplotlib date format
+            date_nums = mdates.date2num(commit_dates)
             ax.plot(
-                commit_dates,
+                date_nums,
                 times,
                 marker="^",
                 label=f"{param} files",

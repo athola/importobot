@@ -816,7 +816,8 @@ class TestHeapBasedCleanupOptimizations:
             cache.set(f"key_{i}", f"refreshed_value_{i}")
 
         # Wait long enough for original TTL but not for refreshed entries
-        time.sleep(0.6)
+        # Original entries expire at 1.0s, refreshed at 1.5s
+        time.sleep(0.7)  # Total: 1.2s elapsed
 
         cache._cleanup_expired_entries()
 
