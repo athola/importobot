@@ -266,7 +266,7 @@ def restore_file(backup_path: str | Path, original_path: str | Path) -> None:
 
 
 def load_json_with_error_handling(file_path: str | Path) -> dict[str, Any] | list[Any]:
-    """Load JSON file with error handling."
+    """Load JSON file with error handling.
 
     Args:
         file_path: Path to the JSON file
