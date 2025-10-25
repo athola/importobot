@@ -187,7 +187,7 @@ class ScoringAlgorithms:
                         actual_field_name, pattern, field_values
                     )
         else:
-            # Fallback to string-based matching
+            # Default to string-based matching
             for field_name, pattern in field_patterns.items():
                 score += ScoringAlgorithms._score_string_pattern(
                     data_str, field_name, pattern

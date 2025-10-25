@@ -1,7 +1,7 @@
 [MASTER]
-# Ignore .venv directory, .uv-cache, and build artifacts
-ignore-patterns = \.venv.*,\.uv-cache.*,build.*
-ignore = .venv,.uv-cache,build
+# Ignore .venv directory, .uv-cache, build artifacts, ASV benchmarks, and examples
+ignore-patterns = \.venv.*,\.uv-cache.*,build.*,env.*,benchmarks.*,examples/robot/templates.*
+ignore = .venv,.uv-cache,build,env,benchmarks,examples/robot/templates
 
 # Load pylint extensions
 load-plugins =

@@ -2,7 +2,7 @@
 
 Set up Importobot, run the tests, and convert a suite of tests into Robot Framework.
 
-> **New to the codebase?** Read [How to Navigate this Codebase](How-to-Navigate-this-Codebase) for a comprehensive guide to the architecture and code organization.
+> **New to the codebase?** Read [How to Navigate this Codebase](How-to-Navigate-this-Codebase) for a detailed guide to the architecture and code organization.
 
 ## Prerequisites
 

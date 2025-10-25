@@ -3,6 +3,10 @@
 This outline enforces the roadmap: what to ship next, what is parked, and which ideas still require further proof-of-concept.
 
 ### Latest engineering update (October 2025)
+- **✅ ASV PERFORMANCE BENCHMARKING**: ASV (Airspeed Velocity) integration complete with three benchmark suites (conversion performance, memory usage, bulk operations). CI workflow automatically generates and publishes benchmark charts to wiki on tagged releases. Configuration in `asv.conf.json`, benchmark suites in `benchmarks/conversion.py`, chart generation in `scripts/src/importobot_scripts/benchmarks/generate_asv_charts.py`.
+- **✅ TAG-BASED RELEASE WORKFLOW**: PyPI publishing workflow now triggers only on version tags (v*.*.*) instead of main branch pushes, ensuring controlled releases with proper semantic versioning.
+- **✅ DEVELOPMENT BRANCH WORKFLOW**: Established `development` as integration branch for all MRs. `main` branch receives only tested releases. Branching strategy documented in wiki/Contributing.md with clear workflows for features, releases, and hotfixes.
+- **✅ WIKI CONSOLIDATION**: Removed verbose Bayesian documentation files (Bayesian-Redesign.md, Bayesian-Scorer-Mathematical-Review.md) to streamline wiki for general developers. Essential mathematical content remains in Mathematical-Foundations.md.
 - **✅ MATHEMATICALLY RIGOROUS BAYESIAN CONFIDENCE**: The weighted evidence shim is gone; the independent scorer now owns confidence calculations. Evidence flows through `EvidenceMetrics`, missing unique indicators are penalised, and ambiguous inputs are capped at a 1.5:1 likelihood ratio. The new regression suite (`tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`) locks these behaviours down.
 - Conversion invariants are stable again after teaching the formatter to leave comment placeholders untouched and to surface both raw and normalized names for auditing.
 - Selenium integration coverage now runs entirely in dry-run mode without the old `robot.utils` shim, so CI remains free of legacy deprecation noise.
@@ -10,10 +14,10 @@ This outline enforces the roadmap: what to ship next, what is parked, and which 
 
 ## Roadmap
 
-### Q3 2025 — in-flight work
+### Q4 2025 — in-flight work
 - Bulk conversion polish. Tighten recursive directory handling and step mapping because current heuristics stumble on large Zephyr dumps.
 - Additional format support. Xray and TestLink parsers are in review; once merged, bake them into the same validation path as Zephyr so quality is consistent between formats.
-- Performance visibility. Adding simple timing metrics and I/O profiling so bottlenecks can be identified between parsing, mapping, or write-out.
+- Performance visibility. ASV benchmarking now tracks conversion performance across releases with automated chart generation. Next: add per-format profiling and I/O bottleneck identification.
 
 ### Q4 2025 – Q1 2026 — queued next
 - REST surface for CI/CD. Request for a service wrapper instead of shell access, so prototype it once parsers are integrated.

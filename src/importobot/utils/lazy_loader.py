@@ -60,24 +60,24 @@ class LazyModule:
 
 
 class OptionalDependency:
-    """Manages optional dependencies with graceful fallbacks."""
+    """Manages optional dependencies with graceful secondary behaviors."""
 
     def __init__(
         self,
         module_name: str,
         package_name: Optional[str] = None,
-        fallback_message: Optional[str] = None,
+        secondary_message: Optional[str] = None,
     ) -> None:
         """Initialize optional dependency manager.
 
         Args:
             module_name: Name of the module to import
             package_name: Package name for install instructions
-            fallback_message: Custom message when dependency unavailable
+            secondary_message: Custom message when dependency unavailable
         """
         self.module_name = module_name
         self.package_name = package_name or module_name
-        self.fallback_message = fallback_message
+        self.secondary_message = secondary_message
         self._module: Optional[ModuleType] = None
         self._checked = False
         self._available = False
@@ -107,8 +107,8 @@ class OptionalDependency:
 
     def _raise_missing_dependency(self) -> None:
         """Raise informative error about missing dependency."""
-        if self.fallback_message:
-            message = self.fallback_message
+        if self.secondary_message:
+            message = self.secondary_message
         else:
             message = (
                 f"Optional dependency '{self.module_name}' not found. "
@@ -120,7 +120,7 @@ class OptionalDependency:
 # Pre-defined optional dependencies for common use cases
 MATPLOTLIB = OptionalDependency(
     "matplotlib",
-    fallback_message=(
+    secondary_message=(
         "Visualization features require matplotlib. "
         "Install with: pip install 'importobot[viz]'"
     ),
@@ -128,7 +128,7 @@ MATPLOTLIB = OptionalDependency(
 
 NUMPY = OptionalDependency(
     "numpy",
-    fallback_message=(
+    secondary_message=(
         "Advanced analytics require numpy. "
         "Install with: pip install 'importobot[analytics]'"
     ),
@@ -136,7 +136,7 @@ NUMPY = OptionalDependency(
 
 PANDAS = OptionalDependency(
     "pandas",
-    fallback_message=(
+    secondary_message=(
         "Data processing features require pandas. "
         "Install with: pip install 'importobot[analytics]'"
     ),

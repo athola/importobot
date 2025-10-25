@@ -18,7 +18,7 @@ try:
         TestFormatDetectionIntegration,
     )
 except ImportError:
-    # Fallback for when test modules aren't available
+    # Default for when test modules aren't available
     SupportedFormat: Any = None  # type: ignore[assignment,no-redef]
     TestFormatDetectionIntegration: Any = None  # type: ignore[assignment,no-redef]
 

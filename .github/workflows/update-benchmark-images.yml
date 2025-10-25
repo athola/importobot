@@ -1,0 +1,80 @@
+name: Update Benchmark Images
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-benchmarks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # Fetch all history for ASV
+
+      - name: Checkout wiki
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ github.repository }}.wiki
+          path: wiki-repo
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install dependencies
+        run: |
+          uv pip install asv matplotlib
+
+      - name: Run benchmarks on current tag
+        run: |
+          uv run asv run HEAD^!
+        continue-on-error: true
+
+      - name: Generate benchmark charts
+        run: |
+          uv run python scripts/src/importobot_scripts/benchmarks/generate_asv_charts.py
+
+      - name: Copy images to wiki repository
+        run: |
+          mkdir -p wiki-repo/images
+          cp wiki/images/asv-*.png wiki-repo/images/
+
+      - name: Commit and push to wiki
+        working-directory: wiki-repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add images/asv-*.png
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update benchmark images for ${{ github.ref_name }}
+
+            Automated update of ASV benchmark charts
+
+            Generated from tag: ${{ github.ref_name }}
+            Triggered by: ${{ github.event_name }}
+            "
+            git push
+          fi
+
+      - name: Summary
+        run: |
+          echo "✓ Benchmark images updated in wiki" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Updated images:" >> $GITHUB_STEP_SUMMARY
+          echo "- asv-conversion-performance.png" >> $GITHUB_STEP_SUMMARY
+          echo "- asv-memory-usage.png" >> $GITHUB_STEP_SUMMARY
+          echo "- asv-bulk-conversion.png" >> $GITHUB_STEP_SUMMARY

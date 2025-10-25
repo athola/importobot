@@ -150,16 +150,48 @@ def convert_test_case(test_data: dict) -> str:
     # Implementation
 ```
 
+## Branching Strategy
+
+Importobot uses a development-based workflow:
+
+### Branch Structure
+
+- **`main`**: Production-ready code. Only receives merges from `development` after release testing.
+- **`development`**: Integration branch for feature development. All MRs target this branch.
+- **Feature branches**: Created from `development` for specific features or fixes.
+
+### Workflow
+
+1. **Feature Development**:
+   - Create feature branch from `development`: `git checkout -b feature/my-feature development`
+   - Make changes, write tests, commit regularly
+   - Push and create MR targeting `development`
+
+2. **Release Process**:
+   - When `development` is stable and ready for release, merge to `main`
+   - Tag the merge commit with version: `git tag v0.1.4`
+   - Push tag to trigger PyPI release: `git push origin v0.1.4`
+
+3. **Hotfixes**:
+   - Create from `main` for urgent production fixes
+   - Merge to both `main` and `development`
+
+### Branch Protection
+
+- `main`: Requires PR review, passing CI, and clean merge from `development`
+- `development`: Requires passing tests before merge
+
 ## Pull Request Process
 
 1. Fork the repository.
-2. Create a feature branch.
+2. Create a feature branch from `development`.
 3. Make your changes.
 4. Add tests for your changes.
-5. Ensure all tests pass.
+5. Ensure all tests pass locally.
 6. Update documentation as needed.
-7. Create a pull request.
+7. Create a pull request targeting `development`.
 8. Address any feedback from reviewers.
+9. Once approved, maintainers will merge to `development`.
 
 ## Artifact management
 

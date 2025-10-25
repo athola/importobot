@@ -91,7 +91,7 @@ def create_generic_format() -> FormatDefinition:
                 description="Generic identifier field",
             ),
         ],
-        # Confidence parameters - higher threshold since this is fallback
+        # Confidence parameters - higher threshold since this is default
         confidence_boost_threshold=0.67,  # Require strong evidence for confidence boost
         confidence_boost_factor=0.6,  # Lower boost factor
         min_score_threshold=6,  # Higher threshold to avoid false positives
