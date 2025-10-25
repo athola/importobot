@@ -195,7 +195,7 @@ exclude = '''
 
 
 [tool.pydocstyle]
-match-dir = '^(?!\.venv|\.uv-cache|build).*'
+match-dir = '^(?!\.venv|\.uv-cache|build|env|benchmarks|examples).*'
 
 [tool.mypy]
 python_version = "3.10"
