@@ -1,3 +1,9 @@
+# Customer data protection
+examples/json/*.backup
+examples/customer_data/
+*.customer.json
+**/ZEPHYR_SOP.txt
+
 # Python cache files
 __pycache__/
 *.py[cod]
@@ -24,17 +30,18 @@ venv/
 ENV/
 
 # Testing
-*.json
 .pytest_cache/
 .coverage
 coverage.xml
 htmlcov/
 *.bak
+
 robot-tests/
 zephyr-tests/
 tests/unit/test_data/
 examples/json/*improved.json
 examples/output/
+examples/robot/templates/
 
 # Robot Framework output files
 log.html
@@ -74,8 +81,8 @@ compile.log
 visualizations/
 .aider*
 
-# MCP configuration
-.mcp/config.json
+# CI/CD
+ci/
 
 # Text artifacts
 *.txt
@@ -97,16 +104,20 @@ visualizations/
 .claude/
 
 # Temporary analysis files
+learned_bayesian_parameters.json
 *.analysis
 *.profile
 *.trace
 
 # Performance benchmarks output
+wiki/benchmarks/format_detection_benchmark.json
 scripts/performance_results/
 scripts/benchmark_output/
+scripts/medallion_data/
 performance-metrics/
 .asv/
 asv_results/
+performance_benchmark_results.json
 
 # Generated test data
 tests/generated/
@@ -117,7 +128,12 @@ wiki/images/
 # Runtime data and learning artifacts
 medallion_data/
 learned_bayesian_parameters.json
+
+# Application cache and configuration
 .importobot/
+
+# Generated documentation
+docs/
 
 # Temporary development files
 commit_msg.txt

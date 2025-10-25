@@ -1,7 +1,7 @@
 """Tests for importobot.api.validation module.
 
 Tests the enterprise validation toolkit for CI/CD pipeline integration.
-Ensures validation functions work correctly for automated processing.
+Verifies validation functions work correctly for automated processing.
 """
 
 import pytest

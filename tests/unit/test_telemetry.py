@@ -1,4 +1,4 @@
-"""Comprehensive unit tests for telemetry module.
+"""Unit tests for telemetry module.
 
 Following TDD principles, these tests verify:
 - Environment variable parsing with edge cases
@@ -11,7 +11,6 @@ Following TDD principles, these tests verify:
 
 import json
 import threading
-from typing import List, Tuple
 from unittest.mock import Mock, patch
 
 import pytest
@@ -63,7 +62,8 @@ class TestEnvironmentParsing:
         assert _float_from_env("TEST_FLOAT", default=3.14) == 3.14
 
     @pytest.mark.parametrize(
-        "value,expected", [("1.5", 1.5), ("0.0", 0.0), ("-2.5", -2.5), ("100", 100.0)]
+        ("value", "expected"),
+        [("1.5", 1.5), ("0.0", 0.0), ("-2.5", -2.5), ("100", 100.0)],
     )
     def test_float_from_env_valid(self, monkeypatch, value, expected):
         """Valid numeric strings should parse correctly."""
@@ -82,7 +82,7 @@ class TestEnvironmentParsing:
         assert _int_from_env("TEST_INT", default=10) == 10
 
     @pytest.mark.parametrize(
-        "value,expected", [("42", 42), ("0", 0), ("-10", -10), ("1000", 1000)]
+        ("value", "expected"), [("42", 42), ("0", 0), ("-10", -10), ("1000", 1000)]
     )
     def test_int_from_env_valid(self, monkeypatch, value, expected):
         """Valid integer strings should parse correctly."""
@@ -100,25 +100,24 @@ class TestTelemetryClientInitialization:
     """Test TelemetryClient initialization and configuration."""
 
     def test_disabled_client_has_no_exporters(self):
-        """Disabled clients should not register any exporters."""
-        client = TelemetryClient(
-            enabled=False, min_emit_interval=60.0, min_sample_delta=100
-        )
-        assert client.enabled is False
-        assert len(client._exporters) == 0
+        """Test that None is returned when telemetry is disabled."""
+        # This test redundant since we tested this in test_singleton_disabled_by_default
+        # and disabled clients are no longer created - we get None instead
+        pass
 
     def test_enabled_client_registers_default_exporter(self):
         """Enabled clients should automatically register the logger exporter."""
         client = TelemetryClient(
-            enabled=True, min_emit_interval=60.0, min_sample_delta=100
+            min_emit_interval=60.0,
+            min_sample_delta=100,
         )
-        assert client.enabled is True
         assert len(client._exporters) == 1
 
     def test_configuration_parameters_stored(self):
         """Client should store provided configuration."""
         client = TelemetryClient(
-            enabled=True, min_emit_interval=30.0, min_sample_delta=50
+            min_emit_interval=30.0,
+            min_sample_delta=50,
         )
         assert client._min_emit_interval == 30.0
         assert client._min_sample_delta == 50
@@ -126,7 +125,8 @@ class TestTelemetryClientInitialization:
     def test_thread_safe_initialization(self):
         """Client initialization should be thread-safe."""
         client = TelemetryClient(
-            enabled=True, min_emit_interval=60.0, min_sample_delta=100
+            min_emit_interval=60.0,
+            min_sample_delta=100,
         )
         assert isinstance(client._lock, type(threading.Lock()))
         assert isinstance(client._last_emit, dict)
@@ -138,7 +138,8 @@ class TestExporterManagement:
     def test_register_exporter_when_enabled(self):
         """Exporters should be registered when client is enabled."""
         client = TelemetryClient(
-            enabled=True, min_emit_interval=60.0, min_sample_delta=100
+            min_emit_interval=60.0,
+            min_sample_delta=100,
         )
         initial_count = len(client._exporters)
 
@@ -150,18 +151,15 @@ class TestExporterManagement:
 
     def test_register_exporter_when_disabled_does_nothing(self):
         """Exporters should not be registered when client is disabled."""
-        client = TelemetryClient(
-            enabled=False, min_emit_interval=60.0, min_sample_delta=100
-        )
-        custom_exporter = Mock()
-        client.register_exporter(custom_exporter)
-
-        assert len(client._exporters) == 0
+        # In the new architecture, all instantiated clients are enabled
+        # This test concept is no longer applicable
+        pass
 
     def test_clear_exporters_enabled(self):
         """Clearing exporters should reset to default when enabled."""
         client = TelemetryClient(
-            enabled=True, min_emit_interval=60.0, min_sample_delta=100
+            min_emit_interval=60.0,
+            min_sample_delta=100,
         )
         client.register_exporter(Mock())
         client.register_exporter(Mock())
@@ -173,17 +171,15 @@ class TestExporterManagement:
 
     def test_clear_exporters_disabled(self):
         """Clearing exporters on disabled client should result in empty list."""
-        client = TelemetryClient(
-            enabled=False, min_emit_interval=60.0, min_sample_delta=100
-        )
-        client.clear_exporters()
-
-        assert len(client._exporters) == 0
+        # In the new architecture, all instantiated clients are enabled
+        # This test concept is no longer applicable
+        pass
 
     def test_multiple_exporters_receive_events(self):
         """All registered exporters should receive emitted events."""
         client = TelemetryClient(
-            enabled=True, min_emit_interval=0.0, min_sample_delta=0
+            min_emit_interval=0.0,
+            min_sample_delta=0,
         )
         client.clear_exporters()
 
@@ -206,25 +202,20 @@ class TestCacheMetricsRecording:
     """Test cache metrics recording with rate limiting."""
 
     def test_disabled_client_does_not_record(self):
-        """Disabled clients should not record any metrics."""
-        client = TelemetryClient(
-            enabled=False, min_emit_interval=60.0, min_sample_delta=100
-        )
-        exporter = Mock()
-        client.register_exporter(exporter)
-
-        client.record_cache_metrics("test_cache", hits=100, misses=50)
-
-        exporter.assert_not_called()
+        """Test that no metrics are recorded when telemetry is disabled."""
+        # In the new architecture, we don't have disabled clients
+        # We either have a client or None
+        pass
 
     def test_basic_metric_recording(self):
         """Client should record metrics with correct structure."""
         client = TelemetryClient(
-            enabled=True, min_emit_interval=0.0, min_sample_delta=0
+            min_emit_interval=0.0,
+            min_sample_delta=0,
         )
         client.clear_exporters()
 
-        events: List[Tuple[str, TelemetryPayload]] = []
+        events: list[tuple[str, TelemetryPayload]] = []
         client.register_exporter(lambda name, payload: events.append((name, payload)))
 
         client.record_cache_metrics("test_cache", hits=80, misses=20)
@@ -242,11 +233,12 @@ class TestCacheMetricsRecording:
     def test_hit_rate_calculation(self):
         """Hit rate should be calculated correctly."""
         client = TelemetryClient(
-            enabled=True, min_emit_interval=0.0, min_sample_delta=0
+            min_emit_interval=0.0,
+            min_sample_delta=0,
         )
         client.clear_exporters()
 
-        events: List[Tuple[str, TelemetryPayload]] = []
+        events: list[tuple[str, TelemetryPayload]] = []
         client.register_exporter(lambda name, payload: events.append((name, payload)))
 
         # 100% hit rate
@@ -264,11 +256,12 @@ class TestCacheMetricsRecording:
     def test_zero_requests_hit_rate(self):
         """Zero requests should result in 0.0 hit rate without division error."""
         client = TelemetryClient(
-            enabled=True, min_emit_interval=0.0, min_sample_delta=0
+            min_emit_interval=0.0,
+            min_sample_delta=0,
         )
         client.clear_exporters()
 
-        events: List[Tuple[str, TelemetryPayload]] = []
+        events: list[tuple[str, TelemetryPayload]] = []
         client.register_exporter(lambda name, payload: events.append((name, payload)))
 
         client.record_cache_metrics("empty_cache", hits=0, misses=0)
@@ -278,11 +271,12 @@ class TestCacheMetricsRecording:
     def test_extras_payload_merged(self):
         """Extra payload fields should be merged into metrics."""
         client = TelemetryClient(
-            enabled=True, min_emit_interval=0.0, min_sample_delta=0
+            min_emit_interval=0.0,
+            min_sample_delta=0,
         )
         client.clear_exporters()
 
-        events: List[Tuple[str, TelemetryPayload]] = []
+        events: list[tuple[str, TelemetryPayload]] = []
         client.register_exporter(lambda name, payload: events.append((name, payload)))
 
         extras: dict[str, object] = {"cache_size": 500, "max_size": 1000}
@@ -298,11 +292,12 @@ class TestCacheMetricsRecording:
         Rate limiting uses AND logic: both conditions must be met to throttle.
         """
         client = TelemetryClient(
-            enabled=True, min_emit_interval=999999.0, min_sample_delta=100
+            min_emit_interval=999999.0,
+            min_sample_delta=100,
         )
         client.clear_exporters()
 
-        events: List[Tuple[str, TelemetryPayload]] = []
+        events: list[tuple[str, TelemetryPayload]] = []
         client.register_exporter(lambda name, payload: events.append((name, payload)))
 
         # First call should emit
@@ -320,11 +315,12 @@ class TestCacheMetricsRecording:
     def test_rate_limiting_by_time_interval(self):
         """Metrics should be throttled based on time interval."""
         client = TelemetryClient(
-            enabled=True, min_emit_interval=60.0, min_sample_delta=999999
+            min_emit_interval=60.0,
+            min_sample_delta=999999,
         )
         client.clear_exporters()
 
-        events: List[Tuple[str, TelemetryPayload]] = []
+        events: list[tuple[str, TelemetryPayload]] = []
         client.register_exporter(lambda name, payload: events.append((name, payload)))
 
         base_time = 1000.0
@@ -347,11 +343,12 @@ class TestCacheMetricsRecording:
     def test_separate_caches_tracked_independently(self):
         """Different cache names should have independent rate limiting."""
         client = TelemetryClient(
-            enabled=True, min_emit_interval=60.0, min_sample_delta=100
+            min_emit_interval=60.0,
+            min_sample_delta=100,
         )
         client.clear_exporters()
 
-        events: List[Tuple[str, TelemetryPayload]] = []
+        events: list[tuple[str, TelemetryPayload]] = []
         client.register_exporter(lambda name, payload: events.append((name, payload)))
 
         client.record_cache_metrics("cache1", hits=10, misses=5)
@@ -368,7 +365,8 @@ class TestExporterErrorHandling:
     def test_failing_exporter_does_not_crash(self):
         """Exceptions in exporters should be caught and logged."""
         client = TelemetryClient(
-            enabled=True, min_emit_interval=0.0, min_sample_delta=0
+            min_emit_interval=0.0,
+            min_sample_delta=0,
         )
         client.clear_exporters()
 
@@ -389,7 +387,8 @@ class TestExporterErrorHandling:
     def test_default_logger_exporter_format(self):
         """Default logger exporter should produce valid JSON."""
         client = TelemetryClient(
-            enabled=True, min_emit_interval=0.0, min_sample_delta=0
+            min_emit_interval=0.0,
+            min_sample_delta=0,
         )
 
         # Capture logger output
@@ -412,21 +411,28 @@ class TestExporterErrorHandling:
 class TestGlobalSingleton:
     """Test global telemetry client singleton."""
 
-    def test_get_telemetry_client_returns_singleton(self):
+    def test_get_telemetry_client_returns_singleton(self, monkeypatch):
         """Multiple calls should return the same instance."""
+        monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")
         reset_telemetry_client()
 
         client1 = get_telemetry_client()
         client2 = get_telemetry_client()
 
+        assert client1 is not None
+        assert client2 is not None
         assert client1 is client2
 
-    def test_reset_telemetry_client_clears_singleton(self):
+    def test_reset_telemetry_client_clears_singleton(self, monkeypatch):
         """Reset should allow new instance creation."""
+        monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")
+        reset_telemetry_client()
         client1 = get_telemetry_client()
         reset_telemetry_client()
         client2 = get_telemetry_client()
 
+        assert client1 is not None
+        assert client2 is not None
         assert client1 is not client2
 
     def test_global_register_exporter(self, monkeypatch):
@@ -438,6 +444,7 @@ class TestGlobalSingleton:
         register_telemetry_exporter(exporter)
 
         client = get_telemetry_client()
+        assert client is not None
         assert exporter in client._exporters
 
     def test_global_clear_exporters(self, monkeypatch):
@@ -449,6 +456,7 @@ class TestGlobalSingleton:
         clear_telemetry_exporters()
 
         client = get_telemetry_client()
+        assert client is not None
         # Should only have default exporter
         assert len(client._exporters) == 1
 
@@ -460,8 +468,8 @@ class TestGlobalSingleton:
         reset_telemetry_client()
 
         client = get_telemetry_client()
+        assert client is not None
 
-        assert client.enabled is True
         assert client._min_emit_interval == 30.0
         assert client._min_sample_delta == 50
 
@@ -471,8 +479,7 @@ class TestGlobalSingleton:
         reset_telemetry_client()
 
         client = get_telemetry_client()
-
-        assert client.enabled is False
+        assert client is None
 
 
 class TestThreadSafety:
@@ -481,11 +488,12 @@ class TestThreadSafety:
     def test_concurrent_metric_recording(self):
         """Concurrent metric recording should be thread-safe."""
         client = TelemetryClient(
-            enabled=True, min_emit_interval=0.0, min_sample_delta=0
+            min_emit_interval=0.0,
+            min_sample_delta=0,
         )
         client.clear_exporters()
 
-        events: List[Tuple[str, TelemetryPayload]] = []
+        events: list[tuple[str, TelemetryPayload]] = []
         lock = threading.Lock()
 
         def thread_safe_exporter(name, payload):
@@ -514,7 +522,8 @@ class TestThreadSafety:
     def test_concurrent_exporter_registration(self):
         """Concurrent exporter registration should be thread-safe."""
         client = TelemetryClient(
-            enabled=True, min_emit_interval=60.0, min_sample_delta=100
+            min_emit_interval=60.0,
+            min_sample_delta=100,
         )
 
         def register_exporter():

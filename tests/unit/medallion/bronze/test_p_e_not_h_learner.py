@@ -139,7 +139,7 @@ class TestPENotHLearner:
         assert comparison["mse_hardcoded"] < 1e-6
         assert comparison["mse_learned"] < 1e-6
 
-    def test_heuristic_fallback_when_scipy_unavailable(self, monkeypatch):
+    def test_heuristic_default_when_scipy_unavailable(self, monkeypatch):
         """Should use heuristics when scipy is not available."""
         monkeypatch.setattr(learner_module, "_SCIPY_AVAILABLE", False)
         monkeypatch.setattr(learner_module, "optimize", None)

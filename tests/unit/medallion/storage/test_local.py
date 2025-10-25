@@ -127,12 +127,12 @@ class TestLocalStorageDataOps:
         assert metadata_file.exists()
 
         # Verify data content
-        with open(data_file, "r", encoding="utf-8") as f:
+        with open(data_file, encoding="utf-8") as f:
             stored_data = json.load(f)
         assert stored_data == sample_data
 
         # Verify metadata content
-        with open(metadata_file, "r", encoding="utf-8") as f:
+        with open(metadata_file, encoding="utf-8") as f:
             stored_metadata = json.load(f)
         assert stored_metadata["layer_name"] == "bronze"
         assert stored_metadata["data_hash"] == "test_hash_123"

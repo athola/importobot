@@ -17,27 +17,25 @@ class _DummyLayer(BaseMedallionLayer):
         super().__init__("dummy")
 
     # Minimal implementations to satisfy abstract interface; not exercised in tests
-    def ingest(self, data, metadata):  # type: ignore[override]
+    def ingest(self, data, metadata):
         raise NotImplementedError
 
-    def ingest_with_detection(self, data, source_info):  # type: ignore[override]
+    def ingest_with_detection(self, data, source_info):
         raise NotImplementedError
 
-    def validate(self, data):  # type: ignore[override]
+    def validate(self, data):
         raise NotImplementedError
 
-    def get_record_metadata(self, record_id):  # type: ignore[override]
+    def get_record_metadata(self, record_id):
         raise NotImplementedError
 
-    def get_record_lineage(self, record_id):  # type: ignore[override]
+    def get_record_lineage(self, record_id):
         raise NotImplementedError
 
-    def validate_bronze_data(self, data):  # type: ignore[override]
+    def validate_bronze_data(self, data):
         raise NotImplementedError
 
-    def get_bronze_records(  # type: ignore[override]
-        self, filter_criteria=None, limit=None
-    ):
+    def get_bronze_records(self, filter_criteria=None, limit=None):
         raise NotImplementedError
 
 

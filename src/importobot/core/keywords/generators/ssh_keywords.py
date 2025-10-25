@@ -30,7 +30,7 @@ class SSHKeywordGenerator(BaseKeywordGenerator):
             host = ssh_match.group(2)
             return format_robot_framework_arguments(keyword_name, host, username)
 
-        # Fallback to structured format
+        # If ssh command format fails, try structured format
         host = extract_pattern(test_data, r"(?:host|server)\s*:\s*([^,\s]+)")
         username = extract_pattern(test_data, r"username\s*:\s*([^,\s]+)")
         password = extract_pattern(test_data, r"password\s*:\s*([^,\s]+)")

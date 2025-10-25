@@ -14,12 +14,13 @@ We release patches for security vulnerabilities for the following versions:
 If you discover a security vulnerability within Importobot, please follow these steps:
 
 1. **Do not create a public issue** - Vulnerabilities should be reported privately.
-2. Send an email to our security team at security@importobot.com with the following information:
+2. **Preferred:** Open a [private security advisory](https://github.com/athola/importobot/security/advisories/new) on GitHub so maintainers are paged immediately.
+3. **Alternative Method:** If you must email, write to security@importobot.com *after* confirming the mailbox is monitored for your disclosure window (expect a human acknowledgement within one business day). Include:
    - Description of the vulnerability
    - Steps to reproduce the issue
    - Potential impact of the vulnerability
    - Any possible mitigations you've identified
-3. Encrypt your message with our PGP key if possible (key details below)
+4. Encrypt your message with our PGP key if possible (key details below)
 
 ### Alternative Reporting Methods
 
@@ -41,21 +42,12 @@ For sensitive vulnerability reports, you can encrypt your message using our PGP 
 
 ### Response Expectations
 
-When you report a vulnerability, our security team will:
-
-1. Acknowledge your report within 48 hours
-2. Investigate and validate the issue within 5 business days
-3. Work on a fix and coordinate a release date with you
-4. Notify you when the fix is published
-5. Credit you in our release notes (unless you prefer to remain anonymous)
+When you report a vulnerability, our security team typically acknowledges reports within 48 hours and completes validation within 5 business days. We coordinate fix timing with you and notify you when patches are released. Security credits are included in release notes unless you prefer to remain anonymous.
 
 ## Security Considerations
 
 ### Data Handling
-Importobot processes data from external sources. Users should:
-- Validate and sanitize imported data
-- Regularly update to the latest version
-- Review permissions granted to imported content
+Importobot processes data from external test management systems. Keep your systems secure by validating imported test data, applying updates promptly, and reviewing permissions for any imported Robot Framework files.
 
 ### Security Gateway Scope
 The `SecurityGateway` hardens API inputs against XSS and path traversal as data
@@ -68,6 +60,64 @@ continue to use parameterized queries and schema validation in those systems.
   bucket (`IMPORTOBOT_SECURITY_RATE_LIMIT` / `IMPORTOBOT_SECURITY_RATE_INTERVAL_SECONDS`)
   so bursts of malicious requests surface as rate-limit errors instead of
   exhausting CPU.
+
+  Example hardening profile for CI environments:
+
+  ```bash
+  export IMPORTOBOT_SECURITY_RATE_LIMIT=40                # max 40 guarded ops
+  export IMPORTOBOT_SECURITY_RATE_INTERVAL_SECONDS=60     # per 60-second window
+  export IMPORTOBOT_SECURITY_RATE_MAX_QUEUE=20            # queued requests before drop
+  export IMPORTOBOT_SECURITY_RATE_BACKOFF_BASE=2          # exponential backoff base
+  export IMPORTOBOT_SECURITY_RATE_BACKOFF_MAX=8           # cap in seconds
+  ```
+
+  For on-prem deployments, settings can also be persisted in `.env`:
+
+  ```ini
+  # security.env
+  IMPORTOBOT_SECURITY_RATE_LIMIT=25
+  IMPORTOBOT_SECURITY_RATE_INTERVAL_SECONDS=30
+  IMPORTOBOT_SECURITY_RATE_MAX_QUEUE=10
+  IMPORTOBOT_SECURITY_RATE_BACKOFF_BASE=2
+  IMPORTOBOT_SECURITY_RATE_BACKOFF_MAX=6
+  ```
+
+  Load the profile with `dotenv` tooling or by sourcing the file prior to
+  launching Importobot services to ensure consistent throttling across hosts.
+
+### Schema and Template Hardening
+
+Schema ingestion and template rendering accept user-supplied files. As of
+October&nbsp;2025, Importobot applies the following defenses:
+
+- **Schema parser safeguards:** Only UTF-8 text files with approved extensions
+  (`.md`, `.txt`, `.rst`, `.json`, `.yaml`) are parsed. Symbolic links, binary
+  samples, or files above 1&nbsp;MiB are rejected before reading. Each schema
+  payload is sanitized to strip control characters, capped at 2&nbsp;MiB of
+  content, and limited to 256 sections to contain DoS-style payloads.
+- **Template validation:** Template sources are scanned for inline Python
+  (`${{ ... }}`), `Evaluate` keywords, and placeholders that begin with `__`.
+  Any offending file is skipped. Templates must reside in regular files (no
+  symlinks), stay under 2&nbsp;MiB, and pass a textual sniff test before
+  ingestion.
+- **Sandboxed rendering:** All blueprint renderers now rely on a sandboxed
+  `string.Template` subclass that drops unsafe placeholders, coerces values to
+  strings, strips control characters, and truncates substitutions to 4&nbsp;KiB
+  per token. This prevents template injection through crafted test data.
+- **Resource hygiene:** Robot resource imports discovered during ingestion are
+  validated with the same controls, and binary or high-risk resources are
+  ignored.
+- **Credential handling:** Password parameters are encrypted in memory using an
+  optional Fernet key (a warning is logged if a key is not provided) to keep plaintext secrets
+  out of diagnostic logs.
+- **Secrets detection:** Test generation performs regex-based scanning of
+  templates and dynamic data, aborting when API keys, JWT tokens, or passwords
+  are detected.
+- **API rate limiting:** External API clients employ a token-bucket rate limiter
+  to stay within upstream throttling thresholds and prevent service bans.
+
+Downstream integrations that execute rendered templates should still run in
+isolated automation accounts and apply command-level allow-lists.
 
 #### Choosing a Security Level
 
@@ -85,18 +135,11 @@ untrusted input can reach the gateway. Mix levels per process by instantiating
 `SecurityGateway(security_level="…")`.
 
 ### Dependencies
-We regularly update dependencies to address known vulnerabilities:
-- Automated dependency updates via Dependabot
-- Regular security audits of our codebase
-- Prompt response to CVEs in our dependencies
+We keep dependencies current with automated Dependabot updates and regular security audits. Critical CVEs in our dependencies are evaluated and patched promptly based on risk impact.
 
 ## Security Best Practices
 
-For users of Importobot, we recommend:
-- Running the latest stable version
-- Using minimal required permissions for imported content
-- Regularly reviewing imported data for anomalies
-- Monitoring logs for suspicious activity
+Keep Importobot secure by running the latest stable version and applying minimal permissions to imported test content. Review converted Robot files for unusual commands and monitor execution logs for unexpected activity.
 
 ### SSH and Command Execution Security
 
@@ -209,20 +252,14 @@ Importobot automatically detects and warns about access to sensitive files:
 #### Security Monitoring and Auditing
 
 **🔒 Logging and Monitoring:**
-- Log all SSH connections and command executions
-- Monitor for unusual test patterns or failures
-- Implement alerting for security policy violations
-- Regular security audits of generated test suites
+Log SSH connections and command executions to track test activities. Monitor for unusual test patterns that might indicate misuse and set up alerts for security policy violations. Conduct regular audits of generated test suites to ensure they follow security guidelines.
 
 **🔒 Compliance Considerations:**
-- Ensure test activities comply with organizational security policies
-- Document test procedures for security audits
-- Implement approval workflows for high-risk test scenarios
-- Regular review of test permissions and access levels
+Test activities should align with your organization's security policies. Document test procedures for audit trails and implement approval workflows for high-risk test scenarios. Periodically review test permissions and access levels to maintain least privilege principles.
 
 ## Additional Security Resources
 
 - [GitHub Security Advisories](https://github.com/athola/importobot/security/advisories)
 - [GitHub Dependabot Alerts](https://github.com/athola/importobot/security/dependabot)
 
-For any security-related questions or concerns not covered in this policy, please contact security@importobot.com.
+For any security-related questions or concerns not covered in this policy, please either use GitHub's private advisory channel or contact security@importobot.com after verifying it is actively monitored.

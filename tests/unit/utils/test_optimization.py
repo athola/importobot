@@ -5,6 +5,8 @@
 import random
 from unittest.mock import patch
 
+import pytest
+
 from importobot.utils.optimization import (
     AnnealingConfig,
     GeneticAlgorithmOptimizer,
@@ -12,6 +14,8 @@ from importobot.utils.optimization import (
     OptimizerConfig,
     simulated_annealing,
 )
+
+pytestmark = pytest.mark.slow
 
 
 class TestOptimizerConfig:

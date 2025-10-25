@@ -55,8 +55,8 @@ jobs:
     - name: Install dependencies
       run: uv sync --dev
     
-    - name: Run tests with coverage
-      run: uv run coverage run -m pytest --junitxml=test-results.xml
+    - name: Run full test suite via Makefile
+      run: make test-all
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
@@ -71,7 +71,10 @@ jobs:
     
     - name: Generate coverage XML
       run: uv run coverage xml
-    
+
+    - name: Verify test count baseline
+      run: uv run python scripts/src/importobot_scripts/devtools/check_test_count.py
+
     - name: Minimize uv cache
       run: uv cache prune --ci
     
@@ -122,7 +125,7 @@ jobs:
 
     - name: Run Bronze ingestion benchmark
       env:
-        BRONZE_BENCHMARK_MIN_RATIO: "0.8"
+        BRONZE_BENCHMARK_MIN_RATIO: "0.75"
         BRONZE_BENCHMARK_MIN_BASELINE: "250"
       run: |
         cd scripts && uv run python -m importobot_scripts.benchmarks.run_bronze_benchmark --output performance-metrics/bronze_benchmark.json

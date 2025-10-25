@@ -49,8 +49,7 @@ def main() -> int:
 def _parse_arguments() -> argparse.Namespace:
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description="Generate comprehensive enterprise test cases "
-        "using consolidated utilities"
+        description="Generate test cases using consolidated utilities"
     )
     parser.add_argument(
         "--output-dir",
@@ -132,11 +131,8 @@ def _parse_custom_parameters(
 def _print_generation_info(args: argparse.Namespace) -> None:
     """Print information about the test generation process."""
     if args.verbose:
-        print(f"Generating {args.count} enterprise test cases in {args.output_dir}/")
-        print(
-            "Using consolidated test generation utility with "
-            "enhanced enterprise scenarios"
-        )
+        print(f"Generating {args.count} test cases in {args.output_dir}/")
+        print("Using consolidated test generation utility with enhanced scenarios")
         print("")
 
 
@@ -150,11 +146,11 @@ def _print_results(args: argparse.Namespace, counts: dict[str, int]) -> None:
         print("  • API testing with microservices integration")
         print("  • Database testing with enterprise data operations")
         print("  • Infrastructure testing with cloud-native operations")
-        print("  • Security testing with comprehensive validation")
+        print("  • Security testing with thorough validation")
         print("")
 
     total_generated = sum(counts.values())
-    print(f"Successfully generated {total_generated} enterprise test cases")
+    print(f"Successfully generated {total_generated} test cases")
 
     if args.verbose:
         print("Output structure:")

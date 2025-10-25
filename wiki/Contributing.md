@@ -1,6 +1,6 @@
 # Contributing
 
-We welcome contributions. Follow the steps below to get set up and keep changes aligned with the project style.
+We welcome contributions. This guide explains how to get set up and align your changes with the project's style.
 
 ## Development Setup
 
@@ -35,11 +35,7 @@ Importobot follows Test-Driven Development (TDD) and Extreme Programming (XP) pr
 
 ### Code Quality
 
-All code must:
-- Keep the test suite green.
-- Maintain coverage targets.
-- Pass linting (ruff/pylint/pycodestyle/pydocstyle).
-- Update docs when behaviour changes.
+All code must pass the test suite, maintain coverage targets, and pass all linting checks. Update the documentation if you change any behavior.
 
 ### Running Tests
 
@@ -77,7 +73,7 @@ make clean
 make deep-clean  # For more thorough cleanup
 ```
 
-## Repository structure
+
 
 ## Project Structure
 
@@ -101,30 +97,17 @@ tests/
 
 ## Testing Standards
 
-### Unit Tests
-- Test isolated components.
-- Execute quickly with minimal dependencies.
-- Use mocking for external dependencies.
-- Located in `tests/unit/`.
+**Unit Tests** test isolated components, execute quickly with minimal dependencies, and use mocking for external dependencies. They are located in `tests/unit/`.
 
-### Integration Tests
-- Test the interaction between multiple components.
-- Perform file I/O operations.
-- Verify end-to-end functionality.
-- Located in `tests/integration/`.
+**Integration Tests** test the interaction between multiple components, perform file I/O operations, and verify end-to-end functionality. They are located in `tests/integration/`.
 
-### CLI Tests
-- Test command-line interface functionality.
-- Verify argument parsing and handling.
-- Located in `tests/cli/`.
+**CLI Tests** test command-line interface functionality, including argument parsing and handling. They are located in `tests/cli/`.
 
 ## Code Style
 
 ### General Guidelines
-- Follow the existing code style and patterns.
-- Use descriptive variable and function names.
-- Keep functions small and focused.
-- Use 4 spaces for indentation.
+
+Follow the existing code style. Use descriptive names, keep functions small, and use 4 spaces for indentation.
 
 ### Type Hints
 - Use type hints for function parameters and return values.
@@ -150,48 +133,13 @@ def convert_test_case(test_data: dict) -> str:
     # Implementation
 ```
 
-## Branching Strategy
-
-Importobot uses a development-based workflow:
-
-### Branch Structure
-
-- **`main`**: Production-ready code. Only receives merges from `development` after release testing.
-- **`development`**: Integration branch for feature development. All MRs target this branch.
-- **Feature branches**: Created from `development` for specific features or fixes.
-
-### Workflow
-
-1. **Feature Development**:
-   - Create feature branch from `development`: `git checkout -b feature/my-feature development`
-   - Make changes, write tests, commit regularly
-   - Push and create MR targeting `development`
-
-2. **Release Process**:
-   - When `development` is stable and ready for release, merge to `main`
-   - Tag the merge commit with version: `git tag v0.1.4`
-   - Push tag to trigger PyPI release: `git push origin v0.1.4`
-
-3. **Hotfixes**:
-   - Create from `main` for urgent production fixes
-   - Merge to both `main` and `development`
-
-### Branch Protection
-
-- `main`: Requires PR review, passing CI, and clean merge from `development`
-- `development`: Requires passing tests before merge
-
 ## Pull Request Process
 
-1. Fork the repository.
-2. Create a feature branch from `development`.
-3. Make your changes.
-4. Add tests for your changes.
-5. Ensure all tests pass locally.
-6. Update documentation as needed.
-7. Create a pull request targeting `development`.
-8. Address any feedback from reviewers.
-9. Once approved, maintainers will merge to `development`.
+1. Fork the repository and create a feature branch.
+2. Make your changes, including tests.
+3. Ensure all tests and linting checks pass.
+4. Update documentation if needed.
+5. Create a pull request and address any feedback.
 
 ## Artifact management
 
@@ -200,17 +148,8 @@ Importobot uses a development-based workflow:
 
 ## Reporting Issues
 
-When reporting issues, please include:
-- A clear description of the problem.
-- Steps to reproduce the issue.
-- The expected and actual behavior.
-- Environment information (Python version, OS, etc.).
-- Relevant code snippets or error messages.
+When reporting issues, please include a clear description of the problem, steps to reproduce it, the expected and actual behavior, and environment information (Python version, OS, etc.).
 
 ## Feature Requests
 
-New feature requests are welcomed! Please:
-- Explain the problem the feature would solve.
-- Provide use cases.
-- If possible, suggest implementation approaches.
-- Consider how the feature fits within the project's goals.
+For new feature requests, please explain the problem the feature would solve and provide use cases. If possible, suggest implementation approaches and consider how the feature fits within the project's goals.

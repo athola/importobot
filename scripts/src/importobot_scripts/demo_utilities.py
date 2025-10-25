@@ -51,7 +51,7 @@ class FileOperations:
             if self.loader.error_handler and self.loader.error_handler.handle_error(
                 e, f"reading {file_path}"
             ):
-                self.loader.demo_logger.warning(f"Using fallback data for {file_path}")
+                self.loader.demo_logger.warning(f"Using default data for {file_path}")
                 return None
             self.loader.demo_logger.error(f"Failed to read {file_path}", exc_info=e)
             return None

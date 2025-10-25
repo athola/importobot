@@ -20,7 +20,7 @@ class TestSetupLogger:
         """Test that a handler is added only once for the same logger name."""
         # Reset logging to ensure a clean state
         logging.shutdown()
-        reload(logging)
+        reload(logging)  # type: ignore[no-untyped-call]
 
         logger1 = setup_logger("singleton_logger")
         assert len(logger1.handlers) == 1

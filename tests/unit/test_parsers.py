@@ -19,10 +19,10 @@ class TestGenericTestFileParserInitialization:
         parser = GenericTestFileParser()
 
         # pylint: disable=protected-access
-        assert hasattr(parser, "_step_field_names_cache")  # noqa: E501
+        assert hasattr(parser, "_step_field_names_cache")
         assert isinstance(
             parser._step_field_names_cache,
-            frozenset,  # noqa: E501
+            frozenset,
         )
 
     def test_parser_implements_interface(self):

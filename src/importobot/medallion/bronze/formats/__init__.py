@@ -12,8 +12,8 @@ Each format definition includes:
 Format definitions are based on research into:
 - Zephyr for JIRA (execution cycles, separate data model)
 - Xray for JIRA (tests as JIRA issues, evidence attachments)
-- TestRail (cloud and on-premise)
-- TestLink (XML exports)
+- TestRail (hierarchical structure, independent platform)
+- TestLink (XML-based, suite-centric)
 - Generic (default for unsupported formats)
 """
 
@@ -25,11 +25,11 @@ from .xray_format import create_xray_format
 from .zephyr_format import create_zephyr_format
 
 __all__ = [
-    "create_zephyr_format",
-    "create_xray_format",
-    "create_testrail_format",
-    "create_testlink_format",
     "create_generic_format",
-    "create_unknown_format",
     "create_placeholder_format",
+    "create_testlink_format",
+    "create_testrail_format",
+    "create_unknown_format",
+    "create_xray_format",
+    "create_zephyr_format",
 ]

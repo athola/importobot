@@ -1,4 +1,6 @@
-# Importobot: Test Framework Converter
+# Importobot
+
+<div align="center">
 
 | | |
 | --- | --- |
@@ -6,33 +8,31 @@
 | Package | [![PyPI Version](https://img.shields.io/pypi/v/importobot.svg)](https://pypi.org/project/importobot/) [![PyPI Downloads](https://img.shields.io/pypi/dm/importobot.svg)](https://pypi.org/project/importobot/) |
 | Meta | [![License](https://img.shields.io/pypi/l/importobot.svg)](./LICENSE) [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/) [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff) [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv) |
 
+</div>
+
 ## What is it?
 
-**Importobot** is a Python library that converts structured test exports from enterprise test management systems (Zephyr, TestRail, TestLink, Xray) into Robot Framework test suites. It eliminates manual test case migration work while preserving step order, metadata, and traceability links.
+**Importobot** is a Python package for converting structured test exports from Zephyr, TestRail, Xray, and TestLink into Robot Framework test files. We built it to automate the tedious process of manually migrating large test suites, which often involves re-typing thousands of test steps and losing valuable metadata.
+
+This tool preserves test metadata (descriptions, tags, priorities) and converts test steps into clean Robot Framework syntax. Our goal is to make test migration faster, more accurate, and less painful.
 
 ## Main Features
 
-- **Multi-Format Support**: Convert from Zephyr, TestRail, TestLink, and Xray JSON exports
-- **Bulk Processing**: Process entire directories recursively with consistent quality
-- **Metadata Preservation**: Retain descriptions, tags, priorities, and traceability for compliance
-- **Security Validation**: Built-in XSS sanitization and DoS protection with rate limiting
-- **Bayesian Format Detection**: Intelligent format detection with confidence scoring to avoid false positives
-- **Performance Tracking**: ASV (Airspeed Velocity) benchmarking tracks performance across releases
-- **CI/CD Ready**: Python API designed for automated pipeline integration
-- **Medallion Architecture**: Bronze/Silver/Gold data quality layers for enterprise deployments
+- **Bulk Conversion** - Process entire directories with a single command
+- **API Integration** - Fetch test data directly from Zephyr, TestRail, JIRA/Xray, and TestLink
+- **Template Learning** - Learn patterns from existing Robot Framework files to maintain consistency
+- **Schema-Aware Parsing** - Read field definitions from your documentation to improve accuracy (85% → 95%)
+- **Confidence Scoring** - Bayesian inference to detect unusual input formats and reduce incorrect conversions
+- **Performance** - Convert 1,000 tests in ~6 seconds with ~20KB memory per test case
 
 ## Where to get it
 
-Install the latest release from PyPI:
+The source code is currently hosted on GitHub at: https://github.com/athola/importobot
 
-```console
+Binary installers for the latest released version are available at the [Python Package Index (PyPI)](https://pypi.org/project/importobot):
+
+```sh
 pip install importobot
-```
-
-For advanced optimization features and uncertainty quantification:
-
-```console
-pip install "importobot[advanced]"
 ```
 
 ## Quick Start
@@ -40,97 +40,93 @@ pip install "importobot[advanced]"
 ```python
 import importobot
 
+# Convert a single file
 converter = importobot.JsonToRobotConverter()
 summary = converter.convert_file("zephyr_export.json", "output.robot")
 print(summary)
+
+# Convert a directory
+result = converter.convert_directory("./exports", "./converted")
 ```
 
-Or via the command line:
+### Command Line Interface
 
-```console
+```sh
+# Basic conversion
 importobot zephyr_export.json converted_tests.robot
-```
 
-Process entire directories:
+# API integration
+importobot \
+    --fetch-format zephyr \
+    --api-url https://your-zephyr.example.com \
+    --tokens your-api-token \
+    --project PROJECT_KEY \
+    --output converted.robot
 
-```console
-importobot ./exports/zephyr ./converted
+# Template-based conversion
+importobot --robot-template templates/ input.json output.robot
+
+# Schema-driven parsing
+importobot --input-schema docs/field_guide.md input.json output.robot
 ```
 
 ## Documentation
 
 The official documentation is hosted on the [project wiki](https://github.com/athola/importobot/wiki):
 
-- **[Home](https://github.com/athola/importobot/wiki/Home)** - Project overview and recent improvements
-- **[User Guide](https://github.com/athola/importobot/wiki/User-Guide)** - Comprehensive usage guide with examples
-- **[Performance Benchmarks](https://github.com/athola/importobot/wiki/Performance-Benchmarks)** - ASV benchmarking and performance metrics
-- **[Migration Guide](https://github.com/athola/importobot/wiki/Migration-Guide)** - Version upgrade instructions
-- **[Architecture](https://github.com/athola/importobot/wiki/architecture)** - Design decisions and medallion architecture
-- **[Deployment Guide](https://github.com/athola/importobot/wiki/Deployment-Guide)** - CI/CD integration and production deployment
-- **[Mathematical Foundations](https://github.com/athola/importobot/wiki/Mathematical-Foundations)** - Bayesian format detection deep dive
+- **[Getting Started](https://github.com/athola/importobot/wiki/Getting-Started)** - Installation and basic usage
+- **[User Guide](https://github.com/athola/importobot/wiki/User-Guide)** - Complete usage instructions including API retrieval
+- **[Blueprint Tutorial](https://github.com/athola/importobot/wiki/Blueprint-Tutorial)** - Step-by-step guide to the template learning system
+- **[API Examples](https://github.com/athola/importobot/wiki/API-Examples)** - Detailed API usage examples
+- **[API Reference](https://github.com/athola/importobot/wiki/API-Reference)** - Function and class reference
+- **[Migration Guide](https://github.com/athola/importobot/wiki/Migration-Guide)** - Upgrade instructions and version compatibility
+- **[Performance Benchmarks](https://github.com/athola/importobot/wiki/Performance-Benchmarks)** - Performance characteristics and optimization details
+- **[FAQ](https://github.com/athola/importobot/wiki/FAQ)** - Common issues and solutions
 
-## Dependencies
+## Development
 
-Importobot requires Python 3.10 or higher.
+Install [uv](https://github.com/astral-sh/uv) for package management:
 
-Core dependencies:
-- [Robot Framework](https://robotframework.org/) - Test automation framework
-- [Pydantic](https://docs.pydantic.dev/) - Data validation
-- [bleach](https://github.com/mozilla/bleach) - XSS sanitization
+```sh
+# macOS / Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-Optional dependencies:
-- `importobot[advanced]` - SciPy for Bayesian optimizer tuning
-- `importobot[viz]` - Matplotlib for visualization features
-- `importobot[analytics]` - NumPy and Pandas for data processing
+# Windows (PowerShell)
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
 
-See the [full dependency list](https://github.com/athola/importobot/blob/main/pyproject.toml) in `pyproject.toml`.
+Clone the repository and install dependencies:
 
-## Installation from Source
-
-This project uses [uv](https://github.com/astral-sh/uv) for package management.
-
-Clone the repository and install:
-
-```console
+```sh
 git clone https://github.com/athola/importobot.git
 cd importobot
 uv sync --dev
 ```
 
-## Contributing
+Run tests:
 
-Importobot is developed using Test-Driven Development (TDD) and Extreme Programming (XP) practices. All contributions are welcome!
-
-Please see the [Contributing Guide](https://github.com/athola/importobot/wiki/Contributing) for:
-- Development workflow and branching strategy
-- TDD/XP practices
-- Code quality standards
-- Testing requirements
-
-### Development Quick Start
-
-```console
-# Run all tests
-make test
-
-# Run linters and type checking
-make lint
-
-# Format code
-make format
-
-# Run performance benchmarks
-uv run asv run
+```sh
+make test              # Run test suite
+make test-all          # Run all test categories
+make mutation          # Mutation testing
+make perf-test         # Performance benchmarks
 ```
 
-See [CLAUDE.md](./CLAUDE.md) for detailed style guidelines and [PLAN.md](./PLAN.md) for the project roadmap.
+See the **[Contributing Guide](https://github.com/athola/importobot/wiki/Contributing)** for detailed development guidelines.
+
+## Getting Help
+
+For usage questions and discussions, please open an issue on the [GitHub issue tracker](https://github.com/athola/importobot/issues).
+
+## Contributing
+
+We welcome contributions! Please see the [Contributing Guide](https://github.com/athola/importobot/wiki/Contributing) for guidelines on:
+
+- Reporting bugs
+- Suggesting features
+- Submitting pull requests
+- Code style and testing requirements
 
 ## License
 
 [BSD 2-Clause](./LICENSE)
-
-## Discussion and Development
-
-- Report bugs and request features via [GitHub Issues](https://github.com/athola/importobot/issues)
-- View the [project roadmap](./PLAN.md) for upcoming features
-- Check the [wiki](https://github.com/athola/importobot/wiki) for comprehensive documentation

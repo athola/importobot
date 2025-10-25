@@ -19,7 +19,7 @@ from importobot.utils.file_operations import (
     process_single_file_with_suggestions,
 )
 from importobot.utils.json_utils import load_json_file
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 
 
 class ConversionStrategy(ABC):
@@ -166,17 +166,23 @@ class SuggestionsOnlyStrategy(ConversionStrategy):
     def convert(self, args: Any) -> None:
         """Show suggestions for input files."""
         for input_file in args.files:
-            try:
-                json_data = load_json_file(input_file)
-                suggestions = get_conversion_suggestions(json_data)
-                if suggestions:
-                    print(f"Suggestions for {input_file}:")
-                    for suggestion in suggestions:
-                        print(f"  - {suggestion}")
-                else:
-                    print(f"No suggestions for {input_file}.")
-            except (FileNotFoundError, json.JSONDecodeError):
-                print(f"Cannot read {input_file} for suggestions.")
+            self._display_suggestions_for_file(input_file)
+
+    def _display_suggestions_for_file(self, input_file: str) -> None:
+        """Load a file and print suggestion details."""
+        try:
+            json_data = load_json_file(input_file)
+        except (FileNotFoundError, json.JSONDecodeError):
+            print(f"Cannot read {input_file} for suggestions.")
+            return
+
+        suggestions = get_conversion_suggestions(json_data)
+        if suggestions:
+            print(f"Suggestions for {input_file}:")
+            for suggestion in suggestions:
+                print(f"  - {suggestion}")
+        else:
+            print(f"No suggestions for {input_file}.")
 
 
 class ImprovedConversionStrategy(ConversionStrategy):
@@ -263,7 +269,7 @@ def get_strategy(args: Any) -> ConversionStrategy:
 
 def convert_with_strategy(args: Any) -> None:
     """Convert input using the appropriate strategy."""
-    logger = setup_logger(__name__)
+    logger = get_logger()
     strategy = get_strategy(args)
 
     try:

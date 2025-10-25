@@ -11,13 +11,14 @@ from importobot.core.interfaces import ConversionEngine
 from importobot.core.keyword_generator import GenericKeywordGenerator
 from importobot.core.parsers import GenericTestFileParser
 from importobot.core.pattern_matcher import LibraryDetector
-from importobot.utils.logging import setup_logger
+from importobot.core.templates.blueprints import render_with_blueprints
+from importobot.utils.logging import get_logger
 from importobot.utils.validation import (
     convert_parameters_to_robot_variables,
     sanitize_robot_string,
 )
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 class GenericConversionEngine(ConversionEngine):
@@ -37,6 +38,10 @@ class GenericConversionEngine(ConversionEngine):
         Args:
             json_data: The JSON data to convert
         """
+        specialized = render_with_blueprints(json_data)
+        if specialized is not None:
+            return specialized
+
         # Extract test cases from the JSON structure
         tests = self.parser.find_tests(json_data)
 
@@ -91,8 +96,7 @@ class GenericConversionEngine(ConversionEngine):
         all_libraries = detected_libraries.union(additional_libraries)
 
         # Libraries
-        for lib in sorted(all_libraries):
-            output_lines.append(f"Library    {lib}")
+        output_lines.extend(f"Library    {lib}" for lib in sorted(all_libraries))
 
         output_lines.extend(["", "*** Test Cases ***", ""])
         output_lines.extend(test_cases_content)
@@ -110,8 +114,20 @@ class GenericConversionEngine(ConversionEngine):
             return f"Documentation    {sanitize_robot_string(value)}"
 
         # Check summary field as well
-        if "summary" in data and data["summary"]:
+        if data.get("summary"):
             return f"Documentation    {sanitize_robot_string(data['summary'])}"
+
+        # Default to first test case when working with synthetic wrappers
+        test_cases = data.get("testCases")
+        if isinstance(test_cases, list) and test_cases:
+            first_case = test_cases[0]
+            if isinstance(first_case, dict):
+                field_name, value = TEST_DESCRIPTION_FIELDS.find_first(first_case)
+                if field_name and value:
+                    return f"Documentation    {sanitize_robot_string(value)}"
+                if first_case.get("summary"):
+                    summary = first_case["summary"]
+                    return f"Documentation    {sanitize_robot_string(summary)}"
 
         # Default documentation when none found
         return "Documentation    Converted test case"
@@ -128,7 +144,7 @@ class GenericConversionEngine(ConversionEngine):
                             tags.extend([str(t) for t in value])
                         elif value:
                             tags.append(str(value))
-                    elif isinstance(value, (dict, list)):
+                    elif isinstance(value, (dict, list)):  # noqa: UP038
                         find_tags(value)
             elif isinstance(obj, list):
                 for item in obj:

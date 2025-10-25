@@ -13,6 +13,7 @@ class TestLazyDataLoader:
 
     def test_load_templates_with_existing_file(self, tmp_path):
         """Test loading templates from existing JSON file."""
+        LazyDataLoader.load_templates.cache_clear()
         # Arrange
         template_data = {
             "web_automation": {
@@ -38,25 +39,25 @@ class TestLazyDataLoader:
             result = LazyDataLoader.load_templates("test_templates")
 
             # Assert
-            assert result == template_data
             assert "web_automation" in result
-            assert (
-                result["web_automation"]["user_authentication"]["complexity"] == "high"
-            )
+            assert result["web_automation"] == template_data["web_automation"]
+            assert "__precomputed__" in result
+            assert "__index__" in result
 
     def test_load_templates_with_nonexistent_file(self):
         """Test loading templates when file doesn't exist returns empty dict."""
+        LazyDataLoader.load_templates.cache_clear()
         # Act
         result = LazyDataLoader.load_templates("nonexistent_template")
 
         # Assert
-        assert result == {}
+        assert "__precomputed__" in result
         assert isinstance(result, dict)
 
     def test_load_keyword_mappings_with_existing_file(self, tmp_path):
         """Test loading keyword mappings from existing JSON file."""
-        # Clear any cached results first
         LazyDataLoader.load_keyword_mappings.cache_clear()
+        # Clear any cached results first
 
         # Arrange
         mapping_data = {
@@ -83,21 +84,24 @@ class TestLazyDataLoader:
             result = LazyDataLoader.load_keyword_mappings("ssh")
 
             # Assert
-            assert result == mapping_data
             assert "ssh_connect" in result
-            assert result["ssh_connect"] == ["SSHLibrary", "Open Connection"]
+            assert result["ssh_connect"] == ["sshlibrary", "open connection"]
+            assert "__reverse_index__" in result
+            assert "__precomputed__" in result
 
     def test_load_keyword_mappings_with_nonexistent_file(self):
         """Test loading keyword mappings when file doesn't exist returns empty dict."""
+        LazyDataLoader.load_keyword_mappings.cache_clear()
         # Act
         result = LazyDataLoader.load_keyword_mappings("nonexistent_mappings")
 
         # Assert
-        assert result == {}
+        assert "__precomputed__" in result
         assert isinstance(result, dict)
 
     def test_caching_behavior_templates(self, tmp_path):
         """Test that templates are cached using LRU cache."""
+        LazyDataLoader.load_templates.cache_clear()
         # Arrange
         template_data = {"test": "data"}
         template_dir = tmp_path / "data" / "templates"
@@ -117,6 +121,7 @@ class TestLazyDataLoader:
 
     def test_caching_behavior_keyword_mappings(self, tmp_path):
         """Test that keyword mappings are cached using LRU cache."""
+        LazyDataLoader.load_keyword_mappings.cache_clear()
         # Arrange
         mapping_data = {"test": "mapping"}
         keywords_dir = tmp_path / "data" / "keywords"
@@ -196,10 +201,12 @@ class TestLazyDataLoader:
         mock_file_path = tmp_path / "utils" / "lazy_loader.py"
         with patch("importobot.utils.lazy_loader.__file__", str(mock_file_path)):
             # Act
+            LazyDataLoader.load_templates.cache_clear()
             result = LazyDataLoader.load_templates("unicode_test")
 
             # Assert
             assert result["unicode_test"] == "测试数据"
+            assert "__precomputed__" in result
 
     def test_file_path_construction(self):
         """Test that file paths are constructed correctly."""
@@ -214,10 +221,11 @@ class TestLazyDataLoader:
             mock_file.exists.return_value = False
 
             # Act
+            LazyDataLoader.load_templates.cache_clear()
             result = LazyDataLoader.load_templates("test")
 
             # Assert
-            assert result == {}
+            assert "__precomputed__" in result
             mock_path.assert_called()
 
     def test_json_parsing_error_handling(self, tmp_path):

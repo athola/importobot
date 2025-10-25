@@ -8,7 +8,7 @@ from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Union
+from typing import Any
 
 from importobot.core import converter as core_converter
 from importobot.utils.json_utils import load_json_file
@@ -27,8 +27,8 @@ def process_single_file_with_suggestions(
     args: Any,
     convert_file_func: Callable[[str, str], None] | None = None,
     apply_suggestions_func: Callable[
-        [Union[dict[str, Any], list[Any]]],
-        tuple[Union[dict[str, Any], list[Any]], list[dict[str, Any]]],
+        [dict[str, Any] | list[Any]],
+        tuple[dict[str, Any] | list[Any], list[dict[str, Any]]],
     ]
     | None = None,
     display_changes_func: Callable[[list[dict[str, Any]], Any], None] | None = None,
@@ -38,7 +38,7 @@ def process_single_file_with_suggestions(
     json_data = load_json_file(args.input)
 
     apply_func = apply_suggestions_func or core_converter.apply_conversion_suggestions
-    improved_data: Union[dict[str, Any], list[Any]]
+    improved_data: dict[str, Any] | list[Any]
     changes_made: list[dict[str, Any]]
 
     no_suggestions_attr = getattr(args, "no_suggestions", False)
@@ -86,7 +86,7 @@ def display_suggestion_changes(changes_made: list[dict[str, Any]], args: Any) ->
             ),
         )
 
-        print("\n📋 Applied Suggestions:")
+        print("\nApplied Suggestions:")
         print("=" * 60)
         for index, change in enumerate(sorted_changes, start=1):
             test_case_num = change.get("test_case_index", 0) + 1
@@ -101,7 +101,7 @@ def display_suggestion_changes(changes_made: list[dict[str, Any]], args: Any) ->
             print(f"     Reason: {change.get('reason', '')}")
             print()
     else:
-        print("\nℹ️  No automatic improvements could be applied.")
+        print("\nINFO: No automatic improvements could be applied.")
         print("   The JSON data is already in good shape!")
 
 
@@ -111,7 +111,7 @@ def display_suggestion_changes(changes_made: list[dict[str, Any]], args: Any) ->
 
 @contextmanager
 def temporary_json_file(
-    data: Union[dict[str, Any], list[Any]],
+    data: dict[str, Any] | list[Any],
 ) -> Generator[str, None, None]:
     """Create a temporary JSON file with the given data.
 
@@ -140,7 +140,7 @@ def temporary_json_file(
 
 
 def convert_with_temp_file(
-    conversion_data: Union[dict[str, Any], list[Any]],
+    conversion_data: dict[str, Any] | list[Any],
     robot_filename: str,
     convert_file_func: Callable[[str, str], None],
     context: ConversionContext | None = None,
@@ -164,7 +164,7 @@ def convert_with_temp_file(
 
 
 def save_improved_json_and_convert(
-    improved_data: Union[dict[str, Any], list[Any]],
+    improved_data: dict[str, Any] | list[Any],
     base_name: str,
     convert_file_func: Callable[[str, str], None],
     context: ConversionContext | None = None,
@@ -222,7 +222,7 @@ def save_improved_json_and_convert(
 
 
 def save_improved_json_file(
-    improved_data: Union[dict[str, Any], list[Any]],
+    improved_data: dict[str, Any] | list[Any],
     base_name: str,
 ) -> str:
     """Save improved JSON data to a file.
@@ -265,8 +265,8 @@ def restore_file(backup_path: str | Path, original_path: str | Path) -> None:
     shutil.copy2(backup_path, original_path)
 
 
-def load_json_with_error_handling(file_path: str | Path) -> dict[str, Any] | list[Any]:
-    """Load JSON file with error handling.
+def load_json_with_default(file_path: str | Path) -> dict[str, Any] | list[Any]:
+    """Load JSON file with default error handling.
 
     Args:
         file_path: Path to the JSON file
@@ -278,3 +278,18 @@ def load_json_with_error_handling(file_path: str | Path) -> dict[str, Any] | lis
         return load_json_file(str(file_path))
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
+
+
+__all__ = [
+    "ConversionContext",
+    "backup_file",
+    "convert_with_temp_file",
+    "display_suggestion_changes",
+    "load_json_file",  # Re-exported from json_utils
+    "load_json_with_default",
+    "process_single_file_with_suggestions",
+    "restore_file",
+    "save_improved_json_and_convert",
+    "save_improved_json_file",
+    "temporary_json_file",
+]

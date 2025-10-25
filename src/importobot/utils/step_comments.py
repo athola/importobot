@@ -1,12 +1,12 @@
 """Shared utilities for generating step comments in keyword generators."""
 
-from typing import Any, Dict, List
+from typing import Any
 
 from importobot.core.constants import EXPECTED_RESULT_FIELD_NAMES, TEST_DATA_FIELD_NAMES
 from importobot.utils.field_extraction import extract_field
 
 
-def generate_step_comments(step: Dict[str, Any]) -> List[str]:
+def generate_step_comments(step: dict[str, Any]) -> list[str]:
     """Generate standardized comments for a test step.
 
     Args:
@@ -33,11 +33,11 @@ def generate_step_comments(step: Dict[str, Any]) -> List[str]:
     return lines
 
 
-def _get_test_data_fields(step: Dict[str, Any]) -> str:
+def _get_test_data_fields(step: dict[str, Any]) -> str:
     """Extract test data from step fields."""
     return extract_field(step, TEST_DATA_FIELD_NAMES)
 
 
-def _get_expected_result_fields(step: Dict[str, Any]) -> str:
+def _get_expected_result_fields(step: dict[str, Any]) -> str:
     """Extract expected result from step fields."""
     return extract_field(step, EXPECTED_RESULT_FIELD_NAMES)
