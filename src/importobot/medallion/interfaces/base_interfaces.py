@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from importobot.utils.validation_models import ValidationResult
 
@@ -30,28 +30,28 @@ class StorageBackend(ABC):
 
     @abstractmethod
     def retrieve(
-        self, record_id: str, version: Optional[str] = None
-    ) -> Optional[BronzeRecord]:
+        self, record_id: str, version: str | None = None
+    ) -> BronzeRecord | None:
         """Retrieve a Bronze record by ID and optional version."""
         pass  # pylint: disable=unnecessary-pass
 
     @abstractmethod
-    def list_versions(self, record_id: str) -> List[str]:
+    def list_versions(self, record_id: str) -> list[str]:
         """List all available versions for a record."""
         pass  # pylint: disable=unnecessary-pass
 
     @abstractmethod
-    def delete(self, record_id: str, version: Optional[str] = None) -> bool:
+    def delete(self, record_id: str, version: str | None = None) -> bool:
         """Delete a record or specific version."""
         pass  # pylint: disable=unnecessary-pass
 
     @abstractmethod
-    def exists(self, record_id: str, version: Optional[str] = None) -> bool:
+    def exists(self, record_id: str, version: str | None = None) -> bool:
         """Check if a record or version exists."""
         pass  # pylint: disable=unnecessary-pass
 
     @abstractmethod
-    def get_metadata_index(self) -> Dict[str, Any]:
+    def get_metadata_index(self) -> dict[str, Any]:
         """Get metadata index for all stored records."""
         pass  # pylint: disable=unnecessary-pass
 
@@ -130,36 +130,36 @@ class DataLayer(ABC):
     # Enhanced methods for Bronze layer integration
     @abstractmethod
     def ingest_with_detection(
-        self, data: Dict[str, Any], source_info: Dict[str, Any]
+        self, data: dict[str, Any], source_info: dict[str, Any]
     ) -> BronzeRecord:
         """Ingest data with format detection and create BronzeRecord."""
         pass  # pylint: disable=unnecessary-pass
 
     @abstractmethod
-    def get_record_metadata(self, record_id: str) -> Optional[RecordMetadata]:
+    def get_record_metadata(self, record_id: str) -> RecordMetadata | None:
         """Retrieve enhanced metadata for a specific record."""
         pass  # pylint: disable=unnecessary-pass
 
     @abstractmethod
-    def get_record_lineage(self, record_id: str) -> Optional[DataLineage]:
+    def get_record_lineage(self, record_id: str) -> DataLineage | None:
         """Retrieve comprehensive lineage information for a specific record."""
         pass  # pylint: disable=unnecessary-pass
 
     @abstractmethod
-    def validate_bronze_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def validate_bronze_data(self, data: dict[str, Any]) -> dict[str, Any]:
         """Validate raw data quality and return quality metrics."""
         pass  # pylint: disable=unnecessary-pass
 
     @abstractmethod
     def get_bronze_records(
         self,
-        filter_criteria: Optional[Dict[str, Any]] = None,
-        limit: Optional[int] = None,
-    ) -> List[BronzeRecord]:
+        filter_criteria: dict[str, Any] | None = None,
+        limit: int | None = None,
+    ) -> list[BronzeRecord]:
         """Retrieve Bronze records based on filter criteria."""
         pass  # pylint: disable=unnecessary-pass
 
-    def get_quality_summary(self) -> Dict[str, Any]:
+    def get_quality_summary(self) -> dict[str, Any]:
         """Get overall data quality summary for the layer."""
         return {
             "total_records": 0,

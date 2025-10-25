@@ -69,7 +69,8 @@ class TestCacheTelemetry:
         event_name, payload = telemetry_events[-1]
         assert event_name == "cache_metrics"
         assert payload["cache_name"] == "performance_cache"
-        assert isinstance(payload["hits"], int) and payload["hits"] >= 0
+        assert isinstance(payload["hits"], int)
+        assert payload["hits"] >= 0
 
     def test_file_content_cache_emits_telemetry(
         self,
@@ -89,4 +90,5 @@ class TestCacheTelemetry:
         event_name, payload = telemetry_events[-1]
         assert event_name == "cache_metrics"
         assert payload["cache_name"] == "file_content_cache"
-        assert isinstance(payload["hits"], int) and payload["hits"] >= 1
+        assert isinstance(payload["hits"], int)
+        assert payload["hits"] >= 1

@@ -16,10 +16,6 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from importobot.config import (
-    update_medallion_config,
-    validate_medallion_config,
-)
 from importobot.medallion.storage.config import VALID_BACKEND_TYPES, StorageConfig
 
 
@@ -99,27 +95,26 @@ class TestConfigurationInvariants:
     @settings(max_examples=30)
     def test_config_update_safety_invariant(self, update_data):
         """Invariant: Configuration updates should be safe and not break the system."""
-        # Get initial configuration
         try:
             initial_config = StorageConfig()
-            # StorageConfig() returns StorageConfig object, not dict
             assert initial_config is not None
 
-            # Attempt to update configuration
-            update_medallion_config(**update_data)
+            # Attempt to update configuration using from_dict
+            # This tests that arbitrary data doesn't crash the system
+            try:
+                updated_config = StorageConfig.from_dict(update_data)
+            except (TypeError, ValueError, AttributeError):
+                # Expected for invalid update data - system should not crash
+                updated_config = initial_config
 
-            # Configuration should still be retrievable
-            updated_config = StorageConfig()
             assert updated_config is not None
 
-            # Configuration should still be valid (or have clear validation errors)
-            validation_issues = validate_medallion_config(updated_config)
-            assert isinstance(validation_issues, bool)
-            # If validation returns False, we should have some indication of issues
+            # Validation should return a list of issues
+            validation_issues = updated_config.validate()
+            assert isinstance(validation_issues, list)
+            for issue in validation_issues:
+                assert isinstance(issue, str)
 
-        except (TypeError, ValueError, AttributeError):
-            # Expected for invalid update data
-            pass
         except Exception as e:
             pytest.fail(
                 f"Unexpected exception in config update: {type(e).__name__}: {e}"
@@ -170,7 +165,7 @@ class TestConfigurationInvariants:
                 issues = config.validate()
 
                 # Validation should catch negative or zero values where inappropriate
-                field_name = list(config_data.keys())[0]
+                field_name = next(iter(config_data.keys()))
                 field_value = config_data[field_name]
 
                 if field_value <= 0:
@@ -206,18 +201,17 @@ class TestConfigurationInvariants:
                     issue for issue in issues if "backend_type" in issue.lower()
                 ]
                 assert len(backend_issues) == 0
-            else:
-                # Invalid backend types should generate validation issues
-                if backend_type not in [None, ""]:
-                    backend_issues = [
-                        issue for issue in issues if "backend_type" in issue.lower()
-                    ]
-                    # Should have at least one backend-related issue
-                    # for clearly invalid types
-                    if backend_type not in VALID_BACKEND_TYPES and isinstance(
-                        backend_type, str
-                    ):
-                        assert len(backend_issues) > 0
+            # Invalid backend types should generate validation issues
+            elif backend_type not in [None, ""]:
+                backend_issues = [
+                    issue for issue in issues if "backend_type" in issue.lower()
+                ]
+                # Should have at least one backend-related issue
+                # for clearly invalid types
+                if backend_type not in VALID_BACKEND_TYPES and isinstance(
+                    backend_type, str
+                ):
+                    assert len(backend_issues) > 0
 
         except (TypeError, AttributeError):
             # Expected for completely invalid types like integers
@@ -266,20 +260,29 @@ class TestConfigurationInvariants:
     )
     @settings(max_examples=20)
     def test_configuration_isolation_invariant(self, config_updates):
-        """Invariant: Configuration changes should not affect other components."""
+        """Invariant: Configuration instances are independent."""
         try:
-            # Update with test data
-            update_medallion_config(**config_updates)
+            # Create initial config
+            config1 = StorageConfig()
 
-            # Try to get configuration again - should not crash
-            updated = StorageConfig()
-            assert hasattr(updated, "to_dict")
+            # Try to create another config from arbitrary data
+            try:
+                config2 = StorageConfig.from_dict(config_updates)
+            except (TypeError, ValueError, AttributeError):
+                # Expected for invalid config data
+                config2 = StorageConfig()
+
+            # Both configs should have proper structure
+            assert hasattr(config1, "to_dict")
+            assert hasattr(config2, "to_dict")
 
             # Convert to dict for key checking
-            updated_dict = updated.to_dict()
-            assert isinstance(updated_dict, dict)
+            dict1 = config1.to_dict()
+            dict2 = config2.to_dict()
+            assert isinstance(dict1, dict)
+            assert isinstance(dict2, dict)
 
-            # Should still have required structure
+            # Both should have required structure
             required_keys = [
                 "backend_type",
                 "base_path",
@@ -288,17 +291,17 @@ class TestConfigurationInvariants:
                 "retention_days",
             ]
             for key in required_keys:
-                assert key in updated_dict
+                assert key in dict1
+                assert key in dict2
 
-            # Validation should still work
-            validation_result = validate_medallion_config(updated)
-            assert isinstance(validation_result, bool)
+            # Validation should work for both
+            issues1 = config1.validate()
+            issues2 = config2.validate()
+            assert isinstance(issues1, list)
+            assert isinstance(issues2, list)
 
-        except (TypeError, ValueError, KeyError):
-            # Some configurations might be invalid - this is acceptable
-            pass
         except Exception as e:
-            pytest.fail(f"Configuration update broke system: {type(e).__name__}: {e}")
+            pytest.fail(f"Configuration isolation test failed: {type(e).__name__}: {e}")
 
     @given(st.booleans(), st.booleans(), st.booleans())
     @settings(max_examples=20)

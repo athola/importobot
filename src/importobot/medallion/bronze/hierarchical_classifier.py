@@ -20,9 +20,9 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, ClassVar
 
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 
 from ..interfaces.enums import EvidenceSource
 from .evidence_accumulator import EvidenceAccumulator, EvidenceItem
@@ -30,7 +30,7 @@ from .evidence_collector import EvidenceCollector
 from .format_models import EvidenceWeight
 from .format_registry import FormatRegistry
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 @dataclass
@@ -40,14 +40,14 @@ class HierarchicalClassificationResult:
     # Stage 1: Test data validation
     is_test_data: bool
     test_data_confidence: float
-    test_data_evidence: Dict[str, Any]
+    test_data_evidence: dict[str, Any]
 
     # Stage 2: Format-specific discrimination (only if Stage 1 passes)
-    format_posteriors: Dict[str, float]  # P(format|E, is_test_data)
-    format_likelihoods: Dict[str, float]  # P(E|format) for analysis
+    format_posteriors: dict[str, float]  # P(format|E, is_test_data)
+    format_likelihoods: dict[str, float]  # P(E|format) for analysis
 
     @property
-    def best_format(self) -> Optional[str]:
+    def best_format(self) -> str | None:
         """Return format with highest posterior, or None if no test data."""
         if not self.is_test_data or not self.format_posteriors:
             return None
@@ -64,12 +64,12 @@ class HierarchicalClassificationResult:
 class HierarchicalClassifier:
     """Two-stage hierarchical Bayesian classifier for format detection.
 
-    This classifier implements a principled hierarchical approach:
+    This classifier implements a hierarchical approach:
     1. First validates that input represents test management data
     2. Then discriminates between specific test management formats
 
     This prevents the system from confidently classifying random data as a
-    specific format while maintaining strong discrimination between actual formats.
+    specific format while maintaining discrimination between actual formats.
 
     Fast paths are integrated at both stages while maintaining mathematical rigor:
     - Stage 1 fast path: Check for strong test data indicators
@@ -85,7 +85,7 @@ class HierarchicalClassifier:
     FAST_PATH_UNIQUE_INDICATORS = 2  # Number of UNIQUE indicators for Stage 2 fast pass
 
     # Format-specific unique field combinations (for Stage 2 fast path)
-    FORMAT_UNIQUE_COMBINATIONS = {
+    FORMAT_UNIQUE_COMBINATIONS: ClassVar[dict[str, list[set[str]]]] = {
         "ZEPHYR": [{"testCase", "execution", "cycle"}],
         "JIRA_XRAY": [{"testExecutions", "xrayInfo"}, {"issues", "testInfo"}],
         "TESTLINK": [{"testsuites", "testsuite"}],
@@ -93,7 +93,7 @@ class HierarchicalClassifier:
     }
 
     # Test data validation indicators (generic across all test formats)
-    TEST_DATA_INDICATORS = [
+    TEST_DATA_INDICATORS: ClassVar[list[str]] = [
         # Test identification fields (common to all formats)
         "test",
         "testcase",
@@ -133,15 +133,16 @@ class HierarchicalClassifier:
         self.evidence_collector = evidence_collector
         self.evidence_accumulator = evidence_accumulator
         self._stage1_indicator_tokens = self._build_stage1_indicator_tokens()
+        self._stage1_notice_emitted = False
 
-    def classify(self, data: Dict[str, Any]) -> HierarchicalClassificationResult:
+    def classify(self, data: dict[str, Any]) -> HierarchicalClassificationResult:
         """Perform two-stage hierarchical classification with fast paths.
 
         Stage 1: Validate input represents test management data
         Stage 2: Discriminate between specific test formats (if Stage 1 passes)
 
         Fast paths maintain mathematical rigor by only short-circuiting when
-        evidence is overwhelmingly strong.
+        evidence is strong.
 
         Args:
             data: Input data to classify
@@ -157,7 +158,7 @@ class HierarchicalClassifier:
 
         fast_pass_stage1 = self._check_stage1_fast_path(all_key_tokens)
         if fast_pass_stage1:
-            logger.info("Stage 1 FAST PATH: Strong test data indicators detected")
+            logger.debug("Stage 1 FAST PATH: Strong test data indicators detected")
             test_confidence = 1.0
             test_evidence = {"fast_path": True, "strong_indicators": True}
             is_test_data = True
@@ -168,12 +169,21 @@ class HierarchicalClassifier:
             )
 
         if not is_test_data:
-            logger.info(
-                "Stage 1 FAILED: Input does not appear to be test data "
-                "(confidence=%.3f < %s)",
-                test_confidence,
-                self.MIN_TEST_DATA_CONFIDENCE,
-            )
+            if not self._stage1_notice_emitted:
+                logger.info(
+                    "Stage 1 FAILED: Input does not appear to be test data "
+                    "(confidence=%.3f < %s)",
+                    test_confidence,
+                    self.MIN_TEST_DATA_CONFIDENCE,
+                )
+                # TODO(post-conversion-log): consolidate repeated classifier noise into
+                # the dedicated log stream being planned for ingestion summaries.
+                self._stage1_notice_emitted = True
+            else:
+                logger.debug(
+                    "Stage 1 failed (confidence=%.3f); suppressing duplicate notice",
+                    test_confidence,
+                )
             return HierarchicalClassificationResult(
                 is_test_data=False,
                 test_data_confidence=test_confidence,
@@ -182,14 +192,16 @@ class HierarchicalClassifier:
                 format_likelihoods={},
             )
 
-        logger.info(
+        logger.debug(
             "Stage 1 PASSED: Validated as test data (confidence=%.3f)", test_confidence
         )
 
         # Stage 2 Fast Path: Check for unique format-specific combinations
         fast_format = self._check_stage2_fast_path(all_keys_lower)
         if fast_format:
-            logger.info("Stage 2 FAST PATH: Unique %s indicators detected", fast_format)
+            logger.debug(
+                "Stage 2 FAST PATH: Unique %s indicators detected", fast_format
+            )
             # Calculate likelihoods for all formats for transparency
             format_likelihoods, format_posteriors = self._stage2_discriminate_formats(
                 data
@@ -213,8 +225,8 @@ class HierarchicalClassifier:
         )
 
     def _boost_fast_path_confidence(
-        self, format_posteriors: Dict[str, float], fast_format: str
-    ) -> Dict[str, float]:
+        self, format_posteriors: dict[str, float], fast_format: str
+    ) -> dict[str, float]:
         """Boost confidence for fast-path detected format.
 
         When unique combos are found, we should have high confidence (>= 0.9).
@@ -251,12 +263,12 @@ class HierarchicalClassifier:
         return format_posteriors
 
     def _stage1_validate_test_data(
-        self, data: Dict[str, Any]
-    ) -> tuple[bool, float, Dict[str, Any]]:
+        self, data: dict[str, Any]
+    ) -> tuple[bool, float, dict[str, Any]]:
         """Stage 1: Validate that input represents test management data.
 
         This stage checks for generic test data indicators that are common
-        across ALL test management formats, not format-specific patterns.
+        across test management formats, not format-specific patterns.
 
         Returns:
             Tuple of (is_test_data, confidence, evidence_dict)
@@ -269,19 +281,17 @@ class HierarchicalClassifier:
         key_tokens = self._collect_key_tokens(all_keys)
 
         # Check for generic test data indicators
-        evidence_items: list[EvidenceItem] = []
-
-        for indicator in self._stage1_indicator_tokens:
-            if indicator in key_tokens:
-                evidence_items.append(
-                    EvidenceItem(
-                        source=EvidenceSource.TEST_DATA_INDICATOR,
-                        weight=EvidenceWeight.MODERATE,  # Generic
-                        # indicators are moderate
-                        confidence=1.0,
-                        details=f"Found test data indicator: {indicator}",
-                    )
-                )
+        # Generic indicators provide moderate evidence for test data
+        evidence_items: list[EvidenceItem] = [
+            EvidenceItem(
+                source=EvidenceSource.TEST_DATA_INDICATOR,
+                weight=EvidenceWeight.MODERATE,
+                confidence=1.0,
+                details=f"Found test data indicator: {indicator}",
+            )
+            for indicator in self._stage1_indicator_tokens
+            if indicator in key_tokens
+        ]
 
         # Calculate completeness: how many indicators found?
         total_indicators = len(self._stage1_indicator_tokens)
@@ -333,17 +343,17 @@ class HierarchicalClassifier:
         return is_test_data, test_data_confidence, evidence_dict
 
     def _stage2_discriminate_formats(
-        self, data: Dict[str, Any]
-    ) -> tuple[Dict[str, float], Dict[str, float]]:
+        self, data: dict[str, Any]
+    ) -> tuple[dict[str, float], dict[str, float]]:
         """Stage 2: Discriminate between specific test management formats.
 
-        This stage uses format-specific UNIQUE indicators and proper multi-class
+        This stage uses format-specific indicators and multi-class
         Bayesian normalization to discriminate between formats.
 
         Returns:
             Tuple of (format_likelihoods, format_posteriors)
         """
-        format_likelihoods: Dict[str, float] = {}
+        format_likelihoods: dict[str, float] = {}
 
         # Collect evidence and calculate likelihoods for all formats
         for format_type in self.format_registry.get_all_formats():
@@ -383,7 +393,7 @@ class HierarchicalClassifier:
 
         return format_likelihoods, format_posteriors
 
-    def _extract_all_keys(self, data: Any, keys: set | None = None) -> set:
+    def _extract_all_keys(self, data: Any, keys: set[str] | None = None) -> set[str]:
         """Recursively extract all keys from nested dict structure."""
         if keys is None:
             keys = set()
@@ -398,7 +408,7 @@ class HierarchicalClassifier:
 
         return keys
 
-    def _collect_key_tokens(self, keys: set) -> set[str]:
+    def _collect_key_tokens(self, keys: set[str]) -> set[str]:
         """Collect normalized token representations for a set of keys."""
         tokens: set[str] = set()
         for key in keys:
@@ -433,10 +443,10 @@ class HierarchicalClassifier:
 
         # Split snake_case or kebab-case segments
         normalized = re.sub(r"[-\s]+", "_", key)
-        for part in normalized.split("_"):
-            part = part.strip()
-            if part:
-                token_set.add(part.lower())
+        for segment in normalized.split("_"):
+            stripped_segment = segment.strip()
+            if stripped_segment:
+                token_set.add(stripped_segment.lower())
 
         # Split camelCase or PascalCase segments
         camel_parts = re.findall(r"[A-Z]?[a-z]+|[A-Z]+(?=[A-Z]|$)", key)
@@ -447,7 +457,7 @@ class HierarchicalClassifier:
 
         return token_set
 
-    def _assess_structural_quality(self, data: Dict[str, Any]) -> float:
+    def _assess_structural_quality(self, data: dict[str, Any]) -> float:
         """Assess structural quality of data for test management format.
 
         Test data typically has:
@@ -484,7 +494,7 @@ class HierarchicalClassifier:
 
     def _calculate_depth(self, data: Any, current_depth: int = 0) -> int:
         """Calculate maximum depth of nested structure."""
-        if not isinstance(data, (dict, list)):
+        if not isinstance(data, dict | list):
             return current_depth
 
         if isinstance(data, dict):
@@ -499,11 +509,10 @@ class HierarchicalClassifier:
             return current_depth
         return max(self._calculate_depth(item, current_depth + 1) for item in data)
 
-    def _check_stage1_fast_path(self, key_tokens: set) -> bool:
+    def _check_stage1_fast_path(self, key_tokens: set[str]) -> bool:
         """Check if Stage 1 can fast-pass based on strong test data indicators.
 
         Fast path activates when multiple strong test data indicators are present.
-        This maintains mathematical rigor: strong evidence → high confidence.
 
         Args:
             key_tokens: Set of normalized tokens derived from keys in the data
@@ -519,12 +528,10 @@ class HierarchicalClassifier:
         # Fast pass if we have at least N strong indicators
         return indicator_count >= self.FAST_PATH_TEST_DATA_INDICATORS
 
-    def _check_stage2_fast_path(self, all_keys_lower: set) -> Optional[str]:
+    def _check_stage2_fast_path(self, all_keys_lower: set[str]) -> str | None:
         """Check if Stage 2 can fast-pass based on unique format combinations.
 
         Fast path activates when a format's unique field combination is present.
-        This maintains mathematical rigor: unique evidence →
-        high posterior for that format.
 
         Args:
             all_keys_lower: Set of all lowercased keys in the data
@@ -547,4 +554,4 @@ class HierarchicalClassifier:
         return None
 
 
-__all__ = ["HierarchicalClassifier", "HierarchicalClassificationResult"]
+__all__ = ["HierarchicalClassificationResult", "HierarchicalClassifier"]

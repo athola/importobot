@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import contextlib
 from collections import deque
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from itertools import islice
 from pathlib import Path
-from typing import Any, Deque, Optional
+from typing import Any, ClassVar
 
 from importobot.config import (
     BRONZE_LAYER_IN_MEMORY_TTL_SECONDS,
@@ -25,7 +28,7 @@ from importobot.medallion.interfaces.data_models import (
 from importobot.medallion.interfaces.enums import ProcessingStatus, SupportedFormat
 from importobot.medallion.interfaces.records import BronzeRecord, RecordMetadata
 from importobot.medallion.storage.base import StorageBackend
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 from importobot.utils.string_cache import data_to_lower_cached
 from importobot.utils.validation_models import (
     QualitySeverity,
@@ -33,7 +36,7 @@ from importobot.utils.validation_models import (
     create_basic_validation_result,
 )
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 @dataclass(slots=True)
@@ -43,13 +46,13 @@ class _FilterContext:
     record_id: str
     data: dict[str, Any]
     metadata: LayerMetadata
-    lineage_info: Optional[LineageInfo]
+    lineage_info: LineageInfo | None
 
 
 class BronzeLayer(BaseMedallionLayer):
     """Bronze layer for raw data ingestion with minimal processing."""
 
-    _FILTER_DISPATCH_MAP: dict[str, str] = {
+    _FILTER_DISPATCH_MAP: ClassVar[dict[str, str]] = {
         "record_id": "_filter_record_id",
         "format_type": "_filter_format_type",
         "source_path": "_filter_source_path",
@@ -60,11 +63,11 @@ class BronzeLayer(BaseMedallionLayer):
 
     def __init__(
         self,
-        storage_path: Optional[Path] = None,
-        storage_backend: Optional[StorageBackend] = None,
+        storage_path: Path | None = None,
+        storage_backend: StorageBackend | None = None,
         *,
-        max_in_memory_records: Optional[int] = None,
-        in_memory_ttl_seconds: Optional[int] = None,
+        max_in_memory_records: int | None = None,
+        in_memory_ttl_seconds: int | None = None,
     ) -> None:
         """Initialize the Bronze layer.
 
@@ -94,11 +97,12 @@ class BronzeLayer(BaseMedallionLayer):
             if in_memory_ttl_seconds is not None
             else BRONZE_LAYER_IN_MEMORY_TTL_SECONDS
         )
-        self._in_memory_ttl_seconds: Optional[int] = (
+        self._in_memory_ttl_seconds: int | None = (
             resolved_ttl if resolved_ttl > 0 else None
         )
-        self._ingestion_order: Deque[str] = deque()
+        self._ingestion_order: deque[str] = deque()
         self._in_memory_timestamps: dict[str, datetime] = {}
+        self._record_cache: dict[str, BronzeRecord] = {}
 
     def ingest(self, data: Any, metadata: LayerMetadata) -> ProcessingResult:
         """Ingest raw data into the Bronze layer."""
@@ -151,6 +155,7 @@ class BronzeLayer(BaseMedallionLayer):
             self._lineage_store[data_id] = lineage
             self._register_in_memory_record(data_id, start_time)
             self._enforce_in_memory_capacity()
+            self._cache_bronze_record(data_id)
 
             # Store in persistent storage backend if available
             if self.storage_backend:
@@ -281,13 +286,12 @@ class BronzeLayer(BaseMedallionLayer):
         self._metadata_store.pop(data_id, None)
         self._lineage_store.pop(data_id, None)
         self._in_memory_timestamps.pop(data_id, None)
+        self._record_cache.pop(data_id, None)
         if self._ingestion_order and self._ingestion_order[0] == data_id:
             self._ingestion_order.popleft()
         else:
-            try:
+            with contextlib.suppress(ValueError):
                 self._ingestion_order.remove(data_id)
-            except ValueError:
-                pass
         if was_present:
             logger.debug(
                 "Evicted BronzeLayer record %s from in-memory store (%s).",
@@ -329,6 +333,14 @@ class BronzeLayer(BaseMedallionLayer):
             source_location=str(source_path),
         )
 
+        if not data:
+            return BronzeRecord(
+                data={},
+                metadata=record_metadata,
+                format_detection=format_detection,
+                lineage=lineage,
+            )
+
         return BronzeRecord(
             data=data,
             metadata=record_metadata,
@@ -336,7 +348,7 @@ class BronzeLayer(BaseMedallionLayer):
             lineage=lineage,
         )
 
-    def get_record_metadata(self, record_id: str) -> Optional[RecordMetadata]:
+    def get_record_metadata(self, record_id: str) -> RecordMetadata | None:
         """Retrieve enhanced metadata for a specific record.
 
         Args:
@@ -384,7 +396,7 @@ class BronzeLayer(BaseMedallionLayer):
             custom_attributes=custom_attributes,
         )
 
-    def get_record_lineage(self, record_id: str) -> Optional[DataLineage]:
+    def get_record_lineage(self, record_id: str) -> DataLineage | None:
         """Retrieve comprehensive lineage information for a specific record.
 
         Args:
@@ -448,8 +460,8 @@ class BronzeLayer(BaseMedallionLayer):
 
     def get_bronze_records(
         self,
-        filter_criteria: Optional[dict[str, Any]] = None,
-        limit: Optional[int] = None,
+        filter_criteria: dict[str, Any] | None = None,
+        limit: int | None = None,
     ) -> list[BronzeRecord]:
         """Retrieve Bronze records based on filter criteria.
 
@@ -489,14 +501,21 @@ class BronzeLayer(BaseMedallionLayer):
 
     def _collect_in_memory_records(
         self,
-        filter_criteria: Optional[dict[str, Any]],
+        filter_criteria: dict[str, Any] | None,
         *,
         effective_limit: int,
     ) -> list[BronzeRecord]:
         """Gather Bronze records from the in-memory store."""
         records: list[BronzeRecord] = []
 
-        for record_id, data in self._data_store.items():
+        if not filter_criteria:
+            source_iter: Iterable[tuple[str, dict[str, Any]]] = islice(
+                self._data_store.items(), 0, effective_limit
+            )
+        else:
+            source_iter = self._data_store.items()
+
+        for record_id, data in source_iter:
             layer_metadata = self._metadata_store.get(record_id)
             lineage_info = self._lineage_store.get(record_id)
 
@@ -517,33 +536,20 @@ class BronzeLayer(BaseMedallionLayer):
             if not record_metadata:
                 continue
 
-            lineage = self.get_record_lineage(record_id)
+            cached_record = self._resolve_cached_record(record_id)
+            if cached_record is None:
+                continue
 
-            records.append(
-                self._build_bronze_record(
-                    data=data,
-                    record_metadata=record_metadata,
-                    format_detection=self._create_format_detection(
-                        layer_metadata.format_type,
-                        method="metadata_analysis",
-                        record_id=record_id,
-                    ),
-                    lineage=self._resolve_lineage(
-                        lineage,
-                        record_id=record_id,
-                        source_path=layer_metadata.source_path,
-                    ),
-                )
-            )
+            records.append(cached_record)
 
-            if len(records) >= effective_limit:
+            if filter_criteria and len(records) >= effective_limit:
                 break
 
         return records
 
     def _collect_persisted_records(
         self,
-        filter_criteria: Optional[dict[str, Any]],
+        filter_criteria: dict[str, Any] | None,
         *,
         effective_limit: int,
     ) -> list[BronzeRecord]:
@@ -617,7 +623,7 @@ class BronzeLayer(BaseMedallionLayer):
         format_type: Any,
         *,
         method: str,
-        record_id: Optional[str],
+        record_id: str | None,
     ) -> FormatDetectionResult:
         """Create format detection metadata with consistent evidence details."""
         evidence_details: dict[str, Any] = {
@@ -635,7 +641,7 @@ class BronzeLayer(BaseMedallionLayer):
 
     def _resolve_lineage(
         self,
-        lineage: Optional[DataLineage],
+        lineage: DataLineage | None,
         *,
         record_id: str,
         source_path: Path | str | None,
@@ -665,6 +671,44 @@ class BronzeLayer(BaseMedallionLayer):
             format_detection=format_detection,
             lineage=lineage,
         )
+
+    def _cache_bronze_record(self, record_id: str) -> None:
+        """Cache immutable BronzeRecord for fast retrieval."""
+        self._resolve_cached_record(record_id)
+
+    def _resolve_cached_record(self, record_id: str) -> BronzeRecord | None:
+        """Return a cached BronzeRecord, constructing it if absent."""
+        cached = self._record_cache.get(record_id)
+        if cached is not None:
+            return cached
+
+        data = self._data_store.get(record_id)
+        metadata = self._metadata_store.get(record_id)
+        if data is None or metadata is None:
+            return None
+
+        record_metadata = self.get_record_metadata(record_id)
+        if record_metadata is None:
+            return None
+
+        lineage = self.get_record_lineage(record_id) or self._resolve_lineage(
+            None,
+            record_id=record_id,
+            source_path=metadata.source_path,
+        )
+
+        cached_record = self._build_bronze_record(
+            data=data,
+            record_metadata=record_metadata,
+            format_detection=self._create_format_detection(
+                metadata.format_type,
+                method="metadata_analysis",
+                record_id=record_id,
+            ),
+            lineage=lineage,
+        )
+        self._record_cache[record_id] = cached_record
+        return cached_record
 
     def _matches_filter(
         self,
@@ -720,8 +764,8 @@ class BronzeLayer(BaseMedallionLayer):
         record_id: str,
         data: dict[str, Any],
         metadata: LayerMetadata,
-        lineage: Optional[LineageInfo],
-    ) -> Optional[bool]:
+        lineage: LineageInfo | None,
+    ) -> bool | None:
         """Handle filters with dedicated dispatch handlers."""
         handler_name = self._FILTER_DISPATCH_MAP.get(key)
         if handler_name is None:
@@ -745,7 +789,7 @@ class BronzeLayer(BaseMedallionLayer):
         key: str,
         expected: Any,
         metadata: LayerMetadata,
-    ) -> Optional[bool]:
+    ) -> bool | None:
         """Handle custom metadata filters."""
         if not key.startswith("custom_metadata."):
             return None
@@ -756,8 +800,8 @@ class BronzeLayer(BaseMedallionLayer):
     def _match_lineage_filter(
         key: str,
         expected: Any,
-        lineage: Optional[LineageInfo],
-    ) -> Optional[bool]:
+        lineage: LineageInfo | None,
+    ) -> bool | None:
         """Handle lineage-based filters."""
         if key != "parent_record" or lineage is None:
             return None
@@ -768,7 +812,7 @@ class BronzeLayer(BaseMedallionLayer):
         key: str,
         expected: Any,
         data: dict[str, Any],
-    ) -> Optional[bool]:
+    ) -> bool | None:
         """Handle direct data and nested structure filters."""
         if isinstance(data, dict) and key in data:
             return bool(data[key] == expected)
@@ -779,7 +823,7 @@ class BronzeLayer(BaseMedallionLayer):
         return bool(nested_value == expected)
 
     @staticmethod
-    def _extract_nested_value(data: dict[str, Any], key_path: str) -> Optional[Any]:
+    def _extract_nested_value(data: dict[str, Any], key_path: str) -> Any | None:
         """Extract nested value from data using dot notation."""
         current = data
         for part in key_path.split("."):
@@ -789,7 +833,7 @@ class BronzeLayer(BaseMedallionLayer):
         return current
 
     @staticmethod
-    def _parse_datetime(value: Any) -> Optional[datetime]:
+    def _parse_datetime(value: Any) -> datetime | None:
         """Parse incoming filter values into datetime for comparisons."""
         if value is None:
             return None

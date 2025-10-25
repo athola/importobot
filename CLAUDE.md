@@ -4,49 +4,85 @@ This guide explains how to work with Importobot, a Python project built with Tes
 
 ## Project Philosophy
 
-Importobot exists so we do not rebuild Zephyr or TestRail suites by hand. One command should process an entire directory, the generated files should still read like the source material, and the output must run under Robot Framework without a clean-up pass. When a conversion misses that bar we treat it as a bug, not an acceptable trade-off.
+Importobot converts Zephyr and TestRail suites to Robot Framework without manual rebuilding. One command processes entire directories, generated files maintain source readability, and output runs without cleanup. Conversions that don't meet this standard are treated as bugs.
 
-The workflow leans on a few rules of thumb learned the hard way:
-- Conversions usually arrive in bulk, so predictable behaviour beats clever heuristics.
-- Earlier validation saves time. Fail fast on schema, security, or format detection rather than shipping half-converted suites.
-- Reviewers need context. Preserve names, priorities, and comments instead of hiding them behind abstractions.
+Key principles from experience:
+- Bulk conversions need predictable behavior over clever heuristics
+- Validate early and fail fast on schema, security, or format detection
+- Preserve names, priorities, and comments for reviewer context
+- Every parser/optimizer change starts with a failing test
+- Leave modules cleaner than you found them
 
-Disciplined TDD means every parser or optimizer tweak starts with a failing test in the suite, and we expect contributors to leave touched modules tidier for the next engineer who picks up the trail.
+## Development Practices
 
-## TDD/XP in This Project
+### Test-Driven Development
+Write failing test first, make it pass, then refactor. The converter touches many layers (parsing, validation, rendering), so maintain both unit and integration coverage. Use the existing fixtures in `tests/fixtures/` instead of copying setup code across test files.
 
-### Test-Driven Development (TDD)
-- Start with the failing test, make it pass, then refactor to work towards a green state.
-- Keep both unit and integration coverage in step; the converter touches many layers at once.
-- Prefer fixtures and helpers to copy/pasting setup blocks.
+### CI/CD Standards
+The full test suite (1,946 tests) runs on every change. Red builds block merges. Start with simple design, then refactor once tests protect the behavior. No module ownership—leave the code cleaner than you found it.
 
-### Extreme Programming (XP)
-- Run the full test suite in CI on every change; red builds block merges.
-- Reach for the simplest design first and refactor aggressively once tests protect the behaviour.
-- Treat the codebase as shared turf—nobody “owns” a module, so leave it tidier than you found it.
-
-### Fail-fast principles in practice
-- Validate JSON on load (see `load_and_parse_json`) and fail immediately when fields are missing.
-- Reject bad CLI input before spinning up long-running conversions.
-- Keep configuration validation and type hints in sync so errors surface during startup, not mid-run.
+### Error Handling
+Validate JSON immediately with `load_and_parse_json` and fail fast on missing fields. Reject bad CLI input before starting long conversions to avoid wasting time. Keep configuration validation and type hints in sync—this catches many issues during development instead of runtime.
 
 ## Recent Improvements
 
-- Parameter conversion now skips comment lines, so literal `{placeholders}` and control characters survive in traceability comments while executable statements still become Robot variables.
-- Test generation captures both the original and normalized names, which keeps the Hypothesis fixtures honest even when a source file contains odd control characters.
-- The weighted “Bayesian” shim is gone. Evidence flows through `EvidenceMetrics`, required-field gaps apply penalties, and `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py` keeps ambiguous-data ratios capped at 1.5:1.
-- Robot Framework dependencies are current, so the `robot.utils` compatibility shim—and the noisy warning suppression around it—has been retired.
-- Selenium integration tests still run in deterministic dry-run mode with explicit resource cleanup, so CI remains free of WebDriver start-up flakes.
+We fixed several specific issues that were causing problems in production:
 
-### 2025 highlights worth remembering
-- **ASV benchmarking integration (Oct 2025):** ASV (Airspeed Velocity) now tracks performance across releases with automated chart generation. CI workflow publishes benchmark visualizations to wiki on tagged releases. Three benchmark suites cover conversion performance, memory usage, and bulk operations with ~55ms average detection time.
-- **Tag-based release workflow (Oct 2025):** PyPI publishing now triggers only on version tags (v*.*.*), preventing accidental releases from main branch pushes. Ensures controlled releases with proper versioning.
-- **Development branch workflow (Oct 2025):** Established development branch as integration target for all MRs. Main branch receives only tested releases from development. Documented in wiki/Contributing.md with clear feature/release/hotfix workflows.
-- **Bayesian revamp (Oct 2025):** replaced the weighted scorer with an independent model, quadratic P(E|¬H), and regression tests for ratio caps. Strong evidence now clears the 0.8 confidence bar without hand tuning.
-- **Wiki consolidation (Oct 2025):** removed verbose Bayesian-specific documentation (Bayesian-Redesign.md, Bayesian-Scorer-Mathematical-Review.md) in favor of concise technical content in Mathematical-Foundations.md.
-- September's cleanup retired ~200 lines of compatibility hacks and replaced them with a shared `data_analysis` helper; `__all__` exports now match our actual public API.
-- `scripts/interactive_demo.py` landed after customers kept asking for a demo harness that shares code with the CLI.
-- The same cycle produced utilities for pattern extraction/step comments and tightened SSH validation so the interactive demo and the CLI share logic instead of diverging.
+- **Parameter conversion**: Comment lines with `${PLACEHOLDER}` syntax now survive as-is in traceability comments, while executable statements still get converted to Robot variables. This fixed a bug where important context was being lost.
+
+- **Test generation**: We now capture both original and normalized names when processing source files with control characters. This prevents Hypothesis from generating failing fixtures due to unexpected character sequences.
+
+- **Bayesian scoring**: Replaced the weighted evidence heuristic with proper Bayesian inference. Evidence now flows through `EvidenceMetrics`, missing fields get penalties, and we cap ambiguous input ratios at 1.5:1. Tests verify these constraints in `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`.
+
+- **Robot Framework compatibility**: Removed the `robot.utils` compatibility shim since Robot Framework updated its dependencies. This eliminated the noisy deprecation warnings we were seeing in CI.
+
+- **Selenium tests**: Fixed WebDriver start-up flakes by running Selenium integration tests in deterministic dry-run mode with explicit resource cleanup.
+
+### 2025 Changes
+
+**October 2025: ASV Benchmarking Integration**
+ASV (Airspeed Velocity) now tracks performance across releases with automated chart generation. CI workflow publishes benchmark visualizations to wiki on tagged releases. Three benchmark suites cover conversion performance, memory usage, and bulk operations with ~55ms average detection time.
+
+**October 2025: Tag-based Release Workflow**
+PyPI publishing now triggers only on version tags (v*.*.*), preventing accidental releases from main branch pushes. Ensures controlled releases with proper versioning.
+
+**October 2025: Development Branch Workflow**
+Established development branch as integration target for all MRs. Main branch receives only tested releases from development. Documented in wiki/Contributing.md with clear feature/release/hotfix workflows.
+
+**October 2025: Application Context Pattern**
+We had race conditions in our tests due to global state. Replaced global variables with thread-local context, which fixed the concurrent instance support issues. Added `importobot.caching` module with unified LRU cache implementation.
+
+**October 2025: Template Learning**
+Instead of hardcoding Robot Framework patterns, we now learn them from existing files using `--robot-template`. The system extracts patterns from your team's Robot files and applies them consistently. This replaced our old template system that required manual pattern definitions.
+
+**October 2025: Schema Parser**
+Added `schema_parser.py` to read customer documentation (SOPs, READMEs) with `--input-schema`. This improved parsing accuracy from ~85% to ~95% on custom exports where customers use non-standard field names.
+
+**October 2025: API Integration**
+Unified platform fetching under `--fetch-format` parameter. The Zephyr client now does automatic API discovery and adapts to different server configurations. We tested this against 4 different Zephyr instances and they all work with the same client code.
+
+**October 2025: Documentation**
+Wrote proper Migration Guide for 0.1.2→0.1.3 since there were no breaking changes, documented the breaking changes that did exist in previous versions, and created a step-by-step Blueprint Tutorial.
+
+**October 2025: Configuration**
+Fixed project identifier parsing that was failing on control characters and whitespace. CLI arguments that don't parse to valid identifiers now use environment variables as default values instead of crashing.
+
+**October 2025: Wiki Consolidation**
+Removed verbose Bayesian-specific documentation (Bayesian-Redesign.md, Bayesian-Scorer-Mathematical-Review.md) in favor of concise technical content in Mathematical-Foundations.md.
+
+**September 2025: Code cleanup**
+Removed 200+ lines of compatibility code that were no longer needed, added `data_analysis` helper for performance profiling, and updated `__all__` exports to match our actual public API surface.
+
+**September 2025: Demo script**
+Added `scripts/interactive_demo.py` for customer demonstrations. It shares code with the CLI so we don't duplicate the conversion logic. The same cycle produced utilities for pattern extraction/step comments and tightened SSH validation so the interactive demo and the CLI share logic instead of diverging.
+
+**Test status**: All 2,105 tests pass with 0 skips.
+**Code quality**: Removed pylint from the project (now using ruff/mypy only) and improved test isolation.
+
+## API Integration Enhancements
+
+### Zephyr Client
+The `ZephyrClient` adapts to different server configurations with automatic API discovery, authentication defaults, and adaptive pagination. See [User Guide](wiki/User-Guide.md) for detailed usage examples.
 
 ## CI/CD
 
@@ -54,74 +90,66 @@ Importobot works in CI/CD pipelines and supports headless environments with head
 
 ## MCP agent usage
 
-MCP agents (like qwen-code) are only utilized when their context window increases our efficiency while simultaneously reducing token cost.
-Every call still flows through the main session, so simple file edits cost extra tokens without saving time.
+Use MCP agents (like qwen-code) when their context window improves efficiency and reduces token cost. Every call flows through the main session, so simple file edits waste tokens.
 
-Good fits:
-- Broad explorations, codebase surveys, or brainstorming where parallel thinking helps.
-- Analyses that would otherwise require opening dozens of files manually.
+Use MCP agents for:
+- Broad explorations and codebase surveys
+- Analyses requiring dozens of manual file opens
+- Brainstorming with parallel thinking
 
-Stick with the built-in tools when the failure is easily understood, a small collection of files need to be edited, or the results/output can be easily determined.
+Use built-in tools for:
+- Easily understood failures
+- Small file edits
+- Determinable outputs
 
-## Public API Design Principles
+## Public API Design
 
-Importobot follows pandas-inspired API design patterns to provide a professional interface while keeping internal implementation flexible.
+Importobot uses pandas-style API patterns for a professional interface with flexible internal implementation.
 
-### API Architecture Overview
-
-**Public Interface Structure:**
+### API Structure
 ```python
-# Primary business interface
+# Primary interface
 import importobot
-converter = importobot.JsonToRobotConverter()  # Core bulk conversion
+converter = importobot.JsonToRobotConverter()  # Core conversion
 
-# Enterprise toolkit access
+# Enterprise features
 from importobot.api import validation, converters, suggestions
 
-# Configuration and error handling
-importobot.config  # Enterprise configuration
-importobot.exceptions  # Comprehensive error handling
+# Configuration and errors
+importobot.config
+importobot.exceptions
 ```
 
 ### Design Patterns
 
-#### 1. Pandas-Style Organization
-- **Dedicated API Module**: `importobot.api` provides enterprise toolkit (like `pandas.api`)
-- **Dependency Validation**: Import-time checks with informative error messages
-- **Type-Safe Imports**: `TYPE_CHECKING` pattern for development support
-- **Controlled Namespace**: Clean `__all__` exports throughout codebase
+**1. API Organization**
+- `importobot.api` provides enterprise toolkit (like `pandas.api`)
+- Import-time validation with clear error messages
+- `TYPE_CHECKING` pattern for development support
+- Clean `__all__` exports throughout codebase
 
-#### 2. Namespace Management
-Based on pandas, numpy, requests, and flask patterns:
-
+**2. Namespace Management**
+Based on pandas/requests patterns:
 ```python
-# Industry-validated pattern used in importobot
 from importobot import config as _config
 from importobot import exceptions as _exceptions
 from importobot import api as _api
 
-# Expose through clean interface
 config = _config
 exceptions = _exceptions
 api = _api
 
-# Clean up namespace (pandas uses similar del cleanup)
-del _config, _exceptions, _api
+del _config, _exceptions, _api  # Clean up temporary imports
 ```
 
-**Pattern notes**
-- Pandas and requests both clean up temporary imports this way, so the approach is familiar to most contributors.
-- The pattern keeps the public namespace tidy without hiding functionality.
+**3. Use Cases**
+- Bulk conversion: `JsonToRobotConverter` for thousands of test cases
+- API integration: `importobot.api.validation` and platform fetching
+- CI/CD: Pipeline validation with real-time data fetching
+- QA suggestions: `importobot.api.suggestions` for ambiguous test cases
 
-#### 3. Business-Focused API Surface
-
-**Enterprise Use Cases:**
-1. **Bulk Conversion Pipeline**: `JsonToRobotConverter` for hundreds/thousands of test cases
-2. **CI/CD Integration**: `importobot.api.validation` for automated pipeline validation
-3. **QA Suggestion Engine**: `importobot.api.suggestions` for ambiguous test case handling
-
-**Security & Maintainability:**
-- Core implementation modules marked as private (empty `__all__` lists)
+**4. Security**
+- Core implementation modules are private (empty `__all__` lists)
 - Public API isolated from internal refactoring
 - Controlled access prevents misuse of internal utilities
 
@@ -149,7 +177,7 @@ Following pandas model:
 
 ### Before Making Changes
 1. Run existing tests: `make test`
-2. Check code quality: `make lint`
+2. Check code quality: `make lint` (runs ruff and mypy)
 3. Understand existing architecture and patterns
 4. Review public API impact if changing exposed functionality
 
@@ -162,7 +190,7 @@ Following pandas model:
 
 ### After Changes
 1. Run all tests: `make test`
-2. Check code quality: `make lint` (runs all linting tools matching CI configuration)
+2. Check code quality: `make lint` (runs ruff and mypy for linting and type checking)
 3. Format code: `make format`
 4. Clean artifacts: `make clean` or `make deep-clean`
 5. Verify no regressions were introduced

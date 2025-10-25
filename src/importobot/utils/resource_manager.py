@@ -1,12 +1,13 @@
 """Resource management and limits for test generation operations."""
 
-import logging
 import os
 import time
 from dataclasses import dataclass
 from typing import Any
 
 import psutil
+
+from importobot.utils.logging import get_logger
 
 
 @dataclass
@@ -60,7 +61,7 @@ class ResourceManager:
             return
 
         self.limits = limits or ResourceLimits()
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger()
         # Track per-operation baselines for correct time enforcement
         self._operation_start_times: dict[str, float] = {}
         self._operation_counter: int = 0
@@ -100,7 +101,9 @@ class ResourceManager:
 
         self.logger.info("Resource validation passed for %d tests", total_tests)
 
-    def _validate_test_count(self, total_tests: int, validation_errors: list) -> None:
+    def _validate_test_count(
+        self, total_tests: int, validation_errors: list[str]
+    ) -> None:
         """Validate test count against limits."""
         if total_tests <= 0:
             validation_errors.append("total_tests must be greater than 0")
@@ -111,7 +114,7 @@ class ResourceManager:
             )
 
     def _validate_disk_space(
-        self, total_tests: int, output_dir: str, validation_errors: list
+        self, total_tests: int, output_dir: str, validation_errors: list[str]
     ) -> None:
         """Validate disk space requirements."""
         try:
@@ -132,7 +135,9 @@ class ResourceManager:
         except (OSError, AttributeError) as e:
             self.logger.warning("Could not check disk usage: %s", e)
 
-    def _validate_memory_usage(self, total_tests: int, validation_errors: list) -> None:
+    def _validate_memory_usage(
+        self, total_tests: int, validation_errors: list[str]
+    ) -> None:
         """Validate memory usage requirements."""
         try:
             memory = psutil.virtual_memory()
@@ -286,7 +291,7 @@ class ResourceManager:
         except FileNotFoundError as e:
             self.logger.error("File system path not found: %s", e)
             return {"error": f"File system error: {e}"}
-        except (OSError, IOError) as e:
+        except OSError as e:
             self.logger.error("System error getting resource stats: %s", e)
             return {"error": f"System I/O error: {e}"}
         except RuntimeError as e:

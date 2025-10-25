@@ -78,7 +78,7 @@ class WebKeywordGenerator(BaseKeywordGenerator):
                 return "Click Button    id=submit_button"
             return "Click Element    id=submit_button"
 
-        # Default to original logic if no locator found
+        # If no locator is found, use original logic
         if "login" in desc_lower and "button" in desc_lower:
             return "Click Button    id=login_button"
         if "button" in desc_lower:
@@ -96,10 +96,7 @@ class WebKeywordGenerator(BaseKeywordGenerator):
         else:
             # Try to extract from common patterns
             value_match = re.search(r"(?:text|message)[:\s=]+([^,\s]+)", test_data)
-            if value_match:
-                text_to_verify = value_match.group(1)
-            else:
-                text_to_verify = "expected content"
+            text_to_verify = value_match.group(1) if value_match else "expected content"
 
         return f"Page Should Contain    {text_to_verify}"
 

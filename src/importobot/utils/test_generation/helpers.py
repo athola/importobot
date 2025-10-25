@@ -6,7 +6,7 @@ from typing import Any
 from importobot.core.keywords_registry import RobotFrameworkKeywordRegistry
 from importobot.core.pattern_matcher import LibraryDetector
 from importobot.utils.test_generation.distributions import DistributionDict, WeightsDict
-from importobot.utils.test_generation.generators import EnterpriseTestGenerator
+from importobot.utils.test_generation.generators import TestSuiteGenerator
 
 
 def generate_test_suite(
@@ -44,16 +44,20 @@ def generate_test_suite(
     if total_tests > 50000:  # MAX_TOTAL_TESTS
         raise ValueError(f"total_tests ({total_tests}) exceeds maximum allowed (50000)")
 
-    generator = EnterpriseTestGenerator()
-    return generator.generate_test_suite(output_dir, total_tests, distribution, weights)
+    generator = TestSuiteGenerator()
+    result: DistributionDict = generator.generate_test_suite(
+        output_dir, total_tests, distribution, weights
+    )
+    return result
 
 
 def generate_random_test_json(
     structure: str | None = None, complexity: str | None = None
 ) -> dict[str, Any]:
     """Generate a random JSON test artifact."""
-    generator = EnterpriseTestGenerator()
-    return generator.generate_random_json(structure, complexity)
+    generator = TestSuiteGenerator()
+    result: dict[str, Any] = generator.generate_random_json(structure, complexity)
+    return result
 
 
 def get_available_structures() -> list[str]:
@@ -64,7 +68,7 @@ def get_available_structures() -> list[str]:
 def get_required_libraries_for_keywords(keywords: list[dict[str, Any]]) -> set[str]:
     """Get required Robot Framework libraries for given keywords."""
     # Create steps using the same process as the actual test conversion
-    generator = EnterpriseTestGenerator()
+    generator = TestSuiteGenerator()
     test_data = generator.generate_realistic_test_data()
 
     steps = []

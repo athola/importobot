@@ -1,6 +1,7 @@
 """Implementation of keyword generation components."""
 
 import re
+from collections.abc import Callable
 from typing import Any
 
 from importobot.core.context_analyzer import ContextAnalyzer
@@ -133,7 +134,7 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
         os_generator = self.operating_system_generator
         builtin = self.builtin_generator
 
-        intent_handlers = {
+        intent_handlers: dict[Any, Callable[[], str]] = {
             # Web operations
             IntentType.BROWSER_OPEN: (lambda: web.generate_browser_keyword(test_data)),
             IntentType.BROWSER_NAVIGATE: (
@@ -198,6 +199,9 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
             ),
             IntentType.FILE_CREATION: lambda: self._handle_file_creation(
                 description, test_data
+            ),
+            IntentType.FILE_STAT: (
+                lambda: os_generator.generate_command_keyword(test_data)
             ),
             # SSH operations
             IntentType.SSH_CONNECT: (

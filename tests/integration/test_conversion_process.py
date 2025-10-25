@@ -3,11 +3,21 @@
 import json
 import tempfile
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 from importobot import exceptions
 from importobot.core.converter import convert_file
+from importobot.core.templates import configure_template_sources
+
+
+@pytest.fixture(autouse=True)
+def reset_templates():
+    """Clear template state between tests."""
+    configure_template_sources([])
+    yield
+    configure_template_sources([])
 
 
 class TestIntegration:
@@ -48,7 +58,7 @@ class TestIntegration:
             convert_file(input_filename, output_filename)
 
             # Verify output
-            with open(output_filename, "r", encoding="utf-8") as f:
+            with open(output_filename, encoding="utf-8") as f:
                 content = f.read()
                 assert "*** Test Cases ***" in content
                 assert "Login Test" in content
@@ -66,7 +76,7 @@ class TestIntegration:
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".json", delete=False, encoding="utf-8"
         ) as input_file:
-            sample_data: dict = {}
+            sample_data: dict[str, Any] = {}
             json.dump(sample_data, input_file)
             input_filename = input_file.name
 

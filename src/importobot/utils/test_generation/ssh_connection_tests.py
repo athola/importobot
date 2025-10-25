@@ -1,7 +1,7 @@
 """SSH connection test generation module."""
 
 import random
-from typing import Any, Dict
+from typing import Any
 
 from .ssh_base import BaseSSHTestGenerator
 
@@ -13,7 +13,7 @@ class SSHConnectionTestGenerator(BaseSSHTestGenerator):
         """Initialize the SSH connection test generator."""
         # No initialization needed for base class
 
-    def generate_open_connection_test(self) -> Dict[str, Any]:
+    def generate_open_connection_test(self) -> dict[str, Any]:
         """Generate test for Open Connection keyword."""
         hosts = ["server.example.com", "production.host.com", "staging.internal"]
         usernames = ["deploy", "admin", "testuser"]
@@ -37,7 +37,7 @@ class SSHConnectionTestGenerator(BaseSSHTestGenerator):
             }
         }
 
-    def generate_close_connection_test(self) -> Dict[str, Any]:
+    def generate_close_connection_test(self) -> dict[str, Any]:
         """Generate test for Close Connection keyword."""
         return {
             "test_case": {
@@ -53,7 +53,7 @@ class SSHConnectionTestGenerator(BaseSSHTestGenerator):
             }
         }
 
-    def generate_close_all_connections_test(self) -> Dict[str, Any]:
+    def generate_close_all_connections_test(self) -> dict[str, Any]:
         """Generate test for Close All Connections keyword."""
         return {
             "test_case": {
@@ -69,7 +69,7 @@ class SSHConnectionTestGenerator(BaseSSHTestGenerator):
             }
         }
 
-    def generate_switch_connection_test(self) -> Dict[str, Any]:
+    def generate_switch_connection_test(self) -> dict[str, Any]:
         """Generate test for Switch Connection keyword."""
         aliases = [
             "main",
@@ -98,7 +98,7 @@ class SSHConnectionTestGenerator(BaseSSHTestGenerator):
             }
         }
 
-    def generate_get_connection_test(self) -> Dict[str, Any]:
+    def generate_get_connection_test(self) -> dict[str, Any]:
         """Generate test for Get Connection keyword."""
         return {
             "test_case": {
@@ -114,7 +114,7 @@ class SSHConnectionTestGenerator(BaseSSHTestGenerator):
             }
         }
 
-    def generate_get_connections_test(self) -> Dict[str, Any]:
+    def generate_get_connections_test(self) -> dict[str, Any]:
         """Generate test for Get Connections keyword."""
         return {
             "test_case": {

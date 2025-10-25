@@ -1,0 +1,63 @@
+[
+    {
+        "owner": "USER001",
+        "updatedBy": "USER002",
+        "customFields": {
+            "Supported Platforms": "All Platforms",
+            "Automated": true,
+            "Test Level": "Smoke",
+	    "Notes": "Cleanup base folder after test"
+        },
+        "precondition": "System installed; Agent deployed; CLI connected to agent; /tmp/t404.txt does not currently exist on target",
+        "updatedOn": "2025-08-29T17:27:06.945Z",
+        "priority": "Normal",
+        "createdOn": "2024-03-04T14:46:01.268Z",
+        "objective": "Verify the error message is correct when no arguments are provided to a chown task.",
+        "labels": [
+            "Requirement"
+        ],
+        "projectKey": "DEMO",
+        "folder": "/Examples/TaskTests",
+        "latestVersion": true,
+        "createdBy": "USER003",
+        "testScript": {
+            "id": 12434,
+            "type": "STEP_BY_STEP",
+            "steps": [
+                {
+                    "testData": "date +\"%Y-%m-%d %H:%M:%S.%N %z\" NOTE: nanoseconds may not appear on all architectures and will show %N, this can be ignored.",
+                    "expectedResult": "Returns the machine's current time.",
+                    "index": 1,
+                    "description": "In the target machine's terminal, get the current machine's time with date command.",
+                    "id": 101483
+                },
+                {
+                    "testData": "stat -c %s /tmp/t404.txt",
+                    "expectedResult": "File exists and timestamps are shortly after the date result from step 2.",
+                    "index": 2,
+                    "description": "In the target machine's terminal, stat the file.",
+                    "id": 83143
+                },
+                {
+                    "testData": "On CLI: touch /tmp/t404.txt",
+                    "expectedResult": "Task completes successfully",
+                    "index": 0,
+                    "description": "In the CLI, use the touch command to create a new file.",
+                    "id": 83141
+                }
+            ]
+        },
+        "issueLinks": [
+            "Link1",
+            "Link2"
+        ],
+        "lastTestResultStatus": "Success",
+        "name": "touch",
+        "parameters": {
+            "variables": [],
+            "entries": []
+        },
+        "key": "ABC-T206",
+        "status": "Approved"
+    }
+]

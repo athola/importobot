@@ -215,7 +215,7 @@ class TestBuiltInKeywordsCoverage:
                 if line.strip() and not line.strip().startswith("#")
             ][-1]
             # BuiltIn keywords now working - these should map to appropriate keywords or
-            # fallbacks
+            # defaults
             assert len(keyword_line.strip()) > 0  # Should generate some keyword
 
     def test_collection_operations_mapping(self):
@@ -292,7 +292,7 @@ class TestBuiltInKeywordsCoverage:
                 if line.strip() and not line.strip().startswith("#")
             ][-1]
             # BuiltIn keywords now working - these should map to appropriate keywords or
-            # fallbacks
+            # defaults
             assert len(keyword_line.strip()) > 0  # Should generate some keyword
 
     def test_type_checking_keywords_mapping(self):
@@ -316,7 +316,7 @@ class TestBuiltInKeywordsCoverage:
                 if line.strip() and not line.strip().startswith("#")
             ][-1]
             # BuiltIn keywords now working - these should map to appropriate keywords or
-            # fallbacks
+            # defaults
             assert len(keyword_line.strip()) > 0  # Should generate some keyword
 
     def test_keyword_existence_verification(self):
@@ -348,7 +348,7 @@ class TestBuiltInKeywordsCoverage:
                 if line.strip() and not line.strip().startswith("#")
             ][-1]
             # BuiltIn keywords now working - these should map to appropriate keywords or
-            # fallbacks
+            # defaults
             assert len(keyword_line.strip()) > 0  # Should generate some keyword
 
     def test_fail_keyword_mapping(self):
@@ -374,7 +374,7 @@ class TestBuiltInKeywordsCoverage:
                 if line.strip() and not line.strip().startswith("#")
             ][-1]
             # BuiltIn keywords now working - these should map to appropriate keywords or
-            # fallbacks
+            # defaults
             assert len(keyword_line.strip()) > 0  # Should generate some keyword
 
     def test_ambiguous_keyword_scenarios(self):

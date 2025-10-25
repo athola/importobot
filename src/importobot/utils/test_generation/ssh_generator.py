@@ -2,7 +2,7 @@
 
 import os
 import random
-from typing import Any, Dict, List
+from typing import Any
 
 from importobot.core.keywords.generators.ssh_keywords import SSHKeywordGenerator
 
@@ -34,11 +34,11 @@ class SSHKeywordTestGenerator:
         self._keyword_generators = self._build_keyword_generators()
 
     @property
-    def keyword_generators(self) -> Dict[str, Any]:
+    def keyword_generators(self) -> dict[str, Any]:
         """Return mapping of SSH keywords to their generators."""
         return self._keyword_generators
 
-    def _build_keyword_generators(self) -> Dict[str, Any]:
+    def _build_keyword_generators(self) -> dict[str, Any]:
         """Build mapping of SSH keywords to test data generators."""
         return {
             # Connection Management (6)
@@ -103,7 +103,7 @@ class SSHKeywordTestGenerator:
             "Disable Ssh Logging": self._generate_disable_ssh_logging_test,
         }
 
-    def generate_ssh_keyword_test(self, keyword: str) -> Dict[str, Any]:
+    def generate_ssh_keyword_test(self, keyword: str) -> dict[str, Any]:
         """Generate a test case for a specific SSH keyword."""
         generator = self._keyword_generators.get(keyword)
         if generator:
@@ -115,7 +115,7 @@ class SSHKeywordTestGenerator:
             )
         return self._generate_generic_test(keyword)
 
-    def generate_all_ssh_keyword_tests(self) -> List[Dict[str, Any]]:
+    def generate_all_ssh_keyword_tests(self) -> list[dict[str, Any]]:
         """Generate test cases for all SSH keywords."""
         tests = []
         for keyword in self._keyword_generators:
@@ -129,7 +129,7 @@ class SSHKeywordTestGenerator:
         return tests
 
     # Simplified placeholder methods for remaining categories
-    def _generate_set_default_configuration_test(self) -> Dict[str, Any]:
+    def _generate_set_default_configuration_test(self) -> dict[str, Any]:
         """Generate test for Set Default Configuration keyword."""
         return self._create_simple_test(
             name="SSH Set Default Configuration Test",
@@ -139,7 +139,7 @@ class SSHKeywordTestGenerator:
             expected="Default configuration set successfully",
         )
 
-    def _generate_set_client_configuration_test(self) -> Dict[str, Any]:
+    def _generate_set_client_configuration_test(self) -> dict[str, Any]:
         """Generate test for Set Client Configuration keyword."""
         return self._create_simple_test(
             name="SSH Set Client Configuration Test",
@@ -149,7 +149,7 @@ class SSHKeywordTestGenerator:
             expected="Client configuration set successfully",
         )
 
-    def _generate_execute_command_test(self) -> Dict[str, Any]:
+    def _generate_execute_command_test(self) -> dict[str, Any]:
         """Generate test for Execute Command keyword."""
         commands = ["ls -la", "pwd", "whoami", "df -h"]
         return self._create_simple_test(
@@ -160,7 +160,7 @@ class SSHKeywordTestGenerator:
             expected="Command executed successfully",
         )
 
-    def _generate_start_command_test(self) -> Dict[str, Any]:
+    def _generate_start_command_test(self) -> dict[str, Any]:
         """Generate test for Start Command keyword."""
         return self._create_simple_test(
             name="SSH Start Command Test",
@@ -170,7 +170,7 @@ class SSHKeywordTestGenerator:
             expected="Background command started",
         )
 
-    def _generate_read_command_output_test(self) -> Dict[str, Any]:
+    def _generate_read_command_output_test(self) -> dict[str, Any]:
         """Generate test for Read Command Output keyword."""
         return self._create_simple_test(
             name="SSH Read Command Output Test",
@@ -183,7 +183,7 @@ class SSHKeywordTestGenerator:
     # Additional placeholder methods for other categories would go here...
     # For brevity, I'll implement a few key ones and use generic test for the rest
 
-    def _generate_put_file_test(self) -> Dict[str, Any]:
+    def _generate_put_file_test(self) -> dict[str, Any]:
         """Generate test for Put File keyword."""
         # Generate varied file names and paths
         source_files = [
@@ -213,7 +213,7 @@ class SSHKeywordTestGenerator:
             expected="File uploaded successfully",
         )
 
-    def _generate_get_file_test(self) -> Dict[str, Any]:
+    def _generate_get_file_test(self) -> dict[str, Any]:
         """Generate test for Get File keyword."""
         return self._create_simple_test(
             name="SSH Get File Test",
@@ -223,7 +223,7 @@ class SSHKeywordTestGenerator:
             expected="File downloaded successfully",
         )
 
-    def _generate_create_file_test(self) -> Dict[str, Any]:
+    def _generate_create_file_test(self) -> dict[str, Any]:
         """Generate test for Create File keyword."""
         return self._create_simple_test(
             name="SSH Create File Test",
@@ -233,7 +233,7 @@ class SSHKeywordTestGenerator:
             expected="File created successfully",
         )
 
-    def _generate_remove_file_test(self) -> Dict[str, Any]:
+    def _generate_remove_file_test(self) -> dict[str, Any]:
         """Generate test for Remove File keyword."""
         return self._create_simple_test(
             name="SSH Remove File Test",
@@ -243,7 +243,7 @@ class SSHKeywordTestGenerator:
             expected="File removed successfully",
         )
 
-    def _generate_move_file_test(self) -> Dict[str, Any]:
+    def _generate_move_file_test(self) -> dict[str, Any]:
         """Generate test for Move File keyword."""
         return self._create_simple_test(
             name="SSH Move File Test",
@@ -256,7 +256,7 @@ class SSHKeywordTestGenerator:
             expected="File moved successfully",
         )
 
-    def _generate_file_should_exist_test(self) -> Dict[str, Any]:
+    def _generate_file_should_exist_test(self) -> dict[str, Any]:
         """Generate test for File Should Exist keyword."""
         return self._create_simple_test(
             name="SSH File Should Exist Test",
@@ -266,7 +266,7 @@ class SSHKeywordTestGenerator:
             expected="File exists verification passed",
         )
 
-    def _generate_file_should_not_exist_test(self) -> Dict[str, Any]:
+    def _generate_file_should_not_exist_test(self) -> dict[str, Any]:
         """Generate test for File Should Not Exist keyword."""
         return self._create_simple_test(
             name="SSH File Should Not Exist Test",
@@ -276,7 +276,7 @@ class SSHKeywordTestGenerator:
             expected="File non-existence verification passed",
         )
 
-    def _generate_change_file_permissions_test(self) -> Dict[str, Any]:
+    def _generate_change_file_permissions_test(self) -> dict[str, Any]:
         """Generate test for Change File Permissions keyword."""
         return self._create_simple_test(
             name="SSH Change File Permissions Test",
@@ -286,7 +286,7 @@ class SSHKeywordTestGenerator:
             expected="File permissions changed successfully",
         )
 
-    def _generate_get_file_size_test(self) -> Dict[str, Any]:
+    def _generate_get_file_size_test(self) -> dict[str, Any]:
         """Generate test for Get File Size keyword."""
         return self._create_simple_test(
             name="SSH Get File Size Test",
@@ -296,7 +296,7 @@ class SSHKeywordTestGenerator:
             expected="File size retrieved successfully",
         )
 
-    def _generate_get_file_permissions_test(self) -> Dict[str, Any]:
+    def _generate_get_file_permissions_test(self) -> dict[str, Any]:
         """Generate test for Get File Permissions keyword."""
         return self._create_simple_test(
             name="SSH Get File Permissions Test",
@@ -306,7 +306,7 @@ class SSHKeywordTestGenerator:
             expected="File permissions retrieved successfully",
         )
 
-    def _generate_set_file_permissions_test(self) -> Dict[str, Any]:
+    def _generate_set_file_permissions_test(self) -> dict[str, Any]:
         """Generate test for Set File Permissions keyword."""
         return self._create_simple_test(
             name="SSH Set File Permissions Test",
@@ -316,7 +316,7 @@ class SSHKeywordTestGenerator:
             expected="File permissions set successfully",
         )
 
-    def _generate_create_directory_test(self) -> Dict[str, Any]:
+    def _generate_create_directory_test(self) -> dict[str, Any]:
         """Generate test for Create Directory keyword."""
         # Generate varied directory paths
         directory_paths = [
@@ -335,7 +335,7 @@ class SSHKeywordTestGenerator:
             expected="Directory created successfully",
         )
 
-    def _generate_list_directory_test(self) -> Dict[str, Any]:
+    def _generate_list_directory_test(self) -> dict[str, Any]:
         """Generate test for List Directory keyword."""
         return self._create_simple_test(
             name="SSH List Directory Test",
@@ -345,7 +345,7 @@ class SSHKeywordTestGenerator:
             expected="Directory contents listed successfully",
         )
 
-    def _generate_directory_should_exist_test(self) -> Dict[str, Any]:
+    def _generate_directory_should_exist_test(self) -> dict[str, Any]:
         """Generate test for Directory Should Exist keyword."""
         return self._create_simple_test(
             name="SSH Directory Should Exist Test",
@@ -355,7 +355,7 @@ class SSHKeywordTestGenerator:
             expected="Directory exists verification passed",
         )
 
-    def _generate_directory_should_not_exist_test(self) -> Dict[str, Any]:
+    def _generate_directory_should_not_exist_test(self) -> dict[str, Any]:
         """Generate test for Directory Should Not Exist keyword."""
         return self._create_simple_test(
             name="SSH Directory Should Not Exist Test",
@@ -365,7 +365,7 @@ class SSHKeywordTestGenerator:
             expected="Directory non-existence verification passed",
         )
 
-    def _generate_remove_directory_test(self) -> Dict[str, Any]:
+    def _generate_remove_directory_test(self) -> dict[str, Any]:
         """Generate test for Remove Directory keyword."""
         return self._create_simple_test(
             name="SSH Remove Directory Test",
@@ -375,7 +375,7 @@ class SSHKeywordTestGenerator:
             expected="Directory removed successfully",
         )
 
-    def _generate_move_directory_test(self) -> Dict[str, Any]:
+    def _generate_move_directory_test(self) -> dict[str, Any]:
         """Generate test for Move Directory keyword."""
         return self._create_simple_test(
             name="SSH Move Directory Test",
@@ -388,7 +388,7 @@ class SSHKeywordTestGenerator:
             expected="Directory moved successfully",
         )
 
-    def _generate_list_files_in_directory_test(self) -> Dict[str, Any]:
+    def _generate_list_files_in_directory_test(self) -> dict[str, Any]:
         """Generate test for List Files In Directory keyword."""
         return self._create_simple_test(
             name="SSH List Files In Directory Test",
@@ -398,7 +398,7 @@ class SSHKeywordTestGenerator:
             expected="Files in directory listed successfully",
         )
 
-    def _generate_list_directories_in_directory_test(self) -> Dict[str, Any]:
+    def _generate_list_directories_in_directory_test(self) -> dict[str, Any]:
         """Generate test for List Directories In Directory keyword."""
         return self._create_simple_test(
             name="SSH List Directories In Directory Test",
@@ -408,7 +408,7 @@ class SSHKeywordTestGenerator:
             expected="Directories in directory listed successfully",
         )
 
-    def _generate_write_test(self) -> Dict[str, Any]:
+    def _generate_write_test(self) -> dict[str, Any]:
         """Generate test for Write keyword."""
         return self._create_simple_test(
             name="SSH Write Test",
@@ -418,7 +418,7 @@ class SSHKeywordTestGenerator:
             expected="Text written to shell successfully",
         )
 
-    def _generate_read_test(self) -> Dict[str, Any]:
+    def _generate_read_test(self) -> dict[str, Any]:
         """Generate test for Read keyword."""
         return self._create_simple_test(
             name="SSH Read Test",
@@ -428,7 +428,7 @@ class SSHKeywordTestGenerator:
             expected="Shell output read successfully",
         )
 
-    def _generate_read_until_test(self) -> Dict[str, Any]:
+    def _generate_read_until_test(self) -> dict[str, Any]:
         """Generate test for Read Until keyword."""
         return self._create_simple_test(
             name="SSH Read Until Test",
@@ -438,7 +438,7 @@ class SSHKeywordTestGenerator:
             expected="Read until condition met",
         )
 
-    def _generate_read_until_prompt_test(self) -> Dict[str, Any]:
+    def _generate_read_until_prompt_test(self) -> dict[str, Any]:
         """Generate test for Read Until Prompt keyword."""
         return self._create_simple_test(
             name="SSH Read Until Prompt Test",
@@ -448,7 +448,7 @@ class SSHKeywordTestGenerator:
             expected="Shell prompt detected successfully",
         )
 
-    def _generate_set_prompt_test(self) -> Dict[str, Any]:
+    def _generate_set_prompt_test(self) -> dict[str, Any]:
         """Generate test for Set Prompt keyword."""
         return self._create_simple_test(
             name="SSH Set Prompt Test",
@@ -458,7 +458,7 @@ class SSHKeywordTestGenerator:
             expected="Shell prompt pattern set successfully",
         )
 
-    def _generate_write_bare_test(self) -> Dict[str, Any]:
+    def _generate_write_bare_test(self) -> dict[str, Any]:
         """Generate test for Write Bare keyword."""
         return self._create_simple_test(
             name="SSH Write Bare Test",
@@ -468,7 +468,7 @@ class SSHKeywordTestGenerator:
             expected="Bare text written to shell successfully",
         )
 
-    def _generate_read_until_regexp_test(self) -> Dict[str, Any]:
+    def _generate_read_until_regexp_test(self) -> dict[str, Any]:
         """Generate test for Read Until Regexp keyword."""
         return self._create_simple_test(
             name="SSH Read Until Regexp Test",
@@ -478,7 +478,7 @@ class SSHKeywordTestGenerator:
             expected="Read until regexp condition met",
         )
 
-    def _generate_write_until_expected_output_test(self) -> Dict[str, Any]:
+    def _generate_write_until_expected_output_test(self) -> dict[str, Any]:
         """Generate test for Write Until Expected Output keyword."""
         return self._create_simple_test(
             name="SSH Write Until Expected Output Test",
@@ -488,7 +488,7 @@ class SSHKeywordTestGenerator:
             expected="Write until expected output condition met",
         )
 
-    def _generate_enable_ssh_logging_test(self) -> Dict[str, Any]:
+    def _generate_enable_ssh_logging_test(self) -> dict[str, Any]:
         """Generate test for Enable Ssh Logging keyword."""
         return self._create_simple_test(
             name="SSH Enable Logging Test",
@@ -498,7 +498,7 @@ class SSHKeywordTestGenerator:
             expected="SSH logging enabled successfully",
         )
 
-    def _generate_disable_ssh_logging_test(self) -> Dict[str, Any]:
+    def _generate_disable_ssh_logging_test(self) -> dict[str, Any]:
         """Generate test for Disable Ssh Logging keyword."""
         return self._create_simple_test(
             name="SSH Disable Logging Test",
@@ -508,7 +508,7 @@ class SSHKeywordTestGenerator:
             expected="SSH logging disabled successfully",
         )
 
-    def _generate_put_directory_test(self) -> Dict[str, Any]:
+    def _generate_put_directory_test(self) -> dict[str, Any]:
         """Generate test for Put Directory keyword."""
         return self._create_simple_test(
             name="SSH Put Directory Test",
@@ -518,7 +518,7 @@ class SSHKeywordTestGenerator:
             expected="Directory uploaded successfully",
         )
 
-    def _generate_get_directory_test(self) -> Dict[str, Any]:
+    def _generate_get_directory_test(self) -> dict[str, Any]:
         """Generate test for Get Directory keyword."""
         return self._create_simple_test(
             name="SSH Get Directory Test",
@@ -530,7 +530,7 @@ class SSHKeywordTestGenerator:
 
     def _create_simple_test(
         self, *, name: str, description: str, step: str, test_data: str, expected: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a simple test case structure."""
         return {
             "test_case": {
@@ -546,7 +546,7 @@ class SSHKeywordTestGenerator:
             }
         }
 
-    def _generate_generic_test(self, keyword: str) -> Dict[str, Any]:
+    def _generate_generic_test(self, keyword: str) -> dict[str, Any]:
         """Generate a generic test case for unknown keywords."""
         return self._create_simple_test(
             name=f"SSH {keyword} Test",

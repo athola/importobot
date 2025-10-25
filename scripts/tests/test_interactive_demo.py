@@ -186,7 +186,7 @@ class TestNewHelperFunctions:
             result = generator.operating_system_generator.generate_command_keyword(
                 "ls -la"
             )
-            assert "Run    ls -la" == result
+            assert "List Directory    -la" == result
 
             result = generator.operating_system_generator.generate_command_keyword(
                 "pwd"

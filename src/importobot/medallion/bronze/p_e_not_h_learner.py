@@ -7,23 +7,23 @@ to replace or validate the hardcoded quadratic decay formula.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import numpy as np
 
 # Local imports for test data (moved here to avoid import-outside-toplevel issues)
+from importobot.medallion.interfaces.enums import SupportedFormat
+
 try:
-    from importobot.medallion.interfaces.enums import SupportedFormat
     from tests.unit.medallion.bronze.test_format_detection_integration import (
         TestFormatDetectionIntegration,
     )
 except ImportError:
-    # Default for when test modules aren't available
-    SupportedFormat: Any = None  # type: ignore[assignment,no-redef]
-    TestFormatDetectionIntegration: Any = None  # type: ignore[assignment,no-redef]
+    # To handle cases where test modules are not available
+    TestFormatDetectionIntegration: Any = None  # type: ignore[no-redef]
 
 try:
-    from scipy import optimize  # type: ignore[import-untyped]
+    from scipy import optimize  # pyright: ignore[reportMissingModuleSource]
 
     _SCIPY_AVAILABLE = True
 except ImportError:
@@ -35,7 +35,7 @@ except ImportError:
 class PENotHParameters:
     """Parameters for P(E|¬H) estimation.
 
-    The formula is: P(E|¬H) = a + b × (1 - L)^c
+    The formula is: P(E|¬H) = a + b * (1 - L) ** c
 
     where:
         a: minimum P(E|¬H) for perfect evidence (L=1.0)
@@ -66,10 +66,7 @@ class PENotHParameters:
             return False
 
         # c must be positive (decay exponent)
-        if not 0.5 <= self.c <= 3.0:
-            return False
-
-        return True
+        return 0.5 <= self.c <= 3.0
 
 
 class PENotHLearner:
@@ -78,10 +75,10 @@ class PENotHLearner:
     def __init__(self) -> None:
         """Initialize learner with default hardcoded parameters."""
         self.parameters = PENotHParameters()
-        self.training_data: List[Tuple[float, float]] = []
+        self.training_data: list[tuple[float, float]] = []
 
     def learn_from_cross_format_data(
-        self, cross_format_observations: List[Tuple[float, float]]
+        self, cross_format_observations: list[tuple[float, float]]
     ) -> PENotHParameters:
         """Learn P(E|¬H) parameters from cross-format likelihood observations.
 
@@ -98,7 +95,7 @@ class PENotHLearner:
         2. Measure likelihood L for detecting F_target (where F_target != F_true)
         3. This likelihood represents P(E_target|¬F_target) empirically
         4. Fit parameters (a, b, c) to minimize MSE between:
-           - Predicted: a + b × (1-L)^c
+           - Predicted: a + b * (1 - L) ** c
            - Observed: empirical P(E|¬H)
         """
         self.training_data = cross_format_observations
@@ -114,9 +111,10 @@ class PENotHLearner:
         return self._learn_with_scipy(cross_format_observations)
 
     def _learn_with_scipy(
-        self, observations: List[Tuple[float, float]]
+        self, observations: list[tuple[float, float]]
     ) -> PENotHParameters:
         """Learn parameters using scipy optimization."""
+        assert optimize is not None
 
         def objective(params: np.ndarray) -> float:
             a, b, c = params
@@ -126,14 +124,10 @@ class PENotHLearner:
                 mse += (predicted - observed_p) ** 2
             return mse / len(observations)
 
-        # Constraints
-        constraints = [
-            {"type": "ineq", "fun": lambda x: x[0]},  # a >= 0
-            {"type": "ineq", "fun": lambda x: x[1]},  # b >= 0
-            {"type": "ineq", "fun": lambda x: 1.0 - (x[0] + x[1])},  # a+b <= 1
-            {"type": "ineq", "fun": lambda x: x[2] - 0.5},  # c >= 0.5
-            {"type": "ineq", "fun": lambda x: 3.0 - x[2]},  # c <= 3.0
-        ]
+        # Constraint to ensure a + b <= 1
+        sum_constraint = optimize.NonlinearConstraint(
+            lambda x: x[0] + x[1], -np.inf, 1.0
+        )
 
         # Bounds
         bounds = [
@@ -145,8 +139,12 @@ class PENotHLearner:
         # Initial guess: current hardcoded values
         x0 = np.array([self.parameters.a, self.parameters.b, self.parameters.c])
 
-        result = optimize.minimize(  # type: ignore[call-overload]
-            objective, x0, method="SLSQP", bounds=bounds, constraints=constraints
+        result = optimize.minimize(
+            objective,
+            x0,
+            method="SLSQP",
+            bounds=bounds,
+            constraints=(sum_constraint,),
         )
 
         if result.success:
@@ -160,7 +158,7 @@ class PENotHLearner:
         return self.parameters
 
     def _learn_with_heuristics(
-        self, observations: List[Tuple[float, float]]
+        self, observations: list[tuple[float, float]]
     ) -> PENotHParameters:
         """Learn parameters using simple heuristics without scipy."""
         likelihoods = np.array([L for L, _ in observations])
@@ -213,8 +211,8 @@ class PENotHLearner:
         return self.parameters
 
     def compare_with_hardcoded(
-        self, cross_format_observations: List[Tuple[float, float]]
-    ) -> Dict[str, float]:
+        self, cross_format_observations: list[tuple[float, float]]
+    ) -> dict[str, float]:
         """Compare learned vs hardcoded parameters.
 
         Returns:
@@ -258,7 +256,7 @@ class PENotHLearner:
         }
 
 
-def load_test_data_for_learning() -> List[Tuple[Dict[str, Any], Any]]:
+def load_test_data_for_learning() -> list[tuple[dict[str, Any], Any]]:
     """Load labeled test data from integration test fixtures.
 
     Returns:
@@ -267,8 +265,10 @@ def load_test_data_for_learning() -> List[Tuple[Dict[str, Any], Any]]:
     if SupportedFormat is None or TestFormatDetectionIntegration is None:
         return []
 
-    test_instance = TestFormatDetectionIntegration()
-    test_instance.setUp()
+    if TestFormatDetectionIntegration is not None:
+        test_instance = TestFormatDetectionIntegration()
+        if hasattr(test_instance, "setUp"):
+            test_instance.setUp()  # type: ignore[no-untyped-call]
 
     labeled_samples = []
 
@@ -288,4 +288,4 @@ def load_test_data_for_learning() -> List[Tuple[Dict[str, Any], Any]]:
     return labeled_samples
 
 
-__all__ = ["PENotHParameters", "PENotHLearner", "load_test_data_for_learning"]
+__all__ = ["PENotHLearner", "PENotHParameters", "load_test_data_for_learning"]

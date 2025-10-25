@@ -65,6 +65,10 @@ class TestDetectionCacheConfiguration:
             "time",
             lambda: base_time + 2,
         )
+        monkeypatch.setattr(
+            "importobot.caching.lru_cache.time.time",
+            lambda: base_time + 2,
+        )
 
         assert cache.get_cached_detection_result(data) is None
 

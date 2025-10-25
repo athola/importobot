@@ -219,18 +219,18 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
         result = self.ingestion.ingest_file(test_file)
 
         # Assert successful ingestion
-        self.assertEqual(result.status, ProcessingStatus.COMPLETED)
-        self.assertEqual(result.success_count, 1)
-        self.assertEqual(result.error_count, 0)
+        assert result.status == ProcessingStatus.COMPLETED
+        assert result.success_count == 1
+        assert result.error_count == 0
 
         # Assert metadata is captured
         metadata = result.metadata
-        self.assertEqual(metadata.source_path, test_file)
-        self.assertEqual(metadata.layer_name, "bronze")
-        self.assertIsInstance(metadata.ingestion_timestamp, datetime)
-        self.assertGreater(metadata.file_size_bytes, 0)
-        self.assertGreater(len(metadata.data_hash), 0)
-        self.assertEqual(metadata.format_type, SupportedFormat.ZEPHYR)
+        assert metadata.source_path == test_file
+        assert metadata.layer_name == "bronze"
+        assert isinstance(metadata.ingestion_timestamp, datetime)
+        assert metadata.file_size_bytes > 0
+        assert len(metadata.data_hash) > 0
+        assert metadata.format_type == SupportedFormat.ZEPHYR
 
     def test_ingest_json_string_with_source_tracking(self):
         """Test ingesting JSON string with proper source attribution."""
@@ -239,9 +239,9 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
 
         result = self.ingestion.ingest_json_string(json_string, source_name)
 
-        self.assertEqual(result.status, ProcessingStatus.COMPLETED)
-        self.assertEqual(result.metadata.source_path.name, source_name)
-        self.assertEqual(result.metadata.format_type, SupportedFormat.TESTLINK)
+        assert result.status == ProcessingStatus.COMPLETED
+        assert result.metadata.source_path.name == source_name
+        assert result.metadata.format_type == SupportedFormat.TESTLINK
 
     def test_ingest_data_dict_preserves_structure(self):
         """Test ingesting data dictionary preserves original structure."""
@@ -249,13 +249,13 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
 
         result = self.ingestion.ingest_data_dict(self.jira_xray_data, source_name)
 
-        self.assertEqual(result.status, ProcessingStatus.COMPLETED)
-        self.assertEqual(result.metadata.format_type, SupportedFormat.JIRA_XRAY)
+        assert result.status == ProcessingStatus.COMPLETED
+        assert result.metadata.format_type == SupportedFormat.JIRA_XRAY
         # Verify original data structure is preserved in Bronze layer
         query = LayerQuery(layer_name="bronze", data_ids=[], limit=1)
         stored_data = self.ingestion.bronze_layer.retrieve(query)
-        self.assertEqual(len(stored_data.records), 1)
-        self.assertEqual(stored_data.records[0]["issues"][0]["key"], "TEST-123")
+        assert len(stored_data.records) == 1
+        assert stored_data.records[0]["issues"][0]["key"] == "TEST-123"
 
     # Test 2: Data lineage tracking from source to Bronze storage
     def test_data_lineage_tracked_from_source_to_bronze(self):
@@ -267,12 +267,12 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
         result = self.ingestion.ingest_file(test_file)
 
         # Verify lineage information is captured
-        self.assertEqual(len(result.lineage), 1)
+        assert len(result.lineage) == 1
         lineage = result.lineage[0]
-        self.assertEqual(lineage.source_layer, "input")
-        self.assertEqual(lineage.target_layer, "bronze")
-        self.assertEqual(lineage.transformation_type, "raw_ingestion")
-        self.assertIsInstance(lineage.transformation_timestamp, datetime)
+        assert lineage.source_layer == "input"
+        assert lineage.target_layer == "bronze"
+        assert lineage.transformation_type == "raw_ingestion"
+        assert isinstance(lineage.transformation_timestamp, datetime)
 
     def test_lineage_includes_transformation_details(self):
         """Test that lineage includes detailed transformation information."""
@@ -281,9 +281,9 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
         )
 
         lineage = result.lineage[0]
-        self.assertIsNotNone(lineage.data_id)
-        self.assertEqual(len(lineage.parent_ids), 0)  # No parents for raw ingestion
-        self.assertIsInstance(lineage.transformation_timestamp, datetime)
+        assert lineage.data_id is not None
+        assert len(lineage.parent_ids) == 0  # No parents for raw ingestion
+        assert isinstance(lineage.transformation_timestamp, datetime)
 
     # Test 3: Format detection for supported test frameworks
     def test_zephyr_format_detection_accuracy(self):
@@ -293,11 +293,11 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
             self.zephyr_data, SupportedFormat.ZEPHYR
         )
 
-        self.assertEqual(
-            detected_format, SupportedFormat.ZEPHYR
+        assert (
+            detected_format == SupportedFormat.ZEPHYR
         )  # Fixed: now correctly detects Zephyr
-        self.assertGreaterEqual(
-            confidence, 0.8
+        assert (
+            confidence >= 0.8
         )  # Business requirement: >80% confidence for known formats
 
     def test_testlink_format_detection_accuracy(self):
@@ -307,11 +307,11 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
             self.testlink_data, SupportedFormat.TESTLINK
         )
 
-        self.assertEqual(
-            detected_format, SupportedFormat.TESTLINK
+        assert (
+            detected_format == SupportedFormat.TESTLINK
         )  # Advanced algorithms correctly detect TestLink structure
-        self.assertGreaterEqual(
-            confidence, 0.8
+        assert (
+            confidence >= 0.8
         )  # Business requirement: >80% confidence for known formats
 
     def test_jira_xray_format_detection_accuracy(self):
@@ -321,9 +321,9 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
             self.jira_xray_data, SupportedFormat.JIRA_XRAY
         )
 
-        self.assertEqual(detected_format, SupportedFormat.JIRA_XRAY)
-        self.assertGreaterEqual(
-            confidence, 0.8
+        assert detected_format == SupportedFormat.JIRA_XRAY
+        assert (
+            confidence >= 0.8
         )  # Business requirement: >80% confidence for known formats
 
     def test_unknown_format_handling(self):
@@ -332,7 +332,7 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
 
         detected_format = self.ingestion.detect_format(unknown_data)
 
-        self.assertEqual(detected_format, SupportedFormat.UNKNOWN)
+        assert detected_format == SupportedFormat.UNKNOWN
 
     def test_format_detection_confidence_scoring(self):
         """Test that multi-class Bayesian normalization ranks correct format highest.
@@ -355,12 +355,10 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
 
         # Correct format (Zephyr) should have the HIGHEST confidence
         # Allow for floating point ties
-        self.assertGreaterEqual(
-            zephyr_confidence,
-            max_confidence * 0.99,
+        assert zephyr_confidence >= max_confidence * 0.99, (
             f"ZEPHYR ({zephyr_confidence:.4f}) should be highest, "
             f"but {max_format_name} has {max_confidence:.4f}. "
-            f"All confidences: {sorted(all_confidences.items(), key=lambda x: -x[1])}",
+            f"All confidences: {sorted(all_confidences.items(), key=lambda x: -x[1])}"
         )
 
     # Test 4: Quality metrics and validation
@@ -369,12 +367,12 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
         result = self.ingestion.ingest_data_dict(self.zephyr_data, "quality_test")
 
         quality = result.quality_metrics
-        self.assertGreaterEqual(quality.completeness_score, 0.0)
-        self.assertLessEqual(quality.completeness_score, 100.0)
-        self.assertGreaterEqual(quality.validity_score, 0.0)
-        self.assertLessEqual(quality.validity_score, 100.0)
-        self.assertGreaterEqual(quality.overall_score, 0.0)
-        self.assertLessEqual(quality.overall_score, 100.0)
+        assert quality.completeness_score >= 0.0
+        assert quality.completeness_score <= 100.0
+        assert quality.validity_score >= 0.0
+        assert quality.validity_score <= 100.0
+        assert quality.overall_score >= 0.0
+        assert quality.overall_score <= 100.0
 
     def test_validation_before_ingestion_prevents_bad_data(self):
         """Test that pre-ingestion validation prevents bad data entry."""
@@ -384,8 +382,8 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
             bad_data  # type: ignore
         )
 
-        self.assertFalse(validation_result.is_valid)
-        self.assertGreater(validation_result.error_count, 0)
+        assert not validation_result.is_valid
+        assert validation_result.error_count > 0
 
     def test_validation_identifies_quality_issues(self):
         """Test that validation identifies data quality issues."""
@@ -398,15 +396,12 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
         validation_result = self.ingestion.validate_before_ingestion(poor_quality_data)
 
         # Bronze layer accepts raw data regardless of quality (warnings are optional)
-        self.assertTrue(
-            validation_result.is_valid
-            or validation_result.severity
-            in [QualitySeverity.LOW, QualitySeverity.MEDIUM]
-        )
+        assert validation_result.is_valid or validation_result.severity in [
+            QualitySeverity.LOW,
+            QualitySeverity.MEDIUM,
+        ]
         # Bronze layer may not generate warnings for raw data acceptance
-        self.assertGreaterEqual(
-            validation_result.warning_count, 0
-        )  # 0 or more warnings acceptable
+        assert validation_result.warning_count >= 0  # 0 or more warnings acceptable
 
     # Test 5: Preview functionality
     def test_preview_ingestion_without_storing(self):
@@ -417,16 +412,16 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
 
         preview = self.ingestion.preview_ingestion(test_file)
 
-        self.assertTrue(preview["preview_available"])
-        self.assertEqual(
-            preview["detected_format"], "zephyr"
+        assert preview["preview_available"]
+        assert (
+            preview["detected_format"] == "zephyr"
         )  # Fixed: now correctly detects Zephyr
         # format_confidence is now a dict with format as key
-        self.assertIsInstance(preview["format_confidence"], dict)
-        self.assertTrue(preview["validation_ready"])
-        self.assertGreaterEqual(preview["quality_score"], 0.0)
-        self.assertIsInstance(preview["stats"], dict)
-        self.assertGreater(preview["stats"]["total_keys"], 0)
+        assert isinstance(preview["format_confidence"], dict)
+        assert preview["validation_ready"]
+        assert preview["quality_score"] >= 0.0
+        assert isinstance(preview["stats"], dict)
+        assert preview["stats"]["total_keys"] > 0
 
     def test_preview_handles_problematic_files(self):
         """Test preview gracefully handles problematic files."""
@@ -436,8 +431,8 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
 
         preview = self.ingestion.preview_ingestion(bad_file)
 
-        self.assertFalse(preview["preview_available"])
-        self.assertIn("error", preview)
+        assert not preview["preview_available"]
+        assert "error" in preview
 
 
 class TestBronzeDataIngestionAdvanced(unittest.TestCase):
@@ -473,10 +468,10 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
 
         result = self.ingestion.ingest_file(nonexistent_file)
 
-        self.assertEqual(result.status, ProcessingStatus.FAILED)
-        self.assertEqual(result.error_count, 1)
-        self.assertGreater(len(result.errors), 0)
-        self.assertIn("not found", result.errors[0].lower())
+        assert result.status == ProcessingStatus.FAILED
+        assert result.error_count == 1
+        assert len(result.errors) > 0
+        assert "not found" in result.errors[0].lower()
 
     def test_invalid_json_error_handling(self):
         """Test proper handling of malformed JSON files."""
@@ -486,9 +481,9 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
 
         result = self.ingestion.ingest_file(invalid_json_file)
 
-        self.assertEqual(result.status, ProcessingStatus.FAILED)
-        self.assertEqual(result.error_count, 1)
-        self.assertIn("json", result.errors[0].lower())
+        assert result.status == ProcessingStatus.FAILED
+        assert result.error_count == 1
+        assert "json" in result.errors[0].lower()
 
     def test_empty_data_handling(self):
         """Test handling of empty but valid JSON data."""
@@ -497,8 +492,8 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
         result = self.ingestion.ingest_data_dict(empty_data, "empty_test")
 
         # Bronze layer should accept empty data with warnings
-        self.assertEqual(result.status, ProcessingStatus.COMPLETED)
-        self.assertGreater(result.warning_count, 0)
+        assert result.status == ProcessingStatus.COMPLETED
+        assert result.warning_count > 0
 
     def test_large_file_handling(self):
         """Test handling of large JSON files."""
@@ -519,11 +514,11 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
 
         result = self.ingestion.ingest_data_dict(large_data, "large_test")
 
-        self.assertEqual(result.status, ProcessingStatus.COMPLETED)
+        assert result.status == ProcessingStatus.COMPLETED
         # For dictionary ingestion, file_size_bytes is 0 (no actual file)
         # Instead, check the logical data size via record_count
-        self.assertEqual(result.metadata.file_size_bytes, 0)  # No physical file
-        self.assertGreater(result.metadata.record_count, 0)  # Has logical data
+        assert result.metadata.file_size_bytes == 0  # No physical file
+        assert result.metadata.record_count > 0  # Has logical data
 
     # Test 2: Performance requirements
     def test_ingestion_performance_overhead_acceptable(self):
@@ -545,8 +540,8 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
         processing_time_ms = (end_time - start_time).total_seconds() * 1000
 
         # Should complete within reasonable time (adjust based on system)
-        self.assertLess(processing_time_ms, 5000)  # 5 seconds max for 50 test cases
-        self.assertEqual(result.status, ProcessingStatus.COMPLETED)
+        assert processing_time_ms < 5000  # 5 seconds max for 50 test cases
+        assert result.status == ProcessingStatus.COMPLETED
 
     def test_concurrent_ingestion_safety(self):
         """Test that concurrent ingestions do not interfere with each other."""
@@ -572,9 +567,9 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
             thread.join()
 
         # All ingestions should succeed
-        self.assertEqual(len(results), 3)
+        assert len(results) == 3
         for result in results:
-            self.assertEqual(result.status, ProcessingStatus.COMPLETED)
+            assert result.status == ProcessingStatus.COMPLETED
 
     # Test 3: Integration with existing parser
     def test_integration_with_generic_test_file_parser(self):
@@ -584,16 +579,16 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
         )
 
         # Verify parser correctly identified test structure
-        self.assertEqual(result.status, ProcessingStatus.COMPLETED)
-        self.assertGreater(result.metadata.record_count, 0)
+        assert result.status == ProcessingStatus.COMPLETED
+        assert result.metadata.record_count > 0
 
         # Verify preview provides useful information about the data
         preview = self.preview_ingestion_dict(self.zephyr_data)
-        self.assertTrue(preview["preview_available"])
-        self.assertIn(preview["detected_format"], ["zephyr", "generic"])
-        self.assertGreater(preview["stats"]["total_keys"], 0)
+        assert preview["preview_available"]
+        assert preview["detected_format"] in ["zephyr", "generic"]
+        assert preview["stats"]["total_keys"] > 0
 
-    def preview_ingestion_dict(self, data):
+    def preview_ingestion_dict(self, data: dict[str, Any]) -> dict[str, Any]:
         """Helper method to preview dictionary data."""
         # This would be implemented in the actual class
         temp_file = self.temp_dir / "temp_preview.json"
@@ -610,8 +605,8 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
 
         result = custom_ingestion.ingest_data_dict(self.zephyr_data, "config_test")
 
-        self.assertEqual(result.status, ProcessingStatus.COMPLETED)
-        self.assertTrue(custom_storage.exists())
+        assert result.status == ProcessingStatus.COMPLETED
+        assert custom_storage.exists()
 
     def test_validation_thresholds_configurable(self):
         """Test that validation thresholds can be configured."""
@@ -620,12 +615,12 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
 
         # Default thresholds should classify as LOW (medium threshold=0.7)
         default_result = self.ingestion.validate_before_ingestion(borderline_data)
-        self.assertEqual(default_result.severity, QualitySeverity.LOW)
+        assert default_result.severity == QualitySeverity.LOW
 
         # Lower the medium threshold so this data becomes MEDIUM severity
         self.ingestion.configure_quality_thresholds(medium=0.5)
         adjusted_result = self.ingestion.validate_before_ingestion(borderline_data)
-        self.assertEqual(adjusted_result.severity, QualitySeverity.MEDIUM)
+        assert adjusted_result.severity == QualitySeverity.MEDIUM
 
     # Test 5: Backward compatibility
     def test_existing_api_unchanged(self):
@@ -637,8 +632,8 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
         # Test existing functionality still works
         result = converter.convert_json_data(self.zephyr_data)
 
-        self.assertIsInstance(result, str)
-        self.assertIn("*** Test Cases ***", result)
+        assert isinstance(result, str)
+        assert "*** Test Cases ***" in result
 
     def test_no_breaking_changes_to_existing_imports(self):
         """Test that existing imports continue to work."""
@@ -654,7 +649,7 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
         except ImportError:
             success = False
 
-        self.assertTrue(success, "Existing imports should continue to work")
+        assert success, "Existing imports should continue to work"
 
 
 if __name__ == "__main__":

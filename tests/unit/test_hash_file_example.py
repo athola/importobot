@@ -2,12 +2,18 @@
 
 import json
 import re
+from pathlib import Path
 
 import pytest
 from robot.api import get_model
 
-from importobot.core.converter import convert_file, get_conversion_suggestions
-from tests.utils import validate_test_script_structure  # type: ignore[import-untyped]
+from importobot.core.converter import (
+    JsonToRobotConverter,
+    convert_file,
+    get_conversion_suggestions,
+)
+from importobot.core.suggestions.suggestion_engine import GenericSuggestionEngine
+from tests.utils import validate_test_script_structure
 
 
 @pytest.fixture
@@ -154,7 +160,7 @@ class TestHashFileExample:
     def test_hash_file_json_structure_validation(self, hash_file_fixture):
         """Tests that hash_file.json has expected structure."""
 
-        with open(hash_file_fixture, "r", encoding="utf-8") as f:
+        with open(hash_file_fixture, encoding="utf-8") as f:
             data = json.load(f)
 
         # Validate top-level structure (it's an array with one test case)
@@ -187,7 +193,7 @@ class TestHashFileExample:
         """Tests that hash_file.json generates valid Robot Framework content."""
 
         # Read the JSON file and extract the first test case
-        with open(hash_file_fixture, "r", encoding="utf-8") as f:
+        with open(hash_file_fixture, encoding="utf-8") as f:
             data = json.load(f)
 
         # The file contains an array, extract the first test case
@@ -209,7 +215,7 @@ class TestHashFileExample:
         assert output_robot_file.exists(), "Output robot file was not created"
 
         # Read the generated content
-        with open(output_robot_file, "r", encoding="utf-8") as f:
+        with open(output_robot_file, encoding="utf-8") as f:
             content = f.read()
 
         # Validate Robot Framework structure
@@ -226,7 +232,8 @@ class TestHashFileExample:
         )
         assert "# Step: Use the hash command on the CLI" in content
 
-        # Validate that Process library is imported (for echo command)
+        # Validate that generic libraries are imported instead of SSHLibrary
+        assert "Library    OperatingSystem" in content
         assert "Library    Process" in content
 
     # pylint: disable=redefined-outer-name
@@ -237,7 +244,7 @@ class TestHashFileExample:
         errors."""
 
         # Read the JSON file and extract the first test case
-        with open(hash_file_fixture, "r", encoding="utf-8") as f:
+        with open(hash_file_fixture, encoding="utf-8") as f:
             data = json.load(f)
 
         # The file contains an array, extract the first test case
@@ -271,7 +278,7 @@ class TestHashFileExample:
         """Tests that the generated Robot Framework file contains expected keywords."""
 
         # Read the JSON file and extract the first test case
-        with open(hash_file_fixture, "r", encoding="utf-8") as f:
+        with open(hash_file_fixture, encoding="utf-8") as f:
             data = json.load(f)
 
         # The file contains an array, extract the first test case
@@ -290,7 +297,7 @@ class TestHashFileExample:
         convert_file(str(temp_json_file), str(output_robot_file))
 
         # Read the generated content
-        with open(output_robot_file, "r", encoding="utf-8") as f:
+        with open(output_robot_file, encoding="utf-8") as f:
             content = f.read()
 
         # Should contain Run keywords for the echo and hash commands
@@ -332,6 +339,44 @@ class TestHashFileExample:
             or "unmatched curly braces" in suggestion_texts
         )
 
+    def test_hash_compare_example_auto_generates_comparison_step(self):
+        """Applying suggestions to hash_compare.json adds a comparison step."""
+        example_path = Path("examples/json/hash_compare.json")
+        with example_path.open(encoding="utf-8") as handle:
+            data = json.load(handle)
+
+        engine = GenericSuggestionEngine()
+        improved, changes = engine.apply_suggestions(data)
+
+        improved_case = improved[0]
+        steps = improved_case["testScript"]["steps"]
+        assert len(steps) == 5  # original 4 steps + generated comparison
+
+        comparison_step = steps[-1]
+        metadata = comparison_step.get("metadata", {})
+
+        assert metadata.get("generator") == "command_comparison"
+        assert "command_1" in comparison_step["testData"]
+        assert "command_2" in comparison_step["testData"]
+        assert (
+            comparison_step["description"].lower().startswith("verify command outputs")
+        )
+        assert any(
+            change.get("reason") == "Added command comparison verification step"
+            for change in changes
+        )
+
+        robot_output = JsonToRobotConverter().convert_json_data(improved_case)
+        assert (
+            "Run Process    sha256sum    /tmp/source.txt    stdout=${hash_source}"
+            in robot_output
+        )
+        expected_cmd = (
+            "Run Process    sha256sum    /tmp/deploy/target.txt    "
+            "stdout=${hash_target}"
+        )
+        assert expected_cmd in robot_output
+
     # pylint: disable=redefined-outer-name
     def test_conversion_suggestions_displayed_in_correct_order(
         self, steps_file_fixture
@@ -339,7 +384,7 @@ class TestHashFileExample:
         """Tests that conversion suggestions are displayed in the correct
         numerical order, even when there are 10 or more steps."""
 
-        with open(steps_file_fixture, "r", encoding="utf-8") as f:
+        with open(steps_file_fixture, encoding="utf-8") as f:
             test_case = json.load(f)
 
         # Get conversion suggestions

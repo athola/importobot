@@ -1,0 +1,68 @@
+[
+    {
+        "owner": "USER001",
+        "updatedBy": "USER002",
+        "customFields": {
+            "Supported Platforms": "All Platforms",
+            "Test Level": "Minimum Viable"
+        },
+        "precondition": "connection established",
+        "updatedOn": "2025-08-29T17:27:06.945Z",
+        "priority": "Normal",
+        "createdOn": "2024-03-04T14:46:01.268Z",
+        "objective": "verify the chmod command passes and returns the correct information",
+        "labels": [
+            "Requirement"
+        ],
+        "projectKey": "DEMO",
+        "folder": "/Examples/TaskTests",
+        "latestVersion": true,
+        "createdBy": "USER003",
+        "testScript": {
+            "id": 12510,
+            "type": "STEP_BY_STEP",
+            "steps": [
+                {
+                    "testData": "chmod -2 {path/to/file}",
+                    "expectedResult": "An error is emitted that is equal or similar to Error: argument mode: Provided value '-2' is not in the range [0,7777]",
+                    "index": 3,
+                    "description": "Attempt to use a negative value with chmod",
+                    "id": 116346
+                },
+                {
+                    "testData": "truncate -s 1M {path/to/file}",
+                    "expectedResult": "file created",
+                    "index": 0,
+                    "description": "TARGET: Create file on the target",
+                    "id": 99330
+                },
+                {
+                    "testData": "chmod 777 {path/to/file}",
+                    "expectedResult": "completed successfully",
+                    "index": 1,
+                    "description": "CLI: Call `chmod` on the test file",
+                    "id": 76722
+                },
+                {
+                    "testData": "stat {path/to/file}",
+                    "expectedResult": "the file permissions are changed properly",
+                    "index": 1,
+                    "description": "TARGET: Grab permissions of the file after chmod 777",
+                    "id": 76721
+                }
+            ]
+        },
+        "issueLinks": [
+            "Link1",
+            "Link2"
+        ],
+        "lastTestResultStatus": "Fail",
+        "name": "chmod",
+        "parameters": {
+            "variables": [],
+            "entries": []
+        },
+        "key": "ABC-456",
+        "status": "Review"
+    }
+]

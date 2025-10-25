@@ -10,9 +10,9 @@ from importobot.core.constants import (
     TEST_DATA_FIELD_NAMES,
 )
 from importobot.core.field_definitions import PARAMETERS_FIELDS, TEST_SCRIPT_FIELDS
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 class ParameterAnalyzer:
@@ -103,20 +103,22 @@ class ParameterAnalyzer:
 
     def _extract_text_sources(self, test_case: dict[str, Any]) -> list[str]:
         """Extract text sources from test case steps."""
-        text_sources = []
+        text_sources: list[str] = []
         # Use field definitions to access test script
         script_field, script_data = TEST_SCRIPT_FIELDS.find_first(test_case)
         if script_field and isinstance(script_data, dict):
             steps = script_data.get(STEPS_FIELD_NAME, [])
-            for step in steps:
-                if isinstance(step, dict):
-                    field_names = TEST_DATA_FIELD_NAMES + STEP_DESCRIPTION_FIELD_NAMES
-                    for field_name in field_names:
-                        if field_name in step and isinstance(step[field_name], str):
-                            text_sources.append(step[field_name])
+            field_names = TEST_DATA_FIELD_NAMES + STEP_DESCRIPTION_FIELD_NAMES
+            text_sources.extend(
+                step[field_name]
+                for step in steps
+                if isinstance(step, dict)
+                for field_name in field_names
+                if isinstance(step.get(field_name), str)
+            )
         return text_sources
 
-    def _get_existing_parameters(self, test_case: dict[str, Any]) -> list:
+    def _get_existing_parameters(self, test_case: dict[str, Any]) -> list[Any]:
         """Get existing parameters from test case, handling different formats."""
         parameters_field = test_case.get("parameters", [])
 
@@ -133,8 +135,8 @@ class ParameterAnalyzer:
         return []
 
     def _create_missing_parameters(
-        self, all_params: set, defined_param_names: set
-    ) -> list:
+        self, all_params: set[str], defined_param_names: set[str]
+    ) -> list[dict[str, Any]]:
         """Create parameter definitions for missing parameters."""
         new_params = []
         for param in all_params:
@@ -151,7 +153,7 @@ class ParameterAnalyzer:
         return new_params
 
     def _add_parameters_to_test_case(
-        self, test_case: dict[str, Any], new_params: list
+        self, test_case: dict[str, Any], new_params: list[dict[str, Any]]
     ) -> None:
         """Add new parameters to test case, handling different formats."""
         if not new_params:
@@ -173,7 +175,10 @@ class ParameterAnalyzer:
             test_case["parameters"].extend(new_params)
 
     def _record_parameter_changes(
-        self, changes_made: list, test_index: int, new_params: list
+        self,
+        changes_made: list[dict[str, Any]],
+        test_index: int,
+        new_params: list[dict[str, Any]],
     ) -> None:
         """Record parameter addition changes."""
         changes_made.append(
@@ -201,29 +206,33 @@ class ParameterAnalyzer:
         self, test_case: dict[str, Any], steps: list[dict[str, Any]]
     ) -> list[str]:
         """Collect all text from test case that might contain parameters."""
-        text_sources = []
+        text_sources: list[str] = []
 
         # From test case itself
-        for field in ["name", "description", "summary"]:
-            if field in test_case and isinstance(test_case[field], str):
-                text_sources.append(test_case[field])
+        text_sources.extend(
+            test_case[field]
+            for field in ["name", "description", "summary"]
+            if isinstance(test_case.get(field), str)
+        )
 
-        # From steps
-        for step in steps:
-            if isinstance(step, dict):
-                for field_name in (
-                    TEST_DATA_FIELD_NAMES
-                    + STEP_DESCRIPTION_FIELD_NAMES
-                    + EXPECTED_RESULT_FIELD_NAMES
-                ):
-                    if field_name in step and isinstance(step[field_name], str):
-                        text_sources.append(step[field_name])
+        relevant_fields = (
+            TEST_DATA_FIELD_NAMES
+            + STEP_DESCRIPTION_FIELD_NAMES
+            + EXPECTED_RESULT_FIELD_NAMES
+        )
+        text_sources.extend(
+            step[field_name]
+            for step in steps
+            if isinstance(step, dict)
+            for field_name in relevant_fields
+            if isinstance(step.get(field_name), str)
+        )
 
         return text_sources
 
     def _extract_parameters_from_text(
         self, text_sources: list[str], param_patterns: list[str]
-    ) -> set:
+    ) -> set[str]:
         """Extract parameter names from text using multiple patterns."""
         detected_params = set()
 
@@ -243,7 +252,7 @@ class ParameterAnalyzer:
 
     def _extract_parameter_references_for_improvement(
         self, text_sources: list[str]
-    ) -> set:
+    ) -> set[str]:
         """Extract parameter references that need Robot Framework conversion."""
         references = set()
         for text in text_sources:
@@ -261,7 +270,7 @@ class ParameterAnalyzer:
         clean_name = re.sub(r"\s+", "_", clean_name.strip())
         return f"${{{clean_name}}}"
 
-    def _extract_defined_parameters(self, test_case: dict[str, Any]) -> set:
+    def _extract_defined_parameters(self, test_case: dict[str, Any]) -> set[str]:
         """Extract defined parameter names from test case."""
         defined_parameters = set()
         if "parameters" in test_case and isinstance(test_case["parameters"], list):
@@ -270,7 +279,9 @@ class ParameterAnalyzer:
                     defined_parameters.add(param["name"])
         return defined_parameters
 
-    def _analyze_parameter_patterns(self, all_text_sources: list[str]) -> tuple:
+    def _analyze_parameter_patterns(
+        self, all_text_sources: list[str]
+    ) -> tuple[set[str], set[str]]:
         """Analyze text for parameter patterns and return detected parameters.
 
         Scan through all text sources to identify parameter patterns and classify
@@ -303,7 +314,7 @@ class ParameterAnalyzer:
         return detected_params, incomplete_params
 
     def _suggest_parameter_improvements(
-        self, detected_params: set, incomplete_params: set, case_num: int
+        self, detected_params: set[str], incomplete_params: set[str], case_num: int
     ) -> list[str]:
         """Generate parameter improvement suggestions."""
         # detected_params parameter is kept for interface consistency
@@ -334,10 +345,10 @@ class ParameterAnalyzer:
 
     def _get_undefined_parameters(
         self,
-        detected_params: set,
-        incomplete_params: set,
-        defined_parameters: set,
-    ) -> set:
+        detected_params: set[str],
+        incomplete_params: set[str],
+        defined_parameters: set[str],
+    ) -> set[str]:
         """Get parameters that are used but not defined."""
         all_used_params = detected_params | incomplete_params
         return all_used_params - defined_parameters
@@ -381,7 +392,7 @@ class ParameterAnalyzer:
         return f"value_for_{param.lower()}", f"Parameter for {param.replace('_', ' ')}."
 
     def _suggest_parameter_definitions(
-        self, undefined_params: set, case_num: int, suggestions: list[str]
+        self, undefined_params: set[str], case_num: int, suggestions: list[str]
     ) -> None:
         """Suggest specific parameter definitions for undefined parameters."""
         for param in sorted(undefined_params):

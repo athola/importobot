@@ -1,11 +1,11 @@
-"""Comprehensive Robot Framework keyword registry and library mappings.
+"""Robot Framework keyword registry and library mappings.
 
-This module provides centralized keyword definitions, library patterns,
-and intent recognition patterns used throughout the conversion system.
+Provides centralized keyword definitions, library patterns, and intent recognition
+for Robot Framework conversion operations.
 """
 
 import re
-from typing import Any, Dict, List, Tuple
+from typing import Any, ClassVar, cast
 
 from importobot.core.pattern_matcher import IntentType, PatternMatcher
 from importobot.utils.security import SSH_SECURITY_GUIDELINES, extract_security_warnings
@@ -15,7 +15,7 @@ class RobotFrameworkKeywordRegistry:
     """Centralized registry of Robot Framework keywords across major libraries."""
 
     # Comprehensive Robot Framework library coverage
-    KEYWORD_LIBRARIES = {
+    KEYWORD_LIBRARIES: ClassVar[dict[str, Any]] = {
         # BuiltIn Library (always available)
         "builtin": {
             "Log": {"args": ["message", "level=INFO"], "description": "Log a message"},
@@ -353,9 +353,149 @@ class RobotFrameworkKeywordRegistry:
                 "description": "Strip whitespace",
             },
         },
+        # Telnet Library
+        "Telnet": {
+            "Open Connection": {
+                "args": ["host", "port=23"],
+                "description": "Open Telnet connection",
+            },
+            "Close Connection": {"args": [], "description": "Close Telnet connection"},
+            "Write": {"args": ["text"], "description": "Write to Telnet session"},
+            "Read": {"args": [], "description": "Read from Telnet session"},
+            "Read Until": {
+                "args": ["expected"],
+                "description": "Read until expected text",
+            },
+            "Execute Command": {
+                "args": ["command"],
+                "description": "Execute command via Telnet",
+            },
+            "Switch Connection": {
+                "args": ["index_or_alias"],
+                "description": "Switch to another Telnet connection",
+            },
+        },
+        # AppiumLibrary - Mobile testing
+        "AppiumLibrary": {
+            "Open Application": {
+                "args": ["remote_url", "desired_capabilities"],
+                "description": "Open mobile application",
+            },
+            "Close Application": {
+                "args": [],
+                "description": "Close mobile application",
+            },
+            "Switch Application": {
+                "args": ["index_or_alias"],
+                "description": "Switch to another application",
+            },
+            "Click Element": {
+                "args": ["locator"],
+                "description": "Click mobile element",
+            },
+            "Input Text": {
+                "args": ["locator", "text"],
+                "description": "Input text to mobile element",
+            },
+            "Get Text": {"args": ["locator"], "description": "Get element text"},
+            "Element Should Be Visible": {
+                "args": ["locator"],
+                "description": "Assert element visible",
+            },
+            "Wait Until Element Is Visible": {
+                "args": ["locator", "timeout=None"],
+                "description": "Wait for element",
+            },
+        },
+        # FtpLibrary - FTP operations
+        "FtpLibrary": {
+            "Ftp Connect": {
+                "args": ["host", "username", "password"],
+                "description": "Connect to FTP server",
+            },
+            "Ftp Close": {"args": [], "description": "Close FTP connection"},
+            "Ftp Put File": {
+                "args": ["local_file", "remote_file"],
+                "description": "Upload file via FTP",
+            },
+            "Ftp Get File": {
+                "args": ["remote_file", "local_file"],
+                "description": "Download file via FTP",
+            },
+            "Dir": {"args": [], "description": "List directory contents"},
+            "Cwd": {"args": ["directory"], "description": "Change working directory"},
+        },
+        # MQTTLibrary - IoT messaging
+        "MQTTLibrary": {
+            "Connect": {
+                "args": ["broker", "port=1883"],
+                "description": "Connect to MQTT broker",
+            },
+            "Disconnect": {"args": [], "description": "Disconnect from MQTT broker"},
+            "Publish": {
+                "args": ["topic", "message"],
+                "description": "Publish MQTT message",
+            },
+            "Subscribe": {"args": ["topic"], "description": "Subscribe to MQTT topic"},
+            "Unsubscribe": {
+                "args": ["topic"],
+                "description": "Unsubscribe from MQTT topic",
+            },
+        },
+        # RedisLibrary - Redis cache operations
+        "RedisLibrary": {
+            "Connect To Redis": {
+                "args": ["host", "port=6379"],
+                "description": "Connect to Redis",
+            },
+            "Disconnect From Redis": {
+                "args": [],
+                "description": "Disconnect from Redis",
+            },
+            "Get From Redis": {"args": ["key"], "description": "Get value from Redis"},
+            "Append To Redis": {
+                "args": ["key", "value"],
+                "description": "Append to Redis key",
+            },
+            "Redis Key Should Exist": {
+                "args": ["key"],
+                "description": "Assert key exists",
+            },
+            "Delete From Redis": {
+                "args": ["*keys"],
+                "description": "Delete keys from Redis",
+            },
+        },
+        # MongoDBLibrary - MongoDB operations
+        "MongoDBLibrary": {
+            "Connect To MongoDB": {
+                "args": ["connection_string", "database"],
+                "description": "Connect to MongoDB",
+            },
+            "Disconnect From MongoDB": {
+                "args": [],
+                "description": "Disconnect from MongoDB",
+            },
+            "Insert Data": {
+                "args": ["collection", "document"],
+                "description": "Insert document into collection",
+            },
+            "Retrieve Some Data": {
+                "args": ["collection", "query"],
+                "description": "Query MongoDB collection",
+            },
+            "Update Data": {
+                "args": ["collection", "query", "update"],
+                "description": "Update MongoDB document",
+            },
+            "Delete Data": {
+                "args": ["collection", "query"],
+                "description": "Delete MongoDB document",
+            },
+        },
     }
     # Intent to library keyword mapping
-    INTENT_TO_LIBRARY_KEYWORDS = {
+    INTENT_TO_LIBRARY_KEYWORDS: ClassVar[dict[str, tuple[str, str]]] = {
         # File operations
         "file_create": ("OperatingSystem", "Create File"),
         "file_remove": ("OperatingSystem", "Remove File"),
@@ -461,14 +601,14 @@ class RobotFrameworkKeywordRegistry:
     }
 
     @classmethod
-    def get_keyword_info(cls, library: str, keyword: str) -> Dict[str, Any]:
+    def get_keyword_info(cls, library: str, keyword: str) -> dict[str, Any]:
         """Get information about a specific keyword."""
         if library in cls.KEYWORD_LIBRARIES:
-            return cls.KEYWORD_LIBRARIES[library].get(keyword, {})
+            return cast(dict[str, Any], cls.KEYWORD_LIBRARIES[library].get(keyword, {}))
         return {}
 
     @classmethod
-    def get_required_libraries(cls, keywords: List[Dict[str, Any]]) -> List[str]:
+    def get_required_libraries(cls, keywords: list[dict[str, Any]]) -> list[str]:
         """Get required libraries for keyword set."""
         libraries = set()
         for kw in keywords:
@@ -477,12 +617,12 @@ class RobotFrameworkKeywordRegistry:
         return sorted(libraries)
 
     @classmethod
-    def get_intent_keyword(cls, intent: str) -> Tuple[str, str]:
+    def get_intent_keyword(cls, intent: str) -> tuple[str, str]:
         """Get library and keyword for an intent."""
         return cls.INTENT_TO_LIBRARY_KEYWORDS.get(intent, ("builtin", "No Operation"))
 
     @classmethod
-    def validate_registry_integrity(cls) -> List[str]:
+    def validate_registry_integrity(cls) -> list[str]:
         """Validate that all intent mappings reference valid keywords.
 
         Returns:
@@ -508,7 +648,7 @@ class RobotFrameworkKeywordRegistry:
         return errors
 
     @classmethod
-    def get_registry_metrics(cls) -> Dict[str, Any]:
+    def get_registry_metrics(cls) -> dict[str, Any]:
         """Get metrics about the registry usage and coverage.
 
         Returns:
@@ -527,8 +667,8 @@ class RobotFrameworkKeywordRegistry:
         }
 
         # Count intents by library
-        intents_by_library: Dict[str, int] = {}
-        for _, (library, _) in cls.INTENT_TO_LIBRARY_KEYWORDS.items():
+        intents_by_library: dict[str, int] = {}
+        for library, _ in cls.INTENT_TO_LIBRARY_KEYWORDS.values():
             intents_by_library[library] = intents_by_library.get(library, 0) + 1
 
         # Count security warnings
@@ -554,7 +694,7 @@ class RobotFrameworkKeywordRegistry:
 class IntentRecognitionEngine:
     """Centralized intent recognition using PatternMatcher."""
 
-    _pattern_matcher = PatternMatcher()
+    _pattern_matcher: ClassVar[PatternMatcher] = PatternMatcher()
 
     @classmethod
     def recognize_intent(cls, text: str) -> IntentType | None:
@@ -570,7 +710,7 @@ class IntentRecognitionEngine:
         return detected_intent  # Return enum directly, not .value
 
     @classmethod
-    def detect_all_intents(cls, text: str) -> List[IntentType]:
+    def detect_all_intents(cls, text: str) -> list[IntentType]:
         """Detect all matching intents from text using PatternMatcher.
 
         Returns:
@@ -580,7 +720,7 @@ class IntentRecognitionEngine:
         return detected_intents  # Return enums directly, not .value
 
     @classmethod
-    def get_security_warnings_for_keyword(cls, library: str, keyword: str) -> List[str]:
+    def get_security_warnings_for_keyword(cls, library: str, keyword: str) -> list[str]:
         """Get security warnings for a specific keyword."""
         warnings = []
         if library in RobotFrameworkKeywordRegistry.KEYWORD_LIBRARIES:
@@ -591,12 +731,12 @@ class IntentRecognitionEngine:
         return warnings
 
     @classmethod
-    def get_ssh_security_guidelines(cls) -> List[str]:
+    def get_ssh_security_guidelines(cls) -> list[str]:
         """Get comprehensive SSH security guidelines."""
         return SSH_SECURITY_GUIDELINES
 
     @classmethod
-    def validate_command_security(cls, command: str) -> Dict[str, Any]:
+    def validate_command_security(cls, command: str) -> dict[str, Any]:
         """Validate command for security issues."""
         dangerous_patterns = [
             (r"rm\s+-rf", "Dangerous recursive delete command"),

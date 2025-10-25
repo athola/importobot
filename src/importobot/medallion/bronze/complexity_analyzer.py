@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 
 class ComplexityAnalyzer:
@@ -19,7 +19,7 @@ class ComplexityAnalyzer:
     DEFAULT_MAX_NESTING_DEPTH = 100  # Default max depth for nesting calculation
 
     @classmethod
-    def assess_data_complexity(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+    def assess_data_complexity(cls, data: dict[str, Any]) -> dict[str, Any]:
         """Assess data complexity and provide detailed reasoning.
 
         This method evaluates data complexity for algorithm selection.
@@ -107,7 +107,7 @@ class ComplexityAnalyzer:
             # If we can't even assess complexity, it's too complex
             return {
                 "too_complex": True,
-                "reason": f"Unable to assess complexity due to error: {str(e)}",
+                "reason": f"Unable to assess complexity due to error: {e!s}",
                 "recommendation": "Check data format and structure",
             }
 
@@ -136,7 +136,7 @@ class ComplexityAnalyzer:
         return 0
 
     @classmethod
-    def calculate_value_type_diversity(cls, data: Dict[str, Any]) -> float:
+    def calculate_value_type_diversity(cls, data: dict[str, Any]) -> float:
         """Calculate diversity of value types in the data."""
         try:
             all_types = cls._count_types_recursive(data)
@@ -147,8 +147,8 @@ class ComplexityAnalyzer:
 
     @classmethod
     def _count_types_recursive(
-        cls, obj: Any, depth: int = 0, visited: set | None = None
-    ) -> Dict[str, int]:
+        cls, obj: Any, depth: int = 0, visited: set[int] | None = None
+    ) -> dict[str, int]:
         """Recursively count types in data structure."""
         if visited is None:
             visited = set()
@@ -159,7 +159,7 @@ class ComplexityAnalyzer:
             return {}
 
         visited.add(obj_id)
-        type_counts: Dict[str, int] = {}
+        type_counts: dict[str, int] = {}
 
         if isinstance(obj, dict):
             cls._count_dict_types(obj, type_counts, depth, visited)
@@ -172,7 +172,11 @@ class ComplexityAnalyzer:
 
     @classmethod
     def _count_dict_types(
-        cls, obj: dict, type_counts: Dict[str, int], depth: int, visited: set
+        cls,
+        obj: dict[str, Any],
+        type_counts: dict[str, int],
+        depth: int,
+        visited: set[int],
     ) -> None:
         """Count types in dictionary values."""
         type_counts["dict"] = type_counts.get("dict", 0) + 1
@@ -182,7 +186,7 @@ class ComplexityAnalyzer:
 
     @classmethod
     def _count_list_types(
-        cls, obj: list, type_counts: Dict[str, int], depth: int, visited: set
+        cls, obj: list[Any], type_counts: dict[str, int], depth: int, visited: set[int]
     ) -> None:
         """Count types in list items."""
         type_counts["list"] = type_counts.get("list", 0) + 1
@@ -191,19 +195,19 @@ class ComplexityAnalyzer:
             cls._merge_type_counts(type_counts, child_counts)
 
     @classmethod
-    def _count_simple_type(cls, obj: Any, type_counts: Dict[str, int]) -> None:
+    def _count_simple_type(cls, obj: Any, type_counts: dict[str, int]) -> None:
         """Count simple (non-container) type."""
         type_name = type(obj).__name__
         type_counts[type_name] = type_counts.get(type_name, 0) + 1
 
     @classmethod
-    def _merge_type_counts(cls, target: Dict[str, int], source: Dict[str, int]) -> None:
+    def _merge_type_counts(cls, target: dict[str, int], source: dict[str, int]) -> None:
         """Merge type counts from source into target."""
         for type_name, count in source.items():
             target[type_name] = target.get(type_name, 0) + count
 
     @classmethod
-    def calculate_text_density(cls, data: Dict[str, Any]) -> float:
+    def calculate_text_density(cls, data: dict[str, Any]) -> float:
         """Calculate the ratio of text content to total data size."""
         try:
             text_chars, total_chars = cls._count_text_recursive(data)
@@ -213,7 +217,7 @@ class ComplexityAnalyzer:
 
     @classmethod
     def _count_text_recursive(
-        cls, obj: Any, depth: int = 0, visited: set | None = None
+        cls, obj: Any, depth: int = 0, visited: set[int] | None = None
     ) -> tuple[int, int]:
         """Recursively count text characters in data structure."""
         if visited is None:
@@ -236,7 +240,9 @@ class ComplexityAnalyzer:
         return cls._count_other_chars(obj)
 
     @classmethod
-    def _count_dict_chars(cls, obj: dict, depth: int, visited: set) -> tuple[int, int]:
+    def _count_dict_chars(
+        cls, obj: dict[str, Any], depth: int, visited: set[int]
+    ) -> tuple[int, int]:
         """Count characters in dictionary."""
         text_chars = 0
         total_chars = 0
@@ -252,7 +258,9 @@ class ComplexityAnalyzer:
         return text_chars, total_chars
 
     @classmethod
-    def _count_list_chars(cls, obj: list, depth: int, visited: set) -> tuple[int, int]:
+    def _count_list_chars(
+        cls, obj: list[Any], depth: int, visited: set[int]
+    ) -> tuple[int, int]:
         """Count characters in list."""
         text_chars = 0
         total_chars = 0
@@ -270,14 +278,14 @@ class ComplexityAnalyzer:
         str_repr = str(obj)
         total_chars = len(str_repr)
         # Numbers and simple types don't count as text
-        if isinstance(obj, (int, float, bool)) or obj is None:
+        if isinstance(obj, int | float | bool) or obj is None:
             text_chars = 0
         else:
             text_chars = len(str_repr)
         return text_chars, total_chars
 
     @classmethod
-    def calculate_structural_complexity(cls, data: Dict[str, Any]) -> float:
+    def calculate_structural_complexity(cls, data: dict[str, Any]) -> float:
         """Calculate overall structural complexity score (0.0 to 1.0)."""
         try:
             # Combine multiple complexity metrics

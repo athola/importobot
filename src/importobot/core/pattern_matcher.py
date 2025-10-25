@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
 from re import Pattern
-from typing import Any, Dict, List, Set
+from typing import Any, ClassVar
 
 from importobot.utils.defaults import PROGRESS_CONFIG
 from importobot.utils.step_processing import combine_step_text
@@ -21,6 +21,7 @@ class IntentType(Enum):
     FILE_VERIFICATION = "file_verification"
     FILE_REMOVAL = "file_removal"
     FILE_CREATION = "file_creation"
+    FILE_STAT = "file_stat"
     SSH_CONNECT = "ssh_connect"
     SSH_DISCONNECT = "ssh_disconnect"
     SSH_CONFIGURATION = "ssh_configuration"
@@ -91,9 +92,9 @@ class IntentPattern:
     priority: int = 0  # Higher priority patterns are checked first
 
     # Dynamically created compiled pattern cache
-    _compiled: Pattern | None = None
+    _compiled: Pattern[str] | None = None
 
-    def compiled_pattern(self) -> Pattern:
+    def compiled_pattern(self) -> Pattern[str]:
         """Get compiled regex pattern."""
         # Initialize cache if needed
         # Using instance-level caching without lru_cache decorator
@@ -116,13 +117,14 @@ class PatternMatcher:
         self.patterns = self._build_patterns()
         # Sort by priority (descending) for more specific patterns first
         self.patterns.sort(key=lambda p: p.priority, reverse=True)
-        self._pattern_cache: dict[str, Pattern] = {}
+        self._pattern_cache: dict[str, Pattern[str]] = {}
         self._intent_cache: dict[str, IntentType | None] = {}
 
     def _build_patterns(self) -> list[IntentPattern]:
         """Build list of intent patterns."""
         return [
             # Command execution (highest priority for specific commands)
+            IntentPattern(IntentType.FILE_STAT, r"\bstat\b", priority=10),
             IntentPattern(
                 IntentType.COMMAND_EXECUTION,
                 r"\b(?:initiate.*download|execute.*curl|run.*wget|curl|wget)\b",
@@ -131,6 +133,11 @@ class PatternMatcher:
             IntentPattern(
                 IntentType.COMMAND_EXECUTION,
                 r"\b(?:echo|hash|blake2bsum)\b",
+                priority=9,
+            ),
+            IntentPattern(
+                IntentType.COMMAND_EXECUTION,
+                r"\b(?:chmod|chown|stat|truncate|cp|rm|mkdir|rmdir|touch|ls|cat)\b",
                 priority=9,
             ),
             # File operations (most specific patterns first)
@@ -699,7 +706,7 @@ class LibraryDetector:
     """Unified library detection based on text patterns."""
 
     # Library detection patterns consolidated from keywords_registry
-    LIBRARY_PATTERNS = {
+    LIBRARY_PATTERNS: ClassVar[dict[str, str]] = {
         "SeleniumLibrary": (
             r"\b(?:browser|navigate|click|input|page|web|url|login|button|element"
             r"|selenium|page.*should.*contain|should.*contain.*page|verify.*content"
@@ -743,10 +750,35 @@ class LibraryDetector:
             r"|string.*operation|string.*manipulation|convert.*case"
             r"|format.*string|convert.*to.*uppercase|convert.*to.*lowercase)\b"
         ),
+        "Telnet": (
+            r"\b(?:telnet|telnet.*connection|open.*telnet|telnet.*session"
+            r"|telnet.*command|telnet.*read|telnet.*write)\b"
+        ),
+        "AppiumLibrary": (
+            r"\b(?:mobile|appium|app|android|ios|device|mobile.*app|mobile.*testing|"
+            r"open.*application|mobile.*element|mobile.*click|touch|swipe|"
+            r"mobile.*automation)\b"
+        ),
+        "FtpLibrary": (
+            r"\b(?:ftp|file.*transfer|ftp.*connect|ftp.*upload|ftp.*download"
+            r"|ftp.*put|ftp.*get|ftp.*file)\b"
+        ),
+        "MQTTLibrary": (
+            r"\b(?:mqtt|message.*queue|publish|subscribe|broker|iot|mqtt.*message"
+            r"|mqtt.*topic|mqtt.*connect)\b"
+        ),
+        "RedisLibrary": (
+            r"\b(?:redis|cache|key.*value|redis.*connect|redis.*get|redis.*set"
+            r"|redis.*key|redis.*cache)\b"
+        ),
+        "MongoDBLibrary": (
+            r"\b(?:mongodb|mongo|nosql|document.*database|collection|mongo.*connect"
+            r"|mongo.*insert|mongo.*query|mongo.*update|mongo.*delete)\b"
+        ),
     }
 
     @classmethod
-    def detect_libraries_from_text(cls, text: str) -> Set[str]:
+    def detect_libraries_from_text(cls, text: str) -> set[str]:
         """Detect required Robot Framework libraries from text content."""
         if not text:
             return set()
@@ -758,7 +790,7 @@ class LibraryDetector:
         return libraries
 
     @classmethod
-    def detect_libraries_from_steps(cls, steps: List[Dict[str, Any]]) -> Set[str]:
+    def detect_libraries_from_steps(cls, steps: list[dict[str, Any]]) -> set[str]:
         """Detect required libraries from step content."""
         combined_text = combine_step_text(steps)
         return cls.detect_libraries_from_text(combined_text)

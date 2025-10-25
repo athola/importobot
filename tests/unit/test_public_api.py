@@ -1,6 +1,7 @@
 """Tests for public API structure and contracts."""
 
 import json
+from typing import Any
 
 import pytest
 
@@ -10,7 +11,7 @@ from importobot.api import converters, suggestions, validation
 from tests.test_helpers import EXPECTED_PUBLIC_EXPORTS, assert_module_exports
 
 
-def _sample_test_data() -> dict:
+def _sample_test_data() -> dict[str, Any]:
     """Provide a reusable test payload for converter assertions."""
     return {
         "tests": [

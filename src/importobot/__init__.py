@@ -16,7 +16,7 @@ Internal:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 # Core public functionality - import without exposing modules
 # API toolkit (following pandas.api pattern)
@@ -51,6 +51,7 @@ def _check_dependencies() -> None:
 
 
 _check_dependencies()
+_config.validate_global_limits()
 
 # TYPE_CHECKING block removed - no future type exports currently needed
 
@@ -59,20 +60,37 @@ config = _config
 exceptions = _exceptions
 api = _api
 
+
+def convert(payload: dict[str, Any] | str) -> str:
+    """Convert a JSON payload (dict or string) to Robot Framework text."""
+    converter = JsonToRobotConverter()
+    return converter.convert(payload)
+
+
+def convert_file(input_file: str, output_file: str) -> dict[str, Any]:
+    """Convert a JSON file to Robot Framework output."""
+    converter = JsonToRobotConverter()
+    return converter.convert_file(input_file, output_file)
+
+
+def convert_directory(input_dir: str, output_dir: str) -> dict[str, Any]:
+    """Convert all JSON files within a directory to Robot Framework output."""
+    converter = JsonToRobotConverter()
+    return converter.convert_directory(input_dir, output_dir)
+
+
 __all__ = [
-    # Core business functionality
     "JsonToRobotConverter",
-    # Configuration management
-    "config",
-    # Error handling
-    "exceptions",
-    # Public API toolkit
     "api",
+    "config",
+    "convert",
+    "convert_directory",
+    "convert_file",
+    "exceptions",
 ]
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 # Clean up namespace - remove internal imports from dir()
 del _config, _exceptions, _api
 del TYPE_CHECKING
-del annotations  # from __future__ import

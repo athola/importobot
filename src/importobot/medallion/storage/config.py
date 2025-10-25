@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 __all__ = ["VALID_BACKEND_TYPES", "StorageConfig"]
 
@@ -33,7 +33,7 @@ class StorageConfig:
 
     # Security settings
     encryption_enabled: bool = False
-    encryption_key_path: Optional[Path] = None
+    encryption_key_path: Path | None = None
 
     # Backup settings
     backup_enabled: bool = True
@@ -117,7 +117,7 @@ class StorageConfig:
         if "encryption_enabled" in config_dict:
             self.encryption_enabled = config_dict["encryption_enabled"]
 
-        if "encryption_key_path" in config_dict and config_dict["encryption_key_path"]:
+        if config_dict.get("encryption_key_path"):
             self.encryption_key_path = Path(config_dict["encryption_key_path"])
 
     def validate(self) -> list[str]:
@@ -127,24 +127,24 @@ class StorageConfig:
         if self.backend_type not in VALID_BACKEND_TYPES:
             issues.append(f"Invalid backend_type: {self.backend_type}")
 
-        if self.retention_days < 1:
+        if self.retention_days is not None and self.retention_days < 1:
             issues.append(
                 f"retention_days must be at least 1, got {self.retention_days}"
             )
 
-        if self.cache_size_mb < 1:
+        if self.cache_size_mb is not None and self.cache_size_mb < 1:
             issues.append(f"cache_size_mb must be at least 1, got {self.cache_size_mb}")
 
-        if self.batch_size < 1:
+        if self.batch_size is not None and self.batch_size < 1:
             issues.append(f"batch_size must be at least 1, got {self.batch_size}")
 
-        if self.backup_interval_hours < 1:
+        if self.backup_interval_hours is not None and self.backup_interval_hours < 1:
             issues.append(
                 f"backup_interval_hours must be at least 1, got "
                 f"{self.backup_interval_hours}"
             )
 
-        if self.backup_retention_days < 1:
+        if self.backup_retention_days is not None and self.backup_retention_days < 1:
             issues.append(
                 f"backup_retention_days must be at least 1, got "
                 f"{self.backup_retention_days}"

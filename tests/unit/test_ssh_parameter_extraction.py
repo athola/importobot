@@ -258,7 +258,7 @@ class TestSSHParameterFormatting:
         assert "${host}" in result
         assert "${username}" in result
         assert "${command}" in result
-        assert "ssh ${username}@${host} && ${command}" == result
+        assert result == "ssh ${username}@${host} && ${command}"
 
     def test_ssh_keyword_parameter_combinations(self):
         """Test SSH keyword generation with various parameter combinations."""
