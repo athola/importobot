@@ -10,9 +10,9 @@ Many pieces we introduced in 0.1.1 are still in play: Bayes for confidence scori
 
 ### Bayesian statistics & format detection
 
-The Bayesian scorer is the backbone of the format confidence pipeline. This section maintains a high-level picture; the detailed derivation, parameter tables, and regression notes can be found in the [Bayesian scorer mathematical review](Bayesian-Scorer-Mathematical-Review.md).
+The Bayesian scorer is the backbone of the format confidence pipeline. This section maintains a high-level picture; the detailed derivation, parameter tables, and regression notes can be found in the Bayesian scorer implementation.
 
-Posteriors are computed directly instead of trusting the legacy noisy-OR shim. Ambiguous payloads stop at the 1.5:1 cap; confident cases can extend to 3:1 because the scorer uses format-specific ambiguity adjustments retrieved from calibration runs. The quadratic decay for `P(E|¬H)` and the configurable epsilon prevent a divide-by-zero exception when evidence dries up. See the [Bayesian scorer mathematical review](Bayesian-Scorer-Mathematical-Review.md) for the derivations, parameter ranges, and regression coverage.
+Posteriors are computed directly instead of trusting the legacy noisy-OR shim. Ambiguous payloads stop at the 1.5:1 cap; confident cases can extend to 3:1 because the scorer uses format-specific ambiguity adjustments retrieved from calibration runs. The quadratic decay for `P(E|¬H)` and the configurable epsilon prevent a divide-by-zero exception when evidence dries up. See the Bayesian scorer implementation for the derivations, parameter ranges, and regression coverage.
 
 TODO: gather correlation numbers for completeness vs. quality so it can be documented how the independence assumption may be violated in real imports Empirical Validation & Benchmarks
 

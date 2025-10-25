@@ -21,6 +21,7 @@ dist/
 .venv
 env/
 venv/
+ENV/
 
 # Testing
 *.json
@@ -89,6 +90,7 @@ visualizations/
 .mypy_cache/
 .ruff_cache/
 .uv-cache/
+.uv_cache/
 
 # Development tools cache
 .aider.*
@@ -103,8 +105,23 @@ visualizations/
 scripts/performance_results/
 scripts/benchmark_output/
 performance-metrics/
+.asv/
+asv_results/
 
 # Generated test data
 tests/generated/
 tests/temp/
 tests/output/
+wiki/images/
+
+# Runtime data and learning artifacts
+medallion_data/
+learned_bayesian_parameters.json
+.importobot/
+
+# Temporary development files
+commit_msg.txt
+mutmut_results.txt
+pylint_output.txt
+ty_output.txt
+tmp.robot

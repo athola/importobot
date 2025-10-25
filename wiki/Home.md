@@ -1,6 +1,6 @@
 # Importobot Wiki
 
-This wiki collects the working notes for Importobot—the tool we built to convert Zephyr, Xray, TestLink, and similar exports into Robot Framework suites. It began as a weekend script to dodge manual copy/paste work and grew into something teams run in CI.
+This wiki collects the working notes for Importobot—a tool designed to convert Zephyr, Xray, TestLink, and similar exports into Robot Framework suites, enabling teams to automate test migration within their CI pipelines.
 
 If you are new, start with Getting Started. The other pages cover the conversion workflow, medallion layers, and production chores such as security, deployment, and benchmarks.
 
@@ -29,7 +29,7 @@ If you are new, start with Getting Started. The other pages cover the conversion
 
 Before Importobot, teams either retyped Zephyr cases by hand or maintaind brittle internal scripts. Importobot provides a structured approach: it converts test suite exports with one command, keeps descriptions and tags intact, and flags the handful of steps that still need human judgment.
 
-The codebase grew out of TDD runs on real customer data, so the philosophy is practical—validate inputs early, preserve traceability, and ship Robot suites that run without edits. The suggestion engine and extra keyword libraries landed because testers asked for them while reviewing generated files.
+The codebase evolved from Test-Driven Development (TDD) with real customer data, emphasizing early input validation, traceability, and the delivery of Robot suites that run without manual edits. The suggestion engine and extra keyword libraries were requested by testers who wanted better results when reviewing generated files.
 
 ## Quick Start
 
@@ -54,6 +54,9 @@ notes = engine.suggest_improvements(problematic_tests)
 ## Recent Improvements
 
 ### Highlights
+- **ASV Benchmarking**: Full Airspeed Velocity integration for tracking performance across releases. See [Performance Benchmarks](Performance-Benchmarks) for usage.
+- **Tag-Based Releases**: PyPI publishing now triggers only on version tags (e.g., `v0.1.4`), which leads to controlled releases.
+- **Development Branch**: New branching strategy with `development` as the integration branch. All MRs target `development`, releases merge to `main`.
 - Parameter conversion now ignores comment lines, so literal placeholders and odd control characters remain visible for auditors while executable steps still gain Robot variables.
 - Test cases include both the original and normalized names so Hypothesis fixtures still cover edge cases like `\f` or `\b`.
 - Independent Bayesian scoring replaced the legacy weighted heuristic. Missing required indicators now apply penalties, ambiguous evidence is capped at 1.5:1, and `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py` validates the enforcement of these constraints.

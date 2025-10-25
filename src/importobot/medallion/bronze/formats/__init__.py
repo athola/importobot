@@ -12,9 +12,9 @@ Each format definition includes:
 Format definitions are based on research into:
 - Zephyr for JIRA (execution cycles, separate data model)
 - Xray for JIRA (tests as JIRA issues, evidence attachments)
-- TestRail (hierarchical structure, independent platform)
-- TestLink (XML-based, suite-centric)
-- Generic (fallback for unsupported formats)
+- TestRail (cloud and on-premise)
+- TestLink (XML exports)
+- Generic (default for unsupported formats)
 """
 
 from .generic_format import create_generic_format

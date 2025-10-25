@@ -39,7 +39,11 @@ Disciplined TDD means every parser or optimizer tweak starts with a failing test
 - Selenium integration tests still run in deterministic dry-run mode with explicit resource cleanup, so CI remains free of WebDriver start-up flakes.
 
 ### 2025 highlights worth remembering
+- **ASV benchmarking integration (Oct 2025):** ASV (Airspeed Velocity) now tracks performance across releases with automated chart generation. CI workflow publishes benchmark visualizations to wiki on tagged releases. Three benchmark suites cover conversion performance, memory usage, and bulk operations with ~55ms average detection time.
+- **Tag-based release workflow (Oct 2025):** PyPI publishing now triggers only on version tags (v*.*.*), preventing accidental releases from main branch pushes. Ensures controlled releases with proper versioning.
+- **Development branch workflow (Oct 2025):** Established development branch as integration target for all MRs. Main branch receives only tested releases from development. Documented in wiki/Contributing.md with clear feature/release/hotfix workflows.
 - **Bayesian revamp (Oct 2025):** replaced the weighted scorer with an independent model, quadratic P(E|¬H), and regression tests for ratio caps. Strong evidence now clears the 0.8 confidence bar without hand tuning.
+- **Wiki consolidation (Oct 2025):** removed verbose Bayesian-specific documentation (Bayesian-Redesign.md, Bayesian-Scorer-Mathematical-Review.md) in favor of concise technical content in Mathematical-Foundations.md.
 - September's cleanup retired ~200 lines of compatibility hacks and replaced them with a shared `data_analysis` helper; `__all__` exports now match our actual public API.
 - `scripts/interactive_demo.py` landed after customers kept asking for a demo harness that shares code with the CLI.
 - The same cycle produced utilities for pattern extraction/step comments and tightened SSH validation so the interactive demo and the CLI share logic instead of diverging.

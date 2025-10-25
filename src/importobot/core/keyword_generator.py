@@ -642,7 +642,7 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
         if result:
             return result
 
-        # Fallback to generic wrapping
+        # Default to generic wrapping
         return self._generic_wrapping(content, prefix, continuation_prefix, max_length)
 
     def _handle_specific_patterns(

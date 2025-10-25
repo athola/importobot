@@ -229,15 +229,15 @@ Different formats receive specialized treatment:
 
 ### Confidence Thresholds
 
-- **Strong evidence (>0.9 likelihood)**: Confidence above 0.8 ✅
+- **Strong evidence (>0.9 likelihood)**: Confidence above 0.8
 - **Zero evidence**: Confidence of 0.0 (evidence of absence)
 - **Weak evidence**: Appropriately low confidence with uncertainty preserved
 
 ### Advanced Features
 
-- **Uncertainty quantification** via Monte Carlo sampling (with SciPy)
-- **Cross-validation** for out-of-sample performance assessment
-- **Posterior predictive checks** for model validation
-- **Adaptive P(E|¬H)** estimation using quadratic decay
+- **Quantifies uncertainty**: Uses Monte Carlo simulations (with SciPy) to measure the reliability of confidence scores.
+- **Validates performance**: Employs cross-validation to assess how well the model performs on new, unseen data.
+- **Checks model fit**: Uses posterior predictive checks to verify that the model accurately represents the observed data.
+- **Adaptive evidence weighting**: Dynamically adjusts the influence of evidence against a format using a quadratic decay model.
 
 For complete mathematical details, see [Mathematical Foundations](https://github.com/athola/importobot/wiki/Mathematical-Foundations).

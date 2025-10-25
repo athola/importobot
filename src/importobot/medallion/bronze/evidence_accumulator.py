@@ -166,7 +166,7 @@ class EvidenceAccumulator:
                         self.original_test_data
                     )
                 except Exception as e:
-                    # Fallback to basic metrics if complexity analysis fails
+                    # Default to basic metrics if complexity analysis fails
                     logger.warning(
                         "Complexity analysis failed for %s: %s", format_name, e
                     )

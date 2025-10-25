@@ -12,7 +12,7 @@ from typing import Any, ContextManager, Iterator, Optional
 
 try:  # pragma: no cover - platform specific imports
     import fcntl  # type: ignore[attr-defined]
-except ImportError:  # pragma: no cover - Windows fallback
+except ImportError:  # pragma: no cover - Windows secondary
     fcntl = None  # type: ignore[assignment]
 
 try:  # pragma: no cover - platform specific imports
@@ -41,7 +41,7 @@ def _exclusive_file_lock(lock_path: Path) -> Iterator[None]:
     try:
         if fcntl is not None:  # Unix-like systems
             fcntl.flock(lock_file, fcntl.LOCK_EX)
-        elif msvcrt is not None:  # Windows fallback
+        elif msvcrt is not None:  # Windows secondary
             lock_file.seek(0)
             lock_file.write("0")
             lock_file.flush()

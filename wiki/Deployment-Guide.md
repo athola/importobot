@@ -37,7 +37,8 @@ uv run python -m pytest
 ## CI/CD integration
 
 - Call the CLI (`uv run importobot ...`) or `importobot.JsonToRobotConverter()` inside your test job.
-- Schedule `uv run python -m importobot_scripts.benchmarks.performance_benchmark --parallel` nightly to catch performance regressions and archive `performance_benchmark_results.json`.
+- Use ASV for release-to-release performance tracking: `uv run asv continuous v0.1.3 HEAD --factor 1.1` (fails if >10% slower)
+- Alternatively, schedule internal benchmarks: `uv run python -m importobot_scripts.benchmarks.performance_benchmark --parallel` nightly and archive `performance_benchmark_results.json`.
 - Full validation (`make validate`) takes about 4 minutes; see [Performance-Characteristics](Performance-Characteristics) for timing breakdown and faster alternatives during development.
 
 ## Cloud Storage Backend Configuration
