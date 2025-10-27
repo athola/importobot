@@ -6,7 +6,7 @@ to eliminate code duplication while maintaining clear API contracts.
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from importobot.medallion.interfaces.data_models import DataLineage
 from importobot.medallion.interfaces.records import BronzeRecord, RecordMetadata
@@ -23,11 +23,11 @@ class PlaceholderMixin:
             f"{self.__class__.__name__} {method_name} pending {milestone}"
         )
 
-    def _placeholder_record_metadata(self, _record_id: str) -> Optional[RecordMetadata]:
+    def _placeholder_record_metadata(self, _record_id: str) -> RecordMetadata | None:
         """Return placeholder implementation for get_record_metadata."""
         return None
 
-    def _placeholder_record_lineage(self, _record_id: str) -> Optional[DataLineage]:
+    def _placeholder_record_lineage(self, _record_id: str) -> DataLineage | None:
         """Return placeholder implementation for get_record_lineage."""
         return None
 
@@ -48,8 +48,8 @@ class PlaceholderMixin:
 
     def _placeholder_get_bronze_records(
         self,
-        _filter_criteria: Optional[dict[str, Any]] = None,
-        _limit: Optional[int] = None,
+        _filter_criteria: dict[str, Any] | None = None,
+        _limit: int | None = None,
     ) -> list[BronzeRecord]:
         """Return placeholder implementation for get_bronze_records."""
         return []

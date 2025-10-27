@@ -10,10 +10,10 @@ from typing import Any
 from importobot.medallion.bronze.validation import BronzeValidator
 from importobot.medallion.interfaces.data_models import DataQualityMetrics
 from importobot.utils.data_analysis import count_data_elements, count_data_fields
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 from importobot.utils.validation_models import QualitySeverity, ValidationResult
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 def stable_weighted_average(values: list[float], weights: list[float]) -> float:
@@ -254,7 +254,7 @@ class QualityAssessmentService:
         field_count = len(data)
 
         for value in data.values():
-            if isinstance(value, (list, tuple)) and value:
+            if isinstance(value, list | tuple) and value:
                 # Check type consistency in lists
                 first_type = type(value[0])
                 consistent = all(isinstance(item, first_type) for item in value)

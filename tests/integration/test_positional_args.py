@@ -24,7 +24,7 @@ class TestPositionalArgsIntegration:
 
             input_type, files = detect_input_type(str(test_file))
 
-            assert input_type == "file"
+            assert input_type == "file"  # type: ignore[comparison-overlap]
             assert files == [str(test_file)]
 
     def testdetect_input_type_directory(self):
@@ -32,7 +32,7 @@ class TestPositionalArgsIntegration:
         with tempfile.TemporaryDirectory() as temp_dir:
             input_type, files = detect_input_type(temp_dir)
 
-            assert input_type == "directory"
+            assert input_type == "directory"  # type: ignore[comparison-overlap]
             assert files == [temp_dir]
 
     def testdetect_input_type_wildcard_single_match(self) -> None:
@@ -50,7 +50,7 @@ class TestPositionalArgsIntegration:
             wildcard_pattern = str(temp_path / "test*.json")
             input_type, files = detect_input_type(wildcard_pattern)
 
-            assert input_type == "wildcard"
+            assert input_type == "wildcard"  # type: ignore[comparison-overlap]
             assert len(files) == 1
             assert str(test_file) in files
 
@@ -74,7 +74,7 @@ class TestPositionalArgsIntegration:
             wildcard_pattern = str(temp_path / "test*")
             input_type, files = detect_input_type(wildcard_pattern)
 
-            assert input_type == "wildcard"
+            assert input_type == "wildcard"  # type: ignore[comparison-overlap]
             assert len(files) == 3  # Only JSON files
             for i in range(3):
                 assert str(temp_path / f"test{i}.json") in files
@@ -98,7 +98,7 @@ class TestPositionalArgsIntegration:
             wildcard_pattern = str(temp_path / "**/*.json")
             input_type, files = detect_input_type(wildcard_pattern)
 
-            assert input_type == "wildcard"
+            assert input_type == "wildcard"  # type: ignore[comparison-overlap]
             assert len(files) == 2
             assert str(temp_path / "test1.json") in files
             assert str(sub_dir / "test2.json") in files
@@ -115,7 +115,7 @@ class TestPositionalArgsIntegration:
             wildcard_pattern = str(temp_path / "*.json")
             input_type, files = detect_input_type(wildcard_pattern)
 
-            assert input_type == "error"
+            assert input_type == "error"  # type: ignore[comparison-overlap]
             assert not files
 
     def testdetect_input_type_nonexistent_file(self, tmp_path):
@@ -123,7 +123,7 @@ class TestPositionalArgsIntegration:
         nonexistent_file = tmp_path / "nonexistent" / "file.json"
         input_type, files = detect_input_type(str(nonexistent_file))
 
-        assert input_type == "error"
+        assert input_type == "error"  # type: ignore[comparison-overlap]
         assert files == []
 
     def testdetect_input_type_case_insensitive_json(self) -> None:
@@ -142,7 +142,7 @@ class TestPositionalArgsIntegration:
             wildcard_pattern = str(temp_path / "test*")
             input_type, files = detect_input_type(wildcard_pattern)
 
-            assert input_type == "wildcard"
+            assert input_type == "wildcard"  # type: ignore[comparison-overlap]
             assert len(files) == 3
             for i in range(1, 4):
                 assert any(f"test{i}." in f for f in files)
@@ -164,7 +164,7 @@ class TestPositionalArgsIntegration:
             wildcard_pattern = str(temp_path / "test*")
             input_type, files = detect_input_type(wildcard_pattern)
 
-            assert input_type == "wildcard"
+            assert input_type == "wildcard"  # type: ignore[comparison-overlap]
             assert len(files) == 2  # Only JSON files
             assert str(temp_path / "test1.json") in files
             assert str(temp_path / "test4.JSON") in files

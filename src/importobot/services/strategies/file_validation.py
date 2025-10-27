@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 from importobot.utils.security import SecurityValidator
 from importobot.utils.validation import (
@@ -28,13 +28,13 @@ class FileValidationStrategy:
         """
         self.security_validator = SecurityValidator(security_level=security_level)
 
-    def validate(self, data: Any, context: Dict[str, Any]) -> ValidationResult:
+    def validate(self, data: Any, context: dict[str, Any]) -> ValidationResult:
         """Validate file paths and operations."""
         messages = []
         severity = ValidationSeverity.INFO
 
         try:
-            if isinstance(data, (str, bytes)):
+            if isinstance(data, str | bytes):
                 path_str = str(data)
 
                 # Basic path validation

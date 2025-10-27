@@ -1,4 +1,4 @@
-"""Comprehensive tests for multi-step parsing capabilities.
+"""Tests for multi-step parsing capabilities.
 
 Tests enhanced step parsing that can map single JSON steps to multiple Robot Framework "
         "commands,
@@ -69,6 +69,33 @@ class TestBasicMultiStepParsing:
         ]
 
         assert result == expected_keywords
+
+    def test_hash_comparison_operation_generates_keywords(self):
+        """Hash comparison steps should expand into comparison commands."""
+        parser = MultiCommandParser()
+        description = "Verify hash outputs are equal for source.txt and target.txt"
+        parsed = {
+            "source_command": "blake2bsum source.txt",
+            "target_command": "blake2bsum target.txt",
+        }
+
+        assert parser.should_generate_multiple_commands(description, parsed) is True
+        commands = parser.generate_multiple_robot_keywords(
+            description, parsed, "Hashes match"
+        )
+
+        assert (
+            commands[0]
+            == "Run Process    blake2bsum    source.txt    stdout=${hash_source}"
+        )
+        assert (
+            commands[1]
+            == "Run Process    blake2bsum    target.txt    stdout=${hash_target}"
+        )
+        assert (
+            commands[-1]
+            == "Should Be Equal As Strings    ${hash_source}    ${hash_target}"
+        )
 
 
 class TestComplexRealWorldScenarios:

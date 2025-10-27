@@ -1,0 +1,54 @@
+[
+    {
+        "owner": "USER001",
+        "updatedBy": "USER002",
+        "customFields": {
+            "Supported Platforms": "All Platforms",
+            "Test Level": "Minimum Viable"
+        },
+        "precondition": "connection established",
+        "updatedOn": "2025-08-29T17:27:06.945Z",
+        "priority": "Normal",
+        "createdOn": "2024-03-04T14:46:01.268Z",
+        "objective": "verify the cat command returns the contents of the file",
+        "labels": [
+            "Requirement"
+        ],
+        "projectKey": "DEMO",
+        "folder": "/Examples/TaskTests",
+        "latestVersion": true,
+        "createdBy": "USER003",
+        "testScript": {
+            "id": 12510,
+            "type": "STEP_BY_STEP",
+            "steps": [
+                {
+                    "testData": "on target: echo \" hello world!\" {path/to/file}",
+                    "expectedResult": "File created",
+                    "index": 0,
+                    "description": "create test file with contents \"hello world!\"",
+                    "id": 101644
+                },
+                {
+                    "testData": "on CLI: cat {path/to/file}",
+                    "expectedResult": "hello world!",
+                    "index": 1,
+                    "description": "run the cat command on the CLI",
+                    "id": 84103
+                }
+            ]
+        },
+        "issueLinks": [
+            "Link1",
+            "Link2"
+        ],
+        "lastTestResultStatus": "Fail",
+        "name": "cat small file",
+        "parameters": {
+            "variables": [],
+            "entries": []
+        },
+        "key": "ABC-234",
+        "status": "Review"
+    }
+]

@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any
 
 from importobot.medallion.interfaces.enums import SupportedFormat
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 
 
 @dataclass
@@ -17,12 +17,12 @@ class DetectionMetrics:
     format_detected: SupportedFormat
     confidence_score: float
     detection_time_ms: int
-    pattern_matches: Dict[str, bool] = field(default_factory=dict)
-    field_counts: Dict[str, int] = field(default_factory=dict)
+    pattern_matches: dict[str, bool] = field(default_factory=dict)
+    field_counts: dict[str, int] = field(default_factory=dict)
     fast_path_used: bool = False
-    complexity_assessment: Optional[Dict[str, Any]] = None
+    complexity_assessment: dict[str, Any] | None = None
 
-    def to_metrics(self) -> Dict[str, Any]:
+    def to_metrics(self) -> dict[str, Any]:
         """Export metrics for monitoring systems."""
         return {
             "format_detected": self.format_detected.value,
@@ -47,7 +47,7 @@ class DetectionMetrics:
 class PerformanceMonitor:
     """Context manager for monitoring format detection performance."""
 
-    def __init__(self, data_size_estimate: Optional[int] = None):
+    def __init__(self, data_size_estimate: int | None = None):
         """Initialize performance monitor.
 
         Args:
@@ -55,7 +55,7 @@ class PerformanceMonitor:
         """
         self.data_size_estimate = data_size_estimate
         self.start_time = 0.0
-        self.metrics: Optional[DetectionMetrics] = None
+        self.metrics: DetectionMetrics | None = None
 
     def __enter__(self) -> PerformanceMonitor:
         """Start performance monitoring."""
@@ -65,7 +65,7 @@ class PerformanceMonitor:
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Finish performance monitoring and log if needed."""
         if self.metrics and self.metrics.log_performance_warning():
-            logger = setup_logger(__name__)
+            logger = get_logger()
 
             logger.info(
                 "Format detection performance metrics",
@@ -81,10 +81,10 @@ class PerformanceMonitor:
         format_detected: SupportedFormat,
         confidence_score: float,
         *,
-        pattern_matches: Optional[Dict[str, bool]] = None,
-        field_counts: Optional[Dict[str, int]] = None,
+        pattern_matches: dict[str, bool] | None = None,
+        field_counts: dict[str, int] | None = None,
         fast_path_used: bool = False,
-        complexity_assessment: Optional[Dict[str, Any]] = None,
+        complexity_assessment: dict[str, Any] | None = None,
     ) -> DetectionMetrics:
         """Record detection results and create metrics."""
         detection_time_ms = int((time.perf_counter() - self.start_time) * 1000)

@@ -1,0 +1,55 @@
+[
+    {
+        "owner": "USER001",
+        "updatedBy": "USER002",
+        "customFields": {
+            "Supported Platforms": "All Platforms",
+            "Automated": true,
+            "Test Level": "Smoke"
+        },
+        "precondition": "System installed; Agent deployed; CLI connected to agent",
+        "updatedOn": "2025-08-29T17:27:06.945Z",
+        "priority": "Normal",
+        "createdOn": "2024-03-04T14:46:01.268Z",
+        "objective": "Verify the strings command returns the contents of the file.",
+        "labels": [
+            "Requirement"
+        ],
+        "projectKey": "DEMO",
+        "folder": "/Examples/TaskTests",
+        "latestVersion": true,
+        "createdBy": "USER003",
+        "testScript": {
+            "id": 12560,
+            "type": "STEP_BY_STEP",
+            "steps": [
+                {
+                    "testData": "strings /file1.txt",
+                    "expectedResult": "\"hello world\" returned.",
+                    "index": 1,
+                    "description": "**ON CLI:** Run the strings task on the created file.",
+                    "id": 84629
+                },
+                {
+                    "testData": "echo \"hello world\" &gt; file1.txt",
+                    "expectedResult": "File created.",
+                    "index": 0,
+                    "description": "**ON TARGET:** Create a file on the target.",
+                    "id": 84630
+                }
+            ]
+        },
+        "issueLinks": [
+            "Link1",
+            "Link2"
+        ],
+        "lastTestResultStatus": "Success",
+        "name": "strings",
+        "parameters": {
+            "variables": [],
+            "entries": []
+        },
+        "key": "ABC-T206",
+        "status": "Approved"
+    }
+]

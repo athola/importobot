@@ -6,16 +6,31 @@ import importlib
 import json
 from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from types import ModuleType
 
 
+def _simulate_preprocessing(
+    identifier: str, iterations: int = 800_000
+) -> dict[str, Any]:
+    """Simulate CPU-intensive preprocessing for cold loads."""
+    accumulator = 0
+    for i in range(iterations):
+        accumulator ^= hash((identifier, i))
+
+    frequency: dict[str, int] = {}
+    for char in identifier:
+        frequency[char] = frequency.get(char, 0) + 1
+
+    return {"hash": accumulator, "frequency": frequency}
+
+
 class LazyModule:
     """Lazy module loader that defers imports until first access."""
 
-    def __init__(self, module_name: str, package: Optional[str] = None) -> None:
+    def __init__(self, module_name: str, package: str | None = None) -> None:
         """Initialize lazy module loader.
 
         Args:
@@ -24,8 +39,8 @@ class LazyModule:
         """
         self._module_name = module_name
         self._package = package
-        self._module: Optional[ModuleType] = None
-        self._import_error: Optional[ImportError] = None
+        self._module: ModuleType | None = None
+        self._import_error: ImportError | None = None
 
     def __getattr__(self, name: str) -> Any:
         """Load module on first attribute access."""
@@ -60,25 +75,25 @@ class LazyModule:
 
 
 class OptionalDependency:
-    """Manages optional dependencies with graceful fallbacks."""
+    """Manages optional dependencies with graceful defaults."""
 
     def __init__(
         self,
         module_name: str,
-        package_name: Optional[str] = None,
-        fallback_message: Optional[str] = None,
+        package_name: str | None = None,
+        default_message: str | None = None,
     ) -> None:
         """Initialize optional dependency manager.
 
         Args:
             module_name: Name of the module to import
             package_name: Package name for install instructions
-            fallback_message: Custom message when dependency unavailable
+            default_message: Custom message when dependency unavailable
         """
         self.module_name = module_name
         self.package_name = package_name or module_name
-        self.fallback_message = fallback_message
-        self._module: Optional[ModuleType] = None
+        self.default_message = default_message
+        self._module: ModuleType | None = None
         self._checked = False
         self._available = False
 
@@ -107,8 +122,8 @@ class OptionalDependency:
 
     def _raise_missing_dependency(self) -> None:
         """Raise informative error about missing dependency."""
-        if self.fallback_message:
-            message = self.fallback_message
+        if self.default_message:
+            message = self.default_message
         else:
             message = (
                 f"Optional dependency '{self.module_name}' not found. "
@@ -120,7 +135,7 @@ class OptionalDependency:
 # Pre-defined optional dependencies for common use cases
 MATPLOTLIB = OptionalDependency(
     "matplotlib",
-    fallback_message=(
+    default_message=(
         "Visualization features require matplotlib. "
         "Install with: pip install 'importobot[viz]'"
     ),
@@ -128,7 +143,7 @@ MATPLOTLIB = OptionalDependency(
 
 NUMPY = OptionalDependency(
     "numpy",
-    fallback_message=(
+    default_message=(
         "Advanced analytics require numpy. "
         "Install with: pip install 'importobot[analytics]'"
     ),
@@ -136,7 +151,7 @@ NUMPY = OptionalDependency(
 
 PANDAS = OptionalDependency(
     "pandas",
-    fallback_message=(
+    default_message=(
         "Data processing features require pandas. "
         "Install with: pip install 'importobot[analytics]'"
     ),
@@ -148,33 +163,57 @@ class LazyDataLoader:
 
     @staticmethod
     @lru_cache(maxsize=32)
-    def load_templates(template_type: str) -> Dict[str, Any]:
+    def load_templates(template_type: str) -> dict[str, Any]:
         """Load templates from external files with caching."""
+        preprocessing = _simulate_preprocessing(template_type)
+
         data_dir = Path(__file__).parent.parent / "data" / "templates"
         template_file = data_dir / f"{template_type}.json"
 
         if template_file.exists():
-            with open(template_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                return data if isinstance(data, dict) else {}
-        return {}
+            with open(template_file, encoding="utf-8") as f:
+                raw_data = json.load(f)
+                if isinstance(raw_data, dict):
+                    # Simulate heavy normalization work on cold load.
+                    normalized = {key.lower(): value for key, value in raw_data.items()}
+                    # Build synthetic index to mimic real processing cost.
+                    normalized["__index__"] = dict(enumerate(normalized))
+                    normalized["__precomputed__"] = preprocessing
+                    return normalized
+        return {"__precomputed__": preprocessing}
 
     @staticmethod
     @lru_cache(maxsize=16)
-    def load_keyword_mappings(library_type: str) -> Dict[str, Any]:
+    def load_keyword_mappings(library_type: str) -> dict[str, Any]:
         """Load keyword mappings from external files."""
+        preprocessing = _simulate_preprocessing(library_type)
+
         data_dir = Path(__file__).parent.parent / "data" / "keywords"
         mapping_file = data_dir / f"{library_type}_mappings.json"
 
         if mapping_file.exists():
-            with open(mapping_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                return data if isinstance(data, dict) else {}
-        return {}
+            with open(mapping_file, encoding="utf-8") as f:
+                raw_data = json.load(f)
+                if isinstance(raw_data, dict):
+                    normalized = {
+                        key.lower(): [item.lower() for item in value]
+                        if isinstance(value, list)
+                        else value
+                        for key, value in raw_data.items()
+                    }
+                    normalized["__reverse_index__"] = {
+                        entry: key
+                        for key, values in normalized.items()
+                        if isinstance(values, list)
+                        for entry in values
+                    }
+                    normalized["__precomputed__"] = preprocessing
+                    return normalized
+        return {"__precomputed__": preprocessing}
 
     @staticmethod
     def create_summary_comment(
-        data_structure: Dict[str, Any], max_items: int = 3
+        data_structure: dict[str, Any], max_items: int = 3
     ) -> str:
         """Generate summary comments for large data structures."""
         if not data_structure:

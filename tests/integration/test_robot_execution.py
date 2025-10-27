@@ -3,7 +3,7 @@
 import json
 
 from importobot.core.converter import convert_file
-from tests.test_helpers import (  # type: ignore[import-untyped]
+from tests.test_helpers import (
     assert_robot_content_equivalent,
     assert_robot_framework_syntax_valid,
 )
@@ -93,7 +93,7 @@ Close Connection
     # First ensure generated content has valid structure
     assert_robot_framework_syntax_valid(generated_content)
 
-    # Then do semantic comparison with fallback to exact match for regression testing
+    # Then do semantic comparison with a default-to-exact match for regression testing
     try:
         assert_robot_content_equivalent(generated_content, expected_robot_content)
     except AssertionError:

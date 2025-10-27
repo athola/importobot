@@ -1,8 +1,8 @@
 # How to Navigate this Codebase
 
-This guide breaks down the complexity of the Importobot codebase. To better acclimate on this project, it addresses common patterns of confusion. It is intended to quickstart a new engineer on development.
+This guide provides a breakdown of the Importobot codebase, focusing on its layered architecture and key modules. It is intended to help new engineers get started with development.
 
-The project uses a layered architecture. We borrowed the pandas API pattern because it provides a great reference point for API exposure: import key classes directly, keep internal modules private, and provide an enterprise toolkit for advanced users.
+The project's structure is influenced by the pandas API pattern: core functionality is exposed through key classes, internal modules are kept private, and an advanced toolkit is available for integration purposes.
 
 ```
 src/importobot/
@@ -22,7 +22,7 @@ A public API is exposed for users looking to tie this into their project.
 
 ### `src/importobot/__init__.py`
 
-This file exposes the `JsonToRobotConverter` class and a few helpers. The public surface is kept small because changing APIs can oftentimes break user code. The dependency validation happens at import time - clear errors display immediately if Robot Framework is missing.
+This file exposes the `JsonToRobotConverter` class and a few helpers. The public surface is kept small because changing APIs can frequently break user code. The dependency validation happens at import time - clear errors display immediately if Robot Framework is missing.
 
 ```python
 import importobot
@@ -51,7 +51,7 @@ The `GenericConversionEngine.convert()` method is the main pipeline. It runs thr
 2. Detect Robot Framework libraries by analyzing step patterns
 3. Generate the final Robot Framework syntax
 
-The error handling around line 64-74 is worth reading - it shows how feedback is provided to users when their JSON doesn't match expected patterns.
+The error handling around line 64-74 provides insight into how feedback is provided to users when their JSON doesn't match expected patterns.
 
 ### `core/parsers.py`
 
@@ -98,7 +98,7 @@ The Bayesian math is derived here. Proper temperature scaling was integrated aft
 
 #### `bronze/storage/local.py`
 
-Handles file system operations and caching. A query pagination bug was fixed here from an earlier implementation due causing issues with large test suites - it was materializing data prematurely instead of just counting matches.
+Handles file system operations and caching. A query pagination bug was fixed here from an earlier implementation which caused issues with large test suites - it was materializing data prematurely instead of just counting matches.
 
 ## Utilities and Services
 
@@ -108,7 +108,7 @@ Shared helpers used across the codebase:
 
 - `validation/` - Input validation with helpful error messages
 - `test_generation/` - Test data generators for development
-- Legacy Robot Framework compatibility shims were removed after upgrading dependencies
+- Legacy Robot Framework compatibility layers were removed after upgrading dependencies
 
 The validation module is worth understanding - it catches common JSON structure issues early and provides specific feedback about what went wrong.
 
@@ -169,7 +169,7 @@ Create a format file in `medallion/bronze/formats/`, add detection logic to `for
 
 **Reading the code:** Start with `core/interfaces.py` for contracts, follow the data flow from `engine.py`, and use the tests to understand intended usage.
 
-**Making changes:** Don't break public APIs, write tests first (TDD is strongly encouraged), ensure Bayesian confidence scores exceed 0.8 for strong evidence, and run `make test` before committing.
+**Making changes:** Don't break public APIs, write tests first (TDD is a recommended practice), ensure Bayesian confidence scores exceed 0.8 for strong evidence, and run `make test` before committing.
 
 **Debugging:** Enable telemetry with `IMPORTOBOT_ENABLE_TELEMETRY=true` to see cache hit rates, use `importobot.api.validation` for input issues, and check confidence scores when format detection seems wrong.
 
@@ -181,4 +181,4 @@ Create a format file in `medallion/bronze/formats/`, add detection logic to `for
 
 ---
 
-This guide was written to provide a liferaft for engineers learning this codebase. The medallion architecture and Bayesian confidence scoring took time to get right - the >0.8 confidence requirement came from real testing needs. If parts are unclear, raise the flag so this guide can be improved.
+This guide was written to provide essential guidance for engineers learning this codebase. The medallion architecture and Bayesian confidence scoring took time to get right - the >0.8 confidence requirement came from real testing needs. If parts are unclear, raise the flag so this guide can be improved.

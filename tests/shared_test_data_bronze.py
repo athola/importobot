@@ -1,9 +1,9 @@
 """Shared test data for bronze medallion tests to eliminate duplication."""
 
-from typing import Any, Dict
+from typing import Any
 
 # Common test case structure used across bronze layer tests
-COMMON_TEST_CASE_STRUCTURE: Dict[str, Any] = {
+COMMON_TEST_CASE_STRUCTURE: dict[str, Any] = {
     "testcaseid": "1",
     "priority": "High",
     "execution_type": "Manual",
@@ -33,7 +33,7 @@ COMMON_TEST_CASE_STRUCTURE: Dict[str, Any] = {
 }
 
 # Common test suite structure for bronze layer tests
-COMMON_TEST_SUITE_STRUCTURE: Dict[str, Any] = {
+COMMON_TEST_SUITE_STRUCTURE: dict[str, Any] = {
     "testsuite": [COMMON_TEST_CASE_STRUCTURE],
     "time": "60",
     "tests": "1",

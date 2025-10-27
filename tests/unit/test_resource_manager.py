@@ -95,10 +95,9 @@ class TestResourceManager:
         """Test context manager handles exceptions properly."""
         manager = ResourceManager()
 
-        with pytest.raises(ValueError):
-            with manager as _ctx_manager:
-                assert manager._active_operations == 1
-                raise ValueError("Test exception")
+        with pytest.raises(ValueError), manager as _ctx_manager:
+            assert manager._active_operations == 1
+            raise ValueError("Test exception")
 
         # Even with exception, cleanup should occur
         assert manager._current_operation_id is None
@@ -316,10 +315,9 @@ class TestResourceOperation:
         manager = ResourceManager()
         operation = ResourceOperation(manager, "test_op")
 
-        with pytest.raises(ValueError):
-            with operation as _operation_id:
-                assert manager._active_operations == 1
-                raise ValueError("Test exception")
+        with pytest.raises(ValueError), operation as _operation_id:
+            assert manager._active_operations == 1
+            raise ValueError("Test exception")
 
         # Should still clean up after exception
         assert manager._active_operations == 0

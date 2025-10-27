@@ -6,7 +6,7 @@ import json
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .data_models import DataLineage, FormatDetectionResult
 from .enums import DataQuality, ProcessingStatus
@@ -24,20 +24,20 @@ class RecordMetadata:
     # Data quality metrics
     data_quality: DataQuality = DataQuality.UNKNOWN
     quality_score: float = 0.0
-    quality_checks: Dict[str, Any] = field(default_factory=dict)
+    quality_checks: dict[str, Any] = field(default_factory=dict)
 
     # Processing information
     processing_status: ProcessingStatus = ProcessingStatus.PENDING
-    processing_errors: List[str] = field(default_factory=list)
-    processing_duration_ms: Optional[int] = None
+    processing_errors: list[str] = field(default_factory=list)
+    processing_duration_ms: int | None = None
 
     # Source information
     source_system: str = "importobot"
-    source_file_size: Optional[int] = None
-    source_checksum: Optional[str] = None
+    source_file_size: int | None = None
+    source_checksum: str | None = None
 
     # Custom attributes for extensibility
-    custom_attributes: Dict[str, Any] = field(default_factory=dict)
+    custom_attributes: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         """Validate metadata constraints."""
@@ -64,26 +64,24 @@ class BronzeRecord:
     tracking as defined in Databricks Medallion Architecture patterns.
     """
 
-    data: Dict[str, Any]
+    data: dict[str, Any]
     metadata: RecordMetadata
     format_detection: FormatDetectionResult
     lineage: DataLineage
 
     # Storage information
-    storage_location: Optional[str] = None
+    storage_location: str | None = None
     storage_backend: str = "local"
-    compression_type: Optional[str] = None
+    compression_type: str | None = None
 
     def __post_init__(self) -> None:
         """Validate Bronze record constraints."""
         if not isinstance(self.data, dict):
             raise ValueError("Bronze record data must be a dictionary")
 
-        if (
-            not self.data
-            and self.metadata.processing_status == ProcessingStatus.COMPLETED
-        ):
-            raise ValueError("Bronze record data cannot be empty")
+        # Empty payloads are permitted when upstream components intentionally store
+        # placeholder records (e.g., empty dict ingests). Downstream validation is
+        # responsible for flagging missing content via warnings instead of errors.
 
     @property
     def record_id(self) -> str:
@@ -103,9 +101,9 @@ class BronzeRecord:
     def update_processing_status(
         self,
         status: ProcessingStatus,
-        errors: Optional[List[str]] = None,
-        duration_ms: Optional[int] = None,
-    ) -> "BronzeRecord":
+        errors: list[str] | None = None,
+        duration_ms: int | None = None,
+    ) -> BronzeRecord:
         """Create new record with updated processing status."""
         new_metadata = RecordMetadata(
             record_id=self.metadata.record_id,

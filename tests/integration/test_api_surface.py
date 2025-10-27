@@ -5,16 +5,41 @@ from __future__ import annotations
 import json
 import tempfile
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 # Test the public API surface as it would be used by external users
 import importobot
 from importobot.api import converters, suggestions, validation
+from importobot.core.templates.blueprints import registry
 from tests.test_helpers import EXPECTED_PUBLIC_EXPORTS, assert_module_exports
 
 
-def _make_test_payload() -> dict:
+@pytest.fixture(autouse=True)
+def isolate_blueprint_state():
+    """Ensure blueprint system is disabled for API surface tests.
+
+    This prevents test pollution from other integration tests that may have
+    configured templates, ensuring the API tests use the standard conversion
+    engine instead of the blueprint system.
+    """
+    # Save current state
+    original_enabled = registry.TEMPLATE_STATE.get("enabled", False)
+    original_base_dir = registry.TEMPLATE_STATE.get("base_dir")
+
+    # Disable blueprints for these tests
+    registry.TEMPLATE_STATE["enabled"] = False
+    registry.TEMPLATE_STATE["base_dir"] = None
+
+    yield
+
+    # Restore original state
+    registry.TEMPLATE_STATE["enabled"] = original_enabled
+    registry.TEMPLATE_STATE["base_dir"] = original_base_dir
+
+
+def _make_test_payload() -> dict[str, Any]:
     """Create a representative test case for conversion assertions."""
     return {
         "tests": [
