@@ -1,0 +1,51 @@
+{
+    "version": 1,
+    "project": "importobot",
+    "project_url": "https://github.com/athola/importobot",
+    "repo": "https://github.com/athola/importobot.git",
+
+    "show_commit_url": "https://github.com/athola/importobot/commit/",
+
+    "pythons": ["3.10", "3.11", "3.12"],
+
+    "matrix": {
+        "scipy": [""],
+        "rich": [""]
+    },
+
+    "exclude": [],
+
+    "include": [],
+
+    "benchmark_dir": "benchmarks",
+    "env_dir": ".asv/env",
+    "results_dir": ".asv/results",
+    "html_dir": ".asv/html",
+
+    "hash_length": 8,
+
+    "environment_type": "virtualenv",
+
+    "install_command": [
+        "in-dir={env_dir} python -mpip install {wheel_file}"
+    ],
+
+    "uninstall_command": [
+        "return-code=any python -mpip uninstall -y {project}"
+    ],
+
+    "build_command": [
+        "python -mpip install build",
+        "python -mbuild --wheel -o {build_cache_dir} {build_dir}"
+    ],
+
+    "branches": ["main"],
+
+    "dvcs": "git",
+
+    "regressions_first_commits": {},
+
+    "regressions_thresholds": {
+    ".*": 10
+  }
+}

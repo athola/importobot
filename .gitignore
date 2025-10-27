@@ -128,3 +128,6 @@ docs/
 
 # Temporary test files
 tmp.robot
+
+# ASV artifacts
+.asv
