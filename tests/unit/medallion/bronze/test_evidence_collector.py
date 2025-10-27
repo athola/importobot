@@ -42,7 +42,7 @@ if "importobot.medallion.bronze.format_detector" not in sys.modules:
     sys.modules["importobot.medallion.bronze.format_detector"] = stub_module
 
 try:
-    import numpy  # type: ignore
+    import numpy
 
     _ = numpy  # Mark as used to avoid F401
 except ImportError as exc:  # pragma: no cover - optional dependency guard
@@ -68,11 +68,10 @@ class TestEvidenceCollectorIntegration(unittest.TestCase):
             data, SupportedFormat.ZEPHYR
         )
 
-        self.assertGreater(total_weight, 0)
-        self.assertTrue(
-            any(item.source == EvidenceSource.REQUIRED_KEY for item in evidence_items),
-            "Expected required_key evidence for Zephyr data",
-        )
+        assert total_weight > 0
+        assert any(
+            item.source == EvidenceSource.REQUIRED_KEY for item in evidence_items
+        ), "Expected required_key evidence for Zephyr data"
 
     def test_collect_evidence_returns_empty_for_unknown_format(self) -> None:
         """Unsupported formats should return empty evidence list."""
@@ -82,8 +81,8 @@ class TestEvidenceCollectorIntegration(unittest.TestCase):
             {"foo": "bar"}, SupportedFormat.UNKNOWN
         )
 
-        self.assertEqual(evidence_items, [])
-        self.assertEqual(total_weight, 0)
+        assert evidence_items == []
+        assert total_weight == 0
 
 
 class TestEvidenceCollectorRefresh(unittest.TestCase):
@@ -125,7 +124,7 @@ class TestEvidenceCollectorRefresh(unittest.TestCase):
     def test_patterns_rebuilt_after_refresh(self) -> None:
         """refresh_patterns should rebuild internal cache from the registry."""
         initial_patterns = self.collector.get_patterns(SupportedFormat.UNKNOWN)
-        self.assertIn("initial_key", initial_patterns["required_keys"])
+        assert "initial_key" in initial_patterns["required_keys"]
 
         # Update the registry and refresh
         self.mock_registry.get_all_formats.return_value = {
@@ -134,8 +133,8 @@ class TestEvidenceCollectorRefresh(unittest.TestCase):
         self.collector.refresh_patterns()
 
         refreshed_patterns = self.collector.get_patterns(SupportedFormat.UNKNOWN)
-        self.assertIn("updated_key", refreshed_patterns["required_keys"])
-        self.assertNotIn("initial_key", refreshed_patterns["required_keys"])
+        assert "updated_key" in refreshed_patterns["required_keys"]
+        assert "initial_key" not in refreshed_patterns["required_keys"]
 
 
 if __name__ == "__main__":

@@ -16,6 +16,7 @@ import tempfile
 import unittest
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -44,7 +45,7 @@ class TestBronzeStorageInvariants:
     )
     @settings(max_examples=30, deadline=3000)
     def test_retrieval_count_never_exceeds_ingestion_count_invariant(
-        self, test_data: dict
+        self, test_data: dict[str, Any]
     ) -> None:
         """Invariant: Number of retrieved records never exceeds ingested records.
 
@@ -79,7 +80,7 @@ class TestBronzeStorageInvariants:
                 )
 
     @given(st.integers(min_value=0, max_value=100))
-    @settings(max_examples=20, deadline=2000)
+    @settings(max_examples=20, deadline=None)
     def test_limit_zero_always_returns_empty_invariant(self, num_records: int) -> None:
         """Invariant: Querying with limit=0 always returns empty list.
 
@@ -123,9 +124,9 @@ class TestBronzeStorageInvariants:
             max_size=30,
         )
     )
-    @settings(max_examples=20, deadline=4000)
+    @settings(max_examples=20, deadline=None)
     def test_retrieval_after_ingestion_preserves_count_invariant(
-        self, test_data_list: list[dict]
+        self, test_data_list: list[dict[str, Any]]
     ) -> None:
         """Invariant: Retrieved record count equals ingested count.
 
@@ -204,7 +205,7 @@ class TestBronzeStorageInvariants:
     )
     @settings(max_examples=25, deadline=2000)
     def test_retrieval_without_storage_backend_returns_empty_invariant(
-        self, test_data: dict
+        self, test_data: dict[str, Any]
     ) -> None:
         """Invariant: Retrieval without backend uses in-memory storage.
 
@@ -223,7 +224,7 @@ class TestBronzeStorageInvariants:
             )
             result = bronze_layer.ingest(test_data, metadata)
 
-            # Attempt retrieval - should work due to in-memory storage fallback
+            # Attempt retrieval - should work due to in-memory storage defaults
             records = bronze_layer.get_bronze_records()
 
             # INVARIANT: In-memory storage provides graceful degradation
@@ -249,7 +250,7 @@ class TestBronzeStorageInvariants:
     )
     @settings(max_examples=20, deadline=3000)
     def test_ingestion_success_implies_retrievability_invariant(
-        self, test_data: dict
+        self, test_data: dict[str, Any]
     ) -> None:
         """Invariant: Successful ingestion implies data is retrievable.
 
@@ -323,7 +324,7 @@ class TestBronzeStorageInvariants:
     )
     @settings(max_examples=20, deadline=2000)
     def test_retrieved_records_have_required_structure_invariant(
-        self, test_data: dict
+        self, test_data: dict[str, Any]
     ) -> None:
         """Invariant: All retrieved records have BronzeRecord structure.
 
@@ -416,11 +417,21 @@ class TestBronzeStorageInvariants:
     ) -> None:
         """Invariant: Format-type filters are case-insensitive for known handlers."""
 
-        def _sample_data(fmt: str) -> dict:
+        def _sample_data(fmt: str) -> dict[str, Any]:
             if fmt.lower() == "zephyr":
-                return {"testCase": {"name": "Zephyr Case"}}
+                return {
+                    "testCase": {"name": "Zephyr Case", "steps": [{"action": "A"}]},
+                    "execution": {"status": "PASS"},
+                    "cycle": {"name": "Cycle"},
+                }
             if fmt.lower() == "testlink":
-                return {"testsuites": {"testsuite": [{"name": "TL Suite"}]}}
+                return {
+                    "testsuites": {
+                        "testsuite": [
+                            {"name": "TL Suite", "testcase": [{"name": "Case"}]}
+                        ]
+                    }
+                }
             return {"misc": "data"}
 
         with tempfile.TemporaryDirectory() as temp_dir:

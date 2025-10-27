@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 from importobot.utils.validation import (
     ValidationError,
@@ -19,7 +19,7 @@ from importobot.utils.validation_models import (
 class FormatValidationStrategy:
     """Validation strategy for format detection data."""
 
-    def validate(self, data: Any, context: Dict[str, Any]) -> ValidationResult:
+    def validate(self, data: Any, context: dict[str, Any]) -> ValidationResult:
         """Validate format detection input."""
         messages = []
         severity = ValidationSeverity.INFO
@@ -30,7 +30,7 @@ class FormatValidationStrategy:
             validate_not_empty(data, "Format data")
 
             # Check for minimum required structure
-            if not any(isinstance(v, (dict, list)) for v in data.values()):
+            if not any(isinstance(v, dict | list) for v in data.values()):
                 messages.append("Format data lacks complex structure indicators")
                 severity = ValidationSeverity.WARNING
 

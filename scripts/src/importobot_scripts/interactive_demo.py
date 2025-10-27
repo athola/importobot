@@ -1605,10 +1605,10 @@ def _process_scale_scenarios(
 
 
 def _log_business_metrics_report(local_vars: dict[str, Any]) -> None:
-    """Log business metrics for comprehensive reporting."""
+    """Log business metrics for analysis and reporting."""
     if metrics_reporter:
         try:
-            # Ensure we have required variables with safe fallbacks
+            # Ensure we have required variables with safe defaults
             safe_scenario_names = local_vars.get("scenario_names", ["Enterprise"])
             safe_scenario_savings = local_vars.get("scenario_savings", [100000])
             safe_scenario_roi = local_vars.get("scenario_roi", [50])
@@ -1623,7 +1623,7 @@ def _log_business_metrics_report(local_vars: dict[str, Any]) -> None:
                 executive_summary = {}
 
             demo_logger.log_business_impact(
-                "comprehensive_analysis",
+                "detailed_analysis",
                 {
                     "total_scenarios": executive_summary.get(
                         "total_scenarios_analyzed", len(safe_scenario_names)
@@ -1640,9 +1640,7 @@ def _log_business_metrics_report(local_vars: dict[str, Any]) -> None:
                 },
             )
         except (NameError, KeyError, TypeError) as e:
-            demo_logger.warning(
-                f"Could not generate comprehensive business report: {e}"
-            )
+            demo_logger.warning(f"Could not generate business report: {e}")
 
 
 def demo_business_benefits() -> bool:
@@ -1654,7 +1652,7 @@ def demo_business_benefits() -> bool:
     metrics = demo_data_config.business_metrics
     # viz_config = config.visualization_config  # Unused in this function
 
-    # Create comprehensive business case
+    # Create business case analysis
     if scenario_modeler:
         print("Running business case analysis...")
         business_case = create_business_case()
@@ -1665,7 +1663,7 @@ def demo_business_benefits() -> bool:
         )
         print(f"\nAnalyzed {len(scenario_names)} different scale scenarios...")
     else:
-        # Fallback to standard scenario
+        # If scenario modeler is not available, use a default scenario
         standard_scenario = EnterpriseScenario(
             name="Standard Enterprise", test_cases=metrics.test_cases, team_size=10
         )
@@ -1686,7 +1684,7 @@ def demo_business_benefits() -> bool:
         demo_data_config, scenario_names, scenario_savings, scenario_roi
     )
 
-    # Generate comprehensive summary
+    # Generate summary
     total_savings = sum(scenario_savings)
     avg_roi = sum(scenario_roi) / len(scenario_roi)
     max_savings = max(scenario_savings)
@@ -1717,7 +1715,7 @@ PERFORMANCE:
 ========================================================================
     """)
 
-    # Log business metrics for comprehensive reporting
+    # Log business metrics for reporting
     _log_business_metrics_report(locals())
 
     return ui.prompt_continue()

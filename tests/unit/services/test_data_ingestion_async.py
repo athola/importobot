@@ -58,7 +58,7 @@ async def test_ingest_batch_async(monkeypatch: pytest.MonkeyPatch) -> None:
 
     result = await service.ingest_batch_async(["a.json", "b.json"], max_workers=2)
 
-    assert result == ["ok"]
+    assert result == ["ok"]  # type: ignore[comparison-overlap]
     assert call_tracker["paths"] == ["a.json", "b.json"]
     assert call_tracker["max_workers"] == 2
 

@@ -1,14 +1,15 @@
 # Performance Benchmarks
 
-Importobot ships a benchmark harness that measures conversion throughput,
-latency, and memory usage across representative workloads. Use this guide when
-requiring evidence before merging medallion or optimizer changes.
+Run `uv run python -m importobot_scripts.benchmarks.performance_benchmark` before merging changes to the conversion engine. The benchmark processes file batches in 5, 10, 25, or 50 batch increments and reports throughput, latency, and memory usage.
 
 ## When to Run Benchmarks
 
-- Before and after major refactors (e.g., OptimizedConverter rollout).
-- During release candidates to confirm no regression in conversion speed.
-- While tuning optimization settings so you can balance quality and latency.
+Run benchmarks when you change:
+- The conversion engine (OptimizedConverter, medallion layers)
+- Memory usage patterns (caching, data structures)
+- File processing logic (parsers, serializers)
+
+Any change that slows single-file conversion by more than 5% or increases memory usage by more than 10% requires validation.
 
 ## Benchmark Script
 
@@ -37,7 +38,7 @@ Key flags:
 
 Each run prints a summary and writes
 `performance_benchmark_results.json` in the project root. The file records
-timings, throughput, optional memory deltas (when `psutil` is installed), and
+timings, throughput, optional memory usage differences (if `psutil` is installed), and
 per-scenario iteration data. Call `PerformanceCache().get_cache_stats()` during
 custom runs if you also want cache metrics.
 
@@ -59,16 +60,16 @@ Sample JSON structure:
 
 ## Using Benchmark Data
 
-1. **Baseline** – Keep a known-good JSON result under version control.
-2. **Compare** – Diff each new run against the baseline.
-3. **Alert** – Flag regressions beyond the SLA (e.g., >10% slowdown) before release.
-4. **Report** – Attach the JSON when raising MRs or publishing release notes.
+1. **Baseline** – Keep a known-good JSON result under version control
+2. **Compare** – Diff each new run against the baseline
+3. **Alert** – Flag regressions beyond your SLA (e.g., >10% slowdown) before release
+4. **Report** – Attach the JSON when creating PRs or publishing release notes
 
-### Memory profiling & cache observability
+### Memory profiling and cache monitoring
 
-- When `psutil` is present the JSON adds a `memory_usage` block per scenario.
-- Pair it with `PerformanceCache().get_cache_stats()` to monitor cache fill and eviction.
-- For deeper dives, wrap the benchmark with `tracemalloc`:
+- When `psutil` is available, the JSON includes a `memory_usage` block per scenario
+- Use `PerformanceCache().get_cache_stats()` to monitor cache fill and eviction
+- For deeper analysis, wrap the benchmark with `tracemalloc`:
 
   ```python
   import tracemalloc
@@ -81,6 +82,15 @@ Sample JSON structure:
 
 ## Integration with optimization benchmarks
 
-Align the scenarios here with the optimizer plan from
-[Mathematical Foundations](Mathematical-Foundations): reuse the same
-small/medium/large suites, track optimization preview latency alongside conversion timing, and store both JSON outputs when making decisions related to the OptimizedConverter.
+Align scenarios with the optimizer plan from [Mathematical Foundations](Mathematical-Foundations): reuse the same small/medium/large suites, track optimization preview latency alongside conversion timing, and store both JSON outputs when making decisions about the OptimizedConverter.
+
+### Cache Performance Considerations
+
+When benchmarking cache performance, note that the `PerformanceCache` implements optimizations to avoid double serialization. See [Performance Characteristics](Performance-Characteristics#json-cache-serialization-optimization) for details on:
+
+- Cache key generation strategy avoiding JSON serialization
+- Identity-based tracking for unhashable objects
+- Performance impact: >2x speedup on cache hits
+- Memory management and eviction policies
+
+Run `PerformanceCache().get_cache_stats()` during custom benchmarks to monitor cache hit/miss ratios alongside conversion timing.

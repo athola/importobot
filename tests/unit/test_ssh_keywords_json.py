@@ -28,7 +28,7 @@ def ssh_keywords_data():
         / "keywords"
         / "ssh.json"
     )
-    with open(ssh_json_path, "r", encoding="utf-8") as f:
+    with open(ssh_json_path, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -51,11 +51,11 @@ class TestSSHKeywordsStructure:
         )
 
     def test_ssh_keyword_count(self, ssh_keywords_data):
-        """Test that SSH keywords JSON contains comprehensive keyword coverage."""
+        """Test that SSH keywords JSON contains sufficient keyword coverage."""
         keywords = ssh_keywords_data["keywords"]
         assert (
             len(keywords) >= 40
-        )  # Should have at least 40 keywords from comprehensive coverage
+        )  # Should have at least 40 keywords for adequate coverage
 
     def test_keyword_descriptions_non_empty(self, ssh_keywords_data):
         """Test that all keywords have non-empty descriptions."""
@@ -201,11 +201,11 @@ class TestSSHKeywordsCoverage:
             assert "description" in keywords[keyword]
             assert "args" in keywords[keyword]
 
-    def test_comprehensive_coverage_vs_documentation(self, ssh_keywords_data):
+    def test_keyword_coverage_vs_documentation(self, ssh_keywords_data):
         """Test that we have good coverage of documented SSHLibrary keywords."""
         keywords = ssh_keywords_data["keywords"]
 
-        # Based on the comprehensive SSHLibrary documentation review
+        # Based on the SSHLibrary documentation review
         documented_keywords = ALL_SSH_KEYWORDS
 
         # Check that we have coverage for all documented keywords
@@ -228,8 +228,8 @@ class TestSSHKeywordsCoverage:
 class TestSSHKeywordsValidation:
     """Tests for SSH keyword validation and argument specification."""
 
-    def test_open_connection_comprehensive_args(self, ssh_keywords_data):
-        """Test that Open Connection keyword has comprehensive argument list."""
+    def test_open_connection_argument_list(self, ssh_keywords_data):
+        """Test that Open Connection keyword has a complete argument list."""
         keywords = ssh_keywords_data["keywords"]
         open_connection = keywords["Open Connection"]
 

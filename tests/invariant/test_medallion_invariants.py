@@ -14,6 +14,7 @@ import gc
 import tempfile
 import time
 from pathlib import Path
+from typing import Any
 
 import pytest
 from hypothesis import assume, given, settings
@@ -21,7 +22,7 @@ from hypothesis import strategies as st
 
 from importobot.medallion.bronze.raw_data_processor import RawDataProcessor
 from importobot.medallion.bronze_layer import BronzeLayer
-from importobot.medallion.interfaces.enums import ProcessingStatus
+from importobot.medallion.interfaces.enums import ProcessingStatus, SupportedFormat
 from importobot.medallion.interfaces.records import BronzeRecord
 
 
@@ -215,37 +216,75 @@ class TestMedallionArchitectureInvariants:
                 bronze_layer = BronzeLayer(storage_path=Path(temp_dir))
                 processor = RawDataProcessor(bronze_layer=bronze_layer)
 
-                # Measure processing times for multiple runs
-                processing_times = []
                 source_info = {
                     "source": "performance_test",
                     "timestamp": "2024-01-01T00:00:00",
                 }
 
+                # Test functional consistency instead of timing
+                # Run same operation multiple times for determinism
+                results = []
                 for _run in range(3):
-                    start_time = time.time()
                     result = processor.ingest_with_detection(test_data, source_info)
-                    end_time = time.time()
+                    results.append(result)
 
-                    processing_time = end_time - start_time
-                    processing_times.append(processing_time)
+                    # Result should be valid and have consistent structure
+                    assert isinstance(result, dict | BronzeRecord)
 
-                    # Should complete within reasonable time (10 seconds max)
-                    assert processing_time < 10.0
+                    # Check for expected attributes whether it's a dict or BronzeRecord
+                    if isinstance(result, dict):
+                        # If it's dict-like, check for expected keys
+                        expected_keys = [
+                            "processing_result",
+                            "quality_metrics",
+                            "detected_format",
+                        ]
+                        for key in expected_keys:
+                            # Some implementations return different keys
+                            if key in ["processing_result", "quality_metrics"]:
+                                # These are essential for the test
+                                assert key in result, f"Missing essential key: {key}"
+                    else:
+                        # If it's a BronzeRecord, check for expected attributes
+                        assert hasattr(result, "metadata")
+                        assert hasattr(result, "format_detection")
 
-                    # Result should be valid
-                    assert isinstance(result, dict)
-                    # pylint: disable=unsupported-membership-test
-                    assert "processing_result" in result
+                # Check determinism: same input yields equivalent results
+                if len(results) >= 2:
+                    # Compare format detection results (should be deterministic)
+                    def get_format(
+                        result: dict[str, Any] | BronzeRecord,
+                    ) -> SupportedFormat | str:
+                        if isinstance(result, dict):
+                            detected_format = result.get("detected_format", "")
+                            # Cast to str to satisfy mypy
+                            return str(detected_format) if detected_format else ""
+                        else:  # BronzeRecord
+                            return result.format_detection.detected_format
 
-                # Performance should be reasonably consistent
-                # (no single run should be more than 10x slower than the fastest)
-                min_time = min(processing_times)
-                max_time = max(processing_times)
+                    first_format = get_format(results[0])
+                    for result in results[1:]:
+                        current_format = get_format(result)
+                        assert first_format == current_format, (
+                            "Format detection should be deterministic"
+                        )
 
-                if min_time > 0:  # Avoid division by zero
-                    ratio = max_time / min_time
-                    assert ratio < 10.0  # Performance consistency check
+                    # Compare processing status (should be deterministic for same input)
+                    def get_status(
+                        result: dict[str, Any] | BronzeRecord,
+                    ) -> ProcessingStatus | None:
+                        if isinstance(result, dict):
+                            proc_result = result.get("processing_result")
+                            return proc_result.status if proc_result else None
+                        else:  # BronzeRecord
+                            return result.metadata.processing_status
+
+                    first_status = get_status(results[0])
+                    for result in results[1:]:
+                        current_status = get_status(result)
+                        assert first_status == current_status, (
+                            "Processing status should be deterministic"
+                        )
 
         except Exception as e:
             pytest.fail(

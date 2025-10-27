@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Dict, Optional
-
 from importobot.medallion.interfaces.enums import SupportedFormat
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 
 from .format_models import FormatDefinition
 from .formats import (
@@ -17,7 +15,7 @@ from .formats import (
     create_zephyr_format,
 )
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 class FormatRegistry:
@@ -25,7 +23,7 @@ class FormatRegistry:
 
     def __init__(self) -> None:
         """Initialize format registry with built-in formats."""
-        self._formats: Dict[SupportedFormat, FormatDefinition] = {}
+        self._formats: dict[SupportedFormat, FormatDefinition] = {}
         self._load_built_in_formats()
 
     def register_format(self, format_def: FormatDefinition) -> None:
@@ -37,15 +35,15 @@ class FormatRegistry:
             )
 
         self._formats[format_def.format_type] = format_def
-        logger.info(
+        logger.debug(
             "Registered format: %s (%s)", format_def.name, format_def.format_type.value
         )
 
-    def get_format(self, format_type: SupportedFormat) -> Optional[FormatDefinition]:
+    def get_format(self, format_type: SupportedFormat) -> FormatDefinition | None:
         """Get format definition by type."""
         return self._formats.get(format_type)
 
-    def get_all_formats(self) -> Dict[SupportedFormat, FormatDefinition]:
+    def get_all_formats(self) -> dict[SupportedFormat, FormatDefinition]:
         """Get all registered format definitions."""
         return self._formats.copy()
 
@@ -67,13 +65,13 @@ class FormatRegistry:
             try:
                 format_def = format_creator()
                 self._formats[format_def.format_type] = format_def
-                logger.info("Loaded format definition: %s", format_def.name)
+                logger.debug("Loaded format definition: %s", format_def.name)
             except Exception as e:
                 logger.error(
                     "Failed to load format from %s: %s", format_creator.__name__, e
                 )
 
-        logger.info("Successfully loaded %s format definitions", len(self._formats))
+        logger.debug("Successfully loaded %s format definitions", len(self._formats))
 
 
 __all__ = ["FormatRegistry"]

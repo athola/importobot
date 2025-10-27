@@ -6,12 +6,10 @@ to avoid repeated compilation of the same patterns.
 
 import re
 from functools import lru_cache
-from typing import Pattern, Union
+from re import Pattern
 
 
-def get_compiled_pattern(
-    pattern: str, flags: Union[int, re.RegexFlag] = 0
-) -> Pattern[str]:
+def get_compiled_pattern(pattern: str, flags: int | re.RegexFlag = 0) -> Pattern[str]:
     r"""Get a compiled regex pattern, using cache for performance.
 
     Args:
@@ -44,8 +42,8 @@ def _compile_pattern(pattern: str, flags: int) -> Pattern[str]:
 
 
 def search_cached(
-    pattern: str, text: str, flags: Union[int, re.RegexFlag] = 0
-) -> re.Match | None:
+    pattern: str, text: str, flags: int | re.RegexFlag = 0
+) -> re.Match[str] | None:
     """Perform regex search using cached pattern compilation.
 
     Args:
@@ -61,8 +59,8 @@ def search_cached(
 
 
 def match_cached(
-    pattern: str, text: str, flags: Union[int, re.RegexFlag] = 0
-) -> re.Match | None:
+    pattern: str, text: str, flags: int | re.RegexFlag = 0
+) -> re.Match[str] | None:
     """Perform regex match using cached pattern compilation.
 
     Args:
@@ -77,9 +75,7 @@ def match_cached(
     return compiled_pattern.match(text)
 
 
-def findall_cached(
-    pattern: str, text: str, flags: Union[int, re.RegexFlag] = 0
-) -> list[str]:
+def findall_cached(pattern: str, text: str, flags: int | re.RegexFlag = 0) -> list[str]:
     """Find all matches using cached pattern compilation.
 
     Args:
@@ -95,7 +91,7 @@ def findall_cached(
 
 
 def sub_cached(
-    pattern: str, replacement: str, text: str, flags: Union[int, re.RegexFlag] = 0
+    pattern: str, replacement: str, text: str, flags: int | re.RegexFlag = 0
 ) -> str:
     """Perform regex substitution using cached pattern compilation.
 
@@ -133,11 +129,11 @@ def get_cache_info() -> dict[str, int | None]:
 
 
 __all__ = [
-    "get_compiled_pattern",
-    "search_cached",
-    "match_cached",
-    "findall_cached",
-    "sub_cached",
     "clear_cache",
+    "findall_cached",
     "get_cache_info",
+    "get_compiled_pattern",
+    "match_cached",
+    "search_cached",
+    "sub_cached",
 ]

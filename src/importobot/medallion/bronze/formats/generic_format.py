@@ -1,6 +1,6 @@
 """Generic test format definition.
 
-This serves as a fallback for unstructured, custom, or unsupported test data formats.
+This serves as a default for unstructured, custom, or unsupported test data formats.
 Based on Medallion Architecture Bronze layer principles of accepting raw data
 and common test management patterns found across systems.
 
@@ -19,7 +19,7 @@ def create_generic_format() -> FormatDefinition:
     """Create Generic test format definition.
 
     Generic format characteristics:
-    - No unique indicators (fallback when others fail)
+    - No unique indicators (default when others fail)
     - Common test management field patterns
     - Higher threshold for detection to avoid false positives
     - Suitable for custom or unstructured test data
@@ -27,8 +27,8 @@ def create_generic_format() -> FormatDefinition:
     return FormatDefinition(
         name="Generic Test Format",
         format_type=SupportedFormat.GENERIC,
-        description="Fallback format for unstructured, custom, or unrecognized test",
-        # UNIQUE indicators - none for generic (this is the fallback)
+        description="Default format for unstructured, custom, or unrecognized test",
+        # UNIQUE indicators - none for generic (this is the default)
         unique_indicators=[],
         # STRONG indicators - common test collection patterns
         strong_indicators=[
@@ -91,7 +91,7 @@ def create_generic_format() -> FormatDefinition:
                 description="Generic identifier field",
             ),
         ],
-        # Confidence parameters - higher threshold since this is fallback
+        # Confidence parameters - higher threshold since this is the default option
         confidence_boost_threshold=0.67,  # Require strong evidence for confidence boost
         confidence_boost_factor=0.6,  # Lower boost factor
         min_score_threshold=6,  # Higher threshold to avoid false positives

@@ -11,8 +11,9 @@ from __future__ import annotations
 
 import time
 from collections import OrderedDict
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, ClassVar
 
 from importobot.config import OPTIMIZATION_CACHE_TTL_SECONDS
 from importobot.utils.optimization import (
@@ -30,12 +31,12 @@ AlgorithmName = str
 class OptimizationScenario:
     """Container describing an optimization problem instance."""
 
-    objective_function: Callable[[Dict[str, float]], float]
-    initial_parameters: Dict[str, float]
-    parameter_bounds: Optional[Dict[str, Tuple[float, float]]] = None
+    objective_function: Callable[[dict[str, float]], float]
+    initial_parameters: dict[str, float]
+    parameter_bounds: dict[str, tuple[float, float]] | None = None
     algorithm: AlgorithmName = "gradient_descent"
     maximize: bool = False
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -43,9 +44,9 @@ class OptimizationOutcome:
     """Normalized representation of an optimization result."""
 
     algorithm: AlgorithmName
-    parameters: Dict[str, float]
+    parameters: dict[str, float]
     score: float
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
 
 
 class OptimizationService:
@@ -57,53 +58,53 @@ class OptimizationService:
     the implementation details of each algorithm.
     """
 
-    SUPPORTED_ALGORITHMS = {
+    SUPPORTED_ALGORITHMS: ClassVar[set[AlgorithmName]] = {
         "gradient_descent",
         "genetic_algorithm",
         "simulated_annealing",
     }
 
-    MAX_REGISTERED_SCENARIOS = 32
-    MAX_RESULT_HISTORY = 64
+    MAX_REGISTERED_SCENARIOS: ClassVar[int] = 32
+    MAX_RESULT_HISTORY: ClassVar[int] = 64
 
     def __init__(
         self,
         default_algorithm: AlgorithmName = "gradient_descent",
         *,
-        cache_ttl_seconds: Optional[int] = None,
+        cache_ttl_seconds: int | None = None,
     ) -> None:
         """Initialize optimization service with default algorithm."""
         self.default_algorithm = default_algorithm
-        self._scenarios: "OrderedDict[str, OptimizationScenario]" = OrderedDict()
-        self._results: "OrderedDict[str, OptimizationOutcome]" = OrderedDict()
+        self._scenarios: OrderedDict[str, OptimizationScenario] = OrderedDict()
+        self._results: OrderedDict[str, OptimizationOutcome] = OrderedDict()
         resolved_ttl = (
             cache_ttl_seconds
             if cache_ttl_seconds is not None
             else OPTIMIZATION_CACHE_TTL_SECONDS
         )
-        self._ttl_seconds: Optional[int] = resolved_ttl if resolved_ttl > 0 else None
+        self._ttl_seconds: int | None = resolved_ttl if resolved_ttl > 0 else None
         # TTL derives from `IMPORTOBOT_OPTIMIZATION_CACHE_TTL_SECONDS` to ensure
         # scenarios/results expire in long-running processes.
-        self._scenario_expiry: Dict[str, float] = {}
-        self._result_expiry: Dict[str, float] = {}
+        self._scenario_expiry: dict[str, float] = {}
+        self._result_expiry: dict[str, float] = {}
 
     def register_scenario(
         self,
         name: str,
-        objective_function: Callable[[Dict[str, float]], float],
-        initial_parameters: Dict[str, float],
+        objective_function: Callable[[dict[str, float]], float],
+        initial_parameters: dict[str, float],
         *,
-        parameter_bounds: Optional[Dict[str, Tuple[float, float]]] = None,
-        algorithm: Optional[AlgorithmName] = None,
+        parameter_bounds: dict[str, tuple[float, float]] | None = None,
+        algorithm: AlgorithmName | None = None,
         maximize: bool = False,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         """Register an optimization scenario for later execution."""
         self._purge_expired_entries()
         chosen_algorithm = algorithm or self.default_algorithm
         if chosen_algorithm not in self.SUPPORTED_ALGORITHMS:
             raise ValueError(
-                f"Unsupported algorithm '{chosen_algorithm}'. Supported algorithms: "
+                f'Unsupported algorithm "{chosen_algorithm}". Supported algorithms: '
                 f"{sorted(self.SUPPORTED_ALGORITHMS)}"
             )
         scenario = OptimizationScenario(
@@ -135,15 +136,15 @@ class OptimizationService:
         self,
         name: str,
         *,
-        algorithm: Optional[AlgorithmName] = None,
-        gradient_config: Optional[OptimizerConfig] = None,
-        annealing_config: Optional[AnnealingConfig] = None,
-        genetic_optimizer: Optional[GeneticAlgorithmOptimizer] = None,
+        algorithm: AlgorithmName | None = None,
+        gradient_config: OptimizerConfig | None = None,
+        annealing_config: AnnealingConfig | None = None,
+        genetic_optimizer: GeneticAlgorithmOptimizer | None = None,
     ) -> OptimizationOutcome:
         """Execute a registered optimization scenario and return the outcome."""
         self._purge_expired_entries()
         if name not in self._scenarios:
-            raise KeyError(f"Unknown optimization scenario '{name}'")
+            raise KeyError(f'Unknown optimization scenario "{name}"')
 
         scenario = self._scenarios[name]
         self._scenarios.move_to_end(name)
@@ -158,11 +159,11 @@ class OptimizationService:
             return self._run_genetic_algorithm(name, scenario, genetic_optimizer)
 
         raise ValueError(
-            f"Unsupported algorithm '{chosen_algorithm}'. Supported algorithms: "
+            f'Unsupported algorithm "{chosen_algorithm}". Supported algorithms: '
             f"{sorted(self.SUPPORTED_ALGORITHMS)}"
         )
 
-    def last_result(self, name: str) -> Optional[OptimizationOutcome]:
+    def last_result(self, name: str) -> OptimizationOutcome | None:
         """Return the last cached result for a scenario, if any."""
         self._purge_expired_entries()
         return self._results.get(name)
@@ -191,7 +192,7 @@ class OptimizationService:
         self,
         name: str,
         scenario: OptimizationScenario,
-        gradient_config: Optional[OptimizerConfig],
+        gradient_config: OptimizerConfig | None,
     ) -> OptimizationOutcome:
         optimizer = GradientDescentOptimizer(gradient_config)
         parameters, value, metadata = optimizer.optimize(
@@ -211,7 +212,7 @@ class OptimizationService:
         self,
         name: str,
         scenario: OptimizationScenario,
-        annealing_config: Optional[AnnealingConfig],
+        annealing_config: AnnealingConfig | None,
     ) -> OptimizationOutcome:
         parameters, value, metadata = simulated_annealing(
             scenario.objective_function,
@@ -231,7 +232,7 @@ class OptimizationService:
         self,
         name: str,
         scenario: OptimizationScenario,
-        genetic_optimizer: Optional[GeneticAlgorithmOptimizer],
+        genetic_optimizer: GeneticAlgorithmOptimizer | None,
     ) -> OptimizationOutcome:
         optimizer = genetic_optimizer or GeneticAlgorithmOptimizer()
         parameter_ranges = self._ensure_parameter_ranges(
@@ -239,7 +240,7 @@ class OptimizationService:
             scenario.parameter_bounds,
         )
 
-        def fitness(individual: Dict[str, float]) -> float:
+        def fitness(individual: dict[str, float]) -> float:
             score = scenario.objective_function(individual)
             return score if scenario.maximize else -score
 
@@ -301,13 +302,13 @@ class OptimizationService:
 
     @staticmethod
     def _ensure_parameter_ranges(
-        initial_parameters: Dict[str, float],
-        parameter_bounds: Optional[Dict[str, Tuple[float, float]]],
-    ) -> Dict[str, Tuple[float, float]]:
+        initial_parameters: dict[str, float],
+        parameter_bounds: dict[str, tuple[float, float]] | None,
+    ) -> dict[str, tuple[float, float]]:
         if parameter_bounds:
             return parameter_bounds
 
-        parameter_ranges: Dict[str, Tuple[float, float]] = {}
+        parameter_ranges: dict[str, tuple[float, float]] = {}
         for name, value in initial_parameters.items():
             if value == 0:
                 parameter_ranges[name] = (-1.0, 1.0)
@@ -318,7 +319,7 @@ class OptimizationService:
 
 
 __all__ = [
-    "OptimizationService",
-    "OptimizationScenario",
     "OptimizationOutcome",
+    "OptimizationScenario",
+    "OptimizationService",
 ]

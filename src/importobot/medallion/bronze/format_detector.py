@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import threading
 import time
-from typing import Any, Dict, List
+from typing import Any
 
 from importobot.config import (
     FORMAT_DETECTION_CIRCUIT_RESET_SECONDS,
     FORMAT_DETECTION_FAILURE_THRESHOLD,
 )
 from importobot.medallion.interfaces.enums import SupportedFormat
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 
 from .complexity_analyzer import ComplexityAnalyzer
 from .detection_cache import DetectionCache
@@ -23,16 +23,16 @@ from .hierarchical_classifier import HierarchicalClassifier
 from .scoring_algorithms import ScoringAlgorithms, ScoringConstants
 from .shared_config import PRIORITY_MULTIPLIERS
 
-logger = setup_logger(__name__)
+logger = get_logger()
 
 
 class FormatDetector:
     """Main facade for format detection using modular components."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, cache: DetectionCache | None = None) -> None:
         """Initialize modular format detector with Bayesian evidence accumulation."""
         self.format_registry = FormatRegistry()
-        self.detection_cache = DetectionCache()
+        self.detection_cache = cache or DetectionCache()
         self.evidence_collector = EvidenceCollector(self.format_registry)
         self.evidence_accumulator = EvidenceAccumulator()
         self.hierarchical_classifier = HierarchicalClassifier(
@@ -45,13 +45,14 @@ class FormatDetector:
         self._circuit_lock = threading.Lock()
         self._consecutive_failures = 0
         self._circuit_open_until = 0.0
+        self._stage1_warning_emitted = False
 
-        logger.info(
+        logger.debug(
             "Initialized modular FormatDetector with %d formats",
             len(self.format_registry.get_all_formats()),
         )
 
-    def detect_format(self, data: Dict[str, Any]) -> SupportedFormat:
+    def detect_format(self, data: dict[str, Any]) -> SupportedFormat:
         """Detect the format type of the provided test data."""
         start_time = time.perf_counter()
         result = SupportedFormat.UNKNOWN
@@ -69,7 +70,7 @@ class FormatDetector:
                 )
                 return cached_result
 
-            # Circuit breaker removed - fail fast instead of fallback
+            # Circuit breaker removed - fail fast instead of defaulting
             if self._is_circuit_open():
                 logger.error(
                     "Format detection circuit breaker is open; returning UNKNOWN."
@@ -132,7 +133,7 @@ class FormatDetector:
                 monitor.record_detection(SupportedFormat.UNKNOWN, 0.0)
                 return SupportedFormat.UNKNOWN
 
-    def _quick_format_detection(self, data: Dict[str, Any]) -> SupportedFormat:
+    def _quick_format_detection(self, data: dict[str, Any]) -> SupportedFormat:
         """Quickly compare format candidates using Bayesian relative scoring."""
         # First, check for strong format indicators (same as fast path)
         strong_indicators = {
@@ -179,7 +180,7 @@ class FormatDetector:
             return best_format
         return SupportedFormat.UNKNOWN
 
-    def _fast_path_if_strong_indicators(self, data: Dict[str, Any]) -> SupportedFormat:
+    def _fast_path_if_strong_indicators(self, data: dict[str, Any]) -> SupportedFormat:
         """Check for strong format indicators for fast detection."""
         strong_indicators = {
             SupportedFormat.JIRA_XRAY: ["testExecutions", "testInfo", "evidences"],
@@ -198,7 +199,7 @@ class FormatDetector:
 
         return SupportedFormat.UNKNOWN
 
-    def _full_format_detection(self, data: Dict[str, Any]) -> SupportedFormat:
+    def _full_format_detection(self, data: dict[str, Any]) -> SupportedFormat:
         """Full format detection algorithm using hierarchical classifier."""
         # Use hierarchical classifier for proper two-stage detection
         result = self.hierarchical_classifier.classify(data)
@@ -260,7 +261,7 @@ class FormatDetector:
             return True
 
     def get_format_confidence(
-        self, data: Dict[str, Any], format_type: SupportedFormat
+        self, data: dict[str, Any], format_type: SupportedFormat
     ) -> float:
         """Return confidence estimate using proper multi-class Bayesian normalization.
 
@@ -282,7 +283,7 @@ class FormatDetector:
         # Return the confidence for the requested format
         return all_confidences.get(format_type.name, 0.0)
 
-    def get_all_format_confidences(self, data: Dict[str, Any]) -> Dict[str, float]:
+    def get_all_format_confidences(self, data: dict[str, Any]) -> dict[str, float]:
         """Calculate properly normalized confidence scores for ALL formats.
 
         Uses two-stage hierarchical Bayesian classification:
@@ -300,23 +301,32 @@ class FormatDetector:
 
         # If Stage 1 failed (not test data), return all zeros
         if not result.is_test_data:
-            logger.warning(
-                "Hierarchical Stage 1 FAILED: Input not recognized as test data "
-                "(confidence=%.3f)",
-                result.test_data_confidence,
-            )
+            if not self._stage1_warning_emitted:
+                logger.warning(
+                    "Hierarchical Stage 1 FAILED: Input not recognized as test data "
+                    "(confidence=%.3f)",
+                    result.test_data_confidence,
+                )
+                # TODO(post-conversion-log): funnel repeated detection warnings into
+                # the upcoming aggregation endpoint instead of console spam.
+                self._stage1_warning_emitted = True
+            else:
+                logger.debug(
+                    "Stage 1 failed (confidence=%.3f); suppressing repeat warning",
+                    result.test_data_confidence,
+                )
             return {fmt.name: 0.0 for fmt in self.format_registry.get_all_formats()}
 
         # Return Stage 2 posteriors
         return result.format_posteriors
 
-    def get_supported_formats(self) -> List[SupportedFormat]:
+    def get_supported_formats(self) -> list[SupportedFormat]:
         """Get list of supported format types."""
         return list(self.format_registry.get_all_formats().keys())
 
     def get_format_evidence(
-        self, data: Dict[str, Any], format_type: SupportedFormat
-    ) -> Dict[str, Any]:
+        self, data: dict[str, Any], format_type: SupportedFormat
+    ) -> dict[str, Any]:
         """Get detailed evidence for format detection."""
         if not isinstance(data, dict):
             return {"evidence": [], "total_weight": 0}
@@ -339,4 +349,4 @@ class FormatDetector:
         }
 
 
-__all__ = ["FormatDetector"]
+__all__ = ["FormatDetector", "FormatRegistry"]

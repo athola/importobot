@@ -1,7 +1,7 @@
 """SSH authentication test generation module."""
 
 import random
-from typing import Any, Dict
+from typing import Any
 
 from .ssh_base import BaseSSHTestGenerator
 
@@ -13,7 +13,7 @@ class SSHAuthenticationTestGenerator(BaseSSHTestGenerator):
         """Initialize the SSH authentication test generator."""
         # No initialization needed for base class
 
-    def generate_login_test(self) -> Dict[str, Any]:
+    def generate_login_test(self) -> dict[str, Any]:
         """Generate test for Login keyword."""
         usernames = ["admin", "deploy", "testuser", "developer"]
         passwords = ["secure123", "password", "admin", "test123"]
@@ -35,7 +35,7 @@ class SSHAuthenticationTestGenerator(BaseSSHTestGenerator):
             }
         }
 
-    def generate_login_with_public_key_test(self) -> Dict[str, Any]:
+    def generate_login_with_public_key_test(self) -> dict[str, Any]:
         """Generate test for Login With Public Key keyword."""
         usernames = ["admin", "deploy", "testuser", "developer"]
         key_files = [

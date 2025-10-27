@@ -1,0 +1,61 @@
+[
+    {
+        "owner": "USER001",
+        "updatedBy": "USER002",
+        "customFields": {
+            "Supported Platforms": "All Platforms",
+            "Test Level": "Minimum Viable"
+        },
+        "precondition": "CLI is connected to an agent.",
+        "updatedOn": "2025-08-29T17:27:06.945Z",
+        "priority": "Normal",
+        "createdOn": "2024-03-04T14:46:01.268Z",
+        "objective": "Verify that the rm task performs its function correctly and produces the correct output",
+        "labels": [
+            "Requirement"
+        ],
+        "projectKey": "DEMO",
+        "folder": "/Examples/TaskTests",
+        "latestVersion": true,
+        "createdBy": "USER003",
+        "testScript": {
+            "id": 12510,
+            "type": "STEP_BY_STEP",
+            "steps": [
+                {
+                    "testData": "touch /tmp/t38.txt",
+                    "expectedResult": "CLI: Empty file created on target",
+                    "index": 0,
+                    "description": "CLI: Make a new file",
+                    "id": 95271
+                },
+                {
+                    "testData": "rm /tmp/t38.txt",
+                    "expectedResult": "CLI: Task completed",
+                    "index": 1,
+                    "description": "CLI: Run the remove task on the connected agent",
+                    "id": 76746
+                },
+                {
+                    "testData": "ls /tmp/",
+                    "expectedResult": "CLI: Task not included in directroy list",
+                    "index": 2,
+                    "description": "CLI: List directory on the target and verify the file does not exist",
+                    "id": 76747
+                }
+            ]
+        },
+        "issueLinks": [
+            "Link1",
+            "Link2"
+        ],
+        "lastTestResultStatus": "Fail",
+        "name": "rm",
+        "parameters": {
+            "variables": [],
+            "entries": []
+        },
+        "key": "ABC-678",
+        "status": "Review"
+    }
+]

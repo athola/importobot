@@ -1,0 +1,34 @@
+[
+  {
+    "projectKey": "DEMO",
+    "name": "hash compare",
+    "objective": "Verify hashes remain consistent across copies",
+    "priority": "High",
+    "labels": ["hash", "comparison"],
+    "testScript": {
+      "type": "STEP_BY_STEP",
+      "steps": [
+        {
+          "description": "Create a source file with known content",
+          "testData": "echo 'hello world' > /tmp/source.txt",
+          "expectedResult": "Source file created"
+        },
+        {
+          "description": "Copy source file to deployment directory",
+          "testData": "cp /tmp/source.txt /tmp/deploy/target.txt",
+          "expectedResult": "Target file created"
+        },
+        {
+          "description": "Compute hash for source file",
+          "testData": "sha256sum /tmp/source.txt",
+          "expectedResult": "SHA256 hash captured"
+        },
+        {
+          "description": "Compute hash for deployment file",
+          "testData": "sha256sum /tmp/deploy/target.txt",
+          "expectedResult": "SHA256 hash captured"
+        }
+      ]
+    }
+  }
+]
