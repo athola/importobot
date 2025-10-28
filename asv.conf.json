@@ -9,14 +9,27 @@
     "pythons": ["3.10", "3.11", "3.12"],
 
     "matrix": {
-        "uv": [""],
-        "scipy": [""],
-        "rich": [""]
+        "req": {
+            "scipy": [
+                "1.15.3"
+            ],
+            "rich": [
+                "14.2.0"
+            ]
+        }
     },
 
     "exclude": [],
 
-    "include": [],
+    "include": [
+        {
+            "python": "3.12",
+            "req": {
+                "scipy": "",
+                "rich": ""
+            }
+        }
+    ],
 
     "benchmark_dir": "benchmarks",
     "env_dir": ".asv/env",
@@ -47,6 +60,6 @@
     "regressions_first_commits": {},
 
     "regressions_thresholds": {
-        ".*": 10
+        ".*": 0.05
     }
 }
