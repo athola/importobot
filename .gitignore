@@ -141,3 +141,6 @@ mutmut_results.txt
 pylint_output.txt
 ty_output.txt
 tmp.robot
+
+# ASV artifacts
+.asv

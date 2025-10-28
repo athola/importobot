@@ -144,7 +144,7 @@ class GenericConversionEngine(ConversionEngine):
                             tags.extend([str(t) for t in value])
                         elif value:
                             tags.append(str(value))
-                    elif isinstance(value, (dict, list)):  # noqa: UP038
+                    elif isinstance(value, (dict, list)):
                         find_tags(value)
             elif isinstance(obj, list):
                 for item in obj:

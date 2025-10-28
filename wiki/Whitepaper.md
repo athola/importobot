@@ -43,7 +43,7 @@ P(formatᵢ | E₂, is_test_data) = P(E₂ | formatᵢ, is_test_data) × P(forma
 Executes only when Stage 1 confidence exceeds τ₁:
 - **Evidence E₂**: Format-specific field combinations, structural density, semantic markers
 - **Conditional Likelihood**: P(E₂ | formatᵢ, is_test_data) accounts for test data conditioning
-- **Multi-class Normalization**: Ensures Σⱼ P(formatⱼ | E₂, is_test_data) = 1.0
+- **Multi-class Normalization**: The multi-class normalization step sets the condition that Σⱼ P(formatⱼ | E₂, is_test_data) = 1.0
 
 *Implementation*: [Source Code - `src/importobot/medallion/bronze/hierarchical_classifier.py`](src/importobot/medallion/bronze/hierarchical_classifier.py)
 
@@ -276,7 +276,7 @@ Our assumption of conditional independence between evidence types C, Q, U enable
 
 **Real-world Deployment**: Processing 50,000+ test exports in production CI/CD pipelines with 99.8% uptime.
 
-**Error Handling**: Comprehensive numerical stability measures prevent production crashes:
+**Error Handling**: Numerical stability measures prevent production crashes:
 - Division by zero protection through epsilon bounds
 - Log-space computation prevents underflow
 - Graceful degradation for malformed input data
@@ -356,7 +356,7 @@ R ≤ 3.0 = log₂(8)
 
 ### A.3 Numerical Stability Bounds
 
-**Log-Likelihood Floor**: Setting ε = 10⁻¹² ensures:
+**Log-Likelihood Floor**: We set ε = 10⁻¹² to:
 - Values > machine epsilon (2.2 × 10⁻¹⁶ for double precision)
 - Sufficiently small to prevent log(0) but large enough to avoid underflow
 - Conservative safety margin for numerical precision

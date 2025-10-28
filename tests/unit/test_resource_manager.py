@@ -197,7 +197,7 @@ class TestResourceManager:
         limits = ResourceLimits(max_file_size_mb=10)
         manager = ResourceManager(limits)
 
-        with pytest.raises(ValueError, match="File size.*exceeds limit"):
+        with pytest.raises(ValueError, match=r"File size.*exceeds limit"):
             manager.validate_file_operation("/tmp/test.txt", 20)
 
     @reset_resource_manager_singleton

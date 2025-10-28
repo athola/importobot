@@ -30,4 +30,4 @@ The performance cache uses an optimized serialization strategy to avoid unnecess
 
 ### Validation Pipeline
 
-The validation pipeline is designed to be fast and efficient. A `make lint-fast` command is provided to skip the more time-consuming linting checks during development.
+The validation pipeline is designed to be fast and efficient. Routine linting now relies on the consolidated `make lint` target (ruff + mypy) after retiring the old `make lint-fast` shortcut.

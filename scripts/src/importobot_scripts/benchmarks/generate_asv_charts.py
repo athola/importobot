@@ -80,7 +80,7 @@ def generate_conversion_performance_chart(
         "ZephyrConversionSuite.time_convert_large_complex_suite",
     ]
 
-    colors = ["#2ecc71", "#3498db", "#e74c3c"]
+    colors = ["#2ecc71", "#3498db", "#e74c3c"]  # emerald, denim, alizarin
     labels = ["Simple (1 test)", "Moderate (20 tests)", "Large (100 tests)"]
 
     results = data["results"]
@@ -192,7 +192,7 @@ def generate_bulk_conversion_chart(data: dict[str, Any], output_path: Path) -> N
 
     # DirectoryConversionSuite parameterized benchmarks
     params = ["5", "10", "25"]
-    colors = ["#1abc9c", "#f39c12", "#e67e22"]
+    colors = ["#1abc9c", "#f39c12", "#e67e22"]  # turquoise, orange, carrot
 
     results = data["results"]
     commits = sorted(results.keys(), key=lambda c: results[c].get("date", 0))

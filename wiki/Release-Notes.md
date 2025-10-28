@@ -26,7 +26,7 @@ This release introduces a new in-memory cache for the Bronze layer, resulting in
 ### Highlights
 
 -   **Bronze Layer In-Memory Cache:** A new in-memory cache for recently ingested records provides a significant performance boost.
--   **Performance Optimization:** The validation pipeline has been optimized, and a `make lint-fast` command has been added for quicker pre-commit checks.
+-   **Performance Optimization:** The validation pipeline has been tuned, and the linting workflow now runs through the standard `make lint` (ruff + mypy) sequence after removing pylint.
 -   **Code Organization:** The benchmark scripts and test utilities have been reorganized for better clarity and maintainability.
 
 ---

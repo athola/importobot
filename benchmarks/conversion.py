@@ -195,7 +195,7 @@ class DirectoryConversionSuite:
         # Assuming directory conversion method exists
         # converter.convert_directory(str(self.input_dir), str(self.output_dir))
 
-        # Fallback: convert files individually
+        # Default: convert files individually
         for json_file in self.input_dir.glob("*.json"):
             output_file = self.output_dir / f"{json_file.stem}.robot"
             converter.convert_file(str(json_file), str(output_file))

@@ -47,7 +47,7 @@ Completed migration from pylint to ruff/mypy-only workflow. Removed pylintrc and
 ASV (Airspeed Velocity) now tracks performance across releases with automated chart generation. CI workflow publishes benchmark visualizations to wiki on tagged releases. Three benchmark suites cover conversion performance, memory usage, and bulk operations with ~55ms average detection time. Configuration in `asv.conf.json`, benchmark suites in `benchmarks/conversion.py`, chart generation in `scripts/src/importobot_scripts/benchmarks/generate_asv_charts.py`.
 
 **October 2025: Tag-based Release Workflow**
-PyPI publishing now triggers only on version tags (v*.*.*), preventing accidental releases from main branch pushes. Ensures controlled releases with proper versioning.
+PyPI publishing now triggers only on version tags (v*.*.*), preventing accidental releases from main branch pushes. This controls releases and enforces proper versioning.
 
 **October 2025: Development Branch Workflow**
 Established development branch as integration target for all MRs. Main branch receives only tested releases from development. Documented in wiki/Contributing.md with clear feature/release/hotfix workflows.
