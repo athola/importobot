@@ -47,6 +47,7 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
         self.builtin_generator = BuiltInKeywordGenerator()
         self.multi_command_parser = MultiCommandParser()
         self.context_analyzer = ContextAnalyzer()
+        self.intent_recognizer = IntentRecognitionEngine()
 
     def generate_step_keywords(self, step: dict[str, Any]) -> list[str]:
         """Generate Robot Framework keywords for a step."""

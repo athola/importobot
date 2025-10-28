@@ -166,11 +166,14 @@ class TestCacheMemoryEfficiency:
         # Wait for TTL
         time.sleep(1.2)
 
-        # Access keys to trigger expiration check
-        expired_count = sum(1 for i in range(100) if cache.get(i) is None)
+        # Trigger cleanup and check cache size (without accessing entries, which would refresh TTL)
+        cache._cleanup_expired_entries()
 
-        # Most entries should have expired
-        assert expired_count > 90
+        # Most entries should have expired and been cleaned up
+        final_size = cache.get_stats()["cache_size"]
+        assert final_size < 10, (
+            f"Expected <10 entries after expiration, got {final_size}"
+        )
 
     def test_security_limits_prevent_dos(self):
         """GIVEN a cache with content size limits

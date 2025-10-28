@@ -26,6 +26,13 @@ from importobot.medallion.interfaces.enums import ProcessingStatus, SupportedFor
 from importobot.medallion.interfaces.records import BronzeRecord
 
 
+def _extract_detected_format(result: dict[str, Any]) -> SupportedFormat | str:
+    detected_format = result.get("detected_format")
+    if isinstance(detected_format, (SupportedFormat, str)):
+        return detected_format
+    return str(detected_format) if detected_format else ""
+
+
 @st.composite
 def medallion_test_data(draw):
     """Generate realistic test data for Medallion architecture testing."""
@@ -255,12 +262,13 @@ class TestMedallionArchitectureInvariants:
                     def get_format(
                         result: dict[str, Any] | BronzeRecord,
                     ) -> SupportedFormat | str:
-                        if isinstance(result, dict):
-                            detected_format = result.get("detected_format", "")
-                            # Cast to str to satisfy mypy
-                            return str(detected_format) if detected_format else ""
-                        else:  # BronzeRecord
-                            return result.format_detection.detected_format
+                        if isinstance(result, dict) and not isinstance(
+                            result, BronzeRecord
+                        ):
+                            return _extract_detected_format(result)
+                        # BronzeRecord path
+                        assert isinstance(result, BronzeRecord)  # Type narrowing
+                        return result.format_detection.detected_format
 
                     first_format = get_format(results[0])
                     for result in results[1:]:
@@ -274,10 +282,13 @@ class TestMedallionArchitectureInvariants:
                         result: dict[str, Any] | BronzeRecord,
                     ) -> ProcessingStatus | None:
                         if isinstance(result, dict):
-                            proc_result = result.get("processing_result")
-                            return proc_result.status if proc_result else None
-                        else:  # BronzeRecord
-                            return result.metadata.processing_status
+                            if "processing_result" in result:
+                                proc_result = result["processing_result"]
+                                return getattr(proc_result, "status", None)
+                            return None
+                        # BronzeRecord path
+                        assert isinstance(result, BronzeRecord)  # Type narrowing
+                        return result.metadata.processing_status
 
                     first_status = get_status(results[0])
                     for result in results[1:]:

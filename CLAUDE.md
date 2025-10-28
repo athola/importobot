@@ -40,6 +40,18 @@ We fixed several specific issues that were causing problems in production:
 
 ### 2025 Changes
 
+**October 2025: Linting Consolidation and ASV Merge**
+Completed migration from pylint to ruff/mypy-only workflow. Removed pylintrc and ASV-generated build artifacts (.asv/html/*). Updated all linting configurations to exclude benchmark and example directories. Merged main branch into asv-benchmark with modern type hints (dict vs Dict, Python 3.9+ style), improved Windows file locking compatibility, and consolidated documentation. All 22 merge conflicts resolved with consistent code quality improvements across the codebase.
+
+**October 2025: ASV Benchmarking Integration**
+ASV (Airspeed Velocity) now tracks performance across releases with automated chart generation. CI workflow publishes benchmark visualizations to wiki on tagged releases. Three benchmark suites cover conversion performance, memory usage, and bulk operations with ~55ms average detection time. Configuration in `asv.conf.json`, benchmark suites in `benchmarks/conversion.py`, chart generation in `scripts/src/importobot_scripts/benchmarks/generate_asv_charts.py`.
+
+**October 2025: Tag-based Release Workflow**
+PyPI publishing now triggers only on version tags (v*.*.*), preventing accidental releases from main branch pushes. This controls releases and enforces proper versioning.
+
+**October 2025: Development Branch Workflow**
+Established development branch as integration target for all MRs. Main branch receives only tested releases from development. Documented in wiki/Contributing.md with clear feature/release/hotfix workflows.
+
 **October 2025: Application Context Pattern**
 We had race conditions in our tests due to global state. Replaced global variables with thread-local context, which fixed the concurrent instance support issues. Added `importobot.caching` module with unified LRU cache implementation.
 
@@ -58,11 +70,14 @@ Wrote proper Migration Guide for 0.1.2→0.1.3 since there were no breaking chan
 **October 2025: Configuration**
 Fixed project identifier parsing that was failing on control characters and whitespace. CLI arguments that don't parse to valid identifiers now use environment variables as default values instead of crashing.
 
+**October 2025: Wiki Consolidation**
+Removed verbose Bayesian-specific documentation (Bayesian-Redesign.md, Bayesian-Scorer-Mathematical-Review.md) in favor of concise technical content in Mathematical-Foundations.md.
+
 **September 2025: Code cleanup**
 Removed 200+ lines of compatibility code that were no longer needed, added `data_analysis` helper for performance profiling, and updated `__all__` exports to match our actual public API surface.
 
 **September 2025: Demo script**
-Added `scripts/interactive_demo.py` for customer demonstrations. It shares code with the CLI so we don't duplicate the conversion logic.
+Added `scripts/interactive_demo.py` for customer demonstrations. It shares code with the CLI so we don't duplicate the conversion logic. The same cycle produced utilities for pattern extraction/step comments and tightened SSH validation so the interactive demo and the CLI share logic instead of diverging.
 
 **Test status**: All 2,105 tests pass with 0 skips.
 **Code quality**: Removed pylint from the project (now using ruff/mypy only) and improved test isolation.

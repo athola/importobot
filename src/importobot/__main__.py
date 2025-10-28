@@ -95,7 +95,7 @@ def _handle_error(e: Exception) -> None:
         # User-friendly error for corrupted JSON files
         logger.error(str(e))  # This now contains our enhanced message
         sys.exit(1)
-    elif isinstance(e, (FileNotFoundError, ValueError, IOError)):  # noqa: UP038
+    elif isinstance(e, (FileNotFoundError, ValueError, IOError)):
         logger.error(
             str(e)
         )  # Remove "Error:" prefix since our messages are now descriptive

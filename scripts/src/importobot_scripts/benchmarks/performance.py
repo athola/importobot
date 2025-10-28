@@ -456,14 +456,11 @@ class ConversionPerformanceBenchmark:
                 if output_file and Path(output_file).exists():
                     Path(output_file).unlink(missing_ok=True)
 
-        result: dict[str, Any] = self._calculate_statistics(times)
-        result.update(
-            {
-                "iterations": iterations,
-                "warmup_iterations": warmup_iterations,
-                "complexity": complexity,
-            }
-        )
+        base_stats = self._calculate_statistics(times)
+        result: dict[str, Any] = dict(base_stats)
+        result["iterations"] = iterations
+        result["warmup_iterations"] = warmup_iterations
+        result["complexity"] = complexity
 
         if memory_usages:
             result["memory_usage"] = self._calculate_statistics(

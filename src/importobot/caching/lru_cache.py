@@ -95,7 +95,7 @@ class LRUCache(CacheStrategy[K, V]):
         self._pending_metric_events = 0
         self._last_metrics_emit = time.time()
         self._cleanup_interval = self._determine_cleanup_interval()
-        self._last_cleanup = time.time()
+        self._last_cleanup = time.monotonic()
 
     def __len__(self) -> int:
         """Return the number of cached entries."""
@@ -122,7 +122,7 @@ class LRUCache(CacheStrategy[K, V]):
             return None
 
         entry.access_count += 1
-        entry.timestamp = time.time()
+        entry.timestamp = time.monotonic()
         self._cache.move_to_end(key)
         # Update expiration heap since timestamp changed
         self._remove_from_expiration_heap(key)
@@ -190,11 +190,28 @@ class LRUCache(CacheStrategy[K, V]):
             self._evict_lru()
             eviction_attempts += 1
 
-        entry = CacheEntry(value=value, timestamp=time.time())
+        entry = CacheEntry(value=value, timestamp=time.monotonic())
         self._cache[key] = entry
         self._add_to_expiration_heap(key, entry)
         self._total_size += content_size
         self._record_metric_event()
+
+    def contains(self, key: K) -> bool:
+        """Check if key exists in cache and is not expired.
+
+        Returns:
+            True if key exists and is not expired, False otherwise
+        """
+        if key not in self._cache:
+            return False
+
+        entry = self._cache[key]
+        if self._is_expired(entry.timestamp):
+            # Clean up expired entry
+            self.delete(key)
+            return False
+
+        return True
 
     def delete(self, key: K) -> None:
         """Remove entry from cache."""
@@ -221,7 +238,7 @@ class LRUCache(CacheStrategy[K, V]):
         self._evictions = 0
         self._rejections = 0
         self._emit_metrics(force=True)
-        self._last_cleanup = time.time()
+        self._last_cleanup = time.monotonic()
 
     def get_stats(self) -> dict[str, Any]:
         """Get cache statistics."""
@@ -279,7 +296,7 @@ class LRUCache(CacheStrategy[K, V]):
         """Check if entry has expired based on TTL."""
         if self.config.ttl_seconds is None or self.config.ttl_seconds <= 0:
             return False
-        return (time.time() - timestamp) > self.config.ttl_seconds
+        return (time.monotonic() - timestamp) > self.config.ttl_seconds
 
     def _hash_key(self, key: K) -> str:
         """Generate hash for collision tracking."""
@@ -383,7 +400,7 @@ class LRUCache(CacheStrategy[K, V]):
         """Run periodic cleanup for expired entries."""
         if self._cleanup_interval is None:
             return
-        now = time.time()
+        now = time.monotonic()
         if (now - self._last_cleanup) < self._cleanup_interval:
             return
         self._cleanup_expired_entries(now)
@@ -396,7 +413,7 @@ class LRUCache(CacheStrategy[K, V]):
         if not self._cache or not self._expiration_heap:
             return
 
-        now = reference_time or time.time()
+        now = reference_time if reference_time is not None else time.monotonic()
         expired_count = 0
 
         # Remove expired entries from heap in O(log n) per removal
@@ -438,10 +455,11 @@ class LRUCache(CacheStrategy[K, V]):
                 self._heap_key_mapping.pop(key_hash, None)
 
         if expired_count > 0:
+            duration_ms = int((time.monotonic() - now) * 1000)
             logger.debug(
                 "Heap-based cleanup removed %d expired entries in %d ms",
                 expired_count,
-                int((time.time() - now) * 1000),
+                duration_ms,
             )
 
     def _record_metric_event(self) -> None:
