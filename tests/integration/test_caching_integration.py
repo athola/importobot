@@ -369,14 +369,14 @@ class TestCacheInvalidation:
             return (result, stats["cache_size"])
 
         # Run first job
-        result1, cache_size1 = run_conversion_job(1)
+        result1, _ = run_conversion_job(1)
 
         # Clear cache to simulate job isolation
         context = get_context()
         context.clear_caches()
 
         # Run second job (should start with empty cache)
-        result2, cache_size2 = run_conversion_job(2)
+        result2, _ = run_conversion_job(2)
 
         # Verify both jobs succeeded
         assert "Job 1 Test" in result1

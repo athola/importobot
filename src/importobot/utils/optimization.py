@@ -11,7 +11,7 @@ import math
 import random
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 
 @dataclass
@@ -139,7 +139,7 @@ class GradientDescentOptimizer:
             prev_gradient_norm: float
 
         parameters = initial_parameters.copy()
-        self.velocity = dict.fromkeys(parameters, 0.0)
+        self.velocity = cast(dict[str, float], dict.fromkeys(parameters, 0.0))
         self.iteration_count = 0
         self.convergence_history = []
 

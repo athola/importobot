@@ -1,6 +1,6 @@
 # User Guide
 
-This guide provides a comprehensive overview of how to use Importobot to convert test cases from various test management systems to Robot Framework.
+This guide explains how to use Importobot to convert test cases from various test management systems to Robot Framework.
 
 For a quick collection of common usage patterns, see the [Usage Examples](Usage-Examples.md) page.
 

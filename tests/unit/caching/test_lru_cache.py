@@ -233,6 +233,7 @@ class TestTTLExpiration:
             return base_time["value"]
 
         monkeypatch.setattr("importobot.caching.lru_cache.time.time", fake_time)
+        monkeypatch.setattr("importobot.caching.lru_cache.time.monotonic", fake_time)
 
         config = CacheConfig(ttl_seconds=4)
         cache = LRUCache[str, str](config=config)
@@ -928,7 +929,7 @@ class TestHeapBasedCleanupOptimizations:
             cache.set(f"key_{i}", f"value_{i}")
 
         # Use reference time in the future to simulate checking at a future time
-        future_time = time.time() + 20  # 20 seconds in the future
+        future_time = time.monotonic() + 20  # 20 seconds in the future
         cache._cleanup_expired_entries(reference_time=future_time)
 
         # All entries should be considered expired (they would have expired after 10s)
@@ -953,7 +954,7 @@ class TestHeapBasedCleanupOptimizations:
             cache.set(f"key_{i}", f"value_{i}")
 
         # Use recent reference time to ensure entries are not expired
-        recent_time = time.time() - 1  # 1 second ago
+        recent_time = time.monotonic() - 1  # 1 second ago
         cache._cleanup_expired_entries(reference_time=recent_time)
 
         # All entries should be preserved
