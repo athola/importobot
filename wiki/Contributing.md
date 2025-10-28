@@ -55,14 +55,8 @@ uv run pytest --cov=src --cov-report=html
 ### Code Quality Checks
 
 ```bash
-# Run all linting tools (same as CI)
+# Run all linting and formatting checks (same as CI)
 make lint
-
-# Individual tools for specific checks
-uv run ruff check .                    # Code linting and formatting checks
-uv run pycodestyle .                   # PEP 8 style guide compliance
-uv run pydocstyle .                    # Docstring standards
-uv run pylint .                        # Static analysis
 
 # Auto-fix common issues
 uv run ruff check --fix .
@@ -77,23 +71,7 @@ make deep-clean  # For more thorough cleanup
 
 ## Project Structure
 
-```
-src/importobot/
-├── cli/                 # Command-line interface
-│   ├── parser.py       # Argument parsing
-│   └── handlers.py     # Command handlers
-├── core/               # Core conversion logic
-│   ├── engine.py       # Conversion engine
-│   ├── converter.py    # File operations
-│   └── parser.py       # Test case parsing
-├── utils/              # Utility modules
-└── __main__.py         # Entry point
-
-tests/
-├── unit/               # Unit tests
-├── integration/        # Integration tests
-└── cli/               # CLI tests
-```
+For a detailed breakdown of the codebase, including the layered architecture and key modules, please see the [How to Navigate this Codebase](How-to-Navigate-this-Codebase.md) guide.
 
 ## Testing Standards
 

@@ -2,20 +2,34 @@
     "version": 1,
     "project": "importobot",
     "project_url": "https://github.com/athola/importobot",
-    "repo": "https://github.com/athola/importobot.git",
+    "repo": ".",
 
     "show_commit_url": "https://github.com/athola/importobot/commit/",
 
     "pythons": ["3.10", "3.11", "3.12"],
 
     "matrix": {
-        "scipy": [""],
-        "rich": [""]
+        "req": {
+            "scipy": [
+                "1.15.3"
+            ],
+            "rich": [
+                "14.2.0"
+            ]
+        }
     },
 
     "exclude": [],
 
-    "include": [],
+    "include": [
+        {
+            "python": "3.12",
+            "req": {
+                "scipy": "",
+                "rich": ""
+            }
+        }
+    ],
 
     "benchmark_dir": "benchmarks",
     "env_dir": ".asv/env",
@@ -46,6 +60,6 @@
     "regressions_first_commits": {},
 
     "regressions_thresholds": {
-    ".*": 10
-  }
+        ".*": 0.05
+    }
 }

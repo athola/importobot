@@ -4,6 +4,14 @@ Roadmap of upcoming features, parked items, and ideas requiring proof-of-concept
 
 ### What we shipped in October 2025
 
+**ASV Performance Benchmarking**: Integrated ASV (Airspeed Velocity) for tracking performance across releases. Three benchmark suites cover conversion performance, memory usage, and bulk operations with ~55ms average detection time. CI workflow automatically generates and publishes benchmark charts to wiki on tagged releases. Configuration in `asv.conf.json`, benchmark suites in `benchmarks/conversion.py`, automated chart generation in `scripts/src/importobot_scripts/benchmarks/generate_asv_charts.py`.
+
+**Linting Consolidation**: Completed migration from pylint to ruff/mypy-only workflow. Removed pylintrc, cleaned up ASV-generated build artifacts (.asv/html/*), and updated all linting configurations to exclude benchmark and example directories. Merged main branch with modern type hints (dict vs Dict for Python 3.9+), improved Windows file locking compatibility using safer getattr() patterns, and consolidated documentation across 22 resolved merge conflicts.
+
+**Tag-based Release Workflow**: PyPI publishing now triggers only on version tags (v*.*.*) instead of main branch pushes, ensuring controlled releases with proper semantic versioning.
+
+**Development Branch Workflow**: Established development branch as integration target for all MRs. Main branch receives only tested releases from development. Documented in wiki/Contributing.md with clear feature/release/hotfix workflows.
+
 **Application Context Pattern**: Fixed race conditions in tests by replacing global variables with thread-local context. This lets multiple Importobot instances run in the same process without interfering with each other. Added `importobot.caching` module with unified LRU cache.
 
 **Template Learning**: Instead of hardcoding Robot Framework patterns, we now learn them from existing files using `--robot-template`. The system extracts patterns and applies them consistently. We tested this on 3 customer Robot suites and it reduced manual post-conversion editing by about 70%.
@@ -12,7 +20,7 @@ Roadmap of upcoming features, parked items, and ideas requiring proof-of-concept
 
 **API Integration**: Unified platform fetching under `--fetch-format`. The Zephyr client now does automatic API discovery and adapts to different server configurations. We tested this against 4 different Zephyr instances and they all work with the same client code.
 
-**Documentation**: Wrote proper Migration Guide for 0.1.2→0.1.3 since there were no breaking changes, documented the breaking changes that did exist in previous versions, and created a step-by-step Blueprint Tutorial.
+**Documentation**: Wrote proper Migration Guide for 0.1.2→0.1.3 since there were no breaking changes, documented the breaking changes that did exist in previous versions, and created a step-by-step Blueprint Tutorial. Consolidated verbose Bayesian documentation into streamlined Mathematical-Foundations.md.
 
 **Configuration**: Fixed project identifier parsing that was failing on control characters and whitespace. CLI arguments that don't parse to valid identifiers now use environment variables as default values instead of crashing.
 

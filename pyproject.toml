@@ -38,12 +38,12 @@ classifiers = [
 
 dependencies = [
     "robotframework>=6.0.0",
-    "robotframework-seleniumlibrary>=6.0.0",
+    "robotframework-seleniumlibrary>=6.8.0",
     "robotframework-sshlibrary>=3.8.0",
     "robotframework-requests>=0.9.4",
-    "robotframework-databaselibrary>=1.2.4",
-    "psutil>=7.0.0",
-    "bleach>=6.1.0",
+    "robotframework-databaselibrary>=2.3.2",
+    "psutil>=7.1.2",
+    "bleach>=6.3.0",
     "asv>=0.6.5",
 ]
 
@@ -56,16 +56,16 @@ dependencies = [
 
 [project.optional-dependencies]
 viz = [
-    "matplotlib>=3.10.6",
+    "matplotlib>=3.10.7",
 ]
 analytics = [
     "numpy>=2.2.6",
-    "pandas>=2.0.0",
+    "pandas>=2.3.3",
 ]
 demo = [
-    "matplotlib>=3.10.6",
+    "matplotlib>=3.10.7",
     "numpy>=2.2.6",
-    "pandas>=2.0.0",
+    "pandas>=2.3.3",
 ]
 advanced = [
     "scipy>=1.15.3",
@@ -80,7 +80,7 @@ medallion = [
 ]
 enterprise = [
     # Enterprise features
-    "pandas>=2.0.0",  # For advanced analytics
+    "pandas>=2.3.3",  # For advanced analytics
     "numpy>=2.2.6",   # For statistical analysis
     # Cloud storage backends
     # "boto3>=1.26.0",  # AWS integration
@@ -88,9 +88,9 @@ enterprise = [
     # "google-cloud-storage>=2.7.0",  # GCP integration
 ]
 all = [
-    "matplotlib>=3.10.6",
+    "matplotlib>=3.10.7",
     "numpy>=2.2.6",
-    "pandas>=2.0.0",
+    "pandas>=2.3.3",
     # Medallion architecture included in 'all'
 ]
 
@@ -103,26 +103,26 @@ dev = [
     "pytest>=7.0.0",
     "pytest-xdist>=3.6.1",
     "pytest-asyncio>=0.23.5",
-    "coverage>=7.0.0",
-    "ruff>=0.1.0",
+    "coverage>=7.11.0",
+    "ruff>=0.14.2",
 
     "pycodestyle>=2.11.0",
     "pydocstyle>=6.3.0",
-    "black>=23.0.0",
-    "pyyaml>=6.0.0",
-    "mypy>=1.0.0",
+    "black>=25.9.0",
+    "pyyaml>=6.0.3",
+    "mypy>=1.18.2",
     "ty",
-    "types-PyYAML",
-    "types-psutil>=7.0.0.20250822",
+    "types-PyYAML>=6.0.12.20250915",
+    "types-psutil>=7.0.0.20251001",
     "types-requests>=2.32.0.20240622",
-    "numpy",
-    "pandas",
-    "matplotlib",
+    "numpy>=2.2.6",
+    "pandas>=2.3.3",
+    "matplotlib>=3.10.7",
     "detect-secrets>=1.5.0",
     "bandit>=1.7.0",
-    "hypothesis>=6.140.2",
+    "hypothesis>=6.142.4",
     "mutmut>=2.4.4",
-    "pyright>=1.1.380",
+    "pyright>=1.1.407",
 ]
 
 [tool.setuptools.packages.find]
@@ -149,6 +149,7 @@ addopts = [
 markers = [
     "timeout: Set timeout for individual tests (provided by configure_timeout fixture)",
     "slow: Marks long-running generative tests",
+    "web_tests: marks tests that should run before SSH tests",
 ]
 
 [tool.coverage.run]
@@ -228,7 +229,7 @@ exclude = '''
 
 
 [tool.pydocstyle]
-match-dir = '^(?!\.venv|\.uv-cache|build).*'
+match-dir = '^(?!\.venv|\.uv-cache|build|env|benchmarks|examples).*'
 
 [tool.mypy]
 python_version = "3.10"
@@ -239,7 +240,7 @@ disallow_incomplete_defs = true
 check_untyped_defs = true
 disallow_untyped_decorators = true
 no_implicit_optional = true
-mypy_path = "./src:./scripts/src"
+mypy_path = "./src:./scripts/src:./benchmarks"
 explicit_package_bases = true
 namespace_packages = true
 exclude = ['^\.venv', '^\.uv-cache']

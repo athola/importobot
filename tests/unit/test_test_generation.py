@@ -730,7 +730,7 @@ class TestErrorHandlingAndEdgeCases:
             for distribution, terms in invalid_distributions:
                 with pytest.raises(
                     ValueError,
-                    match="Invalid category.*not in CategoryEnum",
+                    match=r"Invalid category.*not in CategoryEnum",
                 ) as exc:
                     generate_test_suite(
                         output_dir=temp_dir,
@@ -743,7 +743,7 @@ class TestErrorHandlingAndEdgeCases:
             for weights, terms in invalid_weights:
                 with pytest.raises(
                     ValueError,
-                    match="Invalid category.*not in CategoryEnum",
+                    match=r"Invalid category.*not in CategoryEnum",
                 ) as exc:
                     generate_test_suite(
                         output_dir=temp_dir,

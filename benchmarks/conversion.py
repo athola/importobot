@@ -6,17 +6,31 @@ formats (Zephyr, TestLink, Xray) into Robot Framework files across different
 file sizes and complexity levels.
 """
 
+# Standard library imports
+import contextlib
 import json
+import shutil
 import tempfile
 from pathlib import Path
+from typing import Any, ClassVar
+
+# Importobot imports
+import importobot
 
 
 class ZephyrConversionSuite:
     """Benchmark suite for Zephyr JSON to Robot Framework conversion."""
 
-    timeout = 120.0
+    timeout: float = 120.0
+    temp_dir: str
+    simple_file: Path
+    moderate_file: Path
+    complex_file: Path
+    simple_output: Path
+    moderate_output: Path
+    complex_output: Path
 
-    def setup(self):
+    def setup(self) -> None:
         """Create Zephyr test fixtures of varying complexity."""
         # Single test case with minimal steps
         self.single_simple = {
@@ -102,36 +116,31 @@ class ZephyrConversionSuite:
         self.moderate_output = Path(self.temp_dir) / "moderate_output.robot"
         self.complex_output = Path(self.temp_dir) / "complex_output.robot"
 
-    def teardown(self):
+    def teardown(self) -> None:
         """Clean up temporary files."""
-        import shutil
 
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def time_convert_simple_single_test(self):
+    def time_convert_simple_single_test(self) -> None:
         """Benchmark converting a single simple test case."""
-        import importobot
 
         converter = importobot.JsonToRobotConverter()
         converter.convert_file(str(self.simple_file), str(self.simple_output))
 
-    def time_convert_moderate_multiple_tests(self):
+    def time_convert_moderate_multiple_tests(self) -> None:
         """Benchmark converting 20 moderate complexity test cases."""
-        import importobot
 
         converter = importobot.JsonToRobotConverter()
         converter.convert_file(str(self.moderate_file), str(self.moderate_output))
 
-    def time_convert_large_complex_suite(self):
+    def time_convert_large_complex_suite(self) -> None:
         """Benchmark converting 100 complex test cases with metadata."""
-        import importobot
 
         converter = importobot.JsonToRobotConverter()
         converter.convert_file(str(self.complex_file), str(self.complex_output))
 
-    def peakmem_convert_large_suite(self):
+    def peakmem_convert_large_suite(self) -> None:
         """Memory usage for converting large test suite."""
-        import importobot
 
         converter = importobot.JsonToRobotConverter()
         converter.convert_file(str(self.complex_file), str(self.complex_output))
@@ -140,11 +149,14 @@ class ZephyrConversionSuite:
 class DirectoryConversionSuite:
     """Benchmark suite for bulk directory conversion operations."""
 
-    timeout = 180.0
-    params = [5, 10, 25]
-    param_names = ["num_files"]
+    timeout: float = 180.0
+    params: ClassVar[list[int]] = [5, 10, 25]
+    param_names: ClassVar[list[str]] = ["num_files"]
+    temp_dir: str
+    input_dir: Path
+    output_dir: Path
 
-    def setup(self, num_files):
+    def setup(self, num_files: int) -> None:
         """Create directory with multiple test files."""
         self.temp_dir = tempfile.mkdtemp()
         self.input_dir = Path(self.temp_dir) / "input"
@@ -171,21 +183,19 @@ class DirectoryConversionSuite:
             with open(file_path, "w") as f:
                 json.dump(test_data, f)
 
-    def teardown(self, num_files):
+    def teardown(self, num_files: int) -> None:
         """Clean up directory structure."""
-        import shutil
 
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def time_convert_directory(self, num_files):
+    def time_convert_directory(self, num_files: int) -> None:
         """Benchmark recursive directory conversion."""
-        import importobot
 
         converter = importobot.JsonToRobotConverter()
         # Assuming directory conversion method exists
         # converter.convert_directory(str(self.input_dir), str(self.output_dir))
 
-        # Fallback: convert files individually
+        # Default: convert files individually
         for json_file in self.input_dir.glob("*.json"):
             output_file = self.output_dir / f"{json_file.stem}.robot"
             converter.convert_file(str(json_file), str(output_file))
@@ -194,9 +204,14 @@ class DirectoryConversionSuite:
 class ValidationSuite:
     """Benchmark suite for input validation and error detection."""
 
-    timeout = 60.0
+    timeout: float = 60.0
+    valid_data: dict[str, Any]
+    invalid_missing_fields: dict[str, Any]
+    invalid_malformed: dict[str, Any]
+    temp_dir: str
+    valid_file: Path
 
-    def setup(self):
+    def setup(self) -> None:
         """Create valid and invalid test fixtures."""
         self.valid_data = {
             "testCase": {
@@ -227,28 +242,24 @@ class ValidationSuite:
         with open(self.invalid_malformed_file, "w") as f:
             json.dump(self.invalid_malformed, f)
 
-    def teardown(self):
+    def teardown(self) -> None:
         """Clean up temporary files."""
-        import shutil
 
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def time_validate_valid_input(self):
+    def time_validate_valid_input(self) -> None:
         """Benchmark validation of valid test input."""
-        import importobot
 
         converter = importobot.JsonToRobotConverter()
         output = Path(self.temp_dir) / "output.robot"
         converter.convert_file(str(self.valid_file), str(output))
 
-    def time_validate_invalid_input(self):
+    def time_validate_invalid_input(self) -> None:
         """Benchmark validation and error handling for invalid input."""
-        import importobot
 
         converter = importobot.JsonToRobotConverter()
         output = Path(self.temp_dir) / "output.robot"
 
-        try:
+        with contextlib.suppress(Exception):
             converter.convert_file(str(self.invalid_missing_file), str(output))
-        except Exception:
-            pass  # Expected to fail validation
+            # Expected to fail validation

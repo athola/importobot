@@ -1,49 +1,68 @@
 # Usage Examples
 
-## CLI
+This page provides a collection of common usage examples for Importobot.
+
+## Command-Line Interface (CLI)
+
+The CLI is the easiest way to get started with Importobot. It provides a simple and intuitive interface for converting test exports.
+
+### Convert a single file
 
 ```bash
 uv run importobot zephyr_export.json converted_tests.robot
+```
 
-# Batch mode
+### Convert a directory of files
+
+```bash
 uv run importobot --batch ./exports ./robot-output
 ```
 
 ## Python API
 
+The Python API provides more flexibility for integrating Importobot into your own scripts and workflows.
+
 ```python
 from importobot.api import converters
 
+# Create a converter instance
 converter = converters.JsonToRobotConverter()
+
+# Convert a single file
 summary = converter.convert_file("input.json", "output.robot")
+print(summary)
+
+# Convert a directory of files
+summary = converter.convert_directory("inputs", "outputs")
 print(summary)
 ```
 
-## Schema Parser
+## Schema-Driven Parsing
 
-### CLI Quick Start
+For test exports with custom field names, you can provide a schema file to map the custom names to the standard ones expected by Importobot.
 
-```bash
-# Provide one or more documentation sources describing custom fields
-uv run importobot \
-  --input-schema docs/field_guide.md \
-  --input-schema docs/backend_cheat_sheet.md \
-  custom_export.json \
-  converted.robot
+### Example Schema File (`docs/field_guide.md`)
+
+```markdown
+# Field Guide
+
+This document outlines the custom fields used in our Zephyr exports.
+
+## Test Case Fields
+
+-   **Title**: The main title of the test case. This should be mapped to the `name` field.
+-   **Description**: A detailed description of the test case. This should be mapped to the `description` field.
+-   **Steps**: The steps to be executed in the test case. This should be mapped to the `steps` field.
 ```
 
-- Pass `--input-schema` multiple times to merge definitions from different teams.
-- Keep documentation in Markdown or plain text; Importobot extracts headings and bullet lists automatically.
-- Combine with `--batch` or `--robot-template` flags when running migrations.
-
-### Preview Field Mapping
+### CLI Usage
 
 ```bash
-# Show how the schema affects field mapping without writing output files
+# Provide the schema file to the --input-schema argument
 uv run importobot \
   --input-schema docs/field_guide.md \
-  --dry-run \
-  custom_export.json
+  custom_export.json \
+  converted.robot
 ```
 
 ### Programmatic Usage
@@ -52,21 +71,35 @@ uv run importobot \
 from importobot.core.schema_parser import SchemaParser
 from importobot.api import converters
 
+# Parse the schema file
 schema_parser = SchemaParser()
 schema = schema_parser.parse_markdown("docs/field_guide.md")
 
-# Merge multiple sources if you have team-specific guides
-schema.update(schema_parser.parse_markdown("docs/backend_cheat_sheet.md"))
-
+# Create a converter with the custom schema
 converter = converters.JsonToRobotConverter(field_schema=schema)
-result = converter.convert_json_dict(payload)
+
+# Convert the file
+result = converter.convert_file("custom_export.json", "converted.robot")
 ```
 
-### Verification
+## API Integration
 
-- Watch for `SchemaParser` warnings on stdout/stderr; they flag missing files, unsupported extensions, or truncated content.
-- Use `--dry-run` to confirm parsed fields before writing Robot Framework output.
+Importobot can fetch test data directly from test management systems like Zephyr, TestRail, and JIRA/Xray.
 
-## Medallion workflow preview
+```python
+import os
+from importobot.integrations.clients import get_api_client, SupportedFormat
 
-The medallion optimization example lives in the [User Guide](User-Guide#medallion-workflow-example).
+# Get the appropriate API client
+client = get_api_client(
+    SupportedFormat.ZEPHYR,
+    api_url="https://zephyr.example.com",
+    tokens=[os.environ["ZEPHYR_TOKEN"]],
+    project_name="ENG-QA",
+)
+
+# Fetch the test data
+for page in client.fetch_all():
+    # Process each page of test data
+    process_page(page)
+```

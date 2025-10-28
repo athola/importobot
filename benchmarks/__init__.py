@@ -51,7 +51,7 @@ from .conversion import (
 
 __all__ = [
     # Conversion benchmarks
-    "ZephyrConversionSuite",
     "DirectoryConversionSuite",
     "ValidationSuite",
+    "ZephyrConversionSuite",
 ]
