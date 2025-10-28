@@ -59,7 +59,7 @@ jobs:
       run: make test-all
 
     - name: Upload test results
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       if: always()
       with:
         name: test-results-${{ matrix.python-version }}
@@ -131,7 +131,7 @@ jobs:
         cd scripts && uv run python -m importobot_scripts.benchmarks.run_bronze_benchmark --output performance-metrics/bronze_benchmark.json
 
     - name: Upload benchmark metrics
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       if: always()
       with:
         name: bronze-benchmark-metrics
