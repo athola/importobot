@@ -147,7 +147,7 @@ def mock_server():
         thread.join(timeout=1)
 
 
-def test_json_to_robot_selenium_execution(tmp_path, mock_server):
+def test_json_to_robot_selenium_execution(tmp_path, mock_server) -> None:
     """
     Full integration test: JSON -> Robot Framework -> Selenium execution.
 
@@ -275,7 +275,7 @@ def test_json_to_robot_selenium_execution(tmp_path, mock_server):
             pytest.fail("Robot file missing expected Selenium keywords")
 
 
-def test_json_to_robot_complex_selenium_workflow(tmp_path, mock_server):
+def test_json_to_robot_complex_selenium_workflow(tmp_path, mock_server) -> None:
     """
     Test complex Selenium workflow with multiple operations.
 

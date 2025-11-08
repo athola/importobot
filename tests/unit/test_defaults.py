@@ -20,7 +20,7 @@ from importobot.utils.defaults import (
 class TestDataDefaults:
     """Test DataDefaults dataclass."""
 
-    def test_default_values(self):
+    def test_default_values(self) -> None:
         """Test that DataDefaults has expected default values."""
         defaults = DataDefaults()
 
@@ -58,7 +58,7 @@ class TestDataDefaults:
         assert defaults.file.path == expected_path
         assert defaults.file.content == "test content"
 
-    def test_custom_values_with_dot_notation(self):
+    def test_custom_values_with_dot_notation(self) -> None:
         """Test that DataDefaults can be customized using dot notation."""
         custom_defaults = DataDefaults(
             **{
@@ -82,7 +82,7 @@ class TestDataDefaults:
 class TestProgressReportingConfig:
     """Test ProgressReportingConfig dataclass."""
 
-    def test_default_values(self):
+    def test_default_values(self) -> None:
         """Test that ProgressReportingConfig has expected default values."""
         config = ProgressReportingConfig()
 
@@ -95,7 +95,7 @@ class TestProgressReportingConfig:
         assert config.intent_cache_cleanup_threshold == 1024
         assert config.pattern_cache_limit == 256
 
-    def test_custom_values(self):
+    def test_custom_values(self) -> None:
         """Test that ProgressReportingConfig can be customized."""
         config = ProgressReportingConfig(
             progress_report_percentage=5,
@@ -113,7 +113,7 @@ class TestProgressReportingConfig:
 class TestKeywordPatterns:
     """Test KeywordPatterns dataclass."""
 
-    def test_default_values(self):
+    def test_default_values(self) -> None:
         """Test that KeywordPatterns has expected default values."""
         patterns = KeywordPatterns()
 
@@ -130,7 +130,7 @@ class TestKeywordPatterns:
 class TestLibraryMapping:
     """Test LibraryMapping dataclass."""
 
-    def test_default_values(self):
+    def test_default_values(self) -> None:
         """Test that LibraryMapping has expected default values."""
         mapping = LibraryMapping()
 
@@ -145,14 +145,14 @@ class TestLibraryMapping:
 class TestGetDefaultValue:
     """Test get_default_value function."""
 
-    def test_get_existing_values(self):
+    def test_get_existing_values(self) -> None:
         """Test getting existing default values."""
         assert get_default_value("web", "url") == "https://example.com"
         assert get_default_value("user", "username") == "testuser"
         assert get_default_value("ssh", "host") == "localhost"
         assert get_default_value("ssh", "port") == "22"  # Note: converted to string
 
-    def test_get_nonexistent_values(self):
+    def test_get_nonexistent_values(self) -> None:
         """Test getting non-existent default values."""
         assert (
             get_default_value(
@@ -167,7 +167,7 @@ class TestGetDefaultValue:
 class TestGetLibraryCanonicalName:
     """Test get_library_canonical_name function."""
 
-    def test_get_canonical_names(self):
+    def test_get_canonical_names(self) -> None:
         """Test getting canonical library names."""
         assert get_library_canonical_name("SeleniumLibrary") == "selenium"
         assert get_library_canonical_name("selenium") == "selenium"
@@ -180,7 +180,7 @@ class TestGetLibraryCanonicalName:
         assert get_library_canonical_name("BuiltIn") == "builtin"
         assert get_library_canonical_name("Built-in") == "builtin"
 
-    def test_get_unknown_library(self):
+    def test_get_unknown_library(self) -> None:
         """Test getting canonical name for unknown library."""
         assert get_library_canonical_name("UnknownLibrary") == "unknownlibrary"
         assert get_library_canonical_name("Custom") == "custom"
@@ -189,7 +189,7 @@ class TestGetLibraryCanonicalName:
 class TestConfigureDefaults:
     """Test configure_defaults function."""
 
-    def test_configure_with_dot_notation(self):
+    def test_configure_with_dot_notation(self) -> None:
         """Test configuring defaults with dot notation."""
         # Store original values
         original_url = TEST_DATA_DEFAULTS.web.url
@@ -212,7 +212,7 @@ class TestConfigureDefaults:
                 **{"web.url": original_url, "user.username": original_username}
             )
 
-    def test_configure_progress_config(self):
+    def test_configure_progress_config(self) -> None:
         """Test configuring progress configuration."""
         original_percentage = PROGRESS_CONFIG.progress_report_percentage
 
@@ -228,14 +228,14 @@ class TestConfigureDefaults:
 class TestGlobalInstances:
     """Test global configuration instances."""
 
-    def test_global_instances_exist(self):
+    def test_global_instances_exist(self) -> None:
         """Test that global instances are created."""
         assert isinstance(TEST_DATA_DEFAULTS, DataDefaults)
         assert isinstance(PROGRESS_CONFIG, ProgressReportingConfig)
         assert isinstance(KEYWORD_PATTERNS, KeywordPatterns)
         assert isinstance(LIBRARY_MAPPING, LibraryMapping)
 
-    def test_global_instances_have_default_values(self):
+    def test_global_instances_have_default_values(self) -> None:
         """Test that global instances have expected default values."""
         assert TEST_DATA_DEFAULTS.web.browser == "chrome"
         assert TEST_DATA_DEFAULTS.database.port == 5432

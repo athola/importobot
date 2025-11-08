@@ -7,11 +7,11 @@ class TestBuiltInKeywordSuggestions:
     """Test suite for suggestion engine handling of BuiltIn keyword ambiguities."""
 
     @property
-    def suggestion_engine(self):
+    def suggestion_engine(self) -> GenericSuggestionEngine:
         """Get suggestion engine instance."""
         return GenericSuggestionEngine()
 
-    def test_log_vs_assertion_ambiguity_suggestion(self):
+    def test_log_vs_assertion_ambiguity_suggestion(self) -> None:
         """Test suggestions for cases where Log vs assertion keywords are ambiguous."""
         test_data = {
             "name": "Ambiguous Log Test",
@@ -33,7 +33,7 @@ class TestBuiltInKeywordSuggestions:
             for keyword in ["clarify", "ambiguous", "log", "verify", "assertion"]
         )
 
-    def test_conversion_vs_assertion_ambiguity_suggestion(self):
+    def test_conversion_vs_assertion_ambiguity_suggestion(self) -> None:
         """Test suggestions for conversion vs assertion ambiguity."""
         test_data = {
             "name": "Conversion Ambiguity Test",
@@ -54,7 +54,7 @@ class TestBuiltInKeywordSuggestions:
         # This test documents the expected behavior
         assert isinstance(suggestions, list)
 
-    def test_length_operations_ambiguity_suggestion(self):
+    def test_length_operations_ambiguity_suggestion(self) -> None:
         """Test suggestions for length operations that could map to multiple "
         "keywords."""
         test_data = {
@@ -74,7 +74,7 @@ class TestBuiltInKeywordSuggestions:
         " ".join(suggestions).lower()
         assert isinstance(suggestions, list)
 
-    def test_string_operation_ambiguity_suggestion(self):
+    def test_string_operation_ambiguity_suggestion(self) -> None:
         """Test suggestions for string operations with multiple possible mappings."""
         test_data = {
             "name": "String Operations Test",
@@ -93,7 +93,7 @@ class TestBuiltInKeywordSuggestions:
         " ".join(suggestions).lower()
         assert isinstance(suggestions, list)
 
-    def test_variable_operation_ambiguity_suggestion(self):
+    def test_variable_operation_ambiguity_suggestion(self) -> None:
         """Test suggestions for variable operations."""
         test_data = {
             "name": "Variable Operations Test",
@@ -112,7 +112,7 @@ class TestBuiltInKeywordSuggestions:
         " ".join(suggestions).lower()
         assert isinstance(suggestions, list)
 
-    def test_conditional_keyword_ambiguity_suggestion(self):
+    def test_conditional_keyword_ambiguity_suggestion(self) -> None:
         """Test suggestions for conditional keyword mapping ambiguities."""
         test_data = {
             "name": "Conditional Test",
@@ -131,7 +131,7 @@ class TestBuiltInKeywordSuggestions:
         " ".join(suggestions).lower()
         assert isinstance(suggestions, list)
 
-    def test_evaluation_keyword_suggestion(self):
+    def test_evaluation_keyword_suggestion(self) -> None:
         """Test suggestions for Evaluate keyword usage."""
         test_data = {
             "name": "Evaluation Test",
@@ -150,7 +150,7 @@ class TestBuiltInKeywordSuggestions:
         " ".join(suggestions).lower()
         assert isinstance(suggestions, list)
 
-    def test_multiple_ambiguities_in_single_test(self):
+    def test_multiple_ambiguities_in_single_test(self) -> None:
         """Test suggestions when multiple ambiguous patterns exist in one test."""
         test_data = {
             "name": "Multiple Ambiguities Test",
@@ -180,7 +180,7 @@ class TestBuiltInKeywordSuggestions:
         # Each step might generate suggestions
         assert len(suggestions) >= 0  # May or may not have suggestions currently
 
-    def test_well_structured_test_minimal_suggestions(self):
+    def test_well_structured_test_minimal_suggestions(self) -> None:
         """Test that well-structured tests generate minimal suggestions."""
         test_data = {
             "name": "Well Structured Test",
@@ -232,7 +232,7 @@ class TestBuiltInKeywordSuggestions:
                 f"Found unexpected BuiltIn ambiguity: {keyword}"
             )
 
-    def test_edge_case_suggestions(self):
+    def test_edge_case_suggestions(self) -> None:
         """Test suggestions for edge cases and malformed inputs."""
         edge_cases = [
             {
@@ -262,7 +262,7 @@ class TestBuiltInKeywordSuggestions:
                     for keyword in ["missing", "empty", "add", "required"]
                 )
 
-    def test_builtin_keyword_specific_suggestions(self):
+    def test_builtin_keyword_specific_suggestions(self) -> None:
         """Test suggestions specifically for BuiltIn keyword usage patterns."""
         test_cases = [
             {
@@ -303,7 +303,7 @@ class TestBuiltInKeywordSuggestions:
             # Should provide suggestions for better BuiltIn keyword usage
             assert isinstance(suggestions, list)
 
-    def test_suggestion_priority_ordering(self):
+    def test_suggestion_priority_ordering(self) -> None:
         """Test that suggestions are ordered by priority/importance."""
         test_data = {
             "name": "Priority Test",

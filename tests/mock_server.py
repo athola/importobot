@@ -2,6 +2,7 @@
 
 import http.server
 import socketserver
+from typing import Any
 
 from importobot.config import TEST_SERVER_PORT
 
@@ -33,7 +34,7 @@ LOGIN_PAGE_HTML = """
 class MyHandler(http.server.SimpleHTTPRequestHandler):
     """A simple handler for the mock server."""
 
-    def do_GET(self):
+    def do_GET(self) -> None:
         """Handle GET requests for the mock server."""
         if self.path in {"/login.html", "/"}:
             self.send_response(200)
@@ -44,12 +45,12 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             super().do_GET()
 
     # pylint: disable=redefined-builtin,unused-argument
-    def log_message(self, format, *args):
+    def log_message(self, format: str, *args: Any) -> None:
         """Suppress default logging to keep test output clean."""
         return
 
 
-def start_mock_server(server_port=None):
+def start_mock_server(server_port: int | None = None) -> tuple[socketserver.TCPServer, int]:
     """Start the mock server.
 
     Args:
@@ -69,7 +70,7 @@ def start_mock_server(server_port=None):
     return server, actual_port
 
 
-def stop_mock_server(mock_server):
+def stop_mock_server(mock_server: socketserver.TCPServer) -> None:
     """Stop the mock server."""
     port = mock_server.server_address[1]
     mock_server.shutdown()
@@ -80,8 +81,8 @@ def stop_mock_server(mock_server):
 if __name__ == "__main__":
     # This part is for manual testing of the server
     # In actual tests, it will be run in a separate thread
-    test_server, test_port = start_mock_server()  # type: ignore[no-untyped-call]
+    test_server, test_port = start_mock_server()
     try:
         test_server.serve_forever()
     except KeyboardInterrupt:
-        stop_mock_server(test_server)  # type: ignore[no-untyped-call]
+        stop_mock_server(test_server)

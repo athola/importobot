@@ -38,7 +38,7 @@ from importobot.services.security_gateway import (
 )
 from importobot.services.security_types import SecurityLevel
 from importobot.telemetry import TelemetryClient, get_telemetry_client
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 from importobot.utils.validation import (
     ValidationError,
     validate_file_path,
@@ -46,7 +46,7 @@ from importobot.utils.validation import (
     validate_json_size,
 )
 
-logger = setup_logger(__name__)
+logger = get_logger(__name__)
 
 
 class _NullTelemetry:

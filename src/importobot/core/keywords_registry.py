@@ -126,23 +126,23 @@ class RobotFrameworkKeywordRegistry:
             "Open Connection": {
                 "args": ["host", "username", "password"],
                 "description": "Open SSH connection",
-                "security_warning": "⚠️  Use key-based auth instead of passwords",
+                "security_warning": "WARNING: Use key-based auth instead of passwords",
             },
             "Close Connection": {"args": [], "description": "Close SSH connection"},
             "Get File": {
                 "args": ["source", "destination"],
                 "description": "Download file via SSH",
-                "security_warning": "⚠️  Validate file paths to prevent dir traversal",
+                "security_warning": "Validate file paths to prevent dir traversal",
             },
             "Put File": {
                 "args": ["source", "destination"],
                 "description": "Upload file via SSH",
-                "security_warning": "⚠️  Validate destination paths and permissions",
+                "security_warning": "Validate destination paths and permissions",
             },
             "Execute Command": {
                 "args": ["command"],
                 "description": "Execute command via SSH",
-                "security_warning": "⚠️  Sanitize commands to prevent injection",
+                "security_warning": "WARNING: Sanitize commands to prevent injection",
             },
             "Login": {"args": ["username", "password"], "description": "Login to SSH"},
             "Login With Public Key": {

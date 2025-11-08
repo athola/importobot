@@ -465,19 +465,19 @@ class ConfidenceTestScenarios:
 
 # Pytest fixtures
 @pytest.fixture
-def format_test_generator():
+def format_test_generator() -> FormatTestDataGenerator:
     """Fixture providing access to FormatTestDataGenerator."""
     return FormatTestDataGenerator()
 
 
 @pytest.fixture
-def format_test_scenarios():
+def format_test_scenarios() -> FormatTestScenarios:
     """Fixture providing access to FormatTestScenarios."""
     return FormatTestScenarios()
 
 
 @pytest.fixture
-def confidence_test_scenarios():
+def confidence_test_scenarios() -> ConfidenceTestScenarios:
     """Fixture providing access to ConfidenceTestScenarios."""
     return ConfidenceTestScenarios()
 
@@ -491,68 +491,68 @@ def confidence_test_scenarios():
         SupportedFormat.GENERIC,
     ]
 )
-def all_supported_formats(request):
+def all_supported_formats(request: pytest.FixtureRequest) -> Any:
     """Parametrized fixture providing all supported formats."""
     return request.param
 
 
 @pytest.fixture(params=["minimal", "standard", "complex"])
-def format_complexity_levels(request):
+def format_complexity_levels(request: pytest.FixtureRequest) -> Any:
     """Parametrized fixture providing different complexity levels."""
     return request.param
 
 
 @pytest.fixture
-def minimal_format_examples(format_test_scenarios):
+def minimal_format_examples(format_test_scenarios: Any) -> Any:
     """Fixture providing minimal examples for all formats."""
     return format_test_scenarios.get_minimal_format_examples()
 
 
 @pytest.fixture
-def standard_format_examples(format_test_scenarios):
+def standard_format_examples(format_test_scenarios: Any) -> Any:
     """Fixture providing standard examples for all formats."""
     return format_test_scenarios.get_standard_format_examples()
 
 
 @pytest.fixture
-def complex_format_examples(format_test_scenarios):
+def complex_format_examples(format_test_scenarios: Any) -> Any:
     """Fixture providing complex examples for all formats."""
     return format_test_scenarios.get_complex_format_examples()
 
 
 @pytest.fixture
-def ambiguous_examples(format_test_scenarios):
+def ambiguous_examples(format_test_scenarios: Any) -> Any:
     """Fixture providing ambiguous test data examples."""
     return format_test_scenarios.get_ambiguous_examples()
 
 
 @pytest.fixture
-def malformed_examples(format_test_scenarios):
+def malformed_examples(format_test_scenarios: Any) -> Any:
     """Fixture providing malformed test data examples."""
     return format_test_scenarios.get_malformed_examples()
 
 
 @pytest.fixture
-def perfect_evidence_scenarios(confidence_test_scenarios):
+def perfect_evidence_scenarios(confidence_test_scenarios: Any) -> Any:
     """Fixture providing perfect evidence scenarios."""
     return confidence_test_scenarios.get_perfect_evidence_scenarios()
 
 
 @pytest.fixture
-def zero_evidence_scenarios(confidence_test_scenarios):
+def zero_evidence_scenarios(confidence_test_scenarios: Any) -> Any:
     """Fixture providing zero evidence scenarios."""
     return confidence_test_scenarios.get_zero_evidence_scenarios()
 
 
 @pytest.fixture
-def weak_evidence_scenarios(confidence_test_scenarios):
+def weak_evidence_scenarios(confidence_test_scenarios: Any) -> Any:
     """Fixture providing weak evidence scenarios."""
     return confidence_test_scenarios.get_weak_evidence_scenarios()
 
 
 # Performance test fixtures
 @pytest.fixture
-def performance_dataset_sizes():
+def performance_dataset_sizes() -> dict[str, dict[str, int]]:
     """Fixture providing different dataset sizes for performance testing."""
     return {
         "small": {"test_cases": 1, "steps": 5},
@@ -563,7 +563,7 @@ def performance_dataset_sizes():
 
 
 @pytest.fixture
-def confidence_thresholds():
+def confidence_thresholds() -> dict[str, float]:
     """Fixture providing confidence thresholds for testing."""
     return {
         "standard": MIN_FORMAT_CONFIDENCE_STANDARD,

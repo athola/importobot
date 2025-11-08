@@ -46,11 +46,11 @@ Roadmap of upcoming features, parked items, and ideas requiring proof-of-concept
 - Company C has Zephyr exports with embedded HTML that needs sanitization
 
 ### Q3 2025 — completed work
-- **✅ JSON template system**: Implemented blueprint-driven rendering with pattern learning capabilities.
-- **✅ Schema parser**: Created documentation-driven field mapping system.
-- **✅ File examples**: JSON test data covering scenarios like user login, file manipulation, and network configuration.
-- **✅ Bulk conversion polish**: Improved recursive directory handling and step mapping for large Zephyr exports.
-- **✅ Performance visibility**: Added timing metrics and I/O profiling for bottleneck identification.
+- ** JSON template system**: Implemented blueprint-driven rendering with pattern learning capabilities.
+- ** Schema parser**: Created documentation-driven field mapping system.
+- ** File examples**: JSON test data covering scenarios like user login, file manipulation, and network configuration.
+- ** Bulk conversion polish**: Improved recursive directory handling and step mapping for large Zephyr exports.
+- ** Performance visibility**: Added timing metrics and I/O profiling for bottleneck identification.
 
 ### Q4 2025 – Q1 2026 — queued next
 - REST surface for CI/CD. Request for a service wrapper instead of shell access, so prototype it once parsers are integrated.
@@ -108,7 +108,7 @@ Decision was made to layer Databricks-style Bronze → Silver → Gold design on
 
 ### Implementation Roadmap
 
-#### MR 1: Foundation & Bronze Layer (Core Infrastructure) ✅ COMPLETED
+#### MR 1: Foundation & Bronze Layer (Core Infrastructure)  COMPLETED
 **Scope**: Establish Medallion foundation and implement Bronze layer for raw data ingestion
 
 **Completed Tasks:**
@@ -349,8 +349,8 @@ Review of 90 test files identified opportunities to improve maintainability and 
 ### Implementation Phases
 
 **Phase 1 (Week 1)**
-- ✅ Create `test_constants.py`
-- ✅ Enhance `shared_test_data.py`
+-  Create `test_constants.py`
+-  Enhance `shared_test_data.py`
 - Convert 5 key test files to use constants
 - Convert temp directory creation to fixtures (13 files)
 

@@ -26,7 +26,7 @@ from benchmarks.conversion import (  # noqa: E402
 class TestZephyrConversionSuite:
     """Tests for ZephyrConversionSuite benchmark class."""
 
-    def test_setup_creates_all_files(self):
+    def test_setup_creates_all_files(self) -> None:
         """Verify setup creates simple, moderate, and complex test files."""
         suite = ZephyrConversionSuite()
         suite.setup()
@@ -43,7 +43,7 @@ class TestZephyrConversionSuite:
         finally:
             suite.teardown()
 
-    def test_teardown_removes_temp_directory(self):
+    def test_teardown_removes_temp_directory(self) -> None:
         """Verify teardown cleans up all temporary files."""
         suite = ZephyrConversionSuite()
         suite.setup()
@@ -53,7 +53,7 @@ class TestZephyrConversionSuite:
 
         assert not temp_dir.exists(), "Temp directory not cleaned up"
 
-    def test_simple_fixture_has_correct_structure(self):
+    def test_simple_fixture_has_correct_structure(self) -> None:
         """Verify simple Zephyr fixture has expected structure."""
         suite = ZephyrConversionSuite()
         suite.setup()
@@ -75,7 +75,7 @@ class TestZephyrConversionSuite:
         finally:
             suite.teardown()
 
-    def test_moderate_fixture_has_multiple_tests(self):
+    def test_moderate_fixture_has_multiple_tests(self) -> None:
         """Verify moderate fixture contains 20 test cases."""
         suite = ZephyrConversionSuite()
         suite.setup()
@@ -94,7 +94,7 @@ class TestZephyrConversionSuite:
         finally:
             suite.teardown()
 
-    def test_complex_fixture_has_metadata(self):
+    def test_complex_fixture_has_metadata(self) -> None:
         """Verify complex fixture includes rich metadata."""
         suite = ZephyrConversionSuite()
         suite.setup()
@@ -116,7 +116,7 @@ class TestZephyrConversionSuite:
         finally:
             suite.teardown()
 
-    def test_time_convert_simple_single_test_runs(self):
+    def test_time_convert_simple_single_test_runs(self) -> None:
         """Verify simple conversion benchmark runs without error."""
         suite = ZephyrConversionSuite()
         suite.setup()
@@ -128,7 +128,7 @@ class TestZephyrConversionSuite:
         finally:
             suite.teardown()
 
-    def test_time_convert_moderate_multiple_tests_runs(self):
+    def test_time_convert_moderate_multiple_tests_runs(self) -> None:
         """Verify moderate conversion benchmark runs without error."""
         suite = ZephyrConversionSuite()
         suite.setup()
@@ -139,7 +139,7 @@ class TestZephyrConversionSuite:
         finally:
             suite.teardown()
 
-    def test_time_convert_large_complex_suite_runs(self):
+    def test_time_convert_large_complex_suite_runs(self) -> None:
         """Verify large conversion benchmark runs without error."""
         suite = ZephyrConversionSuite()
         suite.setup()
@@ -150,7 +150,7 @@ class TestZephyrConversionSuite:
         finally:
             suite.teardown()
 
-    def test_peakmem_convert_large_suite_runs(self):
+    def test_peakmem_convert_large_suite_runs(self) -> None:
         """Verify memory profiling benchmark runs without error."""
         suite = ZephyrConversionSuite()
         suite.setup()
@@ -166,7 +166,7 @@ class TestDirectoryConversionSuite:
     """Tests for DirectoryConversionSuite benchmark class."""
 
     @pytest.mark.parametrize("num_files", [5, 10, 25])
-    def test_setup_creates_multiple_files(self, num_files):
+    def test_setup_creates_multiple_files(self, num_files) -> None:
         """Verify setup creates correct number of input files."""
         suite = DirectoryConversionSuite()
         suite.setup(num_files)
@@ -188,7 +188,7 @@ class TestDirectoryConversionSuite:
             suite.teardown(num_files)
 
     @pytest.mark.parametrize("num_files", [5])
-    def test_time_convert_directory_runs(self, num_files):
+    def test_time_convert_directory_runs(self, num_files) -> None:
         """Verify directory conversion benchmark runs (test with small count)."""
         suite = DirectoryConversionSuite()
         suite.setup(num_files)
@@ -202,7 +202,7 @@ class TestDirectoryConversionSuite:
         finally:
             suite.teardown(num_files)
 
-    def test_input_files_have_valid_structure(self):
+    def test_input_files_have_valid_structure(self) -> None:
         """Verify generated input files have valid test case structure."""
         suite = DirectoryConversionSuite()
         suite.setup(5)
@@ -223,7 +223,7 @@ class TestDirectoryConversionSuite:
 class TestValidationSuite:
     """Tests for ValidationSuite benchmark class."""
 
-    def test_setup_creates_valid_and_invalid_files(self):
+    def test_setup_creates_valid_and_invalid_files(self) -> None:
         """Verify setup creates both valid and invalid test fixtures."""
         suite = ValidationSuite()
         suite.setup()
@@ -239,7 +239,7 @@ class TestValidationSuite:
         finally:
             suite.teardown()
 
-    def test_valid_fixture_has_correct_structure(self):
+    def test_valid_fixture_has_correct_structure(self) -> None:
         """Verify valid fixture has proper test case structure."""
         suite = ValidationSuite()
         suite.setup()
@@ -255,7 +255,7 @@ class TestValidationSuite:
         finally:
             suite.teardown()
 
-    def test_invalid_missing_fixture_lacks_steps(self):
+    def test_invalid_missing_fixture_lacks_steps(self) -> None:
         """Verify invalid missing fields fixture is missing steps."""
         suite = ValidationSuite()
         suite.setup()
@@ -271,7 +271,7 @@ class TestValidationSuite:
         finally:
             suite.teardown()
 
-    def test_invalid_malformed_fixture_has_wrong_types(self):
+    def test_invalid_malformed_fixture_has_wrong_types(self) -> None:
         """Verify invalid malformed fixture has incorrect data types."""
         suite = ValidationSuite()
         suite.setup()
@@ -288,7 +288,7 @@ class TestValidationSuite:
         finally:
             suite.teardown()
 
-    def test_time_validate_valid_input_runs(self):
+    def test_time_validate_valid_input_runs(self) -> None:
         """Verify validation of valid input runs without error."""
         suite = ValidationSuite()
         suite.setup()
@@ -298,7 +298,7 @@ class TestValidationSuite:
         finally:
             suite.teardown()
 
-    def test_time_validate_invalid_input_runs(self):
+    def test_time_validate_invalid_input_runs(self) -> None:
         """Verify validation of invalid input runs (may fail gracefully)."""
         suite = ValidationSuite()
         suite.setup()
@@ -313,7 +313,7 @@ class TestValidationSuite:
 class TestConversionBenchmarkIntegration:
     """Integration tests across conversion benchmark suites."""
 
-    def test_all_suites_have_timeout(self):
+    def test_all_suites_have_timeout(self) -> None:
         """Verify all conversion suites define timeout attribute."""
         suites = [
             ZephyrConversionSuite,
@@ -328,7 +328,7 @@ class TestConversionBenchmarkIntegration:
             assert isinstance(suite_class.timeout, int | float)
             assert suite_class.timeout > 0
 
-    def test_parameterized_suite_configuration(self):
+    def test_parameterized_suite_configuration(self) -> None:
         """Verify DirectoryConversionSuite has correct parameter config."""
         suite = DirectoryConversionSuite
 
@@ -338,7 +338,7 @@ class TestConversionBenchmarkIntegration:
         assert suite.param_names[0] == "num_files"
         assert suite.params == [5, 10, 25]
 
-    def test_all_conversion_suites_follow_naming_convention(self):
+    def test_all_conversion_suites_follow_naming_convention(self) -> None:
         """Verify all conversion benchmarks follow ASV naming conventions."""
         suites = [
             ZephyrConversionSuite(),
@@ -352,7 +352,7 @@ class TestConversionBenchmarkIntegration:
                 f"{suite.__class__.__name__} has no time_ benchmark methods"
             )
 
-    def test_output_files_are_robot_format(self):
+    def test_output_files_are_robot_format(self) -> None:
         """Verify conversion creates .robot extension files."""
         suite = ZephyrConversionSuite()
         suite.setup()
@@ -364,7 +364,7 @@ class TestConversionBenchmarkIntegration:
         finally:
             suite.teardown()
 
-    def test_fixtures_scale_appropriately(self):
+    def test_fixtures_scale_appropriately(self) -> None:
         """Verify test fixtures have appropriate size scaling."""
         suite = ZephyrConversionSuite()
         suite.setup()
@@ -381,7 +381,7 @@ class TestConversionBenchmarkIntegration:
         finally:
             suite.teardown()
 
-    def test_all_suites_cleanup_properly(self):
+    def test_all_suites_cleanup_properly(self) -> None:
         """Verify all suites clean up their temporary resources."""
         suites: list[ZephyrConversionSuite | ValidationSuite] = [
             ZephyrConversionSuite(),

@@ -96,13 +96,13 @@ def validation_example() -> None:
         print(f"\nValidating test case {i}:")
         try:
             result = converter.convert_json_data(cast(dict[str, Any], test_case))
-            print("✅ Conversion successful")
+            print(" Conversion successful")
             # Show only first few lines of output
             lines = result.split("\n")[:5]
             print("Preview:", "\n".join(lines))
 
         except Exception as e:
-            print(f"❌ Validation failed: {e}")
+            print(f" Validation failed: {e}")
 
 
 def performance_example() -> None:
@@ -159,7 +159,7 @@ def performance_example() -> None:
         conversion_time = end_time - start_time
         lines_generated = len(result.split("\n"))
 
-        print(f"✅ Converted {size} tests in {conversion_time:.3f} seconds")
+        print(f" Converted {size} tests in {conversion_time:.3f} seconds")
         print(f"   Generated {lines_generated:,} lines of Robot Framework code")
         print(f"   Performance: {size / conversion_time:.1f} tests/second")
 
@@ -364,7 +364,7 @@ def enterprise_integration_example() -> None:
         result = converter.convert_json_data(enterprise_suite)
         conversion_time = time.time() - start_time
 
-        print(f"✅ Enterprise suite converted in {conversion_time:.3f} seconds")
+        print(f" Enterprise suite converted in {conversion_time:.3f} seconds")
 
         # Extract metrics
         test_cases = len(enterprise_suite["tests"])
@@ -388,7 +388,7 @@ def enterprise_integration_example() -> None:
         print(f"   Saved to: {enterprise_file}")
 
     except Exception as e:
-        print(f"❌ Enterprise conversion failed: {e}")
+        print(f" Enterprise conversion failed: {e}")
 
 
 def main() -> int:
@@ -413,7 +413,7 @@ def main() -> int:
         print("\nGenerated files:")
         if output_dir.exists():
             for file in output_dir.glob("*.robot"):
-                print(f"  📄 {file}")
+                print(f"  File: {file}")
 
     except Exception as e:
         print(f"\nError running advanced examples: {e}")

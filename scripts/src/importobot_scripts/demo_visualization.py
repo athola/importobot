@@ -9,11 +9,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
-import matplotlib  # type: ignore[import-untyped]
-import matplotlib.pyplot as plt  # type: ignore[import-untyped]
-from matplotlib import gridspec  # type: ignore[import-untyped]
-from matplotlib.axes import Axes  # type: ignore[import-untyped]
-from matplotlib.patches import FancyBboxPatch  # type: ignore[import-untyped]
+import matplotlib
+import matplotlib.pyplot as plt
+from matplotlib import gridspec
+from matplotlib.axes import Axes
+from matplotlib.patches import FancyBboxPatch
 
 
 @dataclass
@@ -52,7 +52,7 @@ class LineChartConfig:
     ylabel: str
     marker: str = "o"
     show_confidence: bool = False
-    confidence_bands: tuple | None = None
+    confidence_bands: tuple[float, float] | None = None
 
 
 def add_data_point_annotations(

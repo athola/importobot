@@ -28,7 +28,7 @@ from importobot.telemetry import (
 class TestPerformanceCacheTelemetry:
     """Integration tests for PerformanceCache telemetry."""
 
-    def test_performance_cache_emits_metrics_on_operations(self, telemetry_events):
+    def test_performance_cache_emits_metrics_on_operations(self, telemetry_events) -> None:
         """PerformanceCache should emit telemetry during normal operations."""
         cache = PerformanceCache(max_cache_size=100, ttl_seconds=0)
 
@@ -49,7 +49,7 @@ class TestPerformanceCacheTelemetry:
             assert "misses" in payload
             assert "hit_rate" in payload
 
-    def test_performance_cache_tracks_hit_rate_accurately(self):
+    def test_performance_cache_tracks_hit_rate_accurately(self) -> None:
         """Hit rate should accurately reflect cache performance."""
         cache = PerformanceCache(max_cache_size=100, ttl_seconds=0)
 
@@ -63,14 +63,14 @@ class TestPerformanceCacheTelemetry:
             cache.get_cached_string_lower(test_data)
 
         # Get final stats
-        stats = cache.get_cache_stats()
+        stats = cache.get_stats()
 
         # Should have 90% hit rate (9 hits, 1 miss)
         assert stats["cache_hits"] == 9
         assert stats["cache_misses"] == 1
         assert stats["hit_rate_percent"] == 90.0
 
-    def test_performance_cache_ttl_affects_metrics(self, monkeypatch):
+    def test_performance_cache_ttl_affects_metrics(self, monkeypatch) -> None:
         """TTL expiration should cause cache misses."""
         cache = PerformanceCache(max_cache_size=100, ttl_seconds=1)
 
@@ -78,11 +78,11 @@ class TestPerformanceCacheTelemetry:
 
         # First access
         cache.get_cached_string_lower(test_data)
-        initial_misses = cache.get_cache_stats()["cache_misses"]
+        initial_misses = cache.get_stats()["cache_misses"]
 
         # Access again immediately - should hit
         cache.get_cached_string_lower(test_data)
-        assert cache.get_cache_stats()["cache_hits"] == 1
+        assert cache.get_stats()["cache_hits"] == 1
 
         # Simulate time passing
         base_time = time.time()
@@ -92,11 +92,11 @@ class TestPerformanceCacheTelemetry:
 
         # Access after TTL - should miss
         cache.get_cached_string_lower(test_data)
-        final_misses = cache.get_cache_stats()["cache_misses"]
+        final_misses = cache.get_stats()["cache_misses"]
 
         assert final_misses > initial_misses
 
-    def test_performance_cache_size_limits_tracked(self):
+    def test_performance_cache_size_limits_tracked(self) -> None:
         """Cache size limits should be reflected in telemetry."""
         max_size = 5
         cache = PerformanceCache(max_cache_size=max_size, ttl_seconds=0)
@@ -105,7 +105,7 @@ class TestPerformanceCacheTelemetry:
         for i in range(max_size * 2):
             cache.get_cached_string_lower({"value": i})
 
-        stats = cache.get_cache_stats()
+        stats = cache.get_stats()
 
         # Cache should not exceed max size
         assert stats["string_cache_size"] <= max_size
@@ -115,7 +115,7 @@ class TestPerformanceCacheTelemetry:
 class TestFileContentCacheTelemetry:
     """Integration tests for FileContentCache telemetry."""
 
-    def test_file_cache_emits_metrics(self, tmp_path, telemetry_events):
+    def test_file_cache_emits_metrics(self, tmp_path, telemetry_events) -> None:
         """FileContentCache should emit telemetry during file operations."""
         cache = FileContentCache(max_size_mb=10, ttl_seconds=0)
 
@@ -136,7 +136,7 @@ class TestFileContentCacheTelemetry:
         ]
         assert len(cache_events) > 0
 
-    def test_file_cache_handles_file_changes(self, tmp_path):
+    def test_file_cache_handles_file_changes(self, tmp_path) -> None:
         """File modifications should invalidate cache and increase misses."""
         cache = FileContentCache(max_size_mb=10, ttl_seconds=0)
 
@@ -159,7 +159,7 @@ class TestFileContentCacheTelemetry:
         result = cache.get_cached_content(test_file)
         assert result is None  # Cache invalidated
 
-    def test_file_cache_respects_size_limits(self, tmp_path):
+    def test_file_cache_respects_size_limits(self, tmp_path) -> None:
         """Cache should evict entries when size limit is exceeded."""
         cache = FileContentCache(max_size_mb=1, ttl_seconds=0)  # Small limit
 
@@ -181,7 +181,7 @@ class TestFileContentCacheTelemetry:
 class TestOptimizationServiceTelemetry:
     """Integration tests for OptimizationService telemetry."""
 
-    def test_optimization_service_operations_emit_telemetry(self):
+    def test_optimization_service_operations_emit_telemetry(self) -> None:
         """OptimizationService should use performance cache with telemetry."""
         service = OptimizationService(cache_ttl_seconds=0)
 
@@ -206,7 +206,7 @@ class TestDataIngestionServiceTelemetry:
 
     def test_file_content_cache_emits_telemetry_directly(
         self, tmp_path, telemetry_events
-    ):
+    ) -> None:
         """FileContentCache used by DataIngestionService should emit telemetry."""
         # Test FileContentCache directly since full DataIngestionService
         # integration requires complex storage setup
@@ -231,7 +231,7 @@ class TestDataIngestionServiceTelemetry:
 class TestCrossCacheTelemetry:
     """Test telemetry when multiple caches are active."""
 
-    def test_multiple_caches_emit_separate_metrics(self, tmp_path, telemetry_events):
+    def test_multiple_caches_emit_separate_metrics(self, tmp_path, telemetry_events) -> None:
         """Different caches should emit independently tracked metrics."""
         perf_cache = PerformanceCache(max_cache_size=100, ttl_seconds=0)
         file_cache = FileContentCache(max_size_mb=10, ttl_seconds=0)
@@ -250,7 +250,7 @@ class TestCrossCacheTelemetry:
         assert "performance_cache" in cache_names
         assert "file_content_cache" in cache_names
 
-    def test_cache_metrics_dont_interfere(self):
+    def test_cache_metrics_dont_interfere(self) -> None:
         """Metrics from different caches should not interfere with each other."""
         cache1 = PerformanceCache(max_cache_size=100, ttl_seconds=0)
         cache2 = PerformanceCache(max_cache_size=50, ttl_seconds=0)
@@ -260,8 +260,8 @@ class TestCrossCacheTelemetry:
         cache2.get_cached_string_lower({"cache": 2})
 
         # Each cache should track its own stats
-        stats1 = cache1.get_cache_stats()
-        stats2 = cache2.get_cache_stats()
+        stats1 = cache1.get_stats()
+        stats2 = cache2.get_stats()
 
         assert stats1["cache_misses"] >= 1
         assert stats2["cache_misses"] >= 1
@@ -273,7 +273,7 @@ class TestCrossCacheTelemetry:
 class TestTelemetryRateLimitingIntegration:
     """Test rate limiting behavior in real-world scenarios."""
 
-    def test_high_frequency_cache_operations_throttled(self, monkeypatch):
+    def test_high_frequency_cache_operations_throttled(self, monkeypatch) -> None:
         """High-frequency operations should be throttled appropriately."""
         # Configure aggressive rate limiting
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")
@@ -300,7 +300,7 @@ class TestTelemetryRateLimitingIntegration:
         # Fewer than 50 events due to throttling
         assert len(events) < 50
 
-    def test_different_caches_independent_throttling(self, monkeypatch):
+    def test_different_caches_independent_throttling(self, monkeypatch) -> None:
         """Different cache names should have independent rate limiting."""
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")
         monkeypatch.setenv("IMPORTOBOT_TELEMETRY_MIN_SAMPLE_DELTA", "10")
@@ -327,7 +327,7 @@ class TestTelemetryRateLimitingIntegration:
 class TestTelemetryErrorResilience:
     """Test that telemetry failures don't crash services."""
 
-    def test_failing_exporter_doesnt_break_cache(self):
+    def test_failing_exporter_doesnt_break_cache(self) -> None:
         """Cache should continue working even if telemetry fails."""
 
         def failing_exporter(name, payload):
@@ -347,9 +347,9 @@ class TestTelemetryErrorResilience:
         # get_cached_string_lower returns str(data).lower()
         assert result1.lower() == str({"test": "data"}).lower()
         assert result2.lower() == str({"test": "data"}).lower()
-        assert cache.get_cache_stats()["cache_hits"] == 1
+        assert cache.get_stats()["cache_hits"] == 1
 
-    def test_telemetry_disabled_services_work_normally(self, monkeypatch, tmp_path):
+    def test_telemetry_disabled_services_work_normally(self, monkeypatch, tmp_path) -> None:
         """Services should work normally when telemetry is disabled."""
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "0")
         reset_telemetry_client()
@@ -371,7 +371,7 @@ class TestTelemetryErrorResilience:
 class TestTelemetryLifecycle:
     """Test telemetry initialization and cleanup."""
 
-    def test_telemetry_client_lifecycle(self, monkeypatch):
+    def test_telemetry_client_lifecycle(self, monkeypatch) -> None:
         """Test full lifecycle of telemetry client."""
         # Start disabled
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "0")
@@ -388,7 +388,7 @@ class TestTelemetryLifecycle:
         assert client2 is not None
         assert isinstance(client2, TelemetryClient)
 
-    def test_exporter_registration_survives_operations(self, monkeypatch):
+    def test_exporter_registration_survives_operations(self, monkeypatch) -> None:
         """Custom exporters should persist through cache operations."""
         custom_events: list[tuple[str, TelemetryPayload]] = []
 
@@ -409,7 +409,7 @@ class TestTelemetryLifecycle:
         # Custom exporter should have received events
         assert len(custom_events) > 0
 
-    def test_clear_exporters_resets_to_default(self, monkeypatch):
+    def test_clear_exporters_resets_to_default(self, monkeypatch) -> None:
         """Clearing exporters should restore default logger exporter."""
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")
         reset_telemetry_client()

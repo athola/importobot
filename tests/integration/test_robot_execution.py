@@ -1,6 +1,7 @@
 """Integration tests for Robot Framework execution and conversion logic."""
 
 import json
+from pathlib import Path
 
 from importobot.core.converter import convert_file
 from tests.test_helpers import (
@@ -9,7 +10,7 @@ from tests.test_helpers import (
 )
 
 
-def test_zephyr_to_robot_conversion_content_logic_only(tmp_path):
+def test_zephyr_to_robot_conversion_content_logic_only(tmp_path: Path) -> None:
     """
     Ensures that a .robot file generated from a specific Zephyr JSON
     matches the expected Robot Framework content (test case logic only).
@@ -65,7 +66,7 @@ Retrieve File From Remote Host
 # Step: Open an SSH connection and log in to the remote host.
 # Test Data: Remote Host: ${REMOTE_HOST}, Username: ${USERNAME},
 # Test Data (cont.): Password: ${PASSWORD}
-# ⚠️  Security Warning: Hardcoded password detected in test data
+# WARNING: Security Warning: Hardcoded password detected in test data
 # Expected Result: Successfully connected and logged in to the remote host.
 Open Connection    ${REMOTE_HOST}    ${USERNAME}    ${PASSWORD}
 # Step: Retrieve the specified file from the remote host.

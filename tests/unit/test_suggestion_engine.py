@@ -17,7 +17,7 @@ from importobot.core.suggestions.suggestion_engine import GenericSuggestionEngin
 class TestGenericSuggestionEngineInitialization:
     """Test GenericSuggestionEngine initialization."""
 
-    def test_suggestion_engine_initializes_correctly(self):
+    def test_suggestion_engine_initializes_correctly(self) -> None:
         """Test that suggestion engine initializes with all required components."""
         engine = GenericSuggestionEngine()
 
@@ -28,13 +28,13 @@ class TestGenericSuggestionEngineInitialization:
         assert hasattr(engine, "comparison_analyzer")
         assert hasattr(engine, "builtin_analyzer")
 
-    def test_suggestion_engine_implements_interface(self):
+    def test_suggestion_engine_implements_interface(self) -> None:
         """Test that GenericSuggestionEngine implements SuggestionEngine interface."""
 
         engine = GenericSuggestionEngine()
         assert isinstance(engine, SuggestionEngine)
 
-    def test_suggestion_engine_has_required_methods(self):
+    def test_suggestion_engine_has_required_methods(self) -> None:
         """Test that suggestion engine has required methods."""
         engine = GenericSuggestionEngine()
 
@@ -47,7 +47,7 @@ class TestGenericSuggestionEngineInitialization:
 class TestGetSuggestions:
     """Test get_suggestions method."""
 
-    def test_get_suggestions_with_dict_input(self):
+    def test_get_suggestions_with_dict_input(self) -> None:
         """Test get_suggestions with dictionary input."""
         engine = GenericSuggestionEngine()
         test_data = {
@@ -60,7 +60,7 @@ class TestGetSuggestions:
         assert isinstance(suggestions, list)
         assert len(suggestions) >= 1
 
-    def test_get_suggestions_with_list_input(self):
+    def test_get_suggestions_with_list_input(self) -> None:
         """Test get_suggestions with list input."""
         engine = GenericSuggestionEngine()
         test_data = [
@@ -71,7 +71,7 @@ class TestGetSuggestions:
         suggestions = engine.get_suggestions(test_data)
         assert isinstance(suggestions, list)
 
-    def test_get_suggestions_with_nested_tests(self):
+    def test_get_suggestions_with_nested_tests(self) -> None:
         """Test get_suggestions with nested test structure."""
         engine = GenericSuggestionEngine()
         test_data = {"tests": [{"name": "Test Case", "steps": []}]}
@@ -79,7 +79,7 @@ class TestGetSuggestions:
         suggestions = engine.get_suggestions(test_data)
         assert isinstance(suggestions, list)
 
-    def test_get_suggestions_with_test_cases_key(self):
+    def test_get_suggestions_with_test_cases_key(self) -> None:
         """Test get_suggestions with testCases key."""
         engine = GenericSuggestionEngine()
         test_data = {"testCases": [{"name": "Test Case", "steps": []}]}
@@ -87,7 +87,7 @@ class TestGetSuggestions:
         suggestions = engine.get_suggestions(test_data)
         assert isinstance(suggestions, list)
 
-    def test_get_suggestions_with_invalid_input(self):
+    def test_get_suggestions_with_invalid_input(self) -> None:
         """Test get_suggestions with invalid input."""
         engine = GenericSuggestionEngine()
 
@@ -96,7 +96,7 @@ class TestGetSuggestions:
         assert len(suggestions) == 1
         assert "Invalid JSON structure" in suggestions[0]
 
-    def test_get_suggestions_with_well_structured_data(self):
+    def test_get_suggestions_with_well_structured_data(self) -> None:
         """Test get_suggestions with well-structured data."""
         engine = GenericSuggestionEngine()
         test_data = {
@@ -116,7 +116,7 @@ class TestGetSuggestions:
         assert len(suggestions) >= 1
 
     @patch("importobot.core.suggestions.suggestion_engine.GenericTestFileParser")
-    def test_get_suggestions_handles_parser_errors(self, mock_parser_class):
+    def test_get_suggestions_handles_parser_errors(self, mock_parser_class: Mock) -> None:
         """Test that get_suggestions handles parser errors gracefully."""
         mock_parser = Mock()
         mock_parser.find_steps.side_effect = Exception("Parser error")
@@ -134,7 +134,7 @@ class TestGetSuggestions:
 class TestApplySuggestions:
     """Test apply_suggestions method."""
 
-    def test_apply_suggestions_with_dict_input(self):
+    def test_apply_suggestions_with_dict_input(self) -> None:
         """Test apply_suggestions with dictionary input."""
         engine = GenericSuggestionEngine()
         test_data: dict[str, Any] = {"steps": []}
@@ -145,7 +145,7 @@ class TestApplySuggestions:
         # Original data should not be modified
         assert "name" not in test_data
 
-    def test_apply_suggestions_with_list_input(self):
+    def test_apply_suggestions_with_list_input(self) -> None:
         """Test apply_suggestions with list input."""
         engine = GenericSuggestionEngine()
         test_data: list[dict[str, Any]] = [{"steps": []}, {"steps": []}]
@@ -155,7 +155,7 @@ class TestApplySuggestions:
         assert isinstance(changes, list)
         assert len(improved_data) == 2
 
-    def test_apply_suggestions_preserves_original_data(self):
+    def test_apply_suggestions_preserves_original_data(self) -> None:
         """Test that apply_suggestions doesn't modify original data."""
         engine = GenericSuggestionEngine()
         original_data: dict[str, Any] = {"steps": []}
@@ -168,7 +168,7 @@ class TestApplySuggestions:
         # But improved data might have additions
         assert isinstance(improved_data, dict)
 
-    def test_apply_suggestions_tracks_changes(self):
+    def test_apply_suggestions_tracks_changes(self) -> None:
         """Test that apply_suggestions tracks changes made."""
         engine = GenericSuggestionEngine()
         test_data: dict[str, Any] = {"steps": []}
@@ -182,7 +182,7 @@ class TestApplySuggestions:
         # Changes list should contain the modifications made
         assert all(isinstance(change, dict) for change in changes)
 
-    def test_apply_suggestions_with_nested_structure(self):
+    def test_apply_suggestions_with_nested_structure(self) -> None:
         """Test apply_suggestions with nested test structure."""
         engine = GenericSuggestionEngine()
         test_data: dict[str, Any] = {"tests": [{"steps": []}, {"steps": []}]}
@@ -192,7 +192,7 @@ class TestApplySuggestions:
         assert "tests" in improved_data
         assert len(improved_data["tests"]) == 2
 
-    def test_apply_suggestions_adds_hash_comparison_step(self):
+    def test_apply_suggestions_adds_hash_comparison_step(self) -> None:
         """Hash commands should trigger an auto-generated comparison step."""
         engine = GenericSuggestionEngine()
         test_data: list[dict[str, Any]] = [
@@ -239,7 +239,7 @@ class TestApplySuggestions:
         )
 
     @patch("importobot.core.suggestions.suggestion_engine.GenericTestFileParser")
-    def test_apply_suggestions_handles_errors(self, mock_parser_class):
+    def test_apply_suggestions_handles_errors(self, mock_parser_class: Mock) -> None:
         """Test that apply_suggestions handles errors appropriately."""
         mock_parser = Mock()
         mock_parser.find_steps.side_effect = Exception("Parser error")
@@ -255,7 +255,7 @@ class TestApplySuggestions:
 class TestPrivateMethods:
     """Test private helper methods."""
 
-    def test_extract_test_cases_with_list(self):
+    def test_extract_test_cases_with_list(self) -> None:
         """Test _extract_test_cases with list input."""
         engine = GenericSuggestionEngine()
         test_data = [{"name": "Test1"}, {"name": "Test2"}]
@@ -264,7 +264,7 @@ class TestPrivateMethods:
         result = engine._extract_test_cases(test_data)
         assert result == test_data
 
-    def test_extract_test_cases_with_dict_tests_key(self):
+    def test_extract_test_cases_with_dict_tests_key(self) -> None:
         """Test _extract_test_cases with dict containing tests key."""
         engine = GenericSuggestionEngine()
         test_data = {"tests": [{"name": "Test1"}]}
@@ -273,7 +273,7 @@ class TestPrivateMethods:
         result = engine._extract_test_cases(test_data)
         assert result == [{"name": "Test1"}]
 
-    def test_extract_test_cases_with_dict_test_cases_key(self):
+    def test_extract_test_cases_with_dict_test_cases_key(self) -> None:
         """Test _extract_test_cases with dict containing testCases key."""
         engine = GenericSuggestionEngine()
         test_data = {"testCases": [{"name": "Test1"}]}
@@ -282,7 +282,7 @@ class TestPrivateMethods:
         result = engine._extract_test_cases(test_data)
         assert result == [{"name": "Test1"}]
 
-    def test_extract_test_cases_with_single_test_dict(self):
+    def test_extract_test_cases_with_single_test_dict(self) -> None:
         """Test _extract_test_cases with single test case dict."""
         engine = GenericSuggestionEngine()
         test_data = {"name": "Single Test"}
@@ -291,7 +291,7 @@ class TestPrivateMethods:
         result = engine._extract_test_cases(test_data)
         assert result == [{"name": "Single Test"}]
 
-    def test_extract_test_cases_with_invalid_input(self):
+    def test_extract_test_cases_with_invalid_input(self) -> None:
         """Test _extract_test_cases with invalid input."""
         engine = GenericSuggestionEngine()
 
@@ -300,7 +300,7 @@ class TestPrivateMethods:
         assert isinstance(result, str)
         assert "Invalid JSON structure" in result
 
-    def test_extract_test_cases_for_improvement_matches_extract_test_cases(self):
+    def test_extract_test_cases_for_improvement_matches_extract_test_cases(self) -> None:
         """Test that both extraction methods behave consistently."""
         engine = GenericSuggestionEngine()
 
@@ -323,7 +323,7 @@ class TestPrivateMethods:
 class TestSuggestionEngineIntegration:
     """Test suggestion engine integration scenarios."""
 
-    def test_complete_suggestion_workflow(self):
+    def test_complete_suggestion_workflow(self) -> None:
         """Test complete workflow from suggestions to application."""
         engine = GenericSuggestionEngine()
         test_data = {"steps": [{"step": "Click login"}]}
@@ -344,7 +344,7 @@ class TestSuggestionEngineIntegration:
         # So we verify it's actually a list that can contain changes
         assert isinstance(changes, list)
 
-    def test_suggestion_engine_with_complex_test_data(self):
+    def test_suggestion_engine_with_complex_test_data(self) -> None:
         """Test suggestion engine with complex test structure."""
         engine = GenericSuggestionEngine()
         test_data = {
@@ -381,7 +381,7 @@ class TestSuggestionEngineIntegration:
         assert "testCases" in improved_data
         assert len(improved_data["testCases"]) == 2
 
-    def test_suggestion_engine_error_recovery(self):
+    def test_suggestion_engine_error_recovery(self) -> None:
         """Test that suggestion engine recovers gracefully from errors."""
         engine = GenericSuggestionEngine()
 

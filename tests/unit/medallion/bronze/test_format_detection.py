@@ -50,7 +50,7 @@ except ImportError as exc:  # pragma: no cover
 class TestFormatDetectionBusinessLogic(unittest.TestCase):
     """Business logic tests for format detection capabilities."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test environment with format detector."""
         self.detector = FormatDetector()
 
@@ -568,7 +568,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
         ]
 
     # Test 1: Zephyr format detection accuracy
-    def test_zephyr_format_detection_high_confidence(self):
+    def test_zephyr_format_detection_high_confidence(self) -> None:
         """Test that Zephyr formats are detected with high confidence."""
         for i, example in enumerate(self.zephyr_examples):
             with self.subTest(example_index=i):
@@ -584,7 +584,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
                     f"Low confidence ({confidence}) for Zephyr example {i}"
                 )
 
-    def test_zephyr_key_indicators_recognition(self):
+    def test_zephyr_key_indicators_recognition(self) -> None:
         """Test recognition of key Zephyr indicators."""
         # Test with minimal Zephyr structure
         minimal_zephyr = {"testCase": {"key": "TEST-1"}, "execution": {}}
@@ -597,7 +597,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
         assert detected == SupportedFormat.ZEPHYR
 
     # Test 2: TestLink format detection accuracy
-    def test_testlink_format_detection_high_confidence(self):
+    def test_testlink_format_detection_high_confidence(self) -> None:
         """Test that TestLink formats are detected with high confidence."""
         for i, example in enumerate(self.testlink_examples):
             with self.subTest(example_index=i):
@@ -613,7 +613,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
                     f"Low confidence ({confidence}) for TestLink example {i}"
                 )
 
-    def test_testlink_variations_detection(self):
+    def test_testlink_variations_detection(self) -> None:
         """Test detection of various TestLink structural variations."""
         # Single testsuite
         single_suite = {"testsuite": {"name": "Test", "testcase": []}}
@@ -628,7 +628,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
         assert self.detector.detect_format(junit_style) == SupportedFormat.TESTLINK
 
     # Test 3: JIRA/Xray format detection accuracy
-    def test_jira_xray_format_detection_high_confidence(self):
+    def test_jira_xray_format_detection_high_confidence(self) -> None:
         """Test that JIRA/Xray formats are detected with high confidence."""
         for i, example in enumerate(self.jira_xray_examples):
             with self.subTest(example_index=i):
@@ -644,7 +644,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
                     f"Low confidence ({confidence}) for JIRA/Xray example {i}"
                 )
 
-    def test_jira_key_pattern_recognition(self):
+    def test_jira_key_pattern_recognition(self) -> None:
         """Test recognition of JIRA issue key patterns.
 
         Note: With proper Bayesian inference, JIRA_XRAY's high prior (0.30) means
@@ -671,7 +671,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
         assert invalid_confidence < valid_confidence
 
     # Test 4: TestRail format detection accuracy
-    def test_testrail_format_detection_high_confidence(self):
+    def test_testrail_format_detection_high_confidence(self) -> None:
         """Test that TestRail formats are detected with high confidence."""
         for i, example in enumerate(self.testrail_examples):
             with self.subTest(example_index=i):
@@ -688,7 +688,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
                     f"Low confidence ({confidence}) for TestRail example {i}"
                 )
 
-    def test_testrail_api_structure_recognition(self):
+    def test_testrail_api_structure_recognition(self) -> None:
         """Test recognition of TestRail API response structures."""
         # Test with suite_id and project_id indicators
         testrail_cases = {
@@ -708,7 +708,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
         assert detected == SupportedFormat.TESTRAIL
 
     # Test 5: Generic format detection
-    def test_generic_format_detection_default(self):
+    def test_generic_format_detection_default(self) -> None:
         """Test that generic test structures are properly detected.
 
         Note: Generic format has low prior (0.04) by design, reflecting its rarity.
@@ -731,7 +731,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
                 )
 
     # Test 6: Format disambiguation
-    def test_format_disambiguation_accuracy(self):
+    def test_format_disambiguation_accuracy(self) -> None:
         """Test that similar formats are correctly distinguished."""
         # Zephyr vs JIRA/Xray disambiguation
         zephyr_data = {"testCase": {"key": "TEST-1"}, "execution": {}}
@@ -749,7 +749,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
         assert self.detector.detect_format(testlink_data) == SupportedFormat.TESTLINK
         assert self.detector.detect_format(generic_data) == SupportedFormat.GENERIC
 
-    def test_confidence_relative_scoring(self):
+    def test_confidence_relative_scoring(self) -> None:
         """Test that confidence scores correctly rank format likelihood."""
         # Create data that could match multiple formats
         ambiguous_data = {
@@ -790,7 +790,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
             ]
 
     # Test 7: Edge cases and error handling
-    def test_unknown_format_handling(self):
+    def test_unknown_format_handling(self) -> None:
         """Test proper handling of unrecognizable formats."""
         for example in self.ambiguous_examples:
             detected_format = self.detector.detect_format(example)
@@ -815,7 +815,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
                     )
                     assert confidence < MIN_FORMAT_CONFIDENCE_STANDARD, error_msg
 
-    def test_malformed_data_resilience(self):
+    def test_malformed_data_resilience(self) -> None:
         """Test resilience against malformed or unexpected data."""
         malformed_examples: list[Any] = [
             None,
@@ -843,7 +843,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
                 )
                 self.fail(error_msg)
 
-    def test_empty_data_handling(self):
+    def test_empty_data_handling(self) -> None:
         """Test handling of empty data structures."""
         empty_examples: list[dict[str, Any]] = [
             {},
@@ -859,7 +859,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
             assert detected in list(SupportedFormat)
 
     # Test 8: Performance requirements
-    def test_format_detection_performance(self):
+    def test_format_detection_performance(self) -> None:
         """Test that format detection performs reasonably on large data."""
         # Create large test dataset
         large_data = {
@@ -885,7 +885,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
             "Format detection took too long"
         )
 
-    def test_confidence_calculation_performance(self):
+    def test_confidence_calculation_performance(self) -> None:
         """Test that confidence calculation performs well."""
         data = self.zephyr_examples[0]
 
@@ -903,7 +903,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
         assert confidence >= MIN_FORMAT_CONFIDENCE_HIGH_QUALITY
 
     # Test 9: Extensibility and configuration
-    def test_supported_formats_enumeration(self):
+    def test_supported_formats_enumeration(self) -> None:
         """Test that all supported formats can be enumerated."""
         supported_formats = self.detector.get_supported_formats()
 
@@ -918,7 +918,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
         for expected_format in expected_formats:
             assert expected_format in supported_formats
 
-    def test_format_patterns_completeness(self):
+    def test_format_patterns_completeness(self) -> None:
         """Test that format patterns cover all expected scenarios."""
         # Each format should have comprehensive pattern coverage
         for format_type in [
@@ -936,7 +936,7 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
             )
 
     # Test 10: Real-world validation
-    def test_real_world_format_variations(self):
+    def test_real_world_format_variations(self) -> None:
         """Test detection on real-world format variations."""
         # Test with mixed case and extra fields
         real_world_zephyr = {

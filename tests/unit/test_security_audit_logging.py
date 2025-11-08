@@ -11,7 +11,7 @@ from importobot.utils.security import SecurityValidator, validate_test_security
 class TestSecurityAuditLogging:  # pylint: disable=attribute-defined-outside-init
     """Test security validation audit logging."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.validator = SecurityValidator(enable_audit_logging=True)
 
@@ -19,7 +19,7 @@ class TestSecurityAuditLogging:  # pylint: disable=attribute-defined-outside-ini
         self.mock_audit_logger = MagicMock()
         self.validator.audit_logger = self.mock_audit_logger
 
-    def test_audit_logging_setup(self):
+    def test_audit_logging_setup(self) -> None:
         """Test that audit logger is properly configured."""
         validator = SecurityValidator(enable_audit_logging=True)
 
@@ -27,7 +27,7 @@ class TestSecurityAuditLogging:  # pylint: disable=attribute-defined-outside-ini
         assert hasattr(validator, "audit_logger")
         assert validator.audit_logger is not None
 
-    def test_audit_logging_disabled(self):
+    def test_audit_logging_disabled(self) -> None:
         """Test that audit logging can be disabled."""
         validator = SecurityValidator(enable_audit_logging=False)
 
@@ -44,7 +44,7 @@ class TestSecurityAuditLogging:  # pylint: disable=attribute-defined-outside-ini
         mock_logger.warning.assert_not_called()
         mock_logger.error.assert_not_called()
 
-    def test_hardcoded_password_audit_logging(self):
+    def test_hardcoded_password_audit_logging(self) -> None:
         """Test audit logging for hardcoded password detection."""
         parameters = {"password": "secret123"}
 
@@ -67,7 +67,7 @@ class TestSecurityAuditLogging:  # pylint: disable=attribute-defined-outside-ini
 
         assert "HARDCODED_PASSWORD" in logged_events
 
-    def test_credential_exposure_audit_logging(self):
+    def test_credential_exposure_audit_logging(self) -> None:
         """Test audit logging for credential exposure."""
         parameters = {"password": "long_secret_password"}
 
@@ -90,7 +90,7 @@ class TestSecurityAuditLogging:  # pylint: disable=attribute-defined-outside-ini
 
         assert "CREDENTIAL_EXPOSURE" in logged_events
 
-    def test_dangerous_command_audit_logging(self):
+    def test_dangerous_command_audit_logging(self) -> None:
         """Test audit logging for dangerous command detection."""
         parameters = {"command": "rm -rf /tmp/test"}
 
@@ -113,7 +113,7 @@ class TestSecurityAuditLogging:  # pylint: disable=attribute-defined-outside-ini
 
         assert "DANGEROUS_COMMAND" in logged_events
 
-    def test_injection_pattern_audit_logging(self):
+    def test_injection_pattern_audit_logging(self) -> None:
         """Test audit logging for injection pattern detection."""
         parameters = {"param": "test; rm -rf /tmp"}
 
@@ -136,7 +136,7 @@ class TestSecurityAuditLogging:  # pylint: disable=attribute-defined-outside-ini
 
         assert "INJECTION_PATTERN" in logged_events
 
-    def test_sensitive_path_audit_logging(self):
+    def test_sensitive_path_audit_logging(self) -> None:
         """Test audit logging for sensitive path detection."""
         parameters = {"path": "/etc/passwd"}
 
@@ -159,7 +159,7 @@ class TestSecurityAuditLogging:  # pylint: disable=attribute-defined-outside-ini
 
         assert "SENSITIVE_PATH" in logged_events
 
-    def test_production_environment_audit_logging(self):
+    def test_production_environment_audit_logging(self) -> None:
         """Test audit logging for production environment detection."""
         parameters = {"env": "production", "host": "prod-server.example.com"}
 
@@ -182,7 +182,7 @@ class TestSecurityAuditLogging:  # pylint: disable=attribute-defined-outside-ini
 
         assert "PRODUCTION_ENVIRONMENT" in logged_events
 
-    def test_validation_start_and_complete_logging(self):
+    def test_validation_start_and_complete_logging(self) -> None:
         """Test that validation start and complete events are logged."""
         parameters = {"command": "ls -la"}
 
@@ -205,7 +205,7 @@ class TestSecurityAuditLogging:  # pylint: disable=attribute-defined-outside-ini
         assert "VALIDATION_START" in logged_events
         assert "VALIDATION_COMPLETE" in logged_events
 
-    def test_audit_log_structure(self):
+    def test_audit_log_structure(self) -> None:
         """Test that audit log entries have proper structure."""
         parameters = {"password": "test123"}
 
@@ -242,7 +242,7 @@ class TestSecurityAuditLogging:  # pylint: disable=attribute-defined-outside-ini
                 except json.JSONDecodeError:
                     pytest.fail("Audit log entry is not valid JSON")
 
-    def test_file_operations_audit_logging(self):
+    def test_file_operations_audit_logging(self) -> None:
         """Test audit logging for file operations validation."""
         # Test path traversal
         self.validator.validate_file_operations("../../etc/passwd", "read")
@@ -262,7 +262,7 @@ class TestSecurityAuditLogging:  # pylint: disable=attribute-defined-outside-ini
         # Verify audit log was called for destructive operation
         self.mock_audit_logger.warning.assert_called()
 
-    def test_comprehensive_test_case_audit_logging(self):
+    def test_comprehensive_test_case_audit_logging(self) -> None:
         """Test audit logging for comprehensive test case validation."""
         test_case = {
             "name": "SSH Test",
@@ -287,7 +287,7 @@ class TestSecurityAuditLogging:  # pylint: disable=attribute-defined-outside-ini
         assert self.mock_audit_logger.warning.call_count >= 1  # Various warnings
         assert self.mock_audit_logger.error.call_count >= 1  # High-risk events
 
-    def test_audit_log_performance_timing(self):
+    def test_audit_log_performance_timing(self) -> None:
         """Test that audit logging includes performance timing."""
         parameters = {"command": "echo 'test'"}
 
@@ -317,7 +317,7 @@ class TestSecurityAuditLogging:  # pylint: disable=attribute-defined-outside-ini
             # Allow for floating point precision
             assert abs(complete_events[0]["details"]["duration_ms"] - 100.0) < 0.001
 
-    def test_risk_level_assignment(self):
+    def test_risk_level_assignment(self) -> None:
         """Test that risk levels are properly assigned in audit logs."""
         # Test HIGH risk events
         parameters = {"password": "secret123", "command": "rm -rf /tmp"}
@@ -341,7 +341,7 @@ class TestSecurityAuditLogging:  # pylint: disable=attribute-defined-outside-ini
         assert "CREDENTIAL_EXPOSURE" in high_risk_events
         assert "DANGEROUS_COMMAND" in high_risk_events
 
-    def test_audit_log_with_sensitive_data_sanitization(self):
+    def test_audit_log_with_sensitive_data_sanitization(self) -> None:
         """Test that sensitive data is properly sanitized in audit logs."""
         parameters = {"password": "very_long_secret_password_that_should_be_sanitized"}
 

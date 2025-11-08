@@ -14,7 +14,7 @@ from importobot.core.multi_command_parser import MultiCommandParser
 class TestBasicMultiStepParsing:
     """Test basic mapping of single JSON steps to multiple Robot Framework commands."""
 
-    def test_user_registration_form_parsing(self):
+    def test_user_registration_form_parsing(self) -> None:
         """Test that user registration step generates multiple input commands."""
         # Test multi-command parsing from user registration step
         parser = MultiCommandParser()
@@ -26,7 +26,7 @@ class TestBasicMultiStepParsing:
         assert "email" in result
         assert "password" in result
 
-    def test_login_form_parsing_with_username_password(self):
+    def test_login_form_parsing_with_username_password(self) -> None:
         """Test login form with username and password fields."""
         generator = GenericKeywordGenerator()
         step = {
@@ -40,7 +40,7 @@ class TestBasicMultiStepParsing:
         expected_keywords = [
             "    # Step: Enter login credentials",
             "    # Test Data: username: admin, password: secret123",
-            "    # ⚠️  Security Warning: Hardcoded password detected in test data",
+            "    # WARNING: Hardcoded password detected in test data",
             "    # Expected Result: Credentials entered successfully",
             "    Input Text    id=username    admin",
             "    Input Password    id=password    secret123",
@@ -48,7 +48,7 @@ class TestBasicMultiStepParsing:
 
         assert result == expected_keywords
 
-    def test_multiple_text_fields_parsing(self):
+    def test_multiple_text_fields_parsing(self) -> None:
         """Test step with multiple text input fields."""
         generator = GenericKeywordGenerator()
         step = {
@@ -70,7 +70,7 @@ class TestBasicMultiStepParsing:
 
         assert result == expected_keywords
 
-    def test_hash_comparison_operation_generates_keywords(self):
+    def test_hash_comparison_operation_generates_keywords(self) -> None:
         """Hash comparison steps should expand into comparison commands."""
         parser = MultiCommandParser()
         description = "Verify hash outputs are equal for source.txt and target.txt"
@@ -101,7 +101,7 @@ class TestBasicMultiStepParsing:
 class TestComplexRealWorldScenarios:
     """Test complex real-world scenarios that mirror actual usage."""
 
-    def test_complete_user_registration_workflow(self):
+    def test_complete_user_registration_workflow(self) -> None:
         """Test complete user registration with all typical fields."""
         generator = GenericKeywordGenerator()
 
@@ -133,7 +133,7 @@ class TestComplexRealWorldScenarios:
         assert "Input Text" in result_text
         assert "Input Password" in result_text
 
-    def test_ecommerce_checkout_form(self):
+    def test_ecommerce_checkout_form(self) -> None:
         """Test e-commerce checkout form with payment and shipping details."""
         generator = GenericKeywordGenerator()
 
@@ -166,7 +166,7 @@ class TestComplexRealWorldScenarios:
 class TestEdgeCasesAndErrorHandling:
     """Test edge cases, error handling, and robustness scenarios."""
 
-    def test_parse_data_with_special_characters(self):
+    def test_parse_data_with_special_characters(self) -> None:
         """Test parsing data containing special characters."""
 
         parser = MultiCommandParser()
@@ -184,7 +184,7 @@ class TestEdgeCasesAndErrorHandling:
 
         assert parsed_data == expected
 
-    def test_parse_data_with_nested_colons(self):
+    def test_parse_data_with_nested_colons(self) -> None:
         """Test parsing data with nested colons in values."""
 
         parser = MultiCommandParser()
@@ -200,7 +200,7 @@ class TestEdgeCasesAndErrorHandling:
 
         assert parsed_data == expected
 
-    def test_parser_handles_none_input_gracefully(self):
+    def test_parser_handles_none_input_gracefully(self) -> None:
         """Test parser handles None input without crashing."""
 
         parser = MultiCommandParser()
@@ -215,7 +215,7 @@ class TestEdgeCasesAndErrorHandling:
         commands = parser.generate_robot_commands({}, {})
         assert not commands
 
-    def test_parser_handles_empty_dict_gracefully(self):
+    def test_parser_handles_empty_dict_gracefully(self) -> None:
         """Test parser handles empty dictionaries gracefully."""
 
         parser = MultiCommandParser()
@@ -229,7 +229,7 @@ class TestEdgeCasesAndErrorHandling:
         # Should not trigger multi-command generation
         assert not parser.should_generate_multiple_commands("test description", {})
 
-    def test_keyword_generator_handles_missing_fields(self):
+    def test_keyword_generator_handles_missing_fields(self) -> None:
         """Test keyword generator handles steps with missing fields."""
         generator = GenericKeywordGenerator()
 
@@ -245,7 +245,7 @@ class TestEdgeCasesAndErrorHandling:
         result = generator.generate_step_keywords(step)
         assert isinstance(result, list)
 
-    def test_malformed_test_data_handling(self):
+    def test_malformed_test_data_handling(self) -> None:
         """Test handling of malformed test data."""
 
         parser = MultiCommandParser()
@@ -263,24 +263,24 @@ class TestEdgeCasesAndErrorHandling:
             result = parser.parse_test_data(test_data)
             assert isinstance(result, dict)  # Should always return dict
 
-    def test_unicode_and_special_encoding_handling(self):
+    def test_unicode_and_special_encoding_handling(self) -> None:
         """Test handling of unicode and special character encoding."""
 
         parser = MultiCommandParser()
 
-        unicode_data = "name: José María, city: São Paulo, emoji: 🚀, chinese: 测试"
+        unicode_data = "name: José María, city: São Paulo, emoji: , chinese: 测试"
         result = parser.parse_test_data(unicode_data)
 
         assert result["name"] == "José María"
         assert result["city"] == "São Paulo"
-        assert result["emoji"] == "🚀"
+        assert result["emoji"] == ""
         assert result["chinese"] == "测试"
 
 
 class TestContextAnalysisAndSuggestions:
     """Test context analysis across multiple steps for intelligent suggestions."""
 
-    def test_hash_calculation_suggestion(self):
+    def test_hash_calculation_suggestion(self) -> None:
         """Test that hash calculation steps suggest comparison step."""
         generator = GenericKeywordGenerator()
 
@@ -310,7 +310,7 @@ class TestContextAnalysisAndSuggestions:
         assert hash_suggestions[0]["description"] == "Hash values should be compared"
         assert hash_suggestions[0]["position"] == "after_step_2"
 
-    def test_database_transaction_suggestions(self):
+    def test_database_transaction_suggestions(self) -> None:
         """Test database transaction lifecycle suggestions."""
         generator = GenericKeywordGenerator()
 
@@ -338,7 +338,7 @@ class TestContextAnalysisAndSuggestions:
 class TestEnhancedStepParser:
     """Test enhanced step parser implementation."""
 
-    def test_parse_comma_separated_data(self):
+    def test_parse_comma_separated_data(self) -> None:
         """Test parsing comma-separated test data."""
 
         parser = MultiCommandParser()
@@ -350,7 +350,7 @@ class TestEnhancedStepParser:
 
         assert parsed_data == expected
 
-    def test_detect_input_field_types(self):
+    def test_detect_input_field_types(self) -> None:
         """Test detection of input field types from parsed data."""
 
         parser = MultiCommandParser()
@@ -373,7 +373,7 @@ class TestEnhancedStepParser:
 
         assert field_types == expected
 
-    def test_generate_robot_commands_from_parsed_data(self):
+    def test_generate_robot_commands_from_parsed_data(self) -> None:
         """Test generation of Robot Framework commands from parsed data."""
 
         parser = MultiCommandParser()
@@ -394,7 +394,7 @@ class TestEnhancedStepParser:
 class TestPerformanceAndScalability:
     """Test performance characteristics and scalability limits."""
 
-    def test_large_form_parsing_performance(self):
+    def test_large_form_parsing_performance(self) -> None:
         """Test parsing performance with very large forms."""
         generator = GenericKeywordGenerator()
 
@@ -417,7 +417,7 @@ class TestPerformanceAndScalability:
         assert isinstance(result, list)
         assert len(result) > 0
 
-    def test_complex_nested_data_structures(self):
+    def test_complex_nested_data_structures(self) -> None:
         """Test handling of complex nested data structures."""
 
         parser = MultiCommandParser()
@@ -438,7 +438,7 @@ class TestPerformanceAndScalability:
 class TestCredentialCompositeIntent:
     """Test credential composite intent expansion (Smart Intent Expansion)."""
 
-    def test_enter_credentials_without_testdata(self):
+    def test_enter_credentials_without_testdata(self) -> None:
         """Test 'Enter credentials' without testData generates variable placeholders."""
         generator = GenericKeywordGenerator()
 
@@ -458,7 +458,7 @@ class TestCredentialCompositeIntent:
         assert any("${USERNAME}" in line for line in result)
         assert any("${PASSWORD}" in line for line in result)
 
-    def test_credential_variations_without_testdata(self):
+    def test_credential_variations_without_testdata(self) -> None:
         """Test various credential entry phrases without testData."""
         generator = GenericKeywordGenerator()
 
@@ -490,7 +490,7 @@ class TestCredentialCompositeIntent:
             assert "${USERNAME}" in result_text
             assert "${PASSWORD}" in result_text
 
-    def test_credentials_with_structured_testdata_uses_multicommandparser(self):
+    def test_credentials_with_structured_testdata_uses_multicommandparser(self) -> None:
         """Test that structured testData takes priority over composite intent."""
         generator = GenericKeywordGenerator()
 
@@ -511,7 +511,7 @@ class TestCredentialCompositeIntent:
         assert "${USERNAME}" not in result_text
         assert "${PASSWORD}" not in result_text
 
-    def test_credential_intent_generates_correct_robot_keywords(self):
+    def test_credential_intent_generates_correct_robot_keywords(self) -> None:
         """Test credential composite intent generates proper Robot Framework syntax."""
         generator = GenericKeywordGenerator()
 
@@ -543,7 +543,7 @@ class TestCredentialCompositeIntent:
         assert "id=password" in keyword_lines[1]
         assert "${PASSWORD}" in keyword_lines[1]
 
-    def test_credential_intent_preserves_traceability_comments(self):
+    def test_credential_intent_preserves_traceability_comments(self) -> None:
         """Test that credential composite intent preserves step documentation."""
         generator = GenericKeywordGenerator()
 
@@ -560,7 +560,7 @@ class TestCredentialCompositeIntent:
         assert "# Step: Enter enterprise credentials" in result_text
         assert "# Expected Result: User authenticated successfully" in result_text
 
-    def test_non_credential_steps_not_affected(self):
+    def test_non_credential_steps_not_affected(self) -> None:
         """Test that non-credential steps continue to work normally."""
         generator = GenericKeywordGenerator()
 

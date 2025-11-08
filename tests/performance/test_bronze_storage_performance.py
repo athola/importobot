@@ -53,7 +53,7 @@ class TestBronzeStoragePerformance:
         throughput = record_count / max(elapsed, 1e-6)
         return throughput, elapsed
 
-    def test_bulk_ingestion_meets_throughput_requirements(self):
+    def test_bulk_ingestion_meets_throughput_requirements(self) -> None:
         """Test bulk ingestion can handle 1000 records in reasonable time.
 
         Business Requirement: QA team imports 1000+ test cases from Zephyr.
@@ -109,7 +109,7 @@ class TestBronzeStoragePerformance:
                 f"(elapsed {elapsed_time:.2f}s, warm-up {calibration_elapsed:.2f}s)"
             )
 
-    def test_query_response_time_meets_ui_requirements(self):
+    def test_query_response_time_meets_ui_requirements(self) -> None:
         """Test query response time meets UI responsiveness requirements.
 
         Business Requirement: UI displays test results within 25ms.
@@ -148,7 +148,7 @@ class TestBronzeStoragePerformance:
             # Verify correct number of records
             assert len(records) == 100
 
-    def test_filter_dispatch_query_performance(self):
+    def test_filter_dispatch_query_performance(self) -> None:
         """Filter-based queries should respond within business threshold."""
         with tempfile.TemporaryDirectory() as temp_dir:
             storage_config = {"base_path": str(Path(temp_dir) / "storage")}
@@ -205,7 +205,7 @@ class TestBronzeStoragePerformance:
             )
             assert len(zephyr_records) == zephyr_count
 
-    def test_pagination_performance_scales_linearly(self):
+    def test_pagination_performance_scales_linearly(self) -> None:
         """Test pagination performance scales linearly with data size.
 
         Business Requirement: Large datasets should paginate efficiently.
@@ -260,7 +260,7 @@ class TestBronzeStoragePerformance:
             assert len(records_100) == 50
             assert len(records_200) == 50
 
-    def test_concurrent_read_performance(self):
+    def test_concurrent_read_performance(self) -> None:
         """Test concurrent reads don't significantly degrade performance.
 
         Business Requirement: Multiple users querying simultaneously.
@@ -296,7 +296,7 @@ class TestBronzeStoragePerformance:
             # Concurrent reads
             results = []
 
-            def read_records():
+            def read_records() -> None:
                 records = bronze_layer.get_bronze_records(limit=25)
                 results.append(len(records))
 
@@ -321,7 +321,7 @@ class TestBronzeStoragePerformance:
             assert len(results) == 4
             assert all(count == 25 for count in results)
 
-    def test_retrieval_time_stable_with_increasing_data(self):
+    def test_retrieval_time_stable_with_increasing_data(self) -> None:
         """Test retrieval time remains stable as dataset grows.
 
         Business Requirement: System performance shouldn't degrade over time.
@@ -372,7 +372,7 @@ class TestBronzeStoragePerformance:
                     "(incremental metadata caching)"
                 )
 
-    def test_empty_storage_query_performance(self):
+    def test_empty_storage_query_performance(self) -> None:
         """Test empty storage queries are fast.
 
         Business Requirement: New system startup should be responsive.
@@ -399,7 +399,7 @@ class TestBronzeStoragePerformance:
             )
             assert len(records) == 0
 
-    def test_large_dataset_scalability(self):
+    def test_large_dataset_scalability(self) -> None:
         """Test system handles large datasets (1000+ records).
 
         Business Requirement: Enterprise customers have large test suites.

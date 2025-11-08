@@ -591,7 +591,7 @@ class ComprehensivePerformanceBenchmark:
             BenchmarkType.CACHE in benchmark_types
             or BenchmarkType.ALL in benchmark_types
         ):
-            print("🔧 Running cache performance benchmarks...")
+            print("Running cache performance benchmarks...")
             results["cache_performance"] = {
                 "cleanup": self.cache_benchmark.benchmark_cache_cleanup(),
                 "operations": self.cache_benchmark.benchmark_cache_operations(),
@@ -601,7 +601,7 @@ class ComprehensivePerformanceBenchmark:
             BenchmarkType.CONTEXT in benchmark_types
             or BenchmarkType.ALL in benchmark_types
         ):
-            print("🔧 Running context registry benchmarks...")
+            print("Running context registry benchmarks...")
             results["context_performance"] = (
                 self.context_benchmark.benchmark_context_registry()
             )
@@ -610,7 +610,7 @@ class ComprehensivePerformanceBenchmark:
             BenchmarkType.CONVERSION in benchmark_types
             or BenchmarkType.ALL in benchmark_types
         ):
-            print("🔧 Running conversion performance benchmarks...")
+            print("Running conversion performance benchmarks...")
             results["conversion_performance"] = {
                 "single_file": self.conversion_benchmark.benchmark_single_conversion(
                     complexity=complexity, iterations=iterations
@@ -624,7 +624,7 @@ class ComprehensivePerformanceBenchmark:
         """Format benchmark results for display."""
         output = []
         output.append("=" * 70)
-        output.append("🚀 IMPORTOBOT COMPREHENSIVE PERFORMANCE BENCHMARK RESULTS")
+        output.append(" IMPORTOBOT COMPREHENSIVE PERFORMANCE BENCHMARK RESULTS")
         output.append("=" * 70)
         output.append(f"Timestamp: {results['timestamp']}")
         output.append(f"Types: {', '.join(results['benchmark_types'])}")
@@ -632,7 +632,7 @@ class ComprehensivePerformanceBenchmark:
 
         # Format cache results
         if "cache_performance" in results:
-            output.append("📈 CACHE PERFORMANCE")
+            output.append(" CACHE PERFORMANCE")
             output.append("-" * 50)
 
             # Cleanup results
@@ -672,7 +672,7 @@ class ComprehensivePerformanceBenchmark:
 
         # Format context results
         if "context_performance" in results:
-            output.append("📊 CONTEXT REGISTRY PERFORMANCE")
+            output.append(" CONTEXT REGISTRY PERFORMANCE")
             output.append("-" * 50)
 
             context_results = results["context_performance"]
@@ -696,7 +696,7 @@ class ComprehensivePerformanceBenchmark:
 
         # Format conversion results
         if "conversion_performance" in results:
-            output.append("⚡ CONVERSION PERFORMANCE")
+            output.append(" CONVERSION PERFORMANCE")
             output.append("-" * 50)
 
             conv_results = results["conversion_performance"]
@@ -740,12 +740,12 @@ class ComprehensivePerformanceBenchmark:
             output.append("")
 
         # Performance targets
-        output.append("🎯 PERFORMANCE TARGETS")
+        output.append(" PERFORMANCE TARGETS")
         output.append("-" * 50)
-        output.append("✅ Cache cleanup: < 5μs per entry at scale")
-        output.append("✅ Context cleanup: < 50ms even with 500+ threads")
-        output.append("✅ Single file conversion: < 100ms for medium complexity")
-        output.append("✅ Lazy loading: > 50% improvement over cold start")
+        output.append(" Cache cleanup: < 5μs per entry at scale")
+        output.append(" Context cleanup: < 50ms even with 500+ threads")
+        output.append(" Single file conversion: < 100ms for medium complexity")
+        output.append(" Lazy loading: > 50% improvement over cold start")
 
         return "\n".join(output)
 
@@ -788,7 +788,7 @@ def main() -> None:
 
     # Run benchmarks
     benchmark = ComprehensivePerformanceBenchmark()
-    print("🔧 Running Importobot Comprehensive Performance Benchmarks...")
+    print("Running Importobot Comprehensive Performance Benchmarks...")
 
     try:
         results = benchmark.run_benchmarks(
@@ -806,10 +806,10 @@ def main() -> None:
 
         print(f"\n📁 Detailed results saved to: {args.output}")
         print("=" * 70)
-        print("✅ All benchmarks completed successfully!")
+        print(" All benchmarks completed successfully!")
 
     except Exception as e:
-        print(f"\n❌ Benchmark failed with error: {e}")
+        print(f"\n Benchmark failed with error: {e}")
         raise
 
 

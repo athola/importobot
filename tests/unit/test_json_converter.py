@@ -20,7 +20,7 @@ from tests.shared_test_data import (
 class TestJsonToRobotConverterPublicAPI:
     """Tests for JsonToRobotConverter through public API."""
 
-    def test_converter_instantiation(self):
+    def test_converter_instantiation(self) -> None:
         """Test that converter can be instantiated via public API."""
         converter = JsonToRobotConverter()
         assert converter is not None
@@ -29,7 +29,7 @@ class TestJsonToRobotConverterPublicAPI:
         assert hasattr(converter, "convert_json_string")
         assert callable(converter.convert_json_string)
 
-    def test_convert_json_string_empty_input(self):
+    def test_convert_json_string_empty_input(self) -> None:
         """Test convert_json_string with empty input."""
         converter = JsonToRobotConverter()
 
@@ -39,7 +39,7 @@ class TestJsonToRobotConverterPublicAPI:
         with pytest.raises(exceptions.ValidationError):
             converter.convert_json_string("   ")
 
-    def test_convert_json_string_invalid_json(self):
+    def test_convert_json_string_invalid_json(self) -> None:
         """Test convert_json_string with invalid JSON."""
         converter = JsonToRobotConverter()
 
@@ -49,7 +49,7 @@ class TestJsonToRobotConverterPublicAPI:
         with pytest.raises(exceptions.ParseError):
             converter.convert_json_string("{invalid: json}")
 
-    def test_convert_json_string_non_dict_json(self):
+    def test_convert_json_string_non_dict_json(self) -> None:
         """Test convert_json_string with non-dict JSON."""
         converter = JsonToRobotConverter()
 
@@ -59,7 +59,7 @@ class TestJsonToRobotConverterPublicAPI:
         with pytest.raises(exceptions.ValidationError):
             converter.convert_json_string('"simple string"')
 
-    def test_convert_json_string_minimal_test_case(self):
+    def test_convert_json_string_minimal_test_case(self) -> None:
         """Test convert_json_string with minimal valid test case."""
         converter = JsonToRobotConverter()
 
@@ -72,7 +72,7 @@ class TestJsonToRobotConverterPublicAPI:
         assert "Simple Test" in result
         assert "*** Test Cases ***" in result
 
-    def test_convert_json_string_enterprise_test_case(self):
+    def test_convert_json_string_enterprise_test_case(self) -> None:
         """Test convert_json_string with enterprise-scale test case."""
         converter = JsonToRobotConverter()
 
@@ -92,7 +92,7 @@ class TestJsonToRobotConverterPublicAPI:
         assert "*** Test Cases ***" in result
         assert "[Documentation]" in result
 
-    def test_convert_json_string_bulk_conversion_characteristics(self):
+    def test_convert_json_string_bulk_conversion_characteristics(self) -> None:
         """Test that conversion supports bulk processing characteristics.
 
         Business Requirement: Handle hundreds/thousands of test cases in single batch.
@@ -161,7 +161,7 @@ class TestJsonToRobotConverterPublicAPI:
         )
         assert high_priority_count > 0, "Priority metadata not preserved in bulk"
 
-    def test_enterprise_scale_bulk_conversion_1000_plus_test_cases(self):
+    def test_enterprise_scale_bulk_conversion_1000_plus_test_cases(self) -> None:
         """Test conversion at true enterprise scale: 1000+ test cases.
 
         Business Requirement: Enterprise migrations involve thousands of test cases.
@@ -264,7 +264,7 @@ class TestJsonToRobotConverterPublicAPI:
         assert len(priorities_found) > 0, "Priority metadata lost in bulk processing"
         assert len(categories_found) > 0, "Category metadata lost in bulk processing"
 
-    def test_bulk_conversion_error_recovery_and_reporting(self):
+    def test_bulk_conversion_error_recovery_and_reporting(self) -> None:
         """Test error recovery and reporting in bulk conversion operations.
 
         Business Requirement: Fail-fast with clear error reporting.
@@ -339,7 +339,7 @@ class TestJsonToRobotConverterPublicAPI:
                 f"Successful conversion {index} missing test name"
             )
 
-    def test_convert_json_string_error_handling_for_automation(self):
+    def test_convert_json_string_error_handling_for_automation(self) -> None:
         """Test error handling suitable for automated pipelines."""
         converter = JsonToRobotConverter()
 
@@ -354,7 +354,7 @@ class TestJsonToRobotConverterPublicAPI:
             with pytest.raises(expected_exception):
                 converter.convert_json_string(test_input)
 
-    def test_convert_json_string_production_ready_output(self):
+    def test_convert_json_string_production_ready_output(self) -> None:
         """Test that output is production-ready Robot Framework."""
         converter = JsonToRobotConverter()
 
@@ -385,7 +385,7 @@ class TestJsonToRobotConverterPublicAPI:
         lines = result.split("\n")
         assert any(line.strip().startswith("Production Test") for line in lines)
 
-    def test_converter_handles_special_characters(self):
+    def test_converter_handles_special_characters(self) -> None:
         """Test converter handles special characters for international use."""
         converter = JsonToRobotConverter()
 
@@ -397,7 +397,7 @@ class TestJsonToRobotConverterPublicAPI:
         assert "special characters: åäöüß" in result
         assert "Enter special data: éñü" in result
 
-    def test_converter_memory_efficiency_for_large_input(self):
+    def test_converter_memory_efficiency_for_large_input(self) -> None:
         """Test converter memory efficiency with large test cases."""
         converter = JsonToRobotConverter()
 
@@ -435,7 +435,7 @@ class TestJsonToRobotConverterPublicAPI:
 class TestBusinessLogicAlignment:
     """Test that converter aligns with business logic requirements."""
 
-    def test_bulk_conversion_business_case(self):
+    def test_bulk_conversion_business_case(self) -> None:
         """Test bulk conversion aligns with business requirements."""
         converter = JsonToRobotConverter()
 
@@ -478,7 +478,7 @@ class TestBusinessLogicAlignment:
         # Business requirement: 100% conversion success rate
         assert successful_conversions == len(zephyr_style_tests)
 
-    def test_no_manual_intervention_required(self):
+    def test_no_manual_intervention_required(self) -> None:
         """Test that conversion requires no manual intervention."""
         converter = JsonToRobotConverter()
 
@@ -524,7 +524,7 @@ class TestBusinessLogicAlignment:
         # Should use variables properly (enterprise requirement)
         assert "${DB_CONNECTION}" in result
 
-    def test_enterprise_metadata_preservation(self):
+    def test_enterprise_metadata_preservation(self) -> None:
         """Ensure enterprise metadata is preserved in Robot Framework output.
 
         Business Requirement: Maintain all test metadata for audit and compliance

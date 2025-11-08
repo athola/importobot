@@ -8,11 +8,11 @@ class TestBuiltInKeywordsCoverage:
     keywords."""
 
     @property
-    def generator(self):
+    def generator(self) -> GenericKeywordGenerator:
         """Get keyword generator instance."""
         return GenericKeywordGenerator()
 
-    def test_log_keyword_mapping(self):
+    def test_log_keyword_mapping(self) -> None:
         """Test mapping of log intentions to Log keyword."""
         # Basic logging
         step_data = {"step": "log message", "test_data": "Test message"}
@@ -26,7 +26,7 @@ class TestBuiltInKeywordsCoverage:
         # Should map to Log keyword for generic log messages
         assert "Log" in keyword_line or "No Operation" in keyword_line
 
-    def test_convert_to_keywords_mapping(self):
+    def test_convert_to_keywords_mapping(self) -> None:
         """Test mapping of conversion intentions to Convert To X keywords."""
         test_cases = [
             {
@@ -67,7 +67,7 @@ class TestBuiltInKeywordsCoverage:
                 test_case["expected_keyword"] in keyword_line
             )  # BuiltIn keywords now work
 
-    def test_variable_keywords_mapping(self):
+    def test_variable_keywords_mapping(self) -> None:
         """Test mapping of variable operations to Set/Get Variable keywords."""
         test_cases = [
             {
@@ -107,7 +107,7 @@ class TestBuiltInKeywordsCoverage:
                 ]
             )
 
-    def test_length_operations_mapping(self):
+    def test_length_operations_mapping(self) -> None:
         """Test mapping of length operations to Get Length keyword."""
         test_cases = [
             {"description": "get length of list", "test_data": "list: [1, 2, 3]"},
@@ -143,7 +143,7 @@ class TestBuiltInKeywordsCoverage:
                 ]
             )
 
-    def test_conditional_keywords_mapping(self):
+    def test_conditional_keywords_mapping(self) -> None:
         """Test mapping of conditional operations to Run Keyword If and related
         keywords."""
         test_cases = [
@@ -187,7 +187,7 @@ class TestBuiltInKeywordsCoverage:
                 ]
             )
 
-    def test_evaluation_keywords_mapping(self):
+    def test_evaluation_keywords_mapping(self) -> None:
         """Test mapping of evaluation operations to Evaluate keyword."""
         test_cases = [
             {"description": "evaluate expression", "test_data": "expression: 2 + 3"},
@@ -218,7 +218,7 @@ class TestBuiltInKeywordsCoverage:
             # defaults
             assert len(keyword_line.strip()) > 0  # Should generate some keyword
 
-    def test_collection_operations_mapping(self):
+    def test_collection_operations_mapping(self) -> None:
         """Test mapping of collection operations to appropriate BuiltIn keywords."""
         test_cases = [
             {
@@ -259,7 +259,7 @@ class TestBuiltInKeywordsCoverage:
                 ]
             )
 
-    def test_string_operations_mapping(self):
+    def test_string_operations_mapping(self) -> None:
         """Test mapping of string operations to BuiltIn string keywords."""
         test_cases = [
             {
@@ -295,7 +295,7 @@ class TestBuiltInKeywordsCoverage:
             # defaults
             assert len(keyword_line.strip()) > 0  # Should generate some keyword
 
-    def test_type_checking_keywords_mapping(self):
+    def test_type_checking_keywords_mapping(self) -> None:
         """Test mapping of type checking operations to Should Be X Type keywords."""
         test_cases = [
             {"description": "should be integer", "test_data": "value: ${number}"},
@@ -319,7 +319,7 @@ class TestBuiltInKeywordsCoverage:
             # defaults
             assert len(keyword_line.strip()) > 0  # Should generate some keyword
 
-    def test_keyword_existence_verification(self):
+    def test_keyword_existence_verification(self) -> None:
         """Test mapping of keyword existence checks."""
         test_cases = [
             {
@@ -351,7 +351,7 @@ class TestBuiltInKeywordsCoverage:
             # defaults
             assert len(keyword_line.strip()) > 0  # Should generate some keyword
 
-    def test_fail_keyword_mapping(self):
+    def test_fail_keyword_mapping(self) -> None:
         """Test mapping of failure operations to Fail keyword."""
         test_cases = [
             {"description": "fail test", "test_data": "message: Test failed"},
@@ -377,7 +377,7 @@ class TestBuiltInKeywordsCoverage:
             # defaults
             assert len(keyword_line.strip()) > 0  # Should generate some keyword
 
-    def test_ambiguous_keyword_scenarios(self):
+    def test_ambiguous_keyword_scenarios(self) -> None:
         """Test scenarios where keyword mapping could be ambiguous."""
         ambiguous_cases = [
             {
@@ -423,7 +423,7 @@ class TestBuiltInKeywordsCoverage:
                 f"Expected valid keyword or suggestions in: {keyword_line}"
             )
 
-    def test_edge_cases_for_builtin_keywords(self):
+    def test_edge_cases_for_builtin_keywords(self) -> None:
         """Test edge cases that might cause issues with BuiltIn keyword mapping."""
         edge_cases = [
             {"description": "", "test_data": "", "expected": ""},  # Empty inputs
@@ -451,7 +451,7 @@ class TestBuiltInKeywordsCoverage:
             assert isinstance(keywords, list)
             assert len(keywords) > 0
 
-    def test_existing_assertion_coverage(self):
+    def test_existing_assertion_coverage(self) -> None:
         """Test that existing assertion patterns still work correctly."""
         # These should continue to work as they do now
         existing_patterns = [
@@ -482,7 +482,7 @@ class TestBuiltInKeywordsCoverage:
             ][-1]
             assert pattern["expected_keyword"] in keyword_line
 
-    def test_keyword_priority_resolution(self):
+    def test_keyword_priority_resolution(self) -> None:
         """Test how keyword mapping resolves priority when multiple patterns match."""
         priority_test_cases = [
             {

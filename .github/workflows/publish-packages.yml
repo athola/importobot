@@ -50,7 +50,7 @@ jobs:
     - name: PyPI Token Missing
       if: ${{ startsWith(github.ref, 'refs/tags/v') && steps.detect-token.outputs.present == 'false' }}
       run: |
-        echo "⚠️  PYPI_API_TOKEN secret not configured"
+        echo "WARNING: PYPI_API_TOKEN secret not configured"
         echo "To enable PyPI publishing:"
         echo "1. Go to https://pypi.org/manage/account/token/"
         echo "2. Create a new API token for this project"
@@ -59,6 +59,6 @@ jobs:
 
     - name: GitHub Packages Info
       run: |
-        echo "ℹ️  GitHub Packages does not support Python/PyPI packages"
+        echo "INFO: GitHub Packages does not support Python/PyPI packages"
         echo "Python packages are published to PyPI only"
         echo "For other package types, see: https://docs.github.com/en/packages"

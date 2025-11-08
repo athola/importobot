@@ -228,7 +228,7 @@ def test_client_uses_honest_user_agent(monkeypatch: pytest.MonkeyPatch) -> None:
         return session
 
     monkeypatch.setattr(
-        "importobot.integrations.clients.requests.Session", mock_session
+        "importobot.integrations.clients.base.requests.Session", mock_session
     )
 
     JiraXrayClient(
@@ -270,7 +270,7 @@ def test_jira_xray_client_paginates(monkeypatch: pytest.MonkeyPatch) -> None:
 
     session = DummySession(responses)
     monkeypatch.setattr(
-        "importobot.integrations.clients.requests.Session", lambda: session
+        "importobot.integrations.clients.base.requests.Session", lambda: session
     )
 
     client = JiraXrayClient(
@@ -301,7 +301,7 @@ def test_jira_xray_client_accepts_project_id(monkeypatch: pytest.MonkeyPatch) ->
 
     session = DummySession(responses)
     monkeypatch.setattr(
-        "importobot.integrations.clients.requests.Session", lambda: session
+        "importobot.integrations.clients.base.requests.Session", lambda: session
     )
 
     client = JiraXrayClient(
@@ -336,11 +336,11 @@ def test_client_retries_on_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
     ]
     session = DummySession(responses)
     monkeypatch.setattr(
-        "importobot.integrations.clients.requests.Session", lambda: session
+        "importobot.integrations.clients.base.requests.Session", lambda: session
     )
     sleep_calls: list[float] = []
     monkeypatch.setattr(
-        "importobot.integrations.clients.time.sleep", sleep_calls.append
+        "importobot.integrations.clients.base.time.sleep", sleep_calls.append
     )
 
     client = JiraXrayClient(
@@ -368,10 +368,10 @@ def test_client_raises_after_retry_budget(monkeypatch: pytest.MonkeyPatch) -> No
     ]
     session = DummySession(responses)
     monkeypatch.setattr(
-        "importobot.integrations.clients.requests.Session", lambda: session
+        "importobot.integrations.clients.base.requests.Session", lambda: session
     )
     monkeypatch.setattr(
-        "importobot.integrations.clients.time.sleep", lambda seconds: None
+        "importobot.integrations.clients.base.time.sleep", lambda seconds: None
     )
 
     client = JiraXrayClient(
@@ -405,7 +405,7 @@ def test_testrail_client_uses_offset(monkeypatch: pytest.MonkeyPatch) -> None:
     ]
     session = DummySession(responses)
     monkeypatch.setattr(
-        "importobot.integrations.clients.requests.Session", lambda: session
+        "importobot.integrations.clients.base.requests.Session", lambda: session
     )
 
     client = TestRailClient(
@@ -439,7 +439,7 @@ def test_testlink_client_posts_commands(monkeypatch: pytest.MonkeyPatch) -> None
     ]
     session = DummySession(responses)
     monkeypatch.setattr(
-        "importobot.integrations.clients.requests.Session", lambda: session
+        "importobot.integrations.clients.base.requests.Session", lambda: session
     )
 
     client = TestLinkClient(
@@ -699,7 +699,7 @@ def test_zephyr_client_discovers_two_stage_strategy(
     )
 
     monkeypatch.setattr(
-        "importobot.integrations.clients.requests.Session", lambda: session
+        "importobot.integrations.clients.base.requests.Session", lambda: session
     )
 
     client = ZephyrClient(
@@ -828,10 +828,10 @@ class TestCircuitBreaker:
         ]
         session = DummySession(responses)
         monkeypatch.setattr(
-            "importobot.integrations.clients.requests.Session", lambda: session
+            "importobot.integrations.clients.base.requests.Session", lambda: session
         )
         monkeypatch.setattr(
-            "importobot.integrations.clients.time.sleep", lambda seconds: None
+            "importobot.integrations.clients.base.time.sleep", lambda seconds: None
         )
 
         client = JiraXrayClient(
@@ -869,13 +869,13 @@ class TestCircuitBreaker:
 
         session = DummySession(responses)
         monkeypatch.setattr(
-            "importobot.integrations.clients.requests.Session", lambda: session
+            "importobot.integrations.clients.base.requests.Session", lambda: session
         )
 
         # Track time.sleep calls to simulate circuit breaker timeout
         sleep_times: list[float] = []
         monkeypatch.setattr(
-            "importobot.integrations.clients.time.sleep", sleep_times.append
+            "importobot.integrations.clients.base.time.sleep", sleep_times.append
         )
 
         client = JiraXrayClient(
@@ -908,10 +908,10 @@ class TestCircuitBreaker:
 
         session = DummySession(responses)
         monkeypatch.setattr(
-            "importobot.integrations.clients.requests.Session", lambda: session
+            "importobot.integrations.clients.base.requests.Session", lambda: session
         )
         monkeypatch.setattr(
-            "importobot.integrations.clients.time.sleep", lambda seconds: None
+            "importobot.integrations.clients.base.time.sleep", lambda seconds: None
         )
 
         client = JiraXrayClient(
@@ -943,7 +943,7 @@ class TestCustomErrorHandlers:
         ]
         session = DummySession(responses)
         monkeypatch.setattr(
-            "importobot.integrations.clients.requests.Session", lambda: session
+            "importobot.integrations.clients.base.requests.Session", lambda: session
         )
 
         errors_captured: list[dict[str, Any]] = []
@@ -983,7 +983,7 @@ class TestCustomErrorHandlers:
         ]
         session = DummySession(responses)
         monkeypatch.setattr(
-            "importobot.integrations.clients.requests.Session", lambda: session
+            "importobot.integrations.clients.base.requests.Session", lambda: session
         )
 
         errors_captured: list[dict[str, Any]] = []
@@ -1022,7 +1022,7 @@ class TestCustomErrorHandlers:
         ]
         session = DummySession(responses)
         monkeypatch.setattr(
-            "importobot.integrations.clients.requests.Session", lambda: session
+            "importobot.integrations.clients.base.requests.Session", lambda: session
         )
 
         def suppressing_handler(error_info: dict[str, Any]) -> bool:

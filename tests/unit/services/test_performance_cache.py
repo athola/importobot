@@ -1,7 +1,6 @@
 """Tests for performance and file content caches."""
 
 import time
-from pathlib import Path
 
 import pytest
 
@@ -29,14 +28,14 @@ class TestPerformanceCacheTTL:
         second = cache.get_cached_string_lower(payload)
         assert second == str(payload).lower()
         # TTL expiration should force a cache miss then reinsert, so hit count resets
-        assert cache.get_cache_stats()["cache_hits"] == 0
+        assert cache.get_stats()["cache_hits"] == 0
 
 
 class TestFileContentCacheTTL:
     """Ensure file content cache respects TTL."""
 
     def test_file_cache_ttl_expires(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+        self, tmp_path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Test that file content cache entries expire after TTL."""
         cache = FileContentCache(ttl_seconds=1)
@@ -74,7 +73,7 @@ class TestCacheTelemetry:
 
     def test_file_content_cache_emits_telemetry(
         self,
-        tmp_path: Path,
+        tmp_path,
         telemetry_events: list[tuple[str, dict[str, object]]],
     ) -> None:
         """Test that file content cache emits telemetry events."""

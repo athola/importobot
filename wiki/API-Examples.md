@@ -1,6 +1,6 @@
 # API Examples
 
-This page provides detailed API usage examples for Importobot.
+This page provides examples for using Importobot's API.
 
 ## Basic Conversion
 
@@ -9,10 +9,7 @@ This page provides detailed API usage examples for Importobot.
 ```python
 import importobot
 
-# Create a converter instance
 converter = importobot.JsonToRobotConverter()
-
-# Convert a single file
 summary = converter.convert_file("zephyr_export.json", "output.robot")
 
 print(f"Converted {summary['test_cases']} test cases")
@@ -24,10 +21,7 @@ print(f"Output written to {summary['output_file']}")
 ```python
 import importobot
 
-# Create a converter instance
 converter = importobot.JsonToRobotConverter()
-
-# Convert a directory of files
 result = converter.convert_directory("./exports/", "./robot_tests/")
 
 print(f"Processed {result['files_processed']} files")
@@ -44,7 +38,6 @@ Importobot can fetch test data directly from test management systems like Zephyr
 ```python
 from importobot.integrations.clients import get_api_client, SupportedFormat
 
-# Get the Zephyr API client
 client = get_api_client(
     SupportedFormat.ZEPHYR,
     api_url="https://your-zephyr.example.com",
@@ -52,7 +45,6 @@ client = get_api_client(
     project_name="PROJECT_KEY",
 )
 
-# Fetch all test cases from the project
 test_cases = []
 for payload in client.fetch_all():
     test_cases.extend(payload.get('testCases', []))
@@ -65,7 +57,6 @@ print(f"Retrieved {len(test_cases)} test cases")
 ```python
 from importobot.integrations.clients import get_api_client, SupportedFormat
 
-# Get the TestRail API client
 client = get_api_client(
     SupportedFormat.TESTRAIL,
     api_url="https://testrail.example.com/api/v2",
@@ -74,14 +65,11 @@ client = get_api_client(
     project_name="QA",
 )
 
-# Fetch a specific test run
 run_data = client.fetch_run(run_id=42)
 
-# Convert the test run to Robot Framework
 converter = importobot.JsonToRobotConverter()
 result = converter.convert_json_dict(run_data)
 
-# Save the result to a file
 with open("testrail_suite.robot", "w") as f:
     f.write(result)
 ```
@@ -90,34 +78,30 @@ with open("testrail_suite.robot", "w") as f:
 
 ### Schema-Driven Conversion
 
-For test exports with custom field names, you can provide a schema file to map the custom names to the standard ones expected by Importobot.
+For test exports with custom field names, provide a schema file to map custom names to Importobot's standard ones.
 
 ```python
 import importobot
 from importobot.core.schema_parser import SchemaParser
 
-# Parse your organization's documentation
 schema_parser = SchemaParser()
 field_definitions = schema_parser.parse_markdown("docs/test_field_guide.md")
 
-# Use the schema for better field mapping
 converter = importobot.JsonToRobotConverter(field_schema=field_definitions)
 result = converter.convert_file("export.json", "output.robot")
 ```
 
 ### Template-Based Conversion
 
-Importobot can learn from your existing Robot Framework files to ensure that new conversions are consistent with your team's style.
+Importobot can learn from your existing Robot Framework files to ensure new conversions match your team's style.
 
 ```python
 import importobot
 from importobot.core.templates.blueprints import BlueprintManager
 
-# Load templates from your existing Robot files
 blueprint_manager = BlueprintManager()
 blueprint_manager.learn_from_directory("./existing_robot_tests/")
 
-# Convert using the learned patterns
 converter = importobot.JsonToRobotConverter(blueprint_manager=blueprint_manager)
 result = converter.convert_file("new_export.json", "converted.robot")
 ```
@@ -126,7 +110,7 @@ result = converter.convert_file("new_export.json", "converted.robot")
 
 ### Input Validation
 
-You can use the `validation` module to validate your JSON data before conversion.
+Use the `validation` module to validate your JSON data before conversion.
 
 ```python
 from importobot.api import validation
@@ -140,7 +124,7 @@ except validation.ValidationError as e:
 
 ### Improvement Suggestions
 
-The `suggestions` module can be used to identify potential improvements in your test cases.
+The `suggestions` module can identify potential improvements in your test cases.
 
 ```python
 from importobot.api import suggestions

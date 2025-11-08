@@ -14,7 +14,7 @@ from importobot.core.pattern_matcher import (
 class TestIntentPattern:
     """Test IntentPattern functionality."""
 
-    def test_intent_pattern_creation(self):
+    def test_intent_pattern_creation(self) -> None:
         """Test IntentPattern creation and basic functionality."""
         pattern = IntentPattern(
             intent_type=IntentType.SSH_CONNECT, pattern=r"\bopen.*ssh\b", priority=5
@@ -24,7 +24,7 @@ class TestIntentPattern:
         assert pattern.pattern == r"\bopen.*ssh\b"
         assert pattern.priority == 5
 
-    def test_intent_pattern_compiled_pattern_caching(self):
+    def test_intent_pattern_compiled_pattern_caching(self) -> None:
         """Test that compiled patterns are cached properly."""
         pattern = IntentPattern(
             intent_type=IntentType.SSH_CONNECT, pattern=r"\bopen.*ssh\b"
@@ -37,7 +37,7 @@ class TestIntentPattern:
 
         assert compiled1 is compiled2
 
-    def test_intent_pattern_matches(self):
+    def test_intent_pattern_matches(self) -> None:
         """Test pattern matching functionality."""
         pattern = IntentPattern(
             intent_type=IntentType.SSH_CONNECT, pattern=r"\bopen.*ssh\b"
@@ -52,14 +52,14 @@ class TestIntentPattern:
 class TestPatternMatcher:
     """Test PatternMatcher functionality."""
 
-    def test_pattern_matcher_initialization(self):
+    def test_pattern_matcher_initialization(self) -> None:
         """Test PatternMatcher initialization."""
         matcher = PatternMatcher()
         assert len(matcher.patterns) > 0
         assert hasattr(matcher, "_pattern_cache")
         assert hasattr(matcher, "_intent_cache")
 
-    def test_detect_intent_ssh_operations(self):
+    def test_detect_intent_ssh_operations(self) -> None:
         """Test intent detection for SSH operations."""
         matcher = PatternMatcher()
 
@@ -78,7 +78,7 @@ class TestPatternMatcher:
             matcher.detect_intent("disconnect from remote") == IntentType.SSH_DISCONNECT
         )
 
-    def test_detect_intent_command_execution(self):
+    def test_detect_intent_command_execution(self) -> None:
         """Test intent detection for command execution."""
         matcher = PatternMatcher()
 
@@ -91,7 +91,7 @@ class TestPatternMatcher:
         )
         assert matcher.detect_intent("echo hello world") == IntentType.COMMAND_EXECUTION
 
-    def test_detect_intent_file_operations(self):
+    def test_detect_intent_file_operations(self) -> None:
         """Test intent detection for file operations."""
         matcher = PatternMatcher()
 
@@ -99,7 +99,7 @@ class TestPatternMatcher:
         assert matcher.detect_intent("remove file from disk") == IntentType.FILE_REMOVE
         assert matcher.detect_intent("get file from server") == IntentType.FILE_TRANSFER
 
-    def test_detect_intent_database_operations(self):
+    def test_detect_intent_database_operations(self) -> None:
         """Test intent detection for database operations."""
         matcher = PatternMatcher()
 
@@ -109,7 +109,7 @@ class TestPatternMatcher:
         assert matcher.detect_intent("execute sql query") == IntentType.DATABASE_EXECUTE
         assert matcher.detect_intent("insert new record") == IntentType.DATABASE_MODIFY
 
-    def test_detect_intent_api_operations(self):
+    def test_detect_intent_api_operations(self) -> None:
         """Test intent detection for API operations."""
         matcher = PatternMatcher()
 
@@ -119,7 +119,7 @@ class TestPatternMatcher:
             matcher.detect_intent("verify response status") == IntentType.API_RESPONSE
         )
 
-    def test_detect_intent_caching(self):
+    def test_detect_intent_caching(self) -> None:
         """Test that intent detection results are cached."""
         matcher = PatternMatcher()
 
@@ -130,7 +130,7 @@ class TestPatternMatcher:
         assert result1 == result2
         assert text in matcher._intent_cache
 
-    def test_detect_intent_cache_limit(self):
+    def test_detect_intent_cache_limit(self) -> None:
         """Test intent cache size limiting."""
         matcher = PatternMatcher()
 
@@ -148,7 +148,7 @@ class TestPatternMatcher:
         # Cache should have been cleaned
         assert len(matcher._intent_cache) < 1024
 
-    def test_detect_all_intents(self):
+    def test_detect_all_intents(self) -> None:
         """Test detection of all matching intents."""
         matcher = PatternMatcher()
 
@@ -160,7 +160,7 @@ class TestPatternMatcher:
         assert IntentType.CONTENT_VERIFICATION in intents
         assert len(intents) >= 2
 
-    def test_detect_intent_priority_ordering(self):
+    def test_detect_intent_priority_ordering(self) -> None:
         """Test that higher priority patterns are matched first."""
         matcher = PatternMatcher()
 
@@ -173,22 +173,22 @@ class TestPatternMatcher:
 class TestDataExtractor:
     """Test DataExtractor functionality."""
 
-    def test_extract_pattern_basic(self):
+    def test_extract_pattern_basic(self) -> None:
         """Test basic pattern extraction."""
         result = DataExtractor.extract_pattern("user: testuser", r"user:\s*([^,\s]+)")
         assert result == "testuser"
 
-    def test_extract_pattern_not_found(self):
+    def test_extract_pattern_not_found(self) -> None:
         """Test pattern extraction when pattern not found."""
         result = DataExtractor.extract_pattern("no match here", r"user:\s*([^,\s]+)")
         assert result == ""
 
-    def test_extract_pattern_empty_text(self):
+    def test_extract_pattern_empty_text(self) -> None:
         """Test pattern extraction with empty text."""
         result = DataExtractor.extract_pattern("", r"user:\s*([^,\s]+)")
         assert result == ""
 
-    def test_extract_url(self):
+    def test_extract_url(self) -> None:
         """Test URL extraction."""
         text = "Visit https://example.com for more info"
         result = DataExtractor.extract_url(text)
@@ -198,12 +198,12 @@ class TestDataExtractor:
         result = DataExtractor.extract_url(text)
         assert result in ["http://test.org", "https://secure.com"]
 
-    def test_extract_url_not_found(self):
+    def test_extract_url_not_found(self) -> None:
         """Test URL extraction when no URL present."""
         result = DataExtractor.extract_url("No URL in this text")
         assert result == ""
 
-    def test_extract_file_path(self):
+    def test_extract_file_path(self) -> None:
         """Test file path extraction."""
         # Test explicit paths
         result = DataExtractor.extract_file_path("File at /home/user/test.txt")
@@ -218,21 +218,21 @@ class TestDataExtractor:
         result = DataExtractor.extract_file_path("Process config.json file")
         assert result == "config.json"
 
-    def test_extract_credentials(self):
+    def test_extract_credentials(self) -> None:
         """Test credential extraction."""
         text = "username: admin, password: secret123"
         username, password = DataExtractor.extract_credentials(text)
         assert username == "admin"
         assert password == "secret123"
 
-    def test_extract_credentials_partial(self):
+    def test_extract_credentials_partial(self) -> None:
         """Test credential extraction with partial info."""
         text = "username: admin"
         username, password = DataExtractor.extract_credentials(text)
         assert username == "admin"
         assert password == ""
 
-    def test_extract_database_params(self):
+    def test_extract_database_params(self) -> None:
         """Test database parameter extraction."""
         text = (
             "module: postgresql, database: testdb, username: dbuser, password: dbpass, "
@@ -246,7 +246,7 @@ class TestDataExtractor:
         assert params["password"] == "dbpass"
         assert params["host"] == "localhost"
 
-    def test_extract_sql_query_optimized(self):
+    def test_extract_sql_query_optimized(self) -> None:
         """Test optimized SQL query extraction."""
         # Test SQL with label
         text = "sql: SELECT * FROM users WHERE id = 1"
@@ -266,7 +266,7 @@ class TestDataExtractor:
         result = DataExtractor.extract_sql_query(text)
         assert result == "DELETE FROM logs WHERE date < '2023-01-01'"
 
-    def test_extract_sql_query_combined_pattern_efficiency(self):
+    def test_extract_sql_query_combined_pattern_efficiency(self) -> None:
         """Test that the optimized combined SQL pattern works correctly."""
         # Test optimization: single combined regex vs multiple individual
         queries = [
@@ -281,12 +281,12 @@ class TestDataExtractor:
             result = DataExtractor.extract_sql_query(text)
             assert result == query
 
-    def test_extract_sql_query_not_found(self):
+    def test_extract_sql_query_not_found(self) -> None:
         """Test SQL query extraction when no SQL found."""
         result = DataExtractor.extract_sql_query("No SQL query in this text")
         assert result == ""
 
-    def test_extract_api_params(self):
+    def test_extract_api_params(self) -> None:
         """Test API parameter extraction."""
         text = (
             "method: POST, session: api_session, url: /api/users, "
@@ -299,7 +299,7 @@ class TestDataExtractor:
         assert params["url"] == "/api/users"
         assert params["data"] == "{'name': 'test'}"
 
-    def test_extract_api_params_defaults(self):
+    def test_extract_api_params_defaults(self) -> None:
         """Test API parameter extraction with default values."""
         text = "url: /api/test"
         params = DataExtractor.extract_api_params(text)
@@ -313,7 +313,7 @@ class TestDataExtractor:
 class TestPatternMatchingIntegration:
     """Integration tests for pattern matching components."""
 
-    def test_full_intent_detection_workflow(self):
+    def test_full_intent_detection_workflow(self) -> None:
         """Test complete intent detection workflow."""
         matcher = PatternMatcher()
 
@@ -337,7 +337,7 @@ class TestPatternMatchingIntegration:
         sql = DataExtractor.extract_sql_query("query: SELECT * FROM users")
         assert sql == "SELECT * FROM users"
 
-    def test_pattern_matching_performance(self):
+    def test_pattern_matching_performance(self) -> None:
         """Test pattern matching performance with caching."""
         matcher = PatternMatcher()
 
@@ -351,7 +351,7 @@ class TestPatternMatchingIntegration:
         assert result1 == result2
         assert result1 == IntentType.SSH_CONNECT
 
-    def test_case_insensitive_matching(self):
+    def test_case_insensitive_matching(self) -> None:
         """Test that all pattern matching is case insensitive."""
         matcher = PatternMatcher()
 
@@ -370,7 +370,7 @@ class TestPatternMatchingIntegration:
 class TestLibraryDetectorIntegration:
     """Test LibraryDetector functionality integrated in pattern_matcher."""
 
-    def test_library_detector_consolidation(self):
+    def test_library_detector_consolidation(self) -> None:
         """Test that LibraryDetector is properly consolidated in pattern_matcher."""
         # Test basic library detection
         text = "open browser and navigate to page"
@@ -387,7 +387,7 @@ class TestLibraryDetectorIntegration:
         db_libraries = LibraryDetector.detect_libraries_from_text(db_text)
         assert "DatabaseLibrary" in db_libraries
 
-    def test_library_detector_steps_functionality(self):
+    def test_library_detector_steps_functionality(self) -> None:
         """Test LibraryDetector step processing functionality."""
         steps = [
             {"step": "open browser", "description": "launch web app"},
@@ -402,7 +402,7 @@ class TestLibraryDetectorIntegration:
         assert "SSHLibrary" in libraries
         assert "OperatingSystem" in libraries
 
-    def test_library_detector_integration_with_pattern_matcher(self):
+    def test_library_detector_integration_with_pattern_matcher(self) -> None:
         """Test that LibraryDetector works alongside PatternMatcher."""
         pattern_matcher = PatternMatcher()
 

@@ -21,7 +21,7 @@ class TestSSHParameterExtraction:
         """Return an SSHKeywordGenerator instance."""
         return SSHKeywordGenerator()
 
-    def test_extract_pattern_case_insensitive(self):
+    def test_extract_pattern_case_insensitive(self) -> None:
         """Test that pattern extraction is case insensitive."""
         test_data = "HOST: example.com USERNAME: testuser PASSWORD: testpass"
 
@@ -33,7 +33,7 @@ class TestSSHParameterExtraction:
         assert username == "testuser"
         assert password == "testpass"
 
-    def test_extract_pattern_with_different_separators(self):
+    def test_extract_pattern_with_different_separators(self) -> None:
         """Test pattern extraction with various separators."""
         test_cases: list[tuple[str, str]] = [
             ("host: example.com", "example.com"),
@@ -47,7 +47,7 @@ class TestSSHParameterExtraction:
             result = extract_pattern(test_data, r"(?:host|server)\s*:\s*([^,\s]+)")
             assert result == expected, f"Failed for: {test_data}"
 
-    def test_extract_pattern_with_special_characters(self):
+    def test_extract_pattern_with_special_characters(self) -> None:
         """Test pattern extraction with special characters in values."""
         test_cases: list[tuple[str, str]] = [
             ("host: example-server.com", "example-server.com"),
@@ -72,7 +72,7 @@ class TestSSHParameterExtraction:
                 )
             assert result == expected, f"Failed for: {test_data}"
 
-    def test_extract_pattern_with_quoted_values(self):
+    def test_extract_pattern_with_quoted_values(self) -> None:
         """Test pattern extraction with quoted values."""
         test_data = 'command: "ls -la ./user" file: "./path with spaces/file.txt"'
 
@@ -80,7 +80,7 @@ class TestSSHParameterExtraction:
         command = extract_pattern(test_data, r"(?:command|cmd):\s*(.+)")
         assert command == '"ls -la ./user" file: "./path with spaces/file.txt"'
 
-    def test_extract_pattern_multiple_matches(self):
+    def test_extract_pattern_multiple_matches(self) -> None:
         """Test pattern extraction when multiple matches exist."""
         test_data = "host: first.com, host: second.com, server: third.com"
 
@@ -88,19 +88,19 @@ class TestSSHParameterExtraction:
         result = extract_pattern(test_data, r"(?:host|server):\s*([^,\s]+)")
         assert result == "first.com"
 
-    def test_extract_pattern_no_match(self):
+    def test_extract_pattern_no_match(self) -> None:
         """Test pattern extraction when no match is found."""
         test_data = "some random data without patterns"
 
         result = extract_pattern(test_data, r"(?:host|server):\s*([^,\s]+)")
         assert result == ""
 
-    def test_extract_pattern_empty_input(self):
+    def test_extract_pattern_empty_input(self) -> None:
         """Test pattern extraction with empty input."""
         result = extract_pattern("", r"(?:host|server):\s*([^,\s]+)")
         assert result == ""
 
-    def test_ssh_command_parsing(self, ssh_generator):
+    def test_ssh_command_parsing(self, ssh_generator) -> None:
         """Test SSH command format parsing."""
         test_cases: list[tuple[str, str, str]] = [
             ("ssh user@host.com", "user", "host.com"),
@@ -115,7 +115,7 @@ class TestSSHParameterExtraction:
             expected = f"Open Connection    {expected_host}    {expected_user}"
             assert result == expected, f"Failed for: {test_data}"
 
-    def test_file_path_extraction_patterns(self):
+    def test_file_path_extraction_patterns(self) -> None:
         """Test various file path extraction patterns."""
         test_cases: list[tuple[str, str]] = [
             # Different field names
@@ -137,7 +137,7 @@ class TestSSHParameterExtraction:
             )
             assert result == expected, f"Failed for: {test_data}"
 
-    def test_command_extraction_patterns(self):
+    def test_command_extraction_patterns(self) -> None:
         """Test command extraction patterns."""
         test_cases: list[tuple[str, str]] = [
             ("command: ls -la", "ls -la"),
@@ -153,7 +153,7 @@ class TestSSHParameterExtraction:
             result = extract_pattern(test_data, r"(?:command|cmd):\s*(.+)")
             assert result == expected, f"Failed for: {test_data}"
 
-    def test_complex_data_extraction(self):
+    def test_complex_data_extraction(self) -> None:
         """Test extraction from complex multi-field data."""
         complex_data = """
         host: production.example.com
@@ -194,7 +194,7 @@ class TestSSHParameterExtraction:
 class TestSSHParameterFormatting:
     """Tests for SSH parameter formatting and Robot Framework argument generation."""
 
-    def test_format_robot_framework_arguments_basic(self):
+    def test_format_robot_framework_arguments_basic(self) -> None:
         """Test basic Robot Framework argument formatting."""
         result = format_robot_framework_arguments(
             "Open Connection", "host.com", "user", "pass"
@@ -202,19 +202,19 @@ class TestSSHParameterFormatting:
         expected = "Open Connection    host.com    user    pass"
         assert result == expected
 
-    def test_format_robot_framework_arguments_single_arg(self):
+    def test_format_robot_framework_arguments_single_arg(self) -> None:
         """Test Robot Framework formatting with single argument."""
         result = format_robot_framework_arguments("Close Connection")
         expected = "Close Connection"
         assert result == expected
 
-    def test_format_robot_framework_arguments_empty_args(self):
+    def test_format_robot_framework_arguments_empty_args(self) -> None:
         """Test Robot Framework formatting with empty arguments."""
         result = format_robot_framework_arguments("Read")
         expected = "Read"
         assert result == expected
 
-    def test_format_robot_framework_arguments_with_special_chars(self):
+    def test_format_robot_framework_arguments_with_special_chars(self) -> None:
         """Test Robot Framework formatting with special characters."""
         result = format_robot_framework_arguments(
             "Execute Command", "ls -la | grep test"
@@ -222,7 +222,7 @@ class TestSSHParameterFormatting:
         expected = "Execute Command    ls -la | grep test"
         assert result == expected
 
-    def test_sanitize_robot_string_basic(self):
+    def test_sanitize_robot_string_basic(self) -> None:
         """Test basic Robot Framework string sanitization."""
         test_cases: list[tuple[str, str]] = [
             ("normal_string", "normal_string"),
@@ -236,7 +236,7 @@ class TestSSHParameterFormatting:
             result = sanitize_robot_string(input_str)
             assert result == expected, f"Failed for: {input_str}"
 
-    def test_sanitize_robot_string_with_variables(self):
+    def test_sanitize_robot_string_with_variables(self) -> None:
         """Test Robot Framework string sanitization with variables."""
         test_cases: list[tuple[str, str]] = [
             ("${variable}", "${variable}"),
@@ -248,7 +248,7 @@ class TestSSHParameterFormatting:
             result = sanitize_robot_string(input_str)
             assert result == expected, f"Failed for: {input_str}"
 
-    def test_convert_parameters_to_robot_variables(self):
+    def test_convert_parameters_to_robot_variables(self) -> None:
         """Test conversion of parameters to Robot Framework variables."""
         # Test with string containing parameter placeholders
         text_with_params = "ssh {username}@{host} && {command}"
@@ -260,7 +260,7 @@ class TestSSHParameterFormatting:
         assert "${command}" in result
         assert result == "ssh ${username}@${host} && ${command}"
 
-    def test_ssh_keyword_parameter_combinations(self):
+    def test_ssh_keyword_parameter_combinations(self) -> None:
         """Test SSH keyword generation with various parameter combinations."""
         ssh_generator = SSHKeywordGenerator()
 
@@ -305,7 +305,7 @@ class TestSSHParameterFormatting:
 
             assert result == test_case["expected"], f"Failed for {test_case['method']}"
 
-    def test_ssh_parameter_empty_input_handling(self):
+    def test_ssh_parameter_empty_input_handling(self) -> None:
         """Test SSH parameter generation with empty input data."""
         ssh_generator = SSHKeywordGenerator()
 
@@ -342,7 +342,7 @@ class TestSSHParameterFormatting:
                 f"Empty input handling failed for {case['method']}"
             )
 
-    def test_ssh_parameter_edge_cases(self):
+    def test_ssh_parameter_edge_cases(self) -> None:
         """Test SSH parameter extraction with edge cases."""
 
         edge_cases = [
@@ -367,7 +367,7 @@ class TestSSHParameterFormatting:
             result = extract_pattern(test_data, pattern)
             assert result == expected, f"Edge case failed: {test_data}"
 
-    def test_ssh_parameter_security_considerations(self):
+    def test_ssh_parameter_security_considerations(self) -> None:
         """Test parameter extraction with security considerations."""
         ssh_generator = SSHKeywordGenerator()
 
@@ -391,7 +391,7 @@ class TestSSHParameterFormatting:
         assert "admin" in connect_result
         assert "super_secret_password_123" in connect_result
 
-    def test_ssh_parameter_validation_integration(self):
+    def test_ssh_parameter_validation_integration(self) -> None:
         """Test integration between parameter extraction and validation."""
         ssh_generator = SSHKeywordGenerator()
 

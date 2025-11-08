@@ -31,12 +31,12 @@ from importobot.telemetry import (
 class TestEnvironmentParsing:
     """Test environment variable parsing helpers."""
 
-    def test_flag_from_env_default_false(self, monkeypatch):
+    def test_flag_from_env_default_false(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """By default, undefined flags return False."""
         monkeypatch.delenv("TEST_FLAG", raising=False)
         assert _flag_from_env("TEST_FLAG") is False
 
-    def test_flag_from_env_default_true(self, monkeypatch):
+    def test_flag_from_env_default_true(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Flags can specify a custom default."""
         monkeypatch.delenv("TEST_FLAG", raising=False)
         assert _flag_from_env("TEST_FLAG", default=True) is True
@@ -45,18 +45,18 @@ class TestEnvironmentParsing:
         "value",
         ["1", "true", "True", "TRUE", "yes", "YES", "on", "ON", "  1  ", "  true  "],
     )
-    def test_flag_from_env_truthy(self, monkeypatch, value):
+    def test_flag_from_env_truthy(self, monkeypatch: pytest.MonkeyPatch, value: str) -> None:
         """Various truthy strings should parse as True."""
         monkeypatch.setenv("TEST_FLAG", value)
         assert _flag_from_env("TEST_FLAG") is True
 
     @pytest.mark.parametrize("value", ["0", "false", "no", "off", "random", "", "  "])
-    def test_flag_from_env_falsy(self, monkeypatch, value):
+    def test_flag_from_env_falsy(self, monkeypatch: pytest.MonkeyPatch, value: str) -> None:
         """Non-truthy strings should parse as False."""
         monkeypatch.setenv("TEST_FLAG", value)
         assert _flag_from_env("TEST_FLAG") is False
 
-    def test_float_from_env_default(self, monkeypatch):
+    def test_float_from_env_default(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Undefined floats return the default."""
         monkeypatch.delenv("TEST_FLOAT", raising=False)
         assert _float_from_env("TEST_FLOAT", default=3.14) == 3.14
@@ -65,18 +65,18 @@ class TestEnvironmentParsing:
         ("value", "expected"),
         [("1.5", 1.5), ("0.0", 0.0), ("-2.5", -2.5), ("100", 100.0)],
     )
-    def test_float_from_env_valid(self, monkeypatch, value, expected):
+    def test_float_from_env_valid(self, monkeypatch: pytest.MonkeyPatch, value: str, expected: float) -> None:
         """Valid numeric strings should parse correctly."""
         monkeypatch.setenv("TEST_FLOAT", value)
         assert _float_from_env("TEST_FLOAT", default=0.0) == expected
 
     @pytest.mark.parametrize("value", ["invalid", "", "3.14.15"])
-    def test_float_from_env_invalid_returns_default(self, monkeypatch, value):
+    def test_float_from_env_invalid_returns_default(self, monkeypatch: pytest.MonkeyPatch, value: str) -> None:
         """Invalid numeric strings should fall back to default."""
         monkeypatch.setenv("TEST_FLOAT", value)
         assert _float_from_env("TEST_FLOAT", default=42.0) == 42.0
 
-    def test_int_from_env_default(self, monkeypatch):
+    def test_int_from_env_default(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Undefined ints return the default."""
         monkeypatch.delenv("TEST_INT", raising=False)
         assert _int_from_env("TEST_INT", default=10) == 10
@@ -84,13 +84,13 @@ class TestEnvironmentParsing:
     @pytest.mark.parametrize(
         ("value", "expected"), [("42", 42), ("0", 0), ("-10", -10), ("1000", 1000)]
     )
-    def test_int_from_env_valid(self, monkeypatch, value, expected):
+    def test_int_from_env_valid(self, monkeypatch: pytest.MonkeyPatch, value: str, expected: int) -> None:
         """Valid integer strings should parse correctly."""
         monkeypatch.setenv("TEST_INT", value)
         assert _int_from_env("TEST_INT", default=0) == expected
 
     @pytest.mark.parametrize("value", ["invalid", "", "3.14", "10.5"])
-    def test_int_from_env_invalid_returns_default(self, monkeypatch, value):
+    def test_int_from_env_invalid_returns_default(self, monkeypatch: pytest.MonkeyPatch, value: str) -> None:
         """Invalid integer strings should fall back to default."""
         monkeypatch.setenv("TEST_INT", value)
         assert _int_from_env("TEST_INT", default=99) == 99
@@ -99,13 +99,13 @@ class TestEnvironmentParsing:
 class TestTelemetryClientInitialization:
     """Test TelemetryClient initialization and configuration."""
 
-    def test_disabled_client_has_no_exporters(self):
+    def test_disabled_client_has_no_exporters(self) -> None:
         """Test that None is returned when telemetry is disabled."""
         # This test redundant since we tested this in test_singleton_disabled_by_default
         # and disabled clients are no longer created - we get None instead
         pass
 
-    def test_enabled_client_registers_default_exporter(self):
+    def test_enabled_client_registers_default_exporter(self) -> None:
         """Enabled clients should automatically register the logger exporter."""
         client = TelemetryClient(
             min_emit_interval=60.0,
@@ -113,7 +113,7 @@ class TestTelemetryClientInitialization:
         )
         assert len(client._exporters) == 1
 
-    def test_configuration_parameters_stored(self):
+    def test_configuration_parameters_stored(self) -> None:
         """Client should store provided configuration."""
         client = TelemetryClient(
             min_emit_interval=30.0,
@@ -122,7 +122,7 @@ class TestTelemetryClientInitialization:
         assert client._min_emit_interval == 30.0
         assert client._min_sample_delta == 50
 
-    def test_thread_safe_initialization(self):
+    def test_thread_safe_initialization(self) -> None:
         """Client initialization should be thread-safe."""
         client = TelemetryClient(
             min_emit_interval=60.0,
@@ -135,7 +135,7 @@ class TestTelemetryClientInitialization:
 class TestExporterManagement:
     """Test exporter registration and lifecycle."""
 
-    def test_register_exporter_when_enabled(self):
+    def test_register_exporter_when_enabled(self) -> None:
         """Exporters should be registered when client is enabled."""
         client = TelemetryClient(
             min_emit_interval=60.0,
@@ -149,13 +149,13 @@ class TestExporterManagement:
         assert len(client._exporters) == initial_count + 1
         assert custom_exporter in client._exporters
 
-    def test_register_exporter_when_disabled_does_nothing(self):
+    def test_register_exporter_when_disabled_does_nothing(self) -> None:
         """Exporters should not be registered when client is disabled."""
         # In the new architecture, all instantiated clients are enabled
         # This test concept is no longer applicable
         pass
 
-    def test_clear_exporters_enabled(self):
+    def test_clear_exporters_enabled(self) -> None:
         """Clearing exporters should reset to default when enabled."""
         client = TelemetryClient(
             min_emit_interval=60.0,
@@ -169,13 +169,13 @@ class TestExporterManagement:
         # Should keep only the default logger exporter
         assert len(client._exporters) == 1
 
-    def test_clear_exporters_disabled(self):
+    def test_clear_exporters_disabled(self) -> None:
         """Clearing exporters on disabled client should result in empty list."""
         # In the new architecture, all instantiated clients are enabled
         # This test concept is no longer applicable
         pass
 
-    def test_multiple_exporters_receive_events(self):
+    def test_multiple_exporters_receive_events(self) -> None:
         """All registered exporters should receive emitted events."""
         client = TelemetryClient(
             min_emit_interval=0.0,
@@ -201,13 +201,13 @@ class TestExporterManagement:
 class TestCacheMetricsRecording:
     """Test cache metrics recording with rate limiting."""
 
-    def test_disabled_client_does_not_record(self):
+    def test_disabled_client_does_not_record(self) -> None:
         """Test that no metrics are recorded when telemetry is disabled."""
         # In the new architecture, we don't have disabled clients
         # We either have a client or None
         pass
 
-    def test_basic_metric_recording(self):
+    def test_basic_metric_recording(self) -> None:
         """Client should record metrics with correct structure."""
         client = TelemetryClient(
             min_emit_interval=0.0,
@@ -230,7 +230,7 @@ class TestCacheMetricsRecording:
         assert payload["hit_rate"] == 0.8
         assert "timestamp" in payload
 
-    def test_hit_rate_calculation(self):
+    def test_hit_rate_calculation(self) -> None:
         """Hit rate should be calculated correctly."""
         client = TelemetryClient(
             min_emit_interval=0.0,
@@ -253,7 +253,7 @@ class TestCacheMetricsRecording:
         client.record_cache_metrics("cache3", hits=50, misses=50)
         assert events[-1][1]["hit_rate"] == 0.5
 
-    def test_zero_requests_hit_rate(self):
+    def test_zero_requests_hit_rate(self) -> None:
         """Zero requests should result in 0.0 hit rate without division error."""
         client = TelemetryClient(
             min_emit_interval=0.0,
@@ -268,7 +268,7 @@ class TestCacheMetricsRecording:
 
         assert events[-1][1]["hit_rate"] == 0.0
 
-    def test_extras_payload_merged(self):
+    def test_extras_payload_merged(self) -> None:
         """Extra payload fields should be merged into metrics."""
         client = TelemetryClient(
             min_emit_interval=0.0,
@@ -286,7 +286,7 @@ class TestCacheMetricsRecording:
         assert payload["cache_size"] == 500
         assert payload["max_size"] == 1000
 
-    def test_rate_limiting_by_sample_delta(self):
+    def test_rate_limiting_by_sample_delta(self) -> None:
         """Metrics should be throttled based on sample delta.
 
         Rate limiting uses AND logic: both conditions must be met to throttle.
@@ -312,7 +312,7 @@ class TestCacheMetricsRecording:
         client.record_cache_metrics("cache", hits=110, misses=40)
         assert len(events) == initial_count + 1  # One new emission
 
-    def test_rate_limiting_by_time_interval(self):
+    def test_rate_limiting_by_time_interval(self) -> None:
         """Metrics should be throttled based on time interval."""
         client = TelemetryClient(
             min_emit_interval=60.0,
@@ -340,7 +340,7 @@ class TestCacheMetricsRecording:
             client.record_cache_metrics("cache", hits=30, misses=15)
         assert len(events) == initial_count + 1  # One new emission
 
-    def test_separate_caches_tracked_independently(self):
+    def test_separate_caches_tracked_independently(self) -> None:
         """Different cache names should have independent rate limiting."""
         client = TelemetryClient(
             min_emit_interval=60.0,
@@ -362,7 +362,7 @@ class TestCacheMetricsRecording:
 class TestExporterErrorHandling:
     """Test that exporter failures don't crash the client."""
 
-    def test_failing_exporter_does_not_crash(self):
+    def test_failing_exporter_does_not_crash(self) -> None:
         """Exceptions in exporters should be caught and logged."""
         client = TelemetryClient(
             min_emit_interval=0.0,
@@ -370,7 +370,7 @@ class TestExporterErrorHandling:
         )
         client.clear_exporters()
 
-        def failing_exporter(name, payload):
+        def failing_exporter(name: str, payload: TelemetryPayload) -> None:
             raise RuntimeError("Simulated exporter failure")
 
         working_exporter = Mock()
@@ -384,7 +384,7 @@ class TestExporterErrorHandling:
         # Working exporter should still be called
         working_exporter.assert_called_once()
 
-    def test_default_logger_exporter_format(self):
+    def test_default_logger_exporter_format(self) -> None:
         """Default logger exporter should produce valid JSON."""
         client = TelemetryClient(
             min_emit_interval=0.0,
@@ -411,7 +411,7 @@ class TestExporterErrorHandling:
 class TestGlobalSingleton:
     """Test global telemetry client singleton."""
 
-    def test_get_telemetry_client_returns_singleton(self, monkeypatch):
+    def test_get_telemetry_client_returns_singleton(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Multiple calls should return the same instance."""
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")
         reset_telemetry_client()
@@ -423,7 +423,7 @@ class TestGlobalSingleton:
         assert client2 is not None
         assert client1 is client2
 
-    def test_reset_telemetry_client_clears_singleton(self, monkeypatch):
+    def test_reset_telemetry_client_clears_singleton(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Reset should allow new instance creation."""
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")
         reset_telemetry_client()
@@ -435,7 +435,7 @@ class TestGlobalSingleton:
         assert client2 is not None
         assert client1 is not client2
 
-    def test_global_register_exporter(self, monkeypatch):
+    def test_global_register_exporter(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Global function should register on singleton."""
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")
         reset_telemetry_client()
@@ -447,7 +447,7 @@ class TestGlobalSingleton:
         assert client is not None
         assert exporter in client._exporters
 
-    def test_global_clear_exporters(self, monkeypatch):
+    def test_global_clear_exporters(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Global function should clear exporters on singleton."""
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")
         reset_telemetry_client()
@@ -460,7 +460,7 @@ class TestGlobalSingleton:
         # Should only have default exporter
         assert len(client._exporters) == 1
 
-    def test_singleton_initialization_from_env(self, monkeypatch):
+    def test_singleton_initialization_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Singleton should initialize from environment variables."""
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")
         monkeypatch.setenv("IMPORTOBOT_TELEMETRY_MIN_INTERVAL_SECONDS", "30")
@@ -473,7 +473,7 @@ class TestGlobalSingleton:
         assert client._min_emit_interval == 30.0
         assert client._min_sample_delta == 50
 
-    def test_singleton_disabled_by_default(self, monkeypatch):
+    def test_singleton_disabled_by_default(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Telemetry should be disabled by default."""
         monkeypatch.delenv("IMPORTOBOT_ENABLE_TELEMETRY", raising=False)
         reset_telemetry_client()
@@ -485,7 +485,7 @@ class TestGlobalSingleton:
 class TestThreadSafety:
     """Test thread-safety of telemetry client."""
 
-    def test_concurrent_metric_recording(self):
+    def test_concurrent_metric_recording(self) -> None:
         """Concurrent metric recording should be thread-safe."""
         client = TelemetryClient(
             min_emit_interval=0.0,
@@ -496,7 +496,7 @@ class TestThreadSafety:
         events: list[tuple[str, TelemetryPayload]] = []
         lock = threading.Lock()
 
-        def thread_safe_exporter(name, payload):
+        def thread_safe_exporter(name: str, payload: TelemetryPayload) -> None:
             with lock:
                 events.append((name, payload))
 
@@ -505,7 +505,7 @@ class TestThreadSafety:
         threads = []
         for i in range(10):
 
-            def record_metrics(cache_id=i):
+            def record_metrics(cache_id: int = i) -> None:
                 for _ in range(100):
                     client.record_cache_metrics(f"cache_{cache_id}", hits=10, misses=5)
 
@@ -519,14 +519,14 @@ class TestThreadSafety:
         # Should have recorded metrics from all threads
         assert len(events) >= 10  # At least one per cache
 
-    def test_concurrent_exporter_registration(self):
+    def test_concurrent_exporter_registration(self) -> None:
         """Concurrent exporter registration should be thread-safe."""
         client = TelemetryClient(
             min_emit_interval=60.0,
             min_sample_delta=100,
         )
 
-        def register_exporter():
+        def register_exporter() -> None:
             for _ in range(10):
                 client.register_exporter(Mock())
 
@@ -540,7 +540,7 @@ class TestThreadSafety:
         # 1 default + 5 threads * 10 exporters = 51
         assert len(client._exporters) == 51
 
-    def test_global_singleton_thread_safety(self, monkeypatch):
+    def test_global_singleton_thread_safety(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Global singleton should be thread-safe during initialization."""
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")
         reset_telemetry_client()
@@ -548,7 +548,7 @@ class TestThreadSafety:
         clients = []
         lock = threading.Lock()
 
-        def get_client():
+        def get_client() -> None:
             client = get_telemetry_client()
             with lock:
                 clients.append(client)

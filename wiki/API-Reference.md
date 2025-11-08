@@ -195,11 +195,11 @@ export IMPORTOBOT_TEST_SERVER_URL=https://testing.example.com
 If you were previously using internal modules directly:
 
 ```python
-# ❌ Old internal access (will break)
+#  Old internal access (will break)
 from importobot.core.engine import GenericConversionEngine
 from importobot.utils.validation import validate_json_dict
 
-# ✅ New public API (stable)
+#  New public API (stable)
 from importobot.api import converters, validation
 
 engine = converters.GenericConversionEngine()

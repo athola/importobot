@@ -1,9 +1,6 @@
 """Tests for CLI handlers module."""
 
 import json
-import os
-import tempfile
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -33,7 +30,7 @@ from importobot.utils.file_operations import display_suggestion_changes
 class TestInputTypeDetection:
     """Tests for figuring out what kind of input we're dealing with."""
 
-    def test_detect_wildcard_pattern(self):
+    def test_detect_wildcard_pattern(self) -> None:
         """Should recognize wildcard patterns like *.json."""
         with patch("glob.glob") as mock_glob:
             mock_glob.return_value = ["test1.json", "test2.json"]
@@ -41,7 +38,7 @@ class TestInputTypeDetection:
             assert input_type == InputType.WILDCARD
             assert files == ["test1.json", "test2.json"]
 
-    def test_detect_wildcard_no_matches(self):
+    def test_detect_wildcard_no_matches(self) -> None:
         """What happens when wildcard finds nothing."""
         with patch("glob.glob") as mock_glob:
             mock_glob.return_value = []
@@ -49,7 +46,7 @@ class TestInputTypeDetection:
             assert input_type == InputType.ERROR
             assert not files
 
-    def test_detect_wildcard_non_json_files(self):
+    def test_detect_wildcard_non_json_files(self) -> None:
         """Wildcard should ignore non-JSON files."""
         with patch("glob.glob") as mock_glob:
             mock_glob.return_value = ["test1.txt", "test2.xml"]
@@ -57,24 +54,22 @@ class TestInputTypeDetection:
             assert input_type == InputType.ERROR
             assert not files
 
-    def test_detect_directory(self):
+    def test_detect_directory(self, tmp_path) -> None:
         """Should detect when input is a directory."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            input_type, files = detect_input_type(temp_dir)
-            assert input_type == InputType.DIRECTORY
-            assert files == [temp_dir]
+        input_type, files = detect_input_type(str(tmp_path))
+        assert input_type == InputType.DIRECTORY
+        assert files == [str(tmp_path)]
 
-    def test_detect_file(self):
+    def test_detect_file(self, tmp_path) -> None:
         """Should detect when input is a single file."""
-        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as temp_file:
-            try:
-                input_type, files = detect_input_type(temp_file.name)
-                assert input_type == InputType.FILE
-                assert files == [temp_file.name]
-            finally:
-                os.unlink(temp_file.name)
+        temp_file = tmp_path / "test.json"
+        temp_file.write_text("{}")
 
-    def test_detect_nonexistent_path(self):
+        input_type, files = detect_input_type(str(temp_file))
+        assert input_type == InputType.FILE
+        assert files == [str(temp_file)]
+
+    def test_detect_nonexistent_path(self) -> None:
         """Should handle paths that don't exist."""
         input_type, files = detect_input_type("/nonexistent/path")
         assert input_type == InputType.ERROR
@@ -84,19 +79,19 @@ class TestInputTypeDetection:
 class TestOutputDirectoryRequirements:
     """Test output directory requirement logic."""
 
-    def test_directory_requires_output_dir(self):
+    def test_directory_requires_output_dir(self) -> None:
         """Test directory input requires output directory."""
         assert requires_output_directory(InputType.DIRECTORY, 1) is True
 
-    def test_multiple_wildcards_require_output_dir(self):
+    def test_multiple_wildcards_require_output_dir(self) -> None:
         """Test multiple wildcard files require output directory."""
         assert requires_output_directory(InputType.WILDCARD, 3) is True
 
-    def test_single_wildcard_no_output_dir(self):
+    def test_single_wildcard_no_output_dir(self) -> None:
         """Test single wildcard file doesn't require output directory."""
         assert requires_output_directory(InputType.WILDCARD, 1) is False
 
-    def test_file_no_output_dir(self):
+    def test_file_no_output_dir(self) -> None:
         """Test file input doesn't require output directory."""
         assert requires_output_directory(InputType.FILE, 1) is False
 
@@ -104,7 +99,7 @@ class TestOutputDirectoryRequirements:
 class TestSuggestionHandling:
     """Test suggestion collection and filtering."""
 
-    def test_collect_suggestions_single_test(self):
+    def test_collect_suggestions_single_test(self) -> None:
         """Test collecting suggestions from single test case."""
         test_data = {"name": "test", "steps": []}
 
@@ -115,7 +110,7 @@ class TestSuggestionHandling:
             assert suggestions[0] == (0, 0, "suggestion1")
             assert suggestions[1] == (0, 1, "suggestion2")
 
-    def test_collect_suggestions_multiple_tests(self):
+    def test_collect_suggestions_multiple_tests(self) -> None:
         """Test collecting suggestions from multiple test cases."""
         test_data = [{"name": "test1"}, {"name": "test2"}]
 
@@ -144,21 +139,21 @@ class TestSuggestionHandling:
         assert "duplicate" in filtered
         assert "unique" in filtered
 
-    def test_filter_suggestions_no_improvements_needed(self):
+    def test_filter_suggestions_no_improvements_needed(self) -> None:
         """Test filtering 'No improvements needed' messages."""
         suggestions = [(0, 0, "Real suggestion"), (0, 1, "No improvements needed")]
         filtered = filter_suggestions(suggestions)
         assert len(filtered) == 1
         assert filtered[0] == "Real suggestion"
 
-    def test_filter_suggestions_only_no_improvements(self):
+    def test_filter_suggestions_only_no_improvements(self) -> None:
         """Test keeping 'No improvements needed' if it's the only suggestion."""
         suggestions = [(0, 0, "No improvements needed")]
         filtered = filter_suggestions(suggestions)
         assert len(filtered) == 1
         assert filtered[0] == "No improvements needed"
 
-    def test_print_suggestions_empty(self, capsys):
+    def test_print_suggestions_empty(self, capsys) -> None:
         """Test printing empty suggestions."""
         print_suggestions([])
         captured = capsys.readouterr()
@@ -166,7 +161,7 @@ class TestSuggestionHandling:
 
     def test_print_suggestions_gives_positive_feedback_when_no_improvements_needed(
         self, capsys
-    ):
+    ) -> None:
         """User gets positive confirmation when conversion is already optimal."""
         print_suggestions(["No improvements needed"])
         captured = capsys.readouterr()
@@ -181,7 +176,7 @@ class TestSuggestionHandling:
             or "optimal" in captured.out
         )
 
-    def test_print_suggestions_real_suggestions(self, capsys):
+    def test_print_suggestions_real_suggestions(self, capsys) -> None:
         """Test printing real suggestions."""
         suggestions = ["Improve step description", "Add expected result"]
         print_suggestions(suggestions)
@@ -194,7 +189,7 @@ class TestSuggestionHandling:
 class TestInputValidation:
     """Test input validation functions."""
 
-    def test_validate_input_and_output_directory_requires_output_dir(self):
+    def test_validate_input_and_output_directory_requires_output_dir(self) -> None:
         """Test validation when directory requires output directory."""
         parser = MagicMock()
         args = MagicMock()
@@ -206,7 +201,7 @@ class TestInputValidation:
             "Output directory required for multiple files or directory input"
         )
 
-    def test_validate_input_and_output_file_requires_output_file(self, tmp_path):
+    def test_validate_input_and_output_file_requires_output_file(self, tmp_path) -> None:
         """Test validation when file requires output file."""
         parser = MagicMock()
         args = MagicMock()
@@ -219,7 +214,7 @@ class TestInputValidation:
             "Output file required for single file input"
         )
 
-    def test_validate_input_and_output_error_input_type(self):
+    def test_validate_input_and_output_error_input_type(self) -> None:
         """Test validation with error input type."""
         parser = MagicMock()
         args = MagicMock()
@@ -240,13 +235,13 @@ class TestInputValidation:
 class TestDisplaySuggestions:
     """Test display_suggestions function."""
 
-    def test_display_suggestions_disabled(self, capsys):
+    def test_display_suggestions_disabled(self, capsys) -> None:
         """Test suggestions display when disabled."""
         display_suggestions("test.json", no_suggestions=True)
         captured = capsys.readouterr()
         assert captured.out == ""
 
-    def test_display_suggestions_enabled_with_suggestions(self, capsys):
+    def test_display_suggestions_enabled_with_suggestions(self, capsys) -> None:
         """Test suggestions display with suggestions."""
         _ = capsys  # Mark as used to avoid linting warning
         with (
@@ -266,7 +261,7 @@ class TestDisplaySuggestions:
             mock_filter.assert_called_once()
             mock_print.assert_called_once_with(["filtered suggestion"])
 
-    def test_display_suggestions_importobot_error(self):
+    def test_display_suggestions_importobot_error(self) -> None:
         """Test suggestions display with ImportobotError."""
         with (
             patch(
@@ -283,7 +278,7 @@ class TestDisplaySuggestions:
 class TestConvertSingleFile:
     """Test convert_single_file function with real file operations."""
 
-    def test_convert_single_file_creates_robot_output(self, capsys):
+    def test_convert_single_file_creates_robot_output(self, tmp_path, capsys) -> None:
         """User gets valid Robot Framework output from single file conversion."""
 
         # Create real test data that represents user scenario
@@ -306,40 +301,40 @@ class TestConvertSingleFile:
             ]
         }
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
-            input_file = temp_path / "test_login.json"
-            output_file = temp_path / "test_login.robot"
+        input_file = tmp_path / "test_login.json"
+        output_file = tmp_path / "test_login.robot"
 
-            # Create real input file
-            input_file.write_text(json.dumps(test_data, indent=2))
+        # Create real input file
+        input_file.write_text(json.dumps(test_data, indent=2))
 
-            # Create args object
-            args = MagicMock()
-            args.input = str(input_file)
-            args.output_file = str(output_file)
-            args.no_suggestions = True  # Skip suggestions for this test
+        # Create args object
+        args = MagicMock()
+        args.input = str(input_file)
+        args.output_file = str(output_file)
+        args.no_suggestions = True  # Skip suggestions for this test
 
-            # Test the actual conversion
-            convert_single_file(args)
+        # Test the actual conversion
+        convert_single_file(args)
 
-            # Verify user gets actual Robot Framework output
-            assert output_file.exists(), "Output file should be created"
-            robot_content = output_file.read_text()
-            assert "*** Test Cases ***" in robot_content
-            assert "Login Validation Test" in robot_content
-            assert "Open login page" in robot_content
+        # Verify user gets actual Robot Framework output
+        assert output_file.exists(), "Output file should be created"
+        robot_content = output_file.read_text()
+        assert "*** Test Cases ***" in robot_content
+        assert "Login Validation Test" in robot_content
+        assert "Open login page" in robot_content
 
-            # Verify user gets feedback
-            captured = capsys.readouterr()
-            assert "Successfully converted" in captured.out
-            assert str(input_file) in captured.out
+        # Verify user gets feedback
+        captured = capsys.readouterr()
+        assert "Successfully converted" in captured.out
+        assert str(input_file) in captured.out
 
 
 class TestConvertDirectoryHandler:
     """Test convert_directory_handler function with real directory operations."""
 
-    def test_convert_directory_handler_processes_multiple_files(self, capsys):
+    def test_convert_directory_handler_processes_multiple_files(
+        self, tmp_path, capsys
+    ) -> None:
         """User can convert entire directory of JSON files to Robot Framework."""
 
         # Create realistic test scenario - user has directory with multiple test files
@@ -365,55 +360,53 @@ class TestConvertDirectoryHandler:
             ]
         }
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
-            input_dir = temp_path / "input"
-            output_dir = temp_path / "output"
+        input_dir = tmp_path / "input"
+        output_dir = tmp_path / "output"
 
-            input_dir.mkdir()
+        input_dir.mkdir()
 
-            # Create multiple JSON files (real user scenario)
-            (input_dir / "registration.json").write_text(
-                json.dumps(test_data_1, indent=2)
-            )
-            (input_dir / "password_reset.json").write_text(
-                json.dumps(test_data_2, indent=2)
-            )
+        # Create multiple JSON files (real user scenario)
+        (input_dir / "registration.json").write_text(
+            json.dumps(test_data_1, indent=2)
+        )
+        (input_dir / "password_reset.json").write_text(
+            json.dumps(test_data_2, indent=2)
+        )
 
-            args = MagicMock()
-            args.input = str(input_dir)
-            args.output_file = str(output_dir)
+        args = MagicMock()
+        args.input = str(input_dir)
+        args.output_file = str(output_dir)
 
-            # Test actual directory conversion
-            convert_directory_handler(args)
+        # Test actual directory conversion
+        convert_directory_handler(args)
 
-            # Verify user gets all files converted
-            assert output_dir.exists(), "Output directory should be created"
+        # Verify user gets all files converted
+        assert output_dir.exists(), "Output directory should be created"
 
-            registration_robot = output_dir / "registration.robot"
-            password_robot = output_dir / "password_reset.robot"
+        registration_robot = output_dir / "registration.robot"
+        password_robot = output_dir / "password_reset.robot"
 
-            assert registration_robot.exists(), "Registration robot file should exist"
-            assert password_robot.exists(), "Password reset robot file should exist"
+        assert registration_robot.exists(), "Registration robot file should exist"
+        assert password_robot.exists(), "Password reset robot file should exist"
 
-            # Verify content is correct Robot Framework format
-            reg_content = registration_robot.read_text()
-            assert "*** Test Cases ***" in reg_content
-            assert "User Registration Test" in reg_content
+        # Verify content is correct Robot Framework format
+        reg_content = registration_robot.read_text()
+        assert "*** Test Cases ***" in reg_content
+        assert "User Registration Test" in reg_content
 
-            pwd_content = password_robot.read_text()
-            assert "*** Test Cases ***" in pwd_content
-            assert "Password Reset Test" in pwd_content
+        pwd_content = password_robot.read_text()
+        assert "*** Test Cases ***" in pwd_content
+        assert "Password Reset Test" in pwd_content
 
-            # Verify user gets feedback
-            captured = capsys.readouterr()
-            assert "Successfully converted directory" in captured.out
+        # Verify user gets feedback
+        captured = capsys.readouterr()
+        assert "Successfully converted directory" in captured.out
 
 
 class TestConvertWildcardFiles:
     """Test convert_wildcard_files function."""
 
-    def test_convert_wildcard_single_file(self, capsys):
+    def test_convert_wildcard_single_file(self, capsys) -> None:
         """Test wildcard conversion with single file."""
         args = MagicMock()
         args.output_file = "output.robot"
@@ -427,7 +420,7 @@ class TestConvertWildcardFiles:
             captured = capsys.readouterr()
             assert "Successfully converted single.json to output.robot" in captured.out
 
-    def test_convert_wildcard_multiple_files(self, capsys):
+    def test_convert_wildcard_multiple_files(self, capsys) -> None:
         """Test wildcard conversion with multiple files."""
         args = MagicMock()
         args.output_file = "/output/dir"
@@ -444,7 +437,7 @@ class TestConvertWildcardFiles:
 class TestApplySuggestionsSingleFile:
     """Test apply_suggestions_single_file function."""
 
-    def test_apply_suggestions_single_file(self):
+    def test_apply_suggestions_single_file(self) -> None:
         """Test applying suggestions to single file."""
         args = MagicMock()
         args.input = "input.json"
@@ -470,7 +463,7 @@ class TestApplySuggestionsSingleFile:
 class TestHandleBulkConversionWithSuggestions:
     """Test handle_bulk_conversion_with_suggestions function."""
 
-    def test_handle_bulk_directory(self, capsys):
+    def test_handle_bulk_directory(self, capsys) -> None:
         """Test bulk conversion with suggestions for directory."""
         args = MagicMock()
         args.input = "/input/dir"
@@ -490,7 +483,7 @@ class TestHandleBulkConversionWithSuggestions:
             assert "Performing normal conversion instead..." in captured.out
             mock_convert.assert_called_once_with("/input/dir", "/output/dir")
 
-    def test_handle_bulk_multiple_files(self, capsys):
+    def test_handle_bulk_multiple_files(self, capsys) -> None:
         """Test bulk conversion with suggestions for multiple files."""
         args = MagicMock()
         args.output_file = "/output/dir"
@@ -509,7 +502,7 @@ class TestHandleBulkConversionWithSuggestions:
 class TestHandlePositionalArgs:
     """Test handle_positional_args function."""
 
-    def test_handle_positional_args_single_file(self):
+    def test_handle_positional_args_single_file(self) -> None:
         """Test positional args handling for single file."""
         args = MagicMock()
         args.input = "test.json"
@@ -529,7 +522,7 @@ class TestHandlePositionalArgs:
 
             mock_convert.assert_called_once_with(args)
 
-    def test_handle_positional_args_directory(self):
+    def test_handle_positional_args_directory(self) -> None:
         """Test positional args handling for directory."""
         args = MagicMock()
         args.input = "/input/dir"
@@ -549,7 +542,7 @@ class TestHandlePositionalArgs:
 
             mock_convert.assert_called_once_with(args)
 
-    def test_handle_positional_args_with_suggestions(self):
+    def test_handle_positional_args_with_suggestions(self) -> None:
         """Test positional args handling with suggestions."""
         args = MagicMock()
         args.input = "test.json"
@@ -575,7 +568,7 @@ class TestHandlePositionalArgs:
 class TestHandleFilesConversion:
     """Test handle_files_conversion function."""
 
-    def test_handle_files_conversion_missing_output(self):
+    def test_handle_files_conversion_missing_output(self) -> None:
         """Test files conversion with missing output."""
         args = MagicMock()
         args.output = None
@@ -587,7 +580,7 @@ class TestHandleFilesConversion:
 
         parser.error.assert_called_once_with("--output is required when using --files")
 
-    def test_handle_files_conversion_single_file_with_suggestions(self):
+    def test_handle_files_conversion_single_file_with_suggestions(self) -> None:
         """Test files conversion single file with suggestions."""
         args = MagicMock()
         args.files = ["test.json"]
@@ -612,7 +605,7 @@ class TestHandleFilesConversion:
             assert kwargs["use_stem_for_basename"] is False
             mock_display.assert_called_once_with("test.json", False)
 
-    def test_handle_files_conversion_multiple_files(self, capsys):
+    def test_handle_files_conversion_multiple_files(self, capsys) -> None:
         """Test files conversion multiple files."""
         args = MagicMock()
         args.files = ["file1.json", "file2.json"]
@@ -633,7 +626,7 @@ class TestHandleFilesConversion:
 class TestHandleDirectoryConversion:
     """Test handle_directory_conversion function."""
 
-    def test_handle_directory_conversion_missing_output(self):
+    def test_handle_directory_conversion_missing_output(self) -> None:
         """Test directory conversion with missing output."""
         args = MagicMock()
         args.output = None
@@ -647,7 +640,7 @@ class TestHandleDirectoryConversion:
             "--output is required when using --directory"
         )
 
-    def test_handle_directory_conversion_with_suggestions_warning(self, capsys):
+    def test_handle_directory_conversion_with_suggestions_warning(self, capsys) -> None:
         """Test directory conversion with suggestions warning."""
         args = MagicMock()
         args.directory = "/input/dir"

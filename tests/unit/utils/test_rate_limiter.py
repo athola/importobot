@@ -1,5 +1,7 @@
 """Tests for rate limiter utility."""
 
+import pytest
+
 from importobot.utils import rate_limiter
 
 
@@ -14,7 +16,7 @@ class FakeTime:
         self.now += seconds
 
 
-def test_rate_limiter_enforces_time_window(monkeypatch):
+def test_rate_limiter_enforces_time_window(monkeypatch: pytest.MonkeyPatch) -> None:
     fake = FakeTime()
     monkeypatch.setattr(rate_limiter, "time", fake)
 
@@ -27,7 +29,7 @@ def test_rate_limiter_enforces_time_window(monkeypatch):
     assert fake.now - start >= 1.0
 
 
-def test_rate_limiter_reset(monkeypatch):
+def test_rate_limiter_reset(monkeypatch: pytest.MonkeyPatch) -> None:
     fake = FakeTime()
     monkeypatch.setattr(rate_limiter, "time", fake)
 

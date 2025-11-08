@@ -73,7 +73,7 @@ def fake_config(monkeypatch: pytest.MonkeyPatch) -> APIIngestConfig:
 
 
 def test_handle_api_ingest_writes_payload(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:
     """Handler should stream payloads to a single JSON file."""
     payloads = [
@@ -104,7 +104,7 @@ def test_handle_api_ingest_writes_payload(
 
 
 def test_handler_provides_progress_feedback(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:
     """Progress callback should be invoked for each page."""
     calls: list[dict[str, object]] = []
@@ -151,7 +151,7 @@ def test_handler_provides_progress_feedback(
 
 
 def test_handle_api_ingest_returns_path(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:
     """Handler should return saved path and attach it to args for downstream use."""
     payloads: list[dict[str, object]] = [{"items": []}]

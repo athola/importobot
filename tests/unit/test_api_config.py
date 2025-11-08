@@ -229,7 +229,7 @@ def test_parse_project_identifier_handles_zero() -> None:
 class TestProjectReferenceArgsProtocol:
     """Test the _ProjectReferenceArgs Protocol for typing improvements."""
 
-    def test_resolve_project_reference_accepts_namespace_args(self):
+    def test_resolve_project_reference_accepts_namespace_args(self) -> None:
         """Test that _resolve_project_reference accepts Namespace arguments."""
         # Create a Namespace with project attribute (compatible with Protocol)
         args = make_args(project="test_project")
@@ -247,7 +247,7 @@ class TestProjectReferenceArgsProtocol:
         assert name == "test_project"
         assert project_id is None
 
-    def test_resolve_project_reference_accepts_custom_object(self):
+    def test_resolve_project_reference_accepts_custom_object(self) -> None:
         """Test _resolve_project_reference accepts custom objects."""
 
         class CustomArgs:
@@ -270,7 +270,7 @@ class TestProjectReferenceArgsProtocol:
         assert name == "custom_project"
         assert project_id is None
 
-    def test_resolve_project_reference_handles_missing_project_attribute(self):
+    def test_resolve_project_reference_handles_missing_project_attribute(self) -> None:
         """Test that function gracefully handles objects without project attribute."""
 
         class IncompatibleArgs:
@@ -294,7 +294,7 @@ class TestProjectReferenceArgsProtocol:
         assert name is None
         assert project_id is None
 
-    def test_resolve_project_reference_handles_none_project(self):
+    def test_resolve_project_reference_handles_none_project(self) -> None:
         """Test that _resolve_project_reference handles None project values."""
         args = make_args(project=None)
 
@@ -311,7 +311,7 @@ class TestProjectReferenceArgsProtocol:
         assert name is None
         assert project_id is None
 
-    def test_resolve_project_reference_handles_numeric_string(self):
+    def test_resolve_project_reference_handles_numeric_string(self) -> None:
         """Test that _resolve_project_reference handles numeric string values."""
         # Test with numeric string (should parse as project ID)
         args = make_args(project="123")
@@ -330,7 +330,7 @@ class TestProjectReferenceArgsProtocol:
         assert name is None
         assert project_id == 123
 
-    def test_resolve_project_reference_environment_secondary(self):
+    def test_resolve_project_reference_environment_secondary(self) -> None:
         """Test _resolve_project_reference uses env as secondary source."""
         # Test with invalid CLI project (empty string)
         args = make_args(project="")
@@ -351,7 +351,7 @@ class TestProjectReferenceArgsProtocol:
         assert name == "env_project"
         assert project_id is None
 
-    def test_protocol_type_safety_example(self):
+    def test_protocol_type_safety_example(self) -> None:
         """Test that demonstrates Protocol type safety through runtime behavior."""
 
         # This demonstrates that any object with a `project` attribute works

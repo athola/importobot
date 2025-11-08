@@ -11,6 +11,7 @@ Tests properties that should hold true for configuration systems:
 """
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 from hypothesis import given, settings
@@ -50,7 +51,7 @@ class TestConfigurationInvariants:
         )
     )
     @settings(max_examples=50)
-    def test_storage_config_validation_invariant(self, config_data):
+    def test_storage_config_validation_invariant(self, config_data: dict[str, Any]) -> None:
         """Invariant: Configuration validation should be comprehensive and safe."""
         try:
             config = StorageConfig.from_dict(config_data)
@@ -93,7 +94,7 @@ class TestConfigurationInvariants:
         )
     )
     @settings(max_examples=30)
-    def test_config_update_safety_invariant(self, update_data):
+    def test_config_update_safety_invariant(self, update_data: dict[str, Any]) -> None:
         """Invariant: Configuration updates should be safe and not break the system."""
         try:
             initial_config = StorageConfig()
@@ -122,7 +123,7 @@ class TestConfigurationInvariants:
 
     @given(st.text(min_size=0, max_size=200))
     @settings(max_examples=30)
-    def test_path_handling_invariant(self, path_string):
+    def test_path_handling_invariant(self, path_string: str) -> None:
         """Invariant: Path handling should be safe across platforms."""
         try:
             # Try to create a StorageConfig with the path
@@ -149,7 +150,7 @@ class TestConfigurationInvariants:
 
     @given(st.integers(min_value=-1000, max_value=1000))
     @settings(max_examples=30)
-    def test_numeric_validation_invariant(self, numeric_value):
+    def test_numeric_validation_invariant(self, numeric_value: int) -> None:
         """Invariant: Numeric configuration values should be validated properly."""
         numeric_configs = [
             {"retention_days": numeric_value},
@@ -188,7 +189,7 @@ class TestConfigurationInvariants:
 
     @given(st.sampled_from(["local", "invalid", "s3", "azure", "gcp", "", None, 123]))
     @settings(max_examples=20)
-    def test_backend_type_validation_invariant(self, backend_type):
+    def test_backend_type_validation_invariant(self, backend_type: Any) -> None:
         """Invariant: Backend type validation should be strict."""
         try:
             config_data = {"backend_type": backend_type}
@@ -220,8 +221,8 @@ class TestConfigurationInvariants:
     @given(st.text(min_size=0, max_size=100), st.booleans())
     @settings(max_examples=30)
     def test_encryption_config_consistency_invariant(
-        self, key_path, encryption_enabled
-    ):
+        self, key_path: str, encryption_enabled: bool
+    ) -> None:
         """Invariant: Encryption configuration should be logically consistent."""
         try:
             config_data = {
@@ -259,7 +260,7 @@ class TestConfigurationInvariants:
         )
     )
     @settings(max_examples=20)
-    def test_configuration_isolation_invariant(self, config_updates):
+    def test_configuration_isolation_invariant(self, config_updates: dict[str, Any]) -> None:
         """Invariant: Configuration instances are independent."""
         try:
             # Create initial config
@@ -306,8 +307,8 @@ class TestConfigurationInvariants:
     @given(st.booleans(), st.booleans(), st.booleans())
     @settings(max_examples=20)
     def test_boolean_config_handling_invariant(
-        self, compression, auto_backup, encryption
-    ):
+        self, compression: bool, auto_backup: bool, encryption: bool
+    ) -> None:
         """Invariant: Boolean configuration values should be handled correctly."""
         try:
             config_data = {

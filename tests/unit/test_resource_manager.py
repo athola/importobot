@@ -32,7 +32,7 @@ def reset_resource_manager_singleton(func):
 class TestResourceLimits:
     """Test ResourceLimits dataclass."""
 
-    def test_default_limits(self):
+    def test_default_limits(self) -> None:
         """Test default resource limits."""
         limits = ResourceLimits()
         assert limits.max_total_tests == 50000
@@ -43,7 +43,7 @@ class TestResourceLimits:
         assert limits.max_files_per_directory == 10000
         assert limits.max_concurrent_operations == 10
 
-    def test_custom_limits(self):
+    def test_custom_limits(self) -> None:
         """Test custom resource limits."""
         limits = ResourceLimits(
             max_total_tests=1000, max_file_size_mb=50, max_memory_usage_mb=200
@@ -58,11 +58,11 @@ class TestResourceLimits:
 class TestResourceManager:
     """Test ResourceManager functionality."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Reset singleton before each test."""
         ResourceManager._reset_singleton()
 
-    def test_initialization(self):
+    def test_initialization(self) -> None:
         """Test ResourceManager initialization."""
         manager = ResourceManager()
         assert manager.limits is not None
@@ -72,13 +72,13 @@ class TestResourceManager:
         assert manager._current_operation_id is None
 
     @reset_resource_manager_singleton
-    def test_initialization_with_custom_limits(self):
+    def test_initialization_with_custom_limits(self) -> None:
         """Test ResourceManager initialization with custom limits."""
         custom_limits = ResourceLimits(max_total_tests=1000)
         manager = ResourceManager(custom_limits)
         assert manager.limits.max_total_tests == 1000
 
-    def test_context_manager_basic(self):
+    def test_context_manager_basic(self) -> None:
         """Test basic context manager functionality."""
         manager = ResourceManager()
 
@@ -91,7 +91,7 @@ class TestResourceManager:
         assert manager._current_operation_id is None
         assert manager._active_operations == 0
 
-    def test_context_manager_with_exception(self):
+    def test_context_manager_with_exception(self) -> None:
         """Test context manager handles exceptions properly."""
         manager = ResourceManager()
 
@@ -103,7 +103,7 @@ class TestResourceManager:
         assert manager._current_operation_id is None
         assert manager._active_operations == 0
 
-    def test_named_operation_context_manager(self):
+    def test_named_operation_context_manager(self) -> None:
         """Test named operation context manager."""
         manager = ResourceManager()
 
@@ -114,7 +114,7 @@ class TestResourceManager:
 
         assert manager._active_operations == 0
 
-    def test_start_and_finish_operation(self):
+    def test_start_and_finish_operation(self) -> None:
         """Test manual operation start and finish."""
         manager = ResourceManager()
 
@@ -126,7 +126,7 @@ class TestResourceManager:
         assert manager._active_operations == 0
 
     @reset_resource_manager_singleton
-    def test_concurrent_operations_limit(self):
+    def test_concurrent_operations_limit(self) -> None:
         """Test concurrent operations limit enforcement."""
         limits = ResourceLimits(max_concurrent_operations=2)
         manager = ResourceManager(limits)
@@ -145,7 +145,7 @@ class TestResourceManager:
         manager.finish_operation(op2)
 
     @patch("psutil.disk_usage")
-    def test_validate_generation_request_disk_space(self, mock_disk_usage):
+    def test_validate_generation_request_disk_space(self, mock_disk_usage) -> None:
         """Test validation of generation request for disk space."""
         # Mock disk usage to show limited space
         mock_disk_usage.return_value = MagicMock(free=1024**3)  # 1GB free
@@ -158,7 +158,7 @@ class TestResourceManager:
                 manager.validate_generation_request(1000000, temp_dir)
 
     @patch("psutil.virtual_memory")
-    def test_validate_generation_request_memory(self, mock_memory):
+    def test_validate_generation_request_memory(self, mock_memory) -> None:
         """Test validation of generation request for memory."""
         # Mock memory to show limited available memory
         mock_memory.return_value = MagicMock(available=50 * 1024**2)  # 50MB available
@@ -171,7 +171,7 @@ class TestResourceManager:
                 manager.validate_generation_request(1000000, temp_dir)
 
     @reset_resource_manager_singleton
-    def test_validate_generation_request_total_tests_limit(self):
+    def test_validate_generation_request_total_tests_limit(self) -> None:
         """Test validation of total tests limit."""
         limits = ResourceLimits(max_total_tests=100)
         manager = ResourceManager(limits)
@@ -180,7 +180,7 @@ class TestResourceManager:
             with pytest.raises(ValueError, match="exceeds maximum allowed"):
                 manager.validate_generation_request(200, temp_dir)
 
-    def test_validate_generation_request_invalid_count(self):
+    def test_validate_generation_request_invalid_count(self) -> None:
         """Test validation with invalid test count."""
         manager = ResourceManager()
 
@@ -192,7 +192,7 @@ class TestResourceManager:
                 manager.validate_generation_request(-5, temp_dir)
 
     @reset_resource_manager_singleton
-    def test_validate_file_operation_size_limit(self):
+    def test_validate_file_operation_size_limit(self) -> None:
         """Test file operation validation for size limits."""
         limits = ResourceLimits(max_file_size_mb=10)
         manager = ResourceManager(limits)
@@ -201,7 +201,7 @@ class TestResourceManager:
             manager.validate_file_operation("/tmp/test.txt", 20)
 
     @reset_resource_manager_singleton
-    def test_validate_file_operation_directory_limit(self):
+    def test_validate_file_operation_directory_limit(self) -> None:
         """Test file operation validation for directory file count."""
         limits = ResourceLimits(max_files_per_directory=2)
         manager = ResourceManager(limits)
@@ -215,7 +215,7 @@ class TestResourceManager:
             with pytest.raises(ValueError, match="exceeding limit"):
                 manager.validate_file_operation(str(test_file))
 
-    def test_track_file_generated(self):
+    def test_track_file_generated(self) -> None:
         """Test file generation tracking."""
         manager = ResourceManager()
 
@@ -229,7 +229,7 @@ class TestResourceManager:
 
     @patch("psutil.virtual_memory")
     @patch("psutil.disk_usage")
-    def test_get_resource_stats(self, mock_disk_usage, mock_memory):
+    def test_get_resource_stats(self, mock_disk_usage, mock_memory) -> None:
         """Test resource statistics retrieval."""
         mock_memory.return_value = MagicMock(percent=75.5)
         mock_disk_usage.return_value = MagicMock(percent=45.2)
@@ -246,7 +246,7 @@ class TestResourceManager:
         assert stats["system_disk_percent"] == 45.2
         assert "limits" in stats
 
-    def test_reset_stats(self):
+    def test_reset_stats(self) -> None:
         """Test statistics reset functionality."""
         manager = ResourceManager()
 
@@ -260,7 +260,7 @@ class TestResourceManager:
 
     @reset_resource_manager_singleton
     @patch("time.time")
-    def test_check_operation_limits_timeout(self, mock_time):
+    def test_check_operation_limits_timeout(self, mock_time) -> None:
         """Test operation timeout checking."""
         limits = ResourceLimits(max_execution_time_minutes=1)  # 1 minute timeout
         manager = ResourceManager(limits)
@@ -277,7 +277,7 @@ class TestResourceManager:
 
     @reset_resource_manager_singleton
     @patch("psutil.Process")
-    def test_check_operation_limits_memory(self, mock_process_class):
+    def test_check_operation_limits_memory(self, mock_process_class) -> None:
         """Test operation memory limit checking."""
         limits = ResourceLimits(max_memory_usage_mb=100)
         manager = ResourceManager(limits)
@@ -298,7 +298,7 @@ class TestResourceManager:
 class TestResourceOperation:
     """Test ResourceOperation context manager."""
 
-    def test_resource_operation_basic(self):
+    def test_resource_operation_basic(self) -> None:
         """Test basic ResourceOperation functionality."""
         manager = ResourceManager()
         operation = ResourceOperation(manager, "test_op")
@@ -310,7 +310,7 @@ class TestResourceOperation:
 
         assert manager._active_operations == 0
 
-    def test_resource_operation_exception_handling(self):
+    def test_resource_operation_exception_handling(self) -> None:
         """Test ResourceOperation handles exceptions properly."""
         manager = ResourceManager()
         operation = ResourceOperation(manager, "test_op")
@@ -326,13 +326,13 @@ class TestResourceOperation:
 class TestGlobalResourceManager:
     """Test global resource manager functions."""
 
-    def test_get_resource_manager_singleton(self):
+    def test_get_resource_manager_singleton(self) -> None:
         """Test global resource manager is singleton."""
         manager1 = get_resource_manager()
         manager2 = get_resource_manager()
         assert manager1 is manager2
 
-    def test_configure_resource_limits(self):
+    def test_configure_resource_limits(self) -> None:
         """Test global resource limits configuration."""
         configure_resource_limits(max_total_tests=5000, max_file_size_mb=25)
         manager = get_resource_manager()
@@ -343,7 +343,7 @@ class TestGlobalResourceManager:
 class TestResourceManagerIntegration:
     """Integration tests for ResourceManager."""
 
-    def test_real_file_operations(self):
+    def test_real_file_operations(self) -> None:
         """Test ResourceManager with real file operations."""
         manager = ResourceManager()
 
@@ -361,15 +361,17 @@ class TestResourceManagerIntegration:
             assert manager._total_files_generated == 1
             assert manager._total_disk_usage_mb > 0
 
-    def test_context_manager_with_real_operations(self):
+    def test_context_manager_with_real_operations(self, tmp_path) -> None:
         """Test context manager with real operations."""
         manager = ResourceManager()
 
         with manager.operation("integration_test") as operation_id:
-            # Simulate some work
-            with tempfile.NamedTemporaryFile() as temp_file:
-                manager.validate_file_operation(temp_file.name, 0.1)
-                manager.track_file_generated(temp_file.name, 0.1)
+            # Simulate some work using pytest's tmp_path instead of /tmp
+            temp_file = tmp_path / "test_file.txt"
+            temp_file.write_text("test content")
+
+            manager.validate_file_operation(str(temp_file), 0.1)
+            manager.track_file_generated(str(temp_file), 0.1)
 
             # Check that operation is active
             assert manager._active_operations == 1

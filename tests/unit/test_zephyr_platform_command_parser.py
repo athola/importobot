@@ -6,7 +6,7 @@ from importobot.core.zephyr_parsers import PlatformCommandParser
 class TestPlatformCommandParser:
     """Test PlatformCommandParser class."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test fixtures with test-specific platform configuration.
 
         Uses test data instead of customer-specific hard-coded platforms.
@@ -21,13 +21,13 @@ class TestPlatformCommandParser:
             "OTHER": ["other", "misc"],
         }
 
-    def test_default_platform_keywords_empty(self):
+    def test_default_platform_keywords_empty(self) -> None:
         """Test that default PLATFORM_KEYWORDS is empty (no hard-coded data)."""
         default_parser = PlatformCommandParser()
         assert default_parser.PLATFORM_KEYWORDS == {}
         assert isinstance(default_parser.PLATFORM_KEYWORDS, dict)
 
-    def test_platform_keywords_structure(self):
+    def test_platform_keywords_structure(self) -> None:
         """Test PLATFORM_KEYWORDS has expected structure after configuration."""
         # Test that we have configurable platform mappings
         assert isinstance(self.parser.PLATFORM_KEYWORDS, dict)
@@ -39,7 +39,7 @@ class TestPlatformCommandParser:
             assert isinstance(keywords, list)
             assert len(keywords) > 0
 
-    def test_platform_keywords_content(self):
+    def test_platform_keywords_content(self) -> None:
         """Test platform keywords contain expected values."""
         # Test that platform keywords are configurable and not hardcoded
         # This allows users to define their own platform mappings
@@ -51,7 +51,7 @@ class TestPlatformCommandParser:
                 assert isinstance(keyword, str)
                 assert keyword == keyword.lower()
 
-    def test_parse_platform_commands_empty_string(self):
+    def test_parse_platform_commands_empty_string(self) -> None:
         """Test parsing empty test data."""
         result = self.parser.parse_platform_commands("")
 
@@ -59,7 +59,7 @@ class TestPlatformCommandParser:
         for platform_commands in result.values():
             assert platform_commands == []
 
-    def test_parse_platform_commands_whitespace_only(self):
+    def test_parse_platform_commands_whitespace_only(self) -> None:
         """Test parsing whitespace-only test data."""
         test_data = "   \n\t  \n   "
         result = self.parser.parse_platform_commands(test_data)
@@ -68,7 +68,7 @@ class TestPlatformCommandParser:
         for platform_commands in result.values():
             assert platform_commands == []
 
-    def test_parse_platform_commands_single_platform_colon(self):
+    def test_parse_platform_commands_single_platform_colon(self) -> None:
         """Test parsing single platform with colon separator."""
         # Get first available platform for testing
         first_platform = next(iter(self.parser.PLATFORM_KEYWORDS.keys()))
@@ -85,7 +85,7 @@ class TestPlatformCommandParser:
             if platform != first_platform:
                 assert commands == []
 
-    def test_parse_platform_commands_single_platform_space(self):
+    def test_parse_platform_commands_single_platform_space(self) -> None:
         """Test parsing single platform with space separator."""
         # Get first available platform for testing
         first_platform = next(iter(self.parser.PLATFORM_KEYWORDS.keys()))
@@ -97,7 +97,7 @@ class TestPlatformCommandParser:
         # Should detect the platform and extract the command
         assert result[first_platform] == ["test command"]
 
-    def test_parse_platform_commands_case_insensitive(self):
+    def test_parse_platform_commands_case_insensitive(self) -> None:
         """Test parsing with case-insensitive platform keywords."""
         # Get first available platform for testing
         first_platform = next(iter(self.parser.PLATFORM_KEYWORDS.keys()))
@@ -109,7 +109,7 @@ class TestPlatformCommandParser:
         # Should detect the platform regardless of case
         assert result[first_platform] == ["test command"]
 
-    def test_parse_platform_commands_with_whitespace_around_commands(self):
+    def test_parse_platform_commands_with_whitespace_around_commands(self) -> None:
         """Test parsing with extra whitespace around commands."""
         # Get first available platform for testing
         first_platform = next(iter(self.parser.PLATFORM_KEYWORDS.keys()))
@@ -121,7 +121,7 @@ class TestPlatformCommandParser:
         # Should trim whitespace around the command
         assert result[first_platform] == ["test command"]
 
-    def test_parse_platform_commands_multiline_commands(self):
+    def test_parse_platform_commands_multiline_commands(self) -> None:
         """Test parsing multiline commands for same platform."""
         # Get first available platform for testing
         first_platform = next(iter(self.parser.PLATFORM_KEYWORDS.keys()))
@@ -136,7 +136,7 @@ class TestPlatformCommandParser:
         expected_commands = ["first command", "second command", "third command"]
         assert result[first_platform] == expected_commands
 
-    def test_parse_platform_commands_empty_lines(self):
+    def test_parse_platform_commands_empty_lines(self) -> None:
         """Test parsing with empty lines between commands."""
         # Get first available platform for testing
         first_platform = next(iter(self.parser.PLATFORM_KEYWORDS.keys()))
@@ -153,7 +153,7 @@ third command"""
         expected_commands = ["first command", "second command", "third command"]
         assert result[first_platform] == expected_commands
 
-    def test_parse_platform_commands_complex_command_with_variables(self):
+    def test_parse_platform_commands_complex_command_with_variables(self) -> None:
         """Test parsing complex commands with variables."""
         # Get first available platform for testing
         first_platform = next(iter(self.parser.PLATFORM_KEYWORDS.keys()))
@@ -167,7 +167,7 @@ third command"""
         # Should preserve variables in commands
         assert result[first_platform] == ["command with {variable} and {another_var}"]
 
-    def test_parse_platform_commands_duplicate_platforms(self):
+    def test_parse_platform_commands_duplicate_platforms(self) -> None:
         """Test parsing with duplicate platform specifications."""
         # Get first available platform for testing
         first_platform = next(iter(self.parser.PLATFORM_KEYWORDS.keys()))
@@ -182,7 +182,7 @@ third command"""
         expected_commands = ["first command", "second command", "third command"]
         assert result[first_platform] == expected_commands
 
-    def test_parse_platform_commands_unrecognized_platforms(self):
+    def test_parse_platform_commands_unrecognized_platforms(self) -> None:
         """Test parsing with unrecognized platform keywords."""
         test_data = """UNKNOWN_PLATFORM: some command
 INVALID_PLATFORM: another command"""
@@ -192,7 +192,7 @@ INVALID_PLATFORM: another command"""
         for platform_commands in result.values():
             assert platform_commands == []
 
-    def test_parse_platform_commands_no_platform_specified(self):
+    def test_parse_platform_commands_no_platform_specified(self) -> None:
         """Test parsing with no platform specified."""
         test_data = """random command without platform
 another random line"""
@@ -202,7 +202,7 @@ another random line"""
         for platform_commands in result.values():
             assert platform_commands == []
 
-    def test_parse_platform_commands_special_characters(self):
+    def test_parse_platform_commands_special_characters(self) -> None:
         """Test parsing commands with special characters."""
         # Get first available platform for testing
         first_platform = next(iter(self.parser.PLATFORM_KEYWORDS.keys()))
@@ -214,7 +214,7 @@ another random line"""
         # Should preserve special characters in commands
         assert result[first_platform] == ["command with | pipe and > redirect"]
 
-    def test_parse_platform_commands_edge_case_colon_without_command(self):
+    def test_parse_platform_commands_edge_case_colon_without_command(self) -> None:
         """Test parsing edge case with colon but no command."""
         # Get first available platform for testing
         first_platform = next(iter(self.parser.PLATFORM_KEYWORDS.keys()))
@@ -226,7 +226,7 @@ another random line"""
         # Should handle empty command gracefully
         assert result[first_platform] == []
 
-    def test_parse_platform_commands_continuation_without_platform(self):
+    def test_parse_platform_commands_continuation_without_platform(self) -> None:
         """Test parsing continuation lines without platform specification."""
         # Get first available platform for testing
         first_platform = next(iter(self.parser.PLATFORM_KEYWORDS.keys()))
@@ -242,7 +242,7 @@ another random line"""
         expected_commands = ["first command", "this should be included"]
         assert result[first_platform] == expected_commands
 
-    def test_parse_platform_commands_multiple_platforms_generic(self):
+    def test_parse_platform_commands_multiple_platforms_generic(self) -> None:
         """Test parsing multiple platforms using available platform keywords."""
         # Get first two available platforms for testing
         platforms = list(self.parser.PLATFORM_KEYWORDS.keys())[:2]
@@ -261,7 +261,7 @@ another random line"""
             assert result[platform1] == ["command1"]
             assert result[platform2] == ["command2"]
 
-    def test_parse_platform_commands_mixed_separators(self):
+    def test_parse_platform_commands_mixed_separators(self) -> None:
         """Test parsing with mixed colon and space separators."""
         # Get first available platform for testing
         first_platform = next(iter(self.parser.PLATFORM_KEYWORDS.keys()))
@@ -275,7 +275,7 @@ another random line"""
         expected_commands = ["command with colon", "command with space"]
         assert result[first_platform] == expected_commands
 
-    def test_parse_platform_commands_with_unicode(self):
+    def test_parse_platform_commands_with_unicode(self) -> None:
         """Test parsing commands with unicode characters."""
         # Get first available platform for testing
         first_platform = next(iter(self.parser.PLATFORM_KEYWORDS.keys()))
@@ -287,7 +287,7 @@ another random line"""
         # Should preserve unicode characters
         assert result[first_platform] == ["command with café and ñiño"]
 
-    def test_parse_platform_commands_generic_structure(self):
+    def test_parse_platform_commands_generic_structure(self) -> None:
         """Test that the parser maintains the expected generic structure."""
         result = self.parser.parse_platform_commands("")
 

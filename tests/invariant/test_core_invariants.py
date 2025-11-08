@@ -168,7 +168,7 @@ class TestCoreInvariants:
         )
     )
     @settings(max_examples=50)
-    def test_error_handling_consistency_invariant(self, invalid_input):
+    def test_error_handling_consistency_invariant(self, invalid_input: Any) -> None:
         """Invariant: Error handling should be consistent across the system."""
         parser = GenericTestFileParser()
 

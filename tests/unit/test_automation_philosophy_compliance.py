@@ -15,7 +15,7 @@ def _var_message(prefix: str, suffix: str, result: str) -> str:
 class TestAutomationPhilosophyCompliance:
     """Verify code follows automation principles from CLAUDE.md."""
 
-    def test_no_hardcoded_infrastructure_in_ssh_output(self):
+    def test_no_hardcoded_infrastructure_in_ssh_output(self) -> None:
         """SSH generators must not hardcode infrastructure details."""
         ssh_gen = SSHKeywordGenerator()
 
@@ -41,7 +41,7 @@ class TestAutomationPhilosophyCompliance:
             assert "${" in connect_result or "Open Connection" in connect_result
             assert "${" in execute_result
 
-    def test_no_hardcoded_domains_in_web_output(self):
+    def test_no_hardcoded_domains_in_web_output(self) -> None:
         """Web generators must not hardcode example domains."""
         web_gen = WebKeywordGenerator()
 
@@ -58,7 +58,7 @@ class TestAutomationPhilosophyCompliance:
             # Should use parameterized URL
             assert "${URL}" in result
 
-    def test_no_hardcoded_apis_in_api_output(self):
+    def test_no_hardcoded_apis_in_api_output(self) -> None:
         """API generators must not hardcode API endpoints."""
         api_gen = APIKeywordGenerator()
 
@@ -75,7 +75,7 @@ class TestAutomationPhilosophyCompliance:
             # Should use parameterized API URL
             assert "${API_BASE_URL}" in result
 
-    def test_generated_output_is_immediately_executable(self):
+    def test_generated_output_is_immediately_executable(self) -> None:
         """Generated Robot Framework output must be immediately executable."""
         ssh_gen = SSHKeywordGenerator()
 
@@ -96,7 +96,7 @@ class TestAutomationPhilosophyCompliance:
         assert "CHANGE_ME" not in connect_result
         assert "UPDATE_THIS" not in connect_result
 
-    def test_parameterized_variables_follow_rf_conventions(self):
+    def test_parameterized_variables_follow_rf_conventions(self) -> None:
         """Parameterized variables must follow Robot Framework conventions."""
         generators = [
             SSHKeywordGenerator(),
@@ -195,7 +195,7 @@ class TestAutomationPhilosophyCompliance:
                             # Skip methods with different signatures
                             continue
 
-    def test_no_business_logic_assumptions_in_generators(self):
+    def test_no_business_logic_assumptions_in_generators(self) -> None:
         """Generators must not make domain-specific business assumptions."""
         ssh_gen = SSHKeywordGenerator()
 
@@ -211,7 +211,7 @@ class TestAutomationPhilosophyCompliance:
         assert "Open Connection" in result
         assert "${HOST}" in result or "Open Connection" in result
 
-    def test_conversion_produces_consistent_output_format(self):
+    def test_conversion_produces_consistent_output_format(self) -> None:
         """All generators must produce consistent Robot Framework format."""
         generators = [
             (SSHKeywordGenerator(), "generate_connect_keyword"),

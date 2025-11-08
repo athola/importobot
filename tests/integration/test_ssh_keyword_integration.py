@@ -16,7 +16,7 @@ class TestSSHKeywordIntegration:
     """Integration tests for complete SSH keyword generation workflows."""
 
     @pytest.fixture
-    def ssh_test_data(self, tmp_path):
+    def ssh_test_data(self, tmp_path) -> None:
         """Create test SSH JSON data."""
         ssh_data = {
             "test_case": {
@@ -105,7 +105,7 @@ class TestSSHKeywordIntegration:
 
         return test_file
 
-    def test_end_to_end_ssh_keyword_conversion(self, ssh_test_data):
+    def test_end_to_end_ssh_keyword_conversion(self, ssh_test_data) -> None:
         """Test complete end-to-end SSH keyword conversion workflow."""
         # Load JSON data
         json_data = load_json(str(ssh_test_data))
@@ -140,7 +140,7 @@ class TestSSHKeywordIntegration:
         assert "*** Test Cases ***" in robot_content
         assert "Library    SSHLibrary" in robot_content
 
-    def test_ssh_library_detection_integration(self, ssh_library_detection_data):
+    def test_ssh_library_detection_integration(self, ssh_library_detection_data) -> None:
         """Test that SSH library is correctly detected and used."""
         # Load JSON data
         json_data = load_json(str(ssh_library_detection_data))
@@ -167,7 +167,7 @@ class TestSSHKeywordIntegration:
         # Verify SSH library is imported
         assert "Library    SSHLibrary" in robot_content
 
-    def test_ssh_keyword_security_warnings_integration(self, ssh_test_data):
+    def test_ssh_keyword_security_warnings_integration(self, ssh_test_data) -> None:
         """Test that security warnings are properly integrated in conversion."""
         # Load JSON data and convert
         json_data = load_json(str(ssh_test_data))
@@ -186,7 +186,7 @@ class TestSSHKeywordIntegration:
                 password_line_found = True
                 # Look for security warning in nearby lines
                 for j in range(max(0, i - 3), min(len(lines), i + 3)):
-                    if "⚠️" in lines[j] and "password" in lines[j].lower():
+                    if "WARNING:" in lines[j] and "password" in lines[j].lower():
                         security_warning_found = True
                         break
 
@@ -199,7 +199,7 @@ class TestSSHKeywordIntegration:
         # Note: Security warnings are part of the JSON data,
         # not necessarily in generated Robot code
 
-    def test_ssh_parameter_extraction_integration(self, ssh_test_data):
+    def test_ssh_parameter_extraction_integration(self, ssh_test_data) -> None:
         """Test that SSH parameters are correctly extracted and formatted."""
         # Load JSON data and convert
         json_data = load_json(str(ssh_test_data))
@@ -218,7 +218,7 @@ class TestSSHKeywordIntegration:
 
     def test_ssh_comprehensive_workflow_with_conversion_engine(
         self, ssh_test_data, tmp_path
-    ):
+    ) -> None:
         """Test SSH keyword generation through the complete conversion engine."""
         output_file = tmp_path / "ssh_test.robot"
 
@@ -239,7 +239,7 @@ class TestSSHKeywordIntegration:
         assert "Enable Ssh Logging" in robot_content
         assert "Close Connection" in robot_content
 
-    def test_ssh_mixed_library_integration(self, tmp_path):
+    def test_ssh_mixed_library_integration(self, tmp_path) -> None:
         """Test SSH keywords integration with other libraries."""
         mixed_data = {
             "test_case": {
@@ -312,7 +312,7 @@ class TestSSHKeywordIntegration:
         assert "Page Should Contain" in robot_content  # Selenium
         assert "Put File" in robot_content  # SSH
 
-    def test_ssh_complex_scenario_integration(self, tmp_path):
+    def test_ssh_complex_scenario_integration(self, tmp_path) -> None:
         """Test complex SSH scenario with multiple operations."""
         complex_data = {
             "test_case": {
@@ -402,7 +402,7 @@ class TestSSHKeywordIntegration:
         for keyword in expected_keywords:
             assert keyword in robot_content, f"Missing expected keyword: {keyword}"
 
-    def test_ssh_error_handling_integration(self, tmp_path):
+    def test_ssh_error_handling_integration(self, tmp_path) -> None:
         """Test SSH keyword generation with malformed or edge case data."""
         edge_case_data = {
             "test_case": {
@@ -440,7 +440,7 @@ class TestSSHKeywordIntegration:
             "No Operation  # SSH operation not recognized" in robot_content
         )  # Unrecognized operation
 
-    def test_ssh_keyword_generation_performance(self, tmp_path):
+    def test_ssh_keyword_generation_performance(self, tmp_path) -> None:
         """Test SSH keyword generation performance with large datasets."""
         # Create a large SSH test case
         large_steps = []

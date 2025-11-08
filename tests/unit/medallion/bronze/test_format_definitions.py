@@ -29,7 +29,7 @@ from importobot.medallion.interfaces.enums import SupportedFormat
 class TestEvidenceWeight(unittest.TestCase):
     """Unit tests for EvidenceWeight enum and its methods."""
 
-    def test_evidence_weight_enum_values(self):
+    def test_evidence_weight_enum_values(self) -> None:
         """Test that EvidenceWeight enum has correct integer values."""
         assert EvidenceWeight.NONE == 0  # type: ignore[comparison-overlap]
         assert EvidenceWeight.WEAK == 1  # type: ignore[comparison-overlap]
@@ -37,7 +37,7 @@ class TestEvidenceWeight(unittest.TestCase):
         assert EvidenceWeight.STRONG == 3  # type: ignore[comparison-overlap]
         assert EvidenceWeight.UNIQUE == 5  # type: ignore[comparison-overlap]
 
-    def test_evidence_weight_ordering(self):
+    def test_evidence_weight_ordering(self) -> None:
         """Test that evidence weights can be properly ordered."""
         weights = [
             EvidenceWeight.UNIQUE,
@@ -57,7 +57,7 @@ class TestEvidenceWeight(unittest.TestCase):
         ]
         assert sorted_weights == expected
 
-    def test_evidence_weight_math_operations(self):
+    def test_evidence_weight_math_operations(self) -> None:
         """Test that evidence weights support mathematical operations."""
         # Addition
         total = EvidenceWeight.STRONG + EvidenceWeight.MODERATE
@@ -67,7 +67,7 @@ class TestEvidenceWeight(unittest.TestCase):
         assert EvidenceWeight.UNIQUE > EvidenceWeight.STRONG
         assert EvidenceWeight.MODERATE >= EvidenceWeight.WEAK
 
-    def test_evidence_threshold_classification(self):
+    def test_evidence_threshold_classification(self) -> None:
         """Test classification of evidence thresholds."""
         # Test insufficient evidence threshold
         assert EvidenceWeight.NONE < 2
@@ -81,7 +81,7 @@ class TestEvidenceWeight(unittest.TestCase):
         assert EvidenceWeight.STRONG >= 3
         assert EvidenceWeight.UNIQUE >= 5
 
-    def test_evidence_weight_comparison(self):
+    def test_evidence_weight_comparison(self) -> None:
         """Test evidence weight comparison functionality."""
         # Test that evidence weights can be compared
         assert EvidenceWeight.UNIQUE > EvidenceWeight.STRONG
@@ -91,7 +91,7 @@ class TestEvidenceWeight(unittest.TestCase):
 class TestFieldDefinition(unittest.TestCase):
     """Unit tests for FieldDefinition class."""
 
-    def test_field_definition_creation(self):
+    def test_field_definition_creation(self) -> None:
         """Test creation of FieldDefinition instances."""
         field = FieldDefinition(
             name="testCase",
@@ -105,7 +105,7 @@ class TestFieldDefinition(unittest.TestCase):
         assert field.pattern is None
         assert not field.is_required
 
-    def test_field_definition_with_validation(self):
+    def test_field_definition_with_validation(self) -> None:
         """Test FieldDefinition with validation pattern."""
         field = FieldDefinition(
             name="key",
@@ -118,7 +118,7 @@ class TestFieldDefinition(unittest.TestCase):
         assert field.pattern == r"^[A-Z]+-\d+$"
         assert field.is_required
 
-    def test_field_definition_mutability(self):
+    def test_field_definition_mutability(self) -> None:
         """Test that FieldDefinition instances are mutable dataclasses."""
         field = FieldDefinition("testCase", EvidenceWeight.UNIQUE)
 
@@ -128,7 +128,7 @@ class TestFieldDefinition(unittest.TestCase):
         assert field.name == "modified"
         assert field.name != original_name
 
-    def test_field_definition_equality(self):
+    def test_field_definition_equality(self) -> None:
         """Test equality comparison of FieldDefinition instances."""
         field1 = FieldDefinition("testCase", EvidenceWeight.UNIQUE)
         field2 = FieldDefinition("testCase", EvidenceWeight.UNIQUE)
@@ -137,7 +137,7 @@ class TestFieldDefinition(unittest.TestCase):
         assert field1 == field2
         assert field1 != field3
 
-    def test_field_definition_string_representation(self):
+    def test_field_definition_string_representation(self) -> None:
         """Test string representation of FieldDefinition."""
         field = FieldDefinition(
             "testCase", EvidenceWeight.UNIQUE, description="Test case structure"
@@ -152,7 +152,7 @@ class TestFieldDefinition(unittest.TestCase):
 class TestFormatDefinition(unittest.TestCase):
     """Unit tests for FormatDefinition class."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test fixtures."""
         self.zephyr_unique = [
             FieldDefinition(
@@ -180,7 +180,7 @@ class TestFormatDefinition(unittest.TestCase):
             FieldDefinition("key", EvidenceWeight.WEAK, description="Item key")
         ]
 
-    def test_format_definition_creation(self):
+    def test_format_definition_creation(self) -> None:
         """Test creation of FormatDefinition instances."""
         format_def = FormatDefinition(
             name="Zephyr Test Management",
@@ -199,7 +199,7 @@ class TestFormatDefinition(unittest.TestCase):
         assert len(format_def.moderate_indicators) == 1
         assert len(format_def.weak_indicators) == 1
 
-    def test_format_definition_default_values(self):
+    def test_format_definition_default_values(self) -> None:
         """Test FormatDefinition with default values."""
         format_def = FormatDefinition(
             name="Generic Format",
@@ -214,7 +214,7 @@ class TestFormatDefinition(unittest.TestCase):
         assert format_def.confidence_boost_threshold == 0.33
         assert format_def.min_score_threshold == 4
 
-    def test_format_definition_custom_thresholds(self):
+    def test_format_definition_custom_thresholds(self) -> None:
         """Test FormatDefinition with custom detection thresholds."""
         format_def = FormatDefinition(
             name="Generic Format",
@@ -228,7 +228,7 @@ class TestFormatDefinition(unittest.TestCase):
         assert format_def.confidence_boost_threshold == 0.8
         assert format_def.min_score_threshold == 7
 
-    def test_format_definition_mutability(self):
+    def test_format_definition_mutability(self) -> None:
         """Test that FormatDefinition instances are mutable dataclasses."""
         format_def = FormatDefinition(
             name="Zephyr",
@@ -243,7 +243,7 @@ class TestFormatDefinition(unittest.TestCase):
         assert format_def.name == "Modified"
         assert format_def.name != original_name
 
-    def test_format_definition_get_all_fields(self):
+    def test_format_definition_get_all_fields(self) -> None:
         """Test getting all fields from FormatDefinition."""
         format_def = FormatDefinition(
             name="Zephyr",
@@ -270,7 +270,7 @@ class TestFormatDefinition(unittest.TestCase):
         assert moderate_names.issubset(all_names)
         assert weak_names.issubset(all_names)
 
-    def test_format_definition_calculate_max_score(self):
+    def test_format_definition_calculate_max_score(self) -> None:
         """Test calculation of maximum possible score."""
         format_def = FormatDefinition(
             name="Zephyr",
@@ -298,17 +298,17 @@ class TestFormatDefinition(unittest.TestCase):
 class TestFormatRegistry(unittest.TestCase):
     """Unit tests for FormatRegistry class."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test fixtures."""
         self.registry = FormatRegistry()
 
-    def test_format_registry_creation(self):
+    def test_format_registry_creation(self) -> None:
         """Test creation of FormatRegistry instance."""
         assert isinstance(self.registry, FormatRegistry)
         # Registry auto-loads built-in formats
         assert len(self.registry.get_all_formats()) > 0
 
-    def test_register_format(self):
+    def test_register_format(self) -> None:
         """Test registering a format in the registry."""
         # Create a new registry without auto-loading to test registration
 
@@ -330,7 +330,7 @@ class TestFormatRegistry(unittest.TestCase):
         assert len(formats_dict) == 1
         assert formats_dict[SupportedFormat.UNKNOWN] == format_def
 
-    def test_register_duplicate_format_type(self):
+    def test_register_duplicate_format_type(self) -> None:
         """Test that registering duplicate format types overwrites existing."""
         # Registry allows overwriting - this is the actual behavior
         original_format = self.registry.get_format(SupportedFormat.ZEPHYR)
@@ -351,7 +351,7 @@ class TestFormatRegistry(unittest.TestCase):
         assert retrieved is not None
         assert retrieved.name == "New Zephyr"
 
-    def test_get_format_by_type(self):
+    def test_get_format_by_type(self) -> None:
         """Test retrieving format by type."""
         # Get the auto-loaded Zephyr format
         retrieved = self.registry.get_format(SupportedFormat.ZEPHYR)
@@ -359,14 +359,14 @@ class TestFormatRegistry(unittest.TestCase):
         assert retrieved is not None
         assert retrieved.format_type == SupportedFormat.ZEPHYR
 
-    def test_get_existing_format(self):
+    def test_get_existing_format(self) -> None:
         """Test retrieving existing format returns the format."""
         result = self.registry.get_format(SupportedFormat.ZEPHYR)
         assert result is not None
         assert result is not None
         assert result.format_type == SupportedFormat.ZEPHYR
 
-    def test_get_supported_format_types(self):
+    def test_get_supported_format_types(self) -> None:
         """Test getting list of supported format types."""
         formats_dict = self.registry.get_all_formats()
         supported_types = list(formats_dict.keys())
@@ -377,7 +377,7 @@ class TestFormatRegistry(unittest.TestCase):
 
     @patch("importobot.medallion.bronze.formats.create_zephyr_format")
     @patch("importobot.medallion.bronze.formats.create_testlink_format")
-    def test_load_built_in_formats(self, mock_testlink, mock_zephyr):
+    def test_load_built_in_formats(self, mock_testlink, mock_zephyr) -> None:
         """Test loading built-in format definitions."""
         # Mock the format creation functions
         zephyr_format = FormatDefinition(
@@ -451,7 +451,7 @@ class TestFormatRegistry(unittest.TestCase):
 class TestFormatDefinitionIntegration(unittest.TestCase):
     """Integration tests for format definition system components."""
 
-    def test_complete_format_definition_workflow(self):
+    def test_complete_format_definition_workflow(self) -> None:
         """Test complete workflow of creating and using format definitions."""
         # Create field definitions
         unique_fields = [
@@ -495,7 +495,7 @@ class TestFormatDefinitionIntegration(unittest.TestCase):
         expected_score = 2 * EvidenceWeight.UNIQUE + EvidenceWeight.MODERATE
         assert max_score == expected_score
 
-    def test_format_definition_validation_edge_cases(self):
+    def test_format_definition_validation_edge_cases(self) -> None:
         """Test format definition validation with edge cases."""
         # Test with empty indicators should fail validation when registering
         format_def = FormatDefinition(

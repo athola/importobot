@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from pathlib import Path
 
 import pytest
 
@@ -195,7 +194,7 @@ def test_optimization_service_ttl_disabled_skips_expiry_tracking() -> None:
     assert not service._result_expiry
 
 
-def test_gold_layer_optimization_preview_included(tmp_path: Path) -> None:
+def test_gold_layer_optimization_preview_included(tmp_path) -> None:
     """Test that gold layer includes optimization preview in processing results."""
     with pytest.warns(
         UserWarning, match="GoldLayer is currently a placeholder implementation"

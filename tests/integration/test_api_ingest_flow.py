@@ -31,7 +31,7 @@ class DummyClient:
             yield payload
 
 
-def make_args(tmp_path: Path) -> Namespace:
+def make_args(tmp_path) -> Namespace:
     """Construct CLI args namespace for integration tests."""
     return Namespace(
         fetch_format=SupportedFormat.TESTRAIL,
@@ -53,7 +53,7 @@ def make_args(tmp_path: Path) -> Namespace:
 
 
 def test_ingestion_then_conversion(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:
     """Fetched payload should feed into existing conversion flow."""
     payloads: list[dict[str, object]] = [{"items": [{"id": 1}]}]
@@ -93,7 +93,7 @@ def test_ingestion_then_conversion(
 
 
 def test_ingest_metadata_tracks_payloads(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:
     """Metadata file reflects payload counts with multi-stage progress callbacks."""
 

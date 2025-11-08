@@ -8,6 +8,7 @@ Demonstrates how context pattern enables:
 
 import threading
 import time
+from collections.abc import Iterator
 from typing import cast
 
 import pytest
@@ -32,18 +33,18 @@ from importobot.telemetry import TelemetryClient
 class TestApplicationContext:
     """Test application context lifecycle and isolation."""
 
-    def test_context_creates_lazily(self):
+    def test_context_creates_lazily(self) -> None:
         """Context instances are created on first access."""
         clear_context()  # Ensure clean state
 
         context = get_context()
         assert isinstance(context, ApplicationContext)
 
-    def test_context_is_thread_local(self):
+    def test_context_is_thread_local(self) -> None:
         """Each thread gets its own context instance."""
         contexts = []
 
-        def capture_context():
+        def capture_context() -> None:
             contexts.append(get_context())
 
         threads = [threading.Thread(target=capture_context) for _ in range(3)]
@@ -55,7 +56,7 @@ class TestApplicationContext:
         # Each thread should have gotten a different context instance
         assert len({id(context) for context in contexts}) == 3
 
-    def test_context_can_be_explicitly_set(self):
+    def test_context_can_be_explicitly_set(self) -> None:
         """Context can be explicitly set for dependency injection."""
         custom_context = ApplicationContext()
         set_context(custom_context)
@@ -63,7 +64,7 @@ class TestApplicationContext:
         retrieved = get_context()
         assert retrieved is custom_context
 
-    def test_clear_context_resets_state(self):
+    def test_clear_context_resets_state(self) -> None:
         """Clearing context removes all cached state."""
         context = get_context()
         # Access something to create state
@@ -75,7 +76,7 @@ class TestApplicationContext:
         new_context = get_context()
         assert new_context is not context
 
-    def test_performance_cache_property(self):
+    def test_performance_cache_property(self) -> None:
         """Performance cache is lazily created through context."""
         context = ApplicationContext()
         assert context._performance_cache is None
@@ -85,7 +86,7 @@ class TestApplicationContext:
         # Subsequent access returns same instance
         assert context.performance_cache is cache
 
-    def test_context_clear_caches(self):
+    def test_context_clear_caches(self) -> None:
         """Context can clear all cached data."""
         context = ApplicationContext()
         cache = context.performance_cache
@@ -99,7 +100,7 @@ class TestApplicationContext:
         # Cache should be cleared
         assert cache.get("demo-key") is None
 
-    def test_context_reset(self):
+    def test_context_reset(self) -> None:
         """Context reset removes all dependencies."""
         context = ApplicationContext()
         _ = context.performance_cache  # Create cache
@@ -115,13 +116,13 @@ class TestContextInTesting:
     """Demonstrate how context pattern improves testing."""
 
     @pytest.fixture(autouse=True)
-    def _clean_context(self):
+    def _clean_context(self) -> Iterator[None]:
         """Ensure clean context for each test."""
         clear_context()
         yield
         clear_context()
 
-    def test_isolation_example_1(self):
+    def test_isolation_example_1(self) -> None:
         """First test has clean context."""
         context = get_context()
         cache = context.performance_cache
@@ -129,7 +130,7 @@ class TestContextInTesting:
         # This test's modifications don't affect other tests
         cache.set("test1", "value1")
 
-    def test_isolation_example_2(self):
+    def test_isolation_example_2(self) -> None:
         """Second test also has clean context."""
         context = get_context()
         cache = context.performance_cache
@@ -141,7 +142,7 @@ class TestContextInTesting:
 class TestContextVsGlobalVariable:
     """Compare context pattern vs global variable pattern."""
 
-    def test_context_allows_multiple_instances(self):
+    def test_context_allows_multiple_instances(self) -> None:
         """With context, we can have multiple independent instances."""
         context1 = ApplicationContext()
         context2 = ApplicationContext()
@@ -152,7 +153,7 @@ class TestContextVsGlobalVariable:
         # These are independent instances
         assert cache1 is not cache2
 
-    def test_context_explicit_dependency_injection(self):
+    def test_context_explicit_dependency_injection(self) -> None:
         """Context enables explicit dependency injection for testing."""
         # Create custom context with test configuration
         test_context = ApplicationContext()
@@ -169,7 +170,7 @@ class TestContextCleanup:
     """Test context cleanup and memory management."""
 
     @pytest.fixture(autouse=True)
-    def _clean_context_and_registry(self):
+    def _clean_context_and_registry(self) -> Iterator[None]:
         """Ensure clean context and registry for each test."""
         clear_context()
         cleanup_stale_contexts()
@@ -177,7 +178,7 @@ class TestContextCleanup:
         clear_context()
         cleanup_stale_contexts()
 
-    def test_cleanup_stale_contexts_removes_dead_threads(self):
+    def test_cleanup_stale_contexts_removes_dead_threads(self) -> None:
         """Cleanup should remove contexts for threads that are no longer alive."""
         contexts_created = []
 
@@ -203,7 +204,7 @@ class TestContextCleanup:
         stats_after = get_registry_stats()
         assert cast(int, stats_after["dead_threads"]) == 0
 
-    def test_get_registry_stats_reports_accurate_counts(self):
+    def test_get_registry_stats_reports_accurate_counts(self) -> None:
         """Registry stats should accurately report thread states."""
         # Start with clean state
         cleanup_stale_contexts()
@@ -216,7 +217,7 @@ class TestContextCleanup:
         assert cast(int, stats["alive_threads"]) >= 1
         assert isinstance(stats["thread_names"], list)
 
-    def test_cleanup_returns_zero_when_no_stale_contexts(self):
+    def test_cleanup_returns_zero_when_no_stale_contexts(self) -> None:
         """Cleanup should return 0 when there are no stale contexts."""
         # Ensure registry is clean
         cleanup_stale_contexts()
@@ -228,7 +229,7 @@ class TestContextCleanup:
         removed = cleanup_stale_contexts()
         assert removed == 0
 
-    def test_registry_stats_includes_thread_names(self):
+    def test_registry_stats_includes_thread_names(self) -> None:
         """Stats should include thread names for debugging."""
         _ = get_context()
 
@@ -237,7 +238,7 @@ class TestContextCleanup:
         assert isinstance(stats["thread_names"], list)
         assert len(stats["thread_names"]) > 0
 
-    def test_cleanup_is_thread_safe(self):
+    def test_cleanup_is_thread_safe(self) -> None:
         """Cleanup should be safe to call from multiple threads."""
         results = []
 
@@ -272,7 +273,7 @@ class TestContextMemoryManagement:
     """Test memory management and leak prevention."""
 
     @pytest.fixture(autouse=True)
-    def _clean_context_and_registry(self):
+    def _clean_context_and_registry(self) -> Iterator[None]:
         """Ensure clean context and registry for each test."""
         clear_context()
         cleanup_stale_contexts()
@@ -280,7 +281,7 @@ class TestContextMemoryManagement:
         clear_context()
         cleanup_stale_contexts()
 
-    def test_context_not_retained_after_thread_cleanup(self):
+    def test_context_not_retained_after_thread_cleanup(self) -> None:
         """Context should be removable after thread exits."""
         initial_stats = get_registry_stats()
         initial_size = cast(int, initial_stats["size"])
@@ -299,7 +300,7 @@ class TestContextMemoryManagement:
         final_stats = get_registry_stats()
         assert cast(int, final_stats["size"]) <= initial_size
 
-    def test_clear_context_removes_from_registry(self):
+    def test_clear_context_removes_from_registry(self) -> None:
         """Clearing context should unregister it from the registry."""
         initial_size = cast(int, get_registry_stats()["size"])
 
@@ -311,7 +312,7 @@ class TestContextMemoryManagement:
         after_clear = cast(int, get_registry_stats()["size"])
         assert after_clear <= initial_size
 
-    def test_registry_does_not_grow_unbounded_with_cleanup(self):
+    def test_registry_does_not_grow_unbounded_with_cleanup(self) -> None:
         """Registry size should stay bounded when using cleanup."""
         # Create and cleanup multiple times
         for _ in range(10):
@@ -334,7 +335,7 @@ class TestContextMemoryManagement:
 class TestContextManager:
     """Test ApplicationContext as a context manager."""
 
-    def test_direct_application_context_as_context_manager(self):
+    def test_direct_application_context_as_context_manager(self) -> None:
         """Test that ApplicationContext can be used directly as a context manager."""
         initial_size = cast(int, get_registry_stats()["size"])
 
@@ -361,7 +362,7 @@ class TestContextManager:
         final_size = cast(int, get_registry_stats()["size"])
         assert final_size <= initial_size
 
-    def test_get_context_as_context_manager(self):
+    def test_get_context_as_context_manager(self) -> None:
         """Test that get_context() can be used as a context manager."""
         initial_size = cast(int, get_registry_stats()["size"])
 
@@ -381,7 +382,7 @@ class TestContextManager:
         final_size = cast(int, get_registry_stats()["size"])
         assert final_size <= initial_size
 
-    def test_context_manager_cleanup_on_exception(self):
+    def test_context_manager_cleanup_on_exception(self) -> None:
         """Test that context manager cleanup works even when exceptions occur."""
         context = ApplicationContext()
 
@@ -398,7 +399,7 @@ class TestContextManager:
         assert context._performance_cache is None
         assert context._telemetry_client is None
 
-    def test_context_manager_preserves_exception_propagation(self):
+    def test_context_manager_preserves_exception_propagation(self) -> None:
         """Test that context manager doesn't suppress exceptions."""
         context = ApplicationContext()
 
@@ -411,7 +412,7 @@ class TestContextManager:
         else:
             pytest.fail("Exception should have been propagated")
 
-    def test_nested_context_managers(self):
+    def test_nested_context_managers(self) -> None:
         """Test nested context managers work correctly."""
         initial_size = cast(int, get_registry_stats()["size"])
 
@@ -438,7 +439,7 @@ class TestContextManager:
 class TestContextPerformanceMonitoring:
     """Test context registry cleanup performance monitoring."""
 
-    def test_reset_cleanup_performance_stats(self):
+    def test_reset_cleanup_performance_stats(self) -> None:
         """Test that performance statistics can be reset."""
         reset_cleanup_performance_stats()
 
@@ -452,7 +453,7 @@ class TestContextPerformanceMonitoring:
         assert stats["max_cleanup_duration_ms"] == 0.0
         assert stats["min_cleanup_duration_ms"] == float("inf")
 
-    def test_cleanup_performance_stats_track_multiple_cleanups(self):
+    def test_cleanup_performance_stats_track_multiple_cleanups(self) -> None:
         """Test that performance statistics track multiple cleanup operations."""
         reset_cleanup_performance_stats()
 
@@ -485,7 +486,7 @@ class TestContextPerformanceMonitoring:
         assert stats["max_cleanup_duration_ms"] >= 0
         assert stats["min_cleanup_duration_ms"] < float("inf")
 
-    def test_cleanup_performance_stats_handle_no_threads(self):
+    def test_cleanup_performance_stats_handle_no_threads(self) -> None:
         """Test that performance stats handle cleanup when no contexts exist."""
         reset_cleanup_performance_stats()
         clear_context()  # Ensure clean state
@@ -502,7 +503,7 @@ class TestContextPerformanceMonitoring:
         assert stats["total_threads_processed"] == 0
         assert stats["last_cleanup_time"] is not None
 
-    def test_cleanup_performance_stats_accumulate_across_operations(self):
+    def test_cleanup_performance_stats_accumulate_across_operations(self) -> None:
         """Test performance statistics accumulate across cleanups."""
         reset_cleanup_performance_stats()
 
@@ -546,7 +547,7 @@ class TestContextPerformanceMonitoring:
         )
         assert stats_after_second["average_cleanup_time_ms"] >= 0
 
-    def test_cleanup_performance_stats_min_max_tracking(self):
+    def test_cleanup_performance_stats_min_max_tracking(self) -> None:
         """Test that min/max cleanup times are tracked correctly."""
         reset_cleanup_performance_stats()
 
@@ -583,7 +584,7 @@ class TestContextPerformanceMonitoring:
         assert final_stats["max_cleanup_duration_ms"] > 0
         assert final_stats["average_cleanup_time_ms"] > 0
 
-    def test_cleanup_performance_stats_thread_safety(self):
+    def test_cleanup_performance_stats_thread_safety(self) -> None:
         """Test that performance stats collection is thread-safe."""
         reset_cleanup_performance_stats()
 

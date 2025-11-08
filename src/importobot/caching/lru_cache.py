@@ -258,10 +258,6 @@ class LRUCache(CacheStrategy[K, V]):
             "ttl_seconds": self.config.ttl_seconds or 0,
         }
 
-    def get_cache_stats(self) -> dict[str, Any]:
-        """Alias helper to align with legacy cache API."""
-        return self.get_stats()
-
     def flush_metrics(self) -> None:
         """Force emission of any pending telemetry events."""
         self._emit_metrics(force=True)
