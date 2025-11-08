@@ -23,7 +23,7 @@ def reset_templates():
 class TestIntegration:
     """Integration tests for the complete conversion process."""
 
-    def test_end_to_end_conversion(self):
+    def test_end_to_end_conversion(self) -> None:
         """Test complete conversion from JSON to Robot Framework."""
         # Create temporary files
         with tempfile.NamedTemporaryFile(
@@ -70,7 +70,7 @@ class TestIntegration:
             Path(input_filename).unlink(missing_ok=True)
             Path(output_filename).unlink(missing_ok=True)
 
-    def test_conversion_with_empty_input(self):
+    def test_conversion_with_empty_input(self) -> None:
         """Test conversion with empty JSON input should fail in strict mode."""
         # Create temporary files
         with tempfile.NamedTemporaryFile(

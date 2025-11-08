@@ -131,7 +131,7 @@ def test_insecure_flag_requires_explicit_opt_in(
 
 def test_request_rejects_http_method_injection(monkeypatch: pytest.MonkeyPatch) -> None:
     """Injected HTTP verbs should be rejected to prevent request smuggling."""
-    monkeypatch.setattr("importobot.integrations.clients.RateLimiter", _TrackingLimiter)
+    monkeypatch.setattr("importobot.integrations.clients.base.RateLimiter", _TrackingLimiter)
     client = _DummyClient(
         api_url="https://api.example",
         tokens=["token"],
@@ -155,7 +155,7 @@ def test_request_rejects_http_method_injection(monkeypatch: pytest.MonkeyPatch) 
 
 def test_rate_limiter_blocks_request_bypass(monkeypatch: pytest.MonkeyPatch) -> None:
     """Every outbound request must pass through the rate limiter."""
-    monkeypatch.setattr("importobot.integrations.clients.RateLimiter", _TrackingLimiter)
+    monkeypatch.setattr("importobot.integrations.clients.base.RateLimiter", _TrackingLimiter)
     client = _DummyClient(
         api_url="https://api.example",
         tokens=["token"],

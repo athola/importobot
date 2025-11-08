@@ -19,7 +19,7 @@ from weakref import WeakKeyDictionary
 
 from importobot.config import _int_from_env
 from importobot.telemetry import TelemetryClient, get_telemetry_client
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 
 
 class _NullTelemetry:
@@ -34,7 +34,7 @@ class _NullTelemetry:
         return None
 
 
-logger = setup_logger(__name__)
+logger = get_logger(__name__)
 
 
 DEFAULT_MAX_SIZE = _int_from_env(
@@ -242,7 +242,7 @@ class PerformanceCache:
         self._emit_cache_metrics()
         logger.info("Performance caches cleared")
 
-    def get_cache_stats(self) -> dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get cache performance statistics."""
         total_requests = self._cache_hits + self._cache_misses
         hit_rate = (

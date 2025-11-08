@@ -192,7 +192,7 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
     - Quality metrics and validation
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test environment."""
         self.temp_dir = Path(tempfile.mkdtemp())
         bronze_layer = BronzeLayer(storage_path=self.temp_dir)
@@ -203,12 +203,12 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
         self.testlink_data = create_testlink_test_data()
         self.jira_xray_data = create_jira_xray_test_data()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         """Clean up test environment."""
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     # Test 1: Basic JSON file ingestion with metadata capture
-    def test_ingest_json_file_captures_full_metadata(self):
+    def test_ingest_json_file_captures_full_metadata(self) -> None:
         """Test that ingesting a JSON file captures complete metadata."""
         # Create test file
         test_file = self.temp_dir / "test_data.json"
@@ -232,7 +232,7 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
         assert len(metadata.data_hash) > 0
         assert metadata.format_type == SupportedFormat.ZEPHYR
 
-    def test_ingest_json_string_with_source_tracking(self):
+    def test_ingest_json_string_with_source_tracking(self) -> None:
         """Test ingesting JSON string with proper source attribution."""
         json_string = json.dumps(self.testlink_data)
         source_name = "testlink_export_2024"
@@ -243,7 +243,7 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
         assert result.metadata.source_path.name == source_name
         assert result.metadata.format_type == SupportedFormat.TESTLINK
 
-    def test_ingest_data_dict_preserves_structure(self):
+    def test_ingest_data_dict_preserves_structure(self) -> None:
         """Test ingesting data dictionary preserves original structure."""
         source_name = "api_import"
 
@@ -258,7 +258,7 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
         assert stored_data.records[0]["issues"][0]["key"] == "TEST-123"
 
     # Test 2: Data lineage tracking from source to Bronze storage
-    def test_data_lineage_tracked_from_source_to_bronze(self):
+    def test_data_lineage_tracked_from_source_to_bronze(self) -> None:
         """Test that complete data lineage is tracked during ingestion."""
         test_file = self.temp_dir / "lineage_test.json"
         with open(test_file, "w", encoding="utf-8") as f:
@@ -274,7 +274,7 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
         assert lineage.transformation_type == "raw_ingestion"
         assert isinstance(lineage.transformation_timestamp, datetime)
 
-    def test_lineage_includes_transformation_details(self):
+    def test_lineage_includes_transformation_details(self) -> None:
         """Test that lineage includes detailed transformation information."""
         result = self.ingestion.ingest_data_dict(
             self.zephyr_data, "detailed_lineage_test"
@@ -286,7 +286,7 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
         assert isinstance(lineage.transformation_timestamp, datetime)
 
     # Test 3: Format detection for supported test frameworks
-    def test_zephyr_format_detection_accuracy(self):
+    def test_zephyr_format_detection_accuracy(self) -> None:
         """Test accurate detection of Zephyr test format."""
         detected_format = self.ingestion.detect_format(self.zephyr_data)
         confidence = self.ingestion.get_format_confidence(
@@ -300,7 +300,7 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
             confidence >= 0.8
         )  # Business requirement: >80% confidence for known formats
 
-    def test_testlink_format_detection_accuracy(self):
+    def test_testlink_format_detection_accuracy(self) -> None:
         """Test accurate detection of TestLink test format."""
         detected_format = self.ingestion.detect_format(self.testlink_data)
         confidence = self.ingestion.get_format_confidence(
@@ -314,7 +314,7 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
             confidence >= 0.8
         )  # Business requirement: >80% confidence for known formats
 
-    def test_jira_xray_format_detection_accuracy(self):
+    def test_jira_xray_format_detection_accuracy(self) -> None:
         """Test accurate detection of JIRA/Xray test format."""
         detected_format = self.ingestion.detect_format(self.jira_xray_data)
         confidence = self.ingestion.get_format_confidence(
@@ -326,7 +326,7 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
             confidence >= 0.8
         )  # Business requirement: >80% confidence for known formats
 
-    def test_unknown_format_handling(self):
+    def test_unknown_format_handling(self) -> None:
         """Test handling of unrecognized data formats."""
         unknown_data = {"random": "data", "not": "test related"}
 
@@ -334,7 +334,7 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
 
         assert detected_format == SupportedFormat.UNKNOWN
 
-    def test_format_detection_confidence_scoring(self):
+    def test_format_detection_confidence_scoring(self) -> None:
         """Test that multi-class Bayesian normalization ranks correct format highest.
 
         With proper multi-class Bayesian inference, the mathematically correct
@@ -362,7 +362,7 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
         )
 
     # Test 4: Quality metrics and validation
-    def test_quality_metrics_calculated_during_ingestion(self):
+    def test_quality_metrics_calculated_during_ingestion(self) -> None:
         """Test that quality metrics are calculated during data ingestion."""
         result = self.ingestion.ingest_data_dict(self.zephyr_data, "quality_test")
 
@@ -374,7 +374,7 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
         assert quality.overall_score >= 0.0
         assert quality.overall_score <= 100.0
 
-    def test_validation_before_ingestion_prevents_bad_data(self):
+    def test_validation_before_ingestion_prevents_bad_data(self) -> None:
         """Test that pre-ingestion validation prevents bad data entry."""
         bad_data = None  # Invalid data
 
@@ -385,7 +385,7 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
         assert not validation_result.is_valid
         assert validation_result.error_count > 0
 
-    def test_validation_identifies_quality_issues(self):
+    def test_validation_identifies_quality_issues(self) -> None:
         """Test that validation identifies data quality issues."""
         poor_quality_data: dict[str, Any] = {
             "": "",  # Empty keys and values
@@ -404,7 +404,7 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
         assert validation_result.warning_count >= 0  # 0 or more warnings acceptable
 
     # Test 5: Preview functionality
-    def test_preview_ingestion_without_storing(self):
+    def test_preview_ingestion_without_storing(self) -> None:
         """Test preview functionality provides insights without storing data."""
         test_file = self.temp_dir / "preview_test.json"
         with open(test_file, "w", encoding="utf-8") as f:
@@ -423,7 +423,7 @@ class TestBronzeDataIngestionCore(unittest.TestCase):
         assert isinstance(preview["stats"], dict)
         assert preview["stats"]["total_keys"] > 0
 
-    def test_preview_handles_problematic_files(self):
+    def test_preview_handles_problematic_files(self) -> None:
         """Test preview gracefully handles problematic files."""
         bad_file = self.temp_dir / "bad_preview.json"
         with open(bad_file, "w", encoding="utf-8") as f:
@@ -446,7 +446,7 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
     - Backward compatibility
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test environment."""
         self.temp_dir = Path(tempfile.mkdtemp())
         bronze_layer = BronzeLayer(storage_path=self.temp_dir)
@@ -457,12 +457,12 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
         self.testlink_data = create_testlink_test_data()
         self.jira_xray_data = create_jira_xray_test_data()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         """Clean up test environment."""
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     # Test 1: Error handling and edge cases
-    def test_file_not_found_error_handling(self):
+    def test_file_not_found_error_handling(self) -> None:
         """Test proper handling of missing files."""
         nonexistent_file = self.temp_dir / "does_not_exist.json"
 
@@ -473,7 +473,7 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
         assert len(result.errors) > 0
         assert "not found" in result.errors[0].lower()
 
-    def test_invalid_json_error_handling(self):
+    def test_invalid_json_error_handling(self) -> None:
         """Test proper handling of malformed JSON files."""
         invalid_json_file = self.temp_dir / "invalid.json"
         with open(invalid_json_file, "w", encoding="utf-8") as f:
@@ -485,7 +485,7 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
         assert result.error_count == 1
         assert "json" in result.errors[0].lower()
 
-    def test_empty_data_handling(self):
+    def test_empty_data_handling(self) -> None:
         """Test handling of empty but valid JSON data."""
         empty_data: dict[str, Any] = {}
 
@@ -495,7 +495,7 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
         assert result.status == ProcessingStatus.COMPLETED
         assert result.warning_count > 0
 
-    def test_large_file_handling(self):
+    def test_large_file_handling(self) -> None:
         """Test handling of large JSON files."""
         # Create reasonably large test data
         large_data = {
@@ -521,7 +521,7 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
         assert result.metadata.record_count > 0  # Has logical data
 
     # Test 2: Performance requirements
-    def test_ingestion_performance_overhead_acceptable(self):
+    def test_ingestion_performance_overhead_acceptable(self) -> None:
         """Test that Bronze layer adds <10% performance overhead."""
         # Create baseline data
         tests_list = []
@@ -543,7 +543,7 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
         assert processing_time_ms < 5000  # 5 seconds max for 50 test cases
         assert result.status == ProcessingStatus.COMPLETED
 
-    def test_concurrent_ingestion_safety(self):
+    def test_concurrent_ingestion_safety(self) -> None:
         """Test that concurrent ingestions do not interfere with each other."""
 
         results = []
@@ -572,7 +572,7 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
             assert result.status == ProcessingStatus.COMPLETED
 
     # Test 3: Integration with existing parser
-    def test_integration_with_generic_test_file_parser(self):
+    def test_integration_with_generic_test_file_parser(self) -> None:
         """Test integration with existing GenericTestFileParser."""
         result = self.ingestion.ingest_data_dict(
             self.zephyr_data, "parser_integration_test"
@@ -597,7 +597,7 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
         return self.ingestion.preview_ingestion(temp_file)
 
     # Test 4: Configuration and customization
-    def test_storage_path_configuration(self):
+    def test_storage_path_configuration(self) -> None:
         """Test that storage path can be configured."""
         custom_storage = self.temp_dir / "custom_bronze"
         bronze_layer = BronzeLayer(storage_path=custom_storage)
@@ -608,7 +608,7 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
         assert result.status == ProcessingStatus.COMPLETED
         assert custom_storage.exists()
 
-    def test_validation_thresholds_configurable(self):
+    def test_validation_thresholds_configurable(self) -> None:
         """Test that validation thresholds can be configured."""
         # Create intentionally borderline-quality data where overall_score ~ 0.6
         borderline_data = {"a": "", "b": ""}
@@ -623,7 +623,7 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
         assert adjusted_result.severity == QualitySeverity.MEDIUM
 
     # Test 5: Backward compatibility
-    def test_existing_api_unchanged(self):
+    def test_existing_api_unchanged(self) -> None:
         """Test that existing API remains unchanged."""
         # Import existing converter to ensure it still works
 
@@ -635,7 +635,7 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
         assert isinstance(result, str)
         assert "*** Test Cases ***" in result
 
-    def test_no_breaking_changes_to_existing_imports(self):
+    def test_no_breaking_changes_to_existing_imports(self) -> None:
         """Test that existing imports continue to work."""
         # These imports should continue to work without Bronze layer
 

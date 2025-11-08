@@ -18,13 +18,13 @@ from importobot.core.conversion_strategies import (
 class TestConversionStrategy:
     """Tests for the base ConversionStrategy class."""
 
-    def test_abstract_base_class_cannot_be_instantiated(self):
+    def test_abstract_base_class_cannot_be_instantiated(self) -> None:
         """ConversionStrategy is abstract and can't be created directly."""
         with pytest.raises(TypeError):
             # pylint: disable=abstract-class-instantiated
             ConversionStrategy()  # type: ignore[abstract]
 
-    def test_concrete_strategy_implements_convert_method(self):
+    def test_concrete_strategy_implements_convert_method(self) -> None:
         """Concrete strategies need to implement the required methods."""
 
         class IncompleteStrategy(ConversionStrategy):
@@ -38,7 +38,7 @@ class TestConversionStrategy:
 class TestSingleFileStrategy:
     """Tests for SingleFileStrategy."""
 
-    def test_validates_required_output_file(self):
+    def test_validates_required_output_file(self) -> None:
         """Test that output file is required for single file conversion."""
         strategy = SingleFileStrategy()
 
@@ -55,7 +55,7 @@ class TestSingleFileStrategy:
     def test_displays_suggestions_after_conversion(
         self,
         mock_process_file,  # pylint: disable=unused-argument
-    ):
+    ) -> None:
         """Test that suggestions are displayed after conversion."""
         strategy = SingleFileStrategy()
 
@@ -72,7 +72,7 @@ class TestSingleFileStrategy:
 
     @patch("importobot.core.conversion_strategies.get_conversion_suggestions")
     @patch("importobot.core.conversion_strategies.load_json_file")
-    def test_display_suggestions(self, mock_load_json, mock_get_suggestions, capsys):
+    def test_display_suggestions(self, mock_load_json, mock_get_suggestions, capsys) -> None:
         """Test displaying suggestions for the input file."""
         strategy = SingleFileStrategy()
 
@@ -87,7 +87,7 @@ class TestSingleFileStrategy:
         strategy._display_suggestions("test.json", no_suggestions=False)
 
         captured = capsys.readouterr()
-        assert "💡 Conversion Suggestions:" in captured.out
+        assert "Conversion Suggestions:" in captured.out
         assert "1. Suggestion 1: Improve test data format" in captured.out
         assert "2. Suggestion 2: Add more descriptive step names" in captured.out
 
@@ -95,7 +95,7 @@ class TestSingleFileStrategy:
     @patch("importobot.core.conversion_strategies.load_json_file")
     def test_display_suggestions_respects_no_suggestions_flag(
         self, mock_load_json, mock_get_suggestions
-    ):
+    ) -> None:
         """Test that suggestions are not displayed when no_suggestions is True."""
         strategy = SingleFileStrategy()
 
@@ -110,7 +110,7 @@ class TestSingleFileStrategy:
     @patch("importobot.core.conversion_strategies.load_json_file")
     def test_display_suggestions_handles_empty_suggestions(
         self, mock_load_json, mock_get_suggestions, capsys
-    ):
+    ) -> None:
         """Test handling when there are no suggestions."""
         strategy = SingleFileStrategy()
 
@@ -132,7 +132,7 @@ class TestMultipleFileStrategy:
 class TestDirectoryStrategy:
     """Tests for DirectoryStrategy."""
 
-    def test_validates_required_output_directory(self):
+    def test_validates_required_output_directory(self) -> None:
         """Test that output directory is required."""
         strategy = DirectoryStrategy()
 
@@ -146,7 +146,7 @@ class TestDirectoryStrategy:
             strategy.validate_args(mock_args)
 
     @patch("importobot.core.conversion_strategies.convert_directory")
-    def test_handles_suggestions_warning(self, mock_convert_directory, capsys):
+    def test_handles_suggestions_warning(self, mock_convert_directory, capsys) -> None:
         """Test warning when suggestions are requested for directory."""
         strategy = DirectoryStrategy()
 
@@ -168,7 +168,7 @@ class TestDirectoryStrategy:
 class TestConversionStrategyUserScenarios:
     """Test conversion strategies from user perspective - what users accomplish."""
 
-    def test_user_can_convert_complex_test_scenario_end_to_end(self):
+    def test_user_can_convert_complex_test_scenario_end_to_end(self) -> None:
         """User can convert complex, realistic test scenario using strategies."""
 
         # Real user scenario: Complex e-commerce test case
@@ -241,7 +241,7 @@ class TestConversionStrategyUserScenarios:
             # User should get actionable test steps
             assert "Click checkout button" in robot_content
 
-    def test_user_can_process_directory_with_mixed_test_types(self):
+    def test_user_can_process_directory_with_mixed_test_types(self) -> None:
         """User can convert directory containing different types of test cases."""
 
         # Realistic scenario: User has mixed test types
@@ -320,7 +320,7 @@ class TestConversionStrategyUserScenarios:
 class TestConversionStrategyIntegration:
     """Integration tests for conversion strategies."""
 
-    def test_single_file_strategy_end_to_end(self):
+    def test_single_file_strategy_end_to_end(self) -> None:
         """Test single file strategy end-to-end with temporary files."""
         with tempfile.TemporaryDirectory() as temp_dir:
             # Create a test JSON file
@@ -358,7 +358,7 @@ class TestConversionStrategyIntegration:
 
             # Test passes if no exceptions are raised
 
-    def test_strategy_handles_conversion_errors(self):
+    def test_strategy_handles_conversion_errors(self) -> None:
         """Test that strategies handle conversion errors gracefully."""
         strategy = SingleFileStrategy()
 
@@ -385,7 +385,7 @@ class TestSingleFileStrategyAdditional:
     @patch("importobot.core.conversion_strategies.load_json_file")
     def test_display_suggestions_with_importobot_error(
         self, mock_load_json, mock_get_suggestions
-    ):
+    ) -> None:
         """Test _display_suggestions handles ImportobotError."""
         strategy = SingleFileStrategy()
 
@@ -402,7 +402,7 @@ class TestSingleFileStrategyAdditional:
     @patch("importobot.core.conversion_strategies.load_json_file")
     def test_display_suggestions_with_generic_error(
         self, mock_load_json, mock_get_suggestions
-    ):
+    ) -> None:
         """Test _display_suggestions handles generic exceptions."""
         strategy = SingleFileStrategy()
 

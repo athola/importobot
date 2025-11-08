@@ -5,7 +5,7 @@ Following TDD principles with comprehensive keyword generation testing.
 """
 
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from importobot.core.converter import get_conversion_suggestions
 from importobot.core.interfaces import KeywordGenerator
@@ -17,7 +17,7 @@ from importobot.core.pattern_matcher import IntentType
 class TestGenericKeywordGeneratorInitialization:
     """Test GenericKeywordGenerator initialization."""
 
-    def test_generator_initializes_correctly(self):
+    def test_generator_initializes_correctly(self) -> None:
         """Test that generator initializes with all specialized generators."""
         generator = GenericKeywordGenerator()
 
@@ -30,13 +30,13 @@ class TestGenericKeywordGeneratorInitialization:
         assert hasattr(generator, "operating_system_generator")
         assert hasattr(generator, "builtin_generator")
 
-    def test_generator_implements_keyword_generator_interface(self):
+    def test_generator_implements_keyword_generator_interface(self) -> None:
         """Test that GenericKeywordGenerator implements KeywordGenerator interface."""
 
         generator = GenericKeywordGenerator()
         assert isinstance(generator, KeywordGenerator)
 
-    def test_generator_has_required_methods(self):
+    def test_generator_has_required_methods(self) -> None:
         """Test that generator has required methods."""
         generator = GenericKeywordGenerator()
 
@@ -51,7 +51,7 @@ class TestGenericKeywordGeneratorInitialization:
 class TestGenerateTestCase:
     """Test generate_test_case method."""
 
-    def test_generate_test_case_with_minimal_data(self):
+    def test_generate_test_case_with_minimal_data(self) -> None:
         """Test generate_test_case with minimal test data."""
         generator = GenericKeywordGenerator()
         test_data: dict[str, Any] = {}
@@ -61,7 +61,7 @@ class TestGenerateTestCase:
         assert len(result) > 0
         assert "Unnamed Test" in result[0]
 
-    def test_generate_test_case_with_name(self):
+    def test_generate_test_case_with_name(self) -> None:
         """Test generate_test_case with test name."""
         generator = GenericKeywordGenerator()
         test_data = {"name": "Login Test"}
@@ -70,7 +70,7 @@ class TestGenerateTestCase:
         assert isinstance(result, list)
         assert "Login Test" in result[0]
 
-    def test_generate_test_case_with_description(self):
+    def test_generate_test_case_with_description(self) -> None:
         """Test generate_test_case with description."""
         generator = GenericKeywordGenerator()
         test_data = {
@@ -83,7 +83,7 @@ class TestGenerateTestCase:
         assert any("[Documentation]" in line for line in result)
         assert any("Test user login functionality" in line for line in result)
 
-    def test_generate_test_case_with_steps(self):
+    def test_generate_test_case_with_steps(self) -> None:
         """Test generate_test_case with steps."""
         generator = GenericKeywordGenerator()
         test_data = {
@@ -95,7 +95,7 @@ class TestGenerateTestCase:
         assert isinstance(result, list)
         assert len(result) > 2  # Should have name + steps + empty line
 
-    def test_generate_test_case_without_steps(self):
+    def test_generate_test_case_without_steps(self) -> None:
         """Test generate_test_case without steps."""
         generator = GenericKeywordGenerator()
         test_data = {"name": "Test Case"}
@@ -104,7 +104,7 @@ class TestGenerateTestCase:
         assert isinstance(result, list)
         assert any("No Operation" in line for line in result)
 
-    def test_generate_test_case_name_extraction_variants(self):
+    def test_generate_test_case_name_extraction_variants(self) -> None:
         """Test that test case name is extracted from various field names."""
         generator = GenericKeywordGenerator()
 
@@ -124,7 +124,7 @@ class TestGenerateTestCase:
 class TestGenerateStepKeywords:
     """Test generate_step_keywords method."""
 
-    def test_generate_step_keywords_with_minimal_step(self):
+    def test_generate_step_keywords_with_minimal_step(self) -> None:
         """Test generate_step_keywords with minimal step data."""
         generator = GenericKeywordGenerator()
         step: dict[str, Any] = {}
@@ -133,7 +133,7 @@ class TestGenerateStepKeywords:
         assert isinstance(result, list)
         assert len(result) >= 1  # Should have at least one keyword line
 
-    def test_generate_step_keywords_with_description(self):
+    def test_generate_step_keywords_with_description(self) -> None:
         """Test generate_step_keywords with step description."""
         generator = GenericKeywordGenerator()
         step = {"step": "Click login button"}
@@ -142,7 +142,7 @@ class TestGenerateStepKeywords:
         assert isinstance(result, list)
         assert any("# Step: Click login button" in line for line in result)
 
-    def test_generate_step_keywords_with_test_data(self):
+    def test_generate_step_keywords_with_test_data(self) -> None:
         """Test generate_step_keywords with test data."""
         generator = GenericKeywordGenerator()
         step = {"step": "Enter username", "testData": "user@example.com"}
@@ -151,7 +151,7 @@ class TestGenerateStepKeywords:
         assert isinstance(result, list)
         assert any("# Test Data: user@example.com" in line for line in result)
 
-    def test_generate_step_keywords_with_expected_result(self):
+    def test_generate_step_keywords_with_expected_result(self) -> None:
         """Test generate_step_keywords with expected result."""
         generator = GenericKeywordGenerator()
         step = {"step": "Click login", "expectedResult": "User is logged in"}
@@ -160,7 +160,7 @@ class TestGenerateStepKeywords:
         assert isinstance(result, list)
         assert any("# Expected Result: User is logged in" in line for line in result)
 
-    def test_generate_step_keywords_with_all_fields(self):
+    def test_generate_step_keywords_with_all_fields(self) -> None:
         """Test generate_step_keywords with all fields."""
         generator = GenericKeywordGenerator()
         step = {
@@ -176,7 +176,7 @@ class TestGenerateStepKeywords:
         assert any("# Expected Result: Credentials accepted" in line for line in result)
 
     @patch("importobot.core.keyword_generator.IntentRecognitionEngine")
-    def test_generate_step_keywords_with_intent_recognition(self, mock_intent_engine):
+    def test_generate_step_keywords_with_intent_recognition(self, mock_intent_engine: MagicMock) -> None:
         """Test generate_step_keywords with intent recognition."""
         mock_intent_engine.recognize_intent.return_value = IntentType.CLICK_ACTION
 
@@ -190,7 +190,7 @@ class TestGenerateStepKeywords:
         # 2) in _determine_robot_keyword for actual keyword generation
         assert mock_intent_engine.recognize_intent.call_count == 2
 
-    def test_generate_multiple_keywords_from_single_step(self):
+    def test_generate_multiple_keywords_from_single_step(self) -> None:
         """Test that a single step with multiple test data parts generates "
         "multiple keywords."""
         # This test validates multi-step keyword generation
@@ -199,7 +199,7 @@ class TestGenerateStepKeywords:
         result = generator.generate_step_keywords(test_step)
         assert isinstance(result, list)
 
-    def test_generate_command_execution_keyword(self):
+    def test_generate_command_execution_keyword(self) -> None:
         """Filesystem/CLI commands should map to Run keyword instead of No Operation."""
         generator = GenericKeywordGenerator()
         step = {
@@ -217,7 +217,7 @@ class TestDetectLibraries:
     """Test detect_libraries method."""
 
     @patch("importobot.core.keyword_generator.LibraryDetector")
-    def test_detect_libraries_calls_detector(self, mock_library_detector):
+    def test_detect_libraries_calls_detector(self, mock_library_detector: MagicMock) -> None:
         """Test that detect_libraries calls LibraryDetector."""
         mock_library_detector.detect_libraries_from_steps.return_value = {
             "SeleniumLibrary"
@@ -231,7 +231,7 @@ class TestDetectLibraries:
         mock_library_detector.detect_libraries_from_steps.assert_called_once_with(steps)
         assert result == {"SeleniumLibrary"}
 
-    def test_detect_libraries_with_empty_steps(self):
+    def test_detect_libraries_with_empty_steps(self) -> None:
         """Test detect_libraries with empty steps list."""
         generator = GenericKeywordGenerator()
 
@@ -242,7 +242,7 @@ class TestDetectLibraries:
 class TestPrivateHelperMethods:
     """Test private helper methods."""
 
-    def test_extract_field_with_matching_field(self):
+    def test_extract_field_with_matching_field(self) -> None:
         """Test _extract_field with matching field."""
         generator = GenericKeywordGenerator()
         data = {"name": "Test Name", "description": "Test Description"}
@@ -251,7 +251,7 @@ class TestPrivateHelperMethods:
         result = generator._extract_field(data, ["name", "title"])
         assert result == "Test Name"
 
-    def test_extract_field_with_multiple_candidates(self):
+    def test_extract_field_with_multiple_candidates(self) -> None:
         """Test _extract_field returns first matching field."""
         generator = GenericKeywordGenerator()
         data = {"title": "Title Value", "name": "Name Value"}
@@ -261,7 +261,7 @@ class TestPrivateHelperMethods:
         result = generator._extract_field(data, ["name", "title"])
         assert result == "Name Value"
 
-    def test_extract_field_with_no_matches(self):
+    def test_extract_field_with_no_matches(self) -> None:
         """Test _extract_field with no matching fields."""
         generator = GenericKeywordGenerator()
         data = {"other": "Other Value"}
@@ -270,7 +270,7 @@ class TestPrivateHelperMethods:
         result = generator._extract_field(data, ["name", "title"])
         assert result == ""
 
-    def test_extract_field_with_empty_value(self):
+    def test_extract_field_with_empty_value(self) -> None:
         """Test _extract_field with empty field value."""
         generator = GenericKeywordGenerator()
         data = {"name": "", "title": "Title Value"}
@@ -279,7 +279,7 @@ class TestPrivateHelperMethods:
         result = generator._extract_field(data, ["name", "title"])
         assert result == "Title Value"
 
-    def test_extract_field_with_none_value(self):
+    def test_extract_field_with_none_value(self) -> None:
         """Test _extract_field with None field value."""
         generator = GenericKeywordGenerator()
         data = {"name": None, "title": "Title Value"}
@@ -288,7 +288,7 @@ class TestPrivateHelperMethods:
         result = generator._extract_field(data, ["name", "title"])
         assert result == "Title Value"
 
-    def test_is_ssh_context_with_ssh_indicators(self):
+    def test_is_ssh_context_with_ssh_indicators(self) -> None:
         """Test _is_ssh_context with SSH indicators."""
         generator = GenericKeywordGenerator()
 
@@ -299,7 +299,7 @@ class TestPrivateHelperMethods:
         assert generator._is_ssh_context("", "username: user") is True
         assert generator._is_ssh_context("upload file", "/etc/config") is True
 
-    def test_is_ssh_context_without_ssh_indicators(self):
+    def test_is_ssh_context_without_ssh_indicators(self) -> None:
         """Test _is_ssh_context without SSH indicators."""
         generator = GenericKeywordGenerator()
 
@@ -315,8 +315,8 @@ class TestIntentHandling:
     @patch("importobot.core.keyword_generator.IntentRecognitionEngine")
     @patch("importobot.core.keyword_generator.WebKeywordGenerator")
     def test_determine_robot_keyword_web_navigation(
-        self, mock_web_generator_class, mock_intent_engine
-    ):
+        self, mock_web_generator_class: MagicMock, mock_intent_engine: MagicMock
+    ) -> None:
         """Test _determine_robot_keyword with web navigation intent."""
         mock_intent_engine.recognize_intent.return_value = IntentType.BROWSER_OPEN
         mock_web_generator = Mock()
@@ -336,8 +336,8 @@ class TestIntentHandling:
     @patch("importobot.core.keyword_generator.IntentRecognitionEngine")
     @patch("importobot.core.keyword_generator.DatabaseKeywordGenerator")
     def test_determine_robot_keyword_database_connect(
-        self, mock_database_generator_class, mock_intent_engine
-    ):
+        self, mock_database_generator_class: MagicMock, mock_intent_engine: MagicMock
+    ) -> None:
         """Test _determine_robot_keyword with database connect intent."""
         mock_intent_engine.recognize_intent.return_value = IntentType.DATABASE_CONNECT
         mock_database_generator = Mock()
@@ -359,8 +359,8 @@ class TestIntentHandling:
     @patch("importobot.core.keyword_generator.IntentRecognitionEngine")
     @patch("importobot.core.keyword_generator.SSHKeywordGenerator")
     def test_determine_robot_keyword_ssh_connect(
-        self, mock_ssh_generator_class, mock_intent_engine
-    ):
+        self, mock_ssh_generator_class: MagicMock, mock_intent_engine: MagicMock
+    ) -> None:
         """Test _determine_robot_keyword with SSH connect intent."""
         mock_intent_engine.recognize_intent.return_value = IntentType.SSH_CONNECT
         mock_ssh_generator = Mock()
@@ -376,7 +376,7 @@ class TestIntentHandling:
         mock_ssh_generator.generate_connect_keyword.assert_called_once_with("server")
 
     @patch("importobot.core.keyword_generator.IntentRecognitionEngine")
-    def test_determine_robot_keyword_unrecognized_intent(self, mock_intent_engine):
+    def test_determine_robot_keyword_unrecognized_intent(self, mock_intent_engine: MagicMock) -> None:
         """Test _determine_robot_keyword with unrecognized intent."""
         mock_intent_engine.recognize_intent.return_value = None  # Unknown intent
 
@@ -390,8 +390,8 @@ class TestIntentHandling:
     @patch("importobot.core.keyword_generator.IntentRecognitionEngine")
     @patch("importobot.core.keyword_generator.BuiltInKeywordGenerator")
     def test_determine_robot_keyword_builtin_operations(
-        self, mock_builtin_generator_class, mock_intent_engine
-    ):
+        self, mock_builtin_generator_class: MagicMock, mock_intent_engine: MagicMock
+    ) -> None:
         """Test _determine_robot_keyword with builtin operations."""
         mock_intent_engine.recognize_intent.return_value = IntentType.LOG_MESSAGE
         mock_builtin_generator = Mock()
@@ -413,7 +413,7 @@ class TestFileOperationHandling:
     """Test file operation handling methods."""
 
     @patch("importobot.core.keyword_generator.SSHKeywordGenerator")
-    def test_handle_file_transfer_ssh_upload(self, mock_ssh_generator_class):
+    def test_handle_file_transfer_ssh_upload(self, mock_ssh_generator_class: MagicMock) -> None:
         """Test _handle_file_transfer with SSH upload."""
         mock_ssh_generator = Mock()
         mock_ssh_generator.generate_file_transfer_keyword.return_value = "Put File"
@@ -428,7 +428,7 @@ class TestFileOperationHandling:
         mock_ssh_generator.generate_file_transfer_keyword.assert_called_once()
 
     @patch("importobot.core.keyword_generator.SSHKeywordGenerator")
-    def test_handle_file_transfer_ssh_download(self, mock_ssh_generator_class):
+    def test_handle_file_transfer_ssh_download(self, mock_ssh_generator_class: MagicMock) -> None:
         """Test _handle_file_transfer with SSH download."""
         mock_ssh_generator = Mock()
         mock_ssh_generator.generate_file_transfer_keyword.return_value = "Get File"
@@ -445,7 +445,7 @@ class TestFileOperationHandling:
         )
 
     @patch("importobot.core.keyword_generator.FileKeywordGenerator")
-    def test_handle_file_transfer_local(self, mock_file_generator_class):
+    def test_handle_file_transfer_local(self, mock_file_generator_class: MagicMock) -> None:
         """Test _handle_file_transfer with local file operations."""
         mock_file_generator = Mock()
         mock_file_generator.generate_transfer_keyword.return_value = "Copy File"
@@ -462,7 +462,7 @@ class TestFileOperationHandling:
         )
 
     @patch("importobot.core.keyword_generator.SSHKeywordGenerator")
-    def test_handle_file_verification_ssh(self, mock_ssh_generator_class):
+    def test_handle_file_verification_ssh(self, mock_ssh_generator_class: MagicMock) -> None:
         """Test _handle_file_verification with SSH context."""
         mock_ssh_generator = Mock()
         mock_ssh_generator.generate_file_verification_keyword.return_value = (
@@ -481,7 +481,7 @@ class TestFileOperationHandling:
         )
 
     @patch("importobot.core.keyword_generator.FileKeywordGenerator")
-    def test_handle_file_verification_local(self, mock_file_generator_class):
+    def test_handle_file_verification_local(self, mock_file_generator_class: MagicMock) -> None:
         """Test _handle_file_verification with local context."""
         mock_file_generator = Mock()
         mock_file_generator.generate_exists_keyword.return_value = "File Should Exist"
@@ -501,7 +501,7 @@ class TestFileOperationHandling:
 class TestKeywordGeneratorIntegration:
     """Test keyword generator integration scenarios."""
 
-    def test_complete_test_case_generation(self):
+    def test_complete_test_case_generation(self) -> None:
         """Test complete test case generation workflow."""
         generator = GenericKeywordGenerator()
         test_data = {
@@ -526,7 +526,7 @@ class TestKeywordGeneratorIntegration:
         assert any("[Documentation]" in line for line in result)
         assert any("Test user login functionality" in line for line in result)
 
-    def test_multiline_comment_formatting(self):
+    def test_multiline_comment_formatting(self) -> None:
         """Test multiline comment formatting functionality."""
 
         generator = BuiltInKeywordGenerator()
@@ -548,7 +548,7 @@ class TestKeywordGeneratorIntegration:
         assert isinstance(result, list)
         assert len(result) >= 1
 
-    def test_numeric_ordering_in_suggestions(self):
+    def test_numeric_ordering_in_suggestions(self) -> None:
         """Test that numeric values in step ordering work correctly."""
 
         # Test data with many steps to verify double-digit ordering
@@ -588,7 +588,7 @@ class TestKeywordGeneratorIntegration:
                 f"Step numbers not in order: {step_numbers}"
             )
 
-    def test_complex_step_generation_with_all_fields(self):
+    def test_complex_step_generation_with_all_fields(self) -> None:
         """Test complex step generation with all available fields."""
         generator = GenericKeywordGenerator()
         step = {
@@ -608,7 +608,7 @@ class TestKeywordGeneratorIntegration:
             "# Expected Result: Query returns user data" in line for line in result
         )
 
-    def test_keyword_generator_error_handling(self):
+    def test_keyword_generator_error_handling(self) -> None:
         """Test that keyword generator handles malformed data gracefully."""
         generator = GenericKeywordGenerator()
 

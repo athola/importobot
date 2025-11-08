@@ -268,7 +268,7 @@ def load_test_data_for_learning() -> list[tuple[dict[str, Any], Any]]:
     if TestFormatDetectionIntegration is not None:
         test_instance = TestFormatDetectionIntegration()
         if hasattr(test_instance, "setUp"):
-            test_instance.setUp()  # type: ignore[no-untyped-call]
+            test_instance.setUp()
 
     labeled_samples = []
 

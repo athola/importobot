@@ -36,7 +36,7 @@ class TestEnvironmentParsingInvariants:
     """Invariants for environment variable parsing."""
 
     @given(st.text().filter(lambda s: "\x00" not in s))
-    def test_flag_parsing_never_raises(self, value):
+    def test_flag_parsing_never_raises(self, value) -> None:
         """Flag parsing should never raise regardless of input (except null bytes)."""
         old_value = os.environ.get("TEST_VAR_HYPOTHESIS")
         try:
@@ -50,7 +50,7 @@ class TestEnvironmentParsingInvariants:
                 os.environ["TEST_VAR_HYPOTHESIS"] = old_value
 
     @given(st.text().filter(lambda s: "\x00" not in s))
-    def test_float_parsing_never_raises(self, value):
+    def test_float_parsing_never_raises(self, value) -> None:
         """Float parsing should never raise regardless of input (except null bytes)."""
         old_value = os.environ.get("TEST_VAR_HYPOTHESIS")
         try:
@@ -64,7 +64,7 @@ class TestEnvironmentParsingInvariants:
                 os.environ["TEST_VAR_HYPOTHESIS"] = old_value
 
     @given(st.text().filter(lambda s: "\x00" not in s))
-    def test_int_parsing_never_raises(self, value):
+    def test_int_parsing_never_raises(self, value) -> None:
         """Int parsing should never raise regardless of input (except null bytes)."""
         old_value = os.environ.get("TEST_VAR_HYPOTHESIS")
         try:
@@ -78,7 +78,7 @@ class TestEnvironmentParsingInvariants:
                 os.environ["TEST_VAR_HYPOTHESIS"] = old_value
 
     @given(st.floats(allow_nan=False, allow_infinity=False))
-    def test_float_parsing_roundtrip(self, value):
+    def test_float_parsing_roundtrip(self, value) -> None:
         """Valid floats should roundtrip through env parsing."""
         old_value = os.environ.get("TEST_VAR_HYPOTHESIS")
         try:
@@ -92,7 +92,7 @@ class TestEnvironmentParsingInvariants:
                 os.environ["TEST_VAR_HYPOTHESIS"] = old_value
 
     @given(st.integers(min_value=-1_000_000, max_value=1_000_000))
-    def test_int_parsing_roundtrip(self, value):
+    def test_int_parsing_roundtrip(self, value) -> None:
         """Valid ints should roundtrip through env parsing."""
         old_value = os.environ.get("TEST_VAR_HYPOTHESIS")
         try:
@@ -113,13 +113,13 @@ class TestTelemetryClientInvariants:
         st.floats(min_value=0.0, max_value=1000.0, allow_nan=False),
         st.integers(min_value=0, max_value=10000),
     )
-    def test_client_initialization_never_raises(self, interval, delta):
+    def test_client_initialization_never_raises(self, interval, delta) -> None:
         """Client should initialize with any valid parameters."""
         client = TelemetryClient(min_emit_interval=interval, min_sample_delta=delta)
         assert client._min_emit_interval == interval
         assert client._min_sample_delta == delta
 
-    def test_disabled_telemetry_returns_none(self):
+    def test_disabled_telemetry_returns_none(self) -> None:
         """When telemetry is disabled, get_telemetry_client() returns None."""
         reset_telemetry_client()
 
@@ -136,7 +136,7 @@ class TestTelemetryClientInvariants:
             client = get_telemetry_client()
             assert client is None
 
-    def test_disabled_telemetry_operations_are_noops(self):
+    def test_disabled_telemetry_operations_are_noops(self) -> None:
         """When telemetry is disabled, telemetry operations don't raise errors."""
         reset_telemetry_client()
 
@@ -154,7 +154,7 @@ class TestTelemetryClientInvariants:
         st.integers(min_value=0, max_value=10000),
         st.integers(min_value=0, max_value=10000),
     )
-    def test_hit_rate_bounded_0_to_1(self, hits, misses):
+    def test_hit_rate_bounded_0_to_1(self, hits, misses) -> None:
         """Hit rate must always be in range [0.0, 1.0]."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -173,7 +173,7 @@ class TestTelemetryClientInvariants:
         st.integers(min_value=0, max_value=10000),
         st.integers(min_value=0, max_value=10000),
     )
-    def test_total_requests_equals_hits_plus_misses(self, hits, misses):
+    def test_total_requests_equals_hits_plus_misses(self, hits, misses) -> None:
         """Total requests must always equal hits + misses."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -191,7 +191,7 @@ class TestTelemetryClientInvariants:
 class TestThreadSafetyInvariants:
     """Property-based tests for thread safety."""
 
-    def test_concurrent_registration_no_lost_exporters(self):
+    def test_concurrent_registration_no_lost_exporters(self) -> None:
         """All exporters registered concurrently must be retained."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -201,7 +201,7 @@ class TestThreadSafetyInvariants:
         registered_exporters: set[int] = set()
         lock = threading.Lock()
 
-        def register_exporters():
+        def register_exporters() -> None:
             thread_exporters = []
             for _ in range(exporters_per_thread):
 
@@ -226,7 +226,7 @@ class TestThreadSafetyInvariants:
         # Note: Some may be duplicates due to lambda identity, so >= not ==
         assert len(client._exporters) >= num_threads * exporters_per_thread
 
-    def test_concurrent_metric_recording_consistent_state(self):
+    def test_concurrent_metric_recording_consistent_state(self) -> None:
         """Concurrent metric recording must maintain consistent state."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -234,7 +234,7 @@ class TestThreadSafetyInvariants:
         emitted = []
         lock = threading.Lock()
 
-        def thread_safe_exporter(name, payload):
+        def thread_safe_exporter(name: str, payload: dict[str, object]) -> None:
             with lock:
                 emitted.append((name, payload))
 
@@ -243,7 +243,7 @@ class TestThreadSafetyInvariants:
         num_threads = 20
         ops_per_thread = 100
 
-        def record_metrics(thread_id):
+        def record_metrics(thread_id: int) -> None:
             for i in range(ops_per_thread):
                 client.record_cache_metrics(f"cache_{thread_id}", hits=i * 2, misses=i)
 
@@ -259,19 +259,31 @@ class TestThreadSafetyInvariants:
         # All emitted events should have valid structure
         for event_name, payload in emitted:
             assert event_name == "cache_metrics"
-            assert payload["hits"] >= 0
-            assert payload["misses"] >= 0
-            assert payload["total_requests"] == payload["hits"] + payload["misses"]
-            assert 0.0 <= payload["hit_rate"] <= 1.0
+            payload_typed = payload  # Known telemetry payload structure
+            # Type assertion for known keys in telemetry payload
+            hits = payload_typed["hits"]
+            misses = payload_typed["misses"]
+            total_requests = payload_typed["total_requests"]
+            hit_rate = payload_typed["hit_rate"]
 
-    def test_singleton_initialization_race_condition_safe(self):
+            assert isinstance(hits, (int, float))
+            assert isinstance(misses, (int, float))
+            assert isinstance(total_requests, (int, float))
+            assert isinstance(hit_rate, (int, float))
+
+            assert hits >= 0
+            assert misses >= 0
+            assert total_requests == hits + misses
+            assert 0.0 <= float(hit_rate) <= 1.0
+
+    def test_singleton_initialization_race_condition_safe(self) -> None:
         """Global singleton must be thread-safe during initialization."""
         reset_telemetry_client()
 
         clients: list[int] = []
         lock = threading.Lock()
 
-        def get_client():
+        def get_client() -> None:
             client = get_telemetry_client()
             with lock:
                 clients.append(id(client))
@@ -285,11 +297,11 @@ class TestThreadSafetyInvariants:
         # All threads must get the exact same instance
         assert len(set(clients)) == 1
 
-    def test_concurrent_clear_and_register_safe(self):
+    def test_concurrent_clear_and_register_safe(self) -> None:
         """Concurrent clear and register operations must be safe."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
 
-        def random_operations():
+        def random_operations() -> None:
             for _ in range(100):
                 operation = random.choice(["register", "clear", "record"])
                 if operation == "register":
@@ -312,7 +324,7 @@ class TestThreadSafetyInvariants:
 class TestRateLimitingInvariants:
     """Invariants for rate limiting behavior."""
 
-    def test_sample_delta_throttling_monotonic(self):
+    def test_sample_delta_throttling_monotonic(self) -> None:
         """Emissions should be monotonically increasing in sample count."""
         client = TelemetryClient(min_emit_interval=999999.0, min_sample_delta=50)
         client.clear_exporters()
@@ -338,7 +350,7 @@ class TestRateLimitingInvariants:
                 assert isinstance(prev, int)
                 assert curr - prev >= 50
 
-    def test_time_throttling_respects_interval(self):
+    def test_time_throttling_respects_interval(self) -> None:
         """Emissions should respect minimum time interval."""
 
         client = TelemetryClient(min_emit_interval=10.0, min_sample_delta=999999)
@@ -357,7 +369,7 @@ class TestRateLimitingInvariants:
         # Should emit at times[0], times[2], but not times[1] or times[3]
         assert len(emitted) == 2
 
-    def test_different_caches_independent_throttling(self):
+    def test_different_caches_independent_throttling(self) -> None:
         """Different cache names must have independent rate limits."""
         client = TelemetryClient(min_emit_interval=60.0, min_sample_delta=100)
         client.clear_exporters()
@@ -388,7 +400,7 @@ class TestMetricConsistencyInvariants:
             max_size=20,
         )
     )
-    def test_sequential_metric_recording_consistent(self, metric_sequence):
+    def test_sequential_metric_recording_consistent(self, metric_sequence) -> None:
         """Sequential metric recording must maintain consistency."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -414,7 +426,7 @@ class TestMetricConsistencyInvariants:
             assert isinstance(hit_rate, float)
             assert 0.0 <= hit_rate <= 1.0
 
-    def test_extras_never_override_core_fields(self):
+    def test_extras_never_override_core_fields(self) -> None:
         """Extra payload fields must not override core metric fields."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -439,7 +451,7 @@ class TestMetricConsistencyInvariants:
         # If this is undesired, the implementation should prevent override
         assert payload["custom_field"] == "allowed"
 
-    def test_timestamp_always_present(self):
+    def test_timestamp_always_present(self) -> None:
         """All metric events must include a timestamp."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -459,19 +471,19 @@ class TestMetricConsistencyInvariants:
 class TestExporterInvariants:
     """Invariants for exporter behavior."""
 
-    def test_exporter_called_with_immutable_semantics(self):
+    def test_exporter_called_with_immutable_semantics(self) -> None:
         """Exporters should not be able to mutate shared state."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
 
         payloads_received = []
 
-        def mutating_exporter(name, payload):
+        def mutating_exporter(name: str, payload: dict[str, object]) -> None:
             # Try to mutate the payload
             payload["hits"] = 999
             payloads_received.append((name, dict(payload)))
 
-        def observing_exporter(name, payload):
+        def observing_exporter(name: str, payload: dict[str, object]) -> None:
             payloads_received.append((name, dict(payload)))
 
         client.register_exporter(mutating_exporter)
@@ -483,17 +495,17 @@ class TestExporterInvariants:
         # (current implementation shares mutable dict)
         # If isolation is desired, implementation should copy payload
 
-    def test_exporter_exceptions_isolated(self):
+    def test_exporter_exceptions_isolated(self) -> None:
         """Exceptions in one exporter must not affect others."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
 
         successful_calls = []
 
-        def failing_exporter(name, payload):
+        def failing_exporter(name: str, payload: dict[str, object]) -> None:
             raise RuntimeError("Intentional failure")
 
-        def working_exporter(name, payload):
+        def working_exporter(name: str, payload: dict[str, object]) -> None:
             successful_calls.append((name, payload))
 
         client.register_exporter(failing_exporter)
@@ -505,7 +517,7 @@ class TestExporterInvariants:
         # Working exporter should have been called
         assert len(successful_calls) == 1
 
-    def test_exporter_list_snapshot_semantics(self):
+    def test_exporter_list_snapshot_semantics(self) -> None:
         """Exporter list should be snapshot during emission."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -533,7 +545,7 @@ class TestExporterInvariants:
 class TestConcurrentStateInvariants:
     """Test state consistency under concurrent access."""
 
-    def test_last_emit_tracking_consistent(self):
+    def test_last_emit_tracking_consistent(self) -> None:
         """Last emit tracking must be consistent under concurrency."""
         client = TelemetryClient(min_emit_interval=0.1, min_sample_delta=10)
         client.clear_exporters()
@@ -547,7 +559,7 @@ class TestConcurrentStateInvariants:
 
         client.register_exporter(safe_exporter)
 
-        def worker():
+        def worker() -> None:
             for i in range(50):
                 client.record_cache_metrics(f"cache_{i % 5}", hits=i, misses=i // 2)
                 time.sleep(0.001)
@@ -565,7 +577,7 @@ class TestConcurrentStateInvariants:
 
     @settings(max_examples=10, deadline=2000)  # Fewer examples due to threading
     @given(st.integers(min_value=2, max_value=10))
-    def test_parallel_cache_access_safe(self, num_threads):
+    def test_parallel_cache_access_safe(self, num_threads) -> None:
         """Parallel access to different caches must be safe."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()

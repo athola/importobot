@@ -12,7 +12,7 @@ from importobot.core.templates.blueprints import registry
 
 
 @pytest.fixture(autouse=True)
-def _restrict_cwd(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def _restrict_cwd(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)
 
 
@@ -39,7 +39,7 @@ def test_derive_template_keys_generates_variants() -> None:
     assert "mytemplate" in keys
 
 
-def test_configure_template_sources_registers_template(tmp_path: Path) -> None:
+def test_configure_template_sources_registers_template(tmp_path) -> None:
     template_file = tmp_path / "example.robot"
     template_file.write_text(
         "*** Test Cases ***\nSample\n    Log    Hello\n", encoding="utf-8"
@@ -52,7 +52,7 @@ def test_configure_template_sources_registers_template(tmp_path: Path) -> None:
     assert "Sample" in template.template
 
 
-def test_configure_template_sources_learns_patterns(tmp_path: Path) -> None:
+def test_configure_template_sources_learns_patterns(tmp_path) -> None:
     content = """*** Test Cases ***
 Sample
     Switch Connection    Controller
@@ -80,7 +80,7 @@ Sample
     assert pattern_by_token.command_token == "setconfig"
 
 
-def test_configure_template_sources_skips_invalid_helpers(tmp_path: Path) -> None:
+def test_configure_template_sources_skips_invalid_helpers(tmp_path) -> None:
     bad_py = tmp_path / "broken.py"
     bad_py.write_text("def oops(:\n", encoding="utf-8")
 
@@ -89,7 +89,7 @@ def test_configure_template_sources_skips_invalid_helpers(tmp_path: Path) -> Non
     assert len(registry.TEMPLATE_REGISTRY._templates) == 0
 
 
-def test_configure_template_sources_rejects_large_files(tmp_path: Path) -> None:
+def test_configure_template_sources_rejects_large_files(tmp_path) -> None:
     large_robot = tmp_path / "huge.robot"
     large_robot.write_text("*" * (2 * 1024 * 1024 + 10), encoding="utf-8")
 
@@ -101,7 +101,7 @@ def test_configure_template_sources_rejects_large_files(tmp_path: Path) -> None:
 @pytest.mark.skipif(
     not hasattr(os, "symlink") or os.name == "nt", reason="Symlinks unavailable"
 )
-def test_configure_template_sources_rejects_symlink(tmp_path: Path) -> None:
+def test_configure_template_sources_rejects_symlink(tmp_path) -> None:
     target = tmp_path / "source.robot"
     target.write_text("*** Test Cases ***\nCase\n    Log    Ok\n", encoding="utf-8")
     link = tmp_path / "link.robot"
@@ -112,7 +112,7 @@ def test_configure_template_sources_rejects_symlink(tmp_path: Path) -> None:
     assert registry.get_template("link") is None
 
 
-def test_configure_template_sources_rejects_binary_file(tmp_path: Path) -> None:
+def test_configure_template_sources_rejects_binary_file(tmp_path) -> None:
     binary_file = tmp_path / "binary.robot"
     binary_file.write_bytes(b"\x00\x01\x02non-text")
 
@@ -121,7 +121,7 @@ def test_configure_template_sources_rejects_binary_file(tmp_path: Path) -> None:
     assert registry.get_template("binary") is None
 
 
-def test_configure_template_sources_rejects_outside_cwd(tmp_path: Path) -> None:
+def test_configure_template_sources_rejects_outside_cwd(tmp_path) -> None:
     outside = tmp_path.parent / "outside.robot"
     content = "*** Test Cases ***\nCase\n    Log    Outside\n"
     outside.write_text(content, encoding="utf-8")
@@ -132,7 +132,7 @@ def test_configure_template_sources_rejects_outside_cwd(tmp_path: Path) -> None:
 
 
 def test_configure_template_sources_rejects_parent_directory_reference(
-    tmp_path: Path,
+    tmp_path,
 ) -> None:
     """Explicit '..' path entries should be treated as traversal and skipped."""
     escape_target = tmp_path.parent / "escape.robot"
@@ -146,7 +146,7 @@ def test_configure_template_sources_rejects_parent_directory_reference(
 
 
 def test_configure_template_sources_handles_unreadable_file(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    tmp_path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Unreadable files should trigger a warning and be skipped."""
     template_file = tmp_path / "unreadable.robot"
@@ -172,7 +172,7 @@ def test_configure_template_sources_handles_unreadable_file(
     assert any("Failed to read template" in message for message in caplog.messages)
 
 
-def test_configure_template_sources_rejects_inline_python(tmp_path: Path) -> None:
+def test_configure_template_sources_rejects_inline_python(tmp_path) -> None:
     template_file = tmp_path / "unsafe.robot"
     template_file.write_text(
         "*** Test Cases ***\nCase\n    Log    ${{1+1}}\n", encoding="utf-8"
@@ -183,7 +183,7 @@ def test_configure_template_sources_rejects_inline_python(tmp_path: Path) -> Non
     assert registry.get_template("unsafe") is None
 
 
-def test_configure_template_sources_rejects_private_placeholder(tmp_path: Path) -> None:
+def test_configure_template_sources_rejects_private_placeholder(tmp_path) -> None:
     template_file = tmp_path / "private.robot"
     template_file.write_text(
         "*** Test Cases ***\nCase\n    Log    $__secret\n", encoding="utf-8"
@@ -194,7 +194,7 @@ def test_configure_template_sources_rejects_private_placeholder(tmp_path: Path) 
     assert registry.get_template("private") is None
 
 
-def test_resource_with_evaluate_is_rejected(tmp_path: Path) -> None:
+def test_resource_with_evaluate_is_rejected(tmp_path) -> None:
     resource = tmp_path / "helper.resource"
     resource.write_text(
         "*** Keywords ***\nEvaluate Helper\n    Evaluate    1+1\n", encoding="utf-8"

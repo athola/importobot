@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from importobot.utils.test_generation.distributions import (
-    print_test_distribution,  # type: ignore[misc]
+    print_test_distribution,
 )
 
 CategoryTypes = dict[str, dict[str, list[str]]]

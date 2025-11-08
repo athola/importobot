@@ -7,7 +7,7 @@ them to import test modules, which avoids type checking issues.
 from typing import Any
 
 try:
-    from tests.unit.medallion.bronze import (  # type: ignore
+    from tests.unit.medallion.bronze import (  # type: ignore[import-untyped]
         test_format_detection_integration,
     )
 

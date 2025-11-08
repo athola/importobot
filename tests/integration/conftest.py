@@ -7,7 +7,7 @@ import pytest
 pytestmark = pytest.mark.slow
 
 
-def pytest_collection_modifyitems(session, config, items):
+def pytest_collection_modifyitems(session, config, items) -> None:
     """Ensure integration tests inherit the ``slow`` marker."""
     base_dir = Path(__file__).parent.resolve()
     for item in items:

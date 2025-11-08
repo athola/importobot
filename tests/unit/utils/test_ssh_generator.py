@@ -13,7 +13,7 @@ class TestSSHLoggingGeneration:
         """Provide a reusable SSH keyword generator instance for tests."""
         return SSHKeywordTestGenerator()
 
-    def test_enable_ssh_logging_step_is_returned(self, ssh_generator):
+    def test_enable_ssh_logging_step_is_returned(self, ssh_generator) -> None:
         """Generator should produce a concrete logging step."""
         test_case = ssh_generator.generate_ssh_keyword_test("Enable Ssh Logging")
 

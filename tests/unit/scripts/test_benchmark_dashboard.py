@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 from scripts.src.importobot_scripts.benchmarks import benchmark_dashboard
 
@@ -37,7 +36,7 @@ def sample_benchmark_payload() -> dict[str, object]:
     }
 
 
-def test_benchmark_dashboard_generation(tmp_path: Path) -> None:
+def test_benchmark_dashboard_generation(tmp_path) -> None:
     """Test benchmark dashboard HTML generation from JSON results."""
     results_path = tmp_path / "run1.json"
     results_path.write_text(json.dumps(sample_benchmark_payload()), encoding="utf-8")

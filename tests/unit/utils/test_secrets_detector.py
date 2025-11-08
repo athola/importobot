@@ -5,20 +5,20 @@ from pathlib import Path
 from importobot.utils.secrets_detector import SecretsDetector
 
 
-def test_detector_identifies_password_exposure():
+def test_detector_identifies_password_exposure() -> None:
     detector = SecretsDetector()
     findings = detector.scan({"value": "password=SuperSecret123"})
     assert findings
     assert any(f.secret_type == "Password" for f in findings)
 
 
-def test_detector_handles_safe_data():
+def test_detector_handles_safe_data() -> None:
     detector = SecretsDetector()
     findings = detector.scan({"value": "username=demo"})
     assert findings == []
 
 
-def test_examples_directory_is_free_of_secrets():
+def test_examples_directory_is_free_of_secrets() -> None:
     detector = SecretsDetector()
     repo_root = Path(__file__).resolve().parents[2]
     candidates = [

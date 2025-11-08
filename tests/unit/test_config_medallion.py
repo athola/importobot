@@ -8,7 +8,7 @@ from importobot.config import update_medallion_config
 from importobot.medallion.storage.config import StorageConfig
 
 
-def test_update_medallion_config_mutates_known_fields(tmp_path):
+def test_update_medallion_config_mutates_known_fields(tmp_path) -> None:
     """Known fields should be applied to the returned StorageConfig."""
     cfg = update_medallion_config(base_path=tmp_path, retention_days=42)
 
@@ -17,7 +17,7 @@ def test_update_medallion_config_mutates_known_fields(tmp_path):
     assert cfg.retention_days == 42
 
 
-def test_update_medallion_config_rejects_invalid_instance():
+def test_update_medallion_config_rejects_invalid_instance() -> None:
     """Passing a non-StorageConfig instance should raise a TypeError."""
     with pytest.raises(TypeError):
         update_medallion_config(config=object())

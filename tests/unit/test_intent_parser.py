@@ -6,7 +6,7 @@ from importobot.core.parsers import GenericTestFileParser
 class TestIntentDrivenParser:
     """Tests for the intent-driven parser functionality."""
 
-    def test_find_tests_in_standard_format(self):
+    def test_find_tests_in_standard_format(self) -> None:
         """Test finding tests in standard format."""
         parser = GenericTestFileParser()
 
@@ -16,7 +16,7 @@ class TestIntentDrivenParser:
         assert len(tests) == 1
         assert tests[0]["name"] == "Test 1"
 
-    def test_find_tests_in_single_test_format(self):
+    def test_find_tests_in_single_test_format(self) -> None:
         """Test finding tests in single test case format."""
         parser = GenericTestFileParser()
 
@@ -26,7 +26,7 @@ class TestIntentDrivenParser:
         assert len(tests) == 1
         assert tests[0]["name"] == "Single Test"
 
-    def test_find_tests_in_zephyr_format(self):
+    def test_find_tests_in_zephyr_format(self) -> None:
         """Test finding tests in Zephyr format."""
         parser = GenericTestFileParser()
 
@@ -43,7 +43,7 @@ class TestIntentDrivenParser:
         assert tests[0]["name"] == "Zephyr Test"
         assert len(tests[0]["testScript"]["steps"]) == 1
 
-    def test_find_steps_in_standard_format(self):
+    def test_find_steps_in_standard_format(self) -> None:
         """Test finding steps in standard format."""
         parser = GenericTestFileParser()
 
@@ -60,7 +60,7 @@ class TestIntentDrivenParser:
         assert steps[0]["action"] == "Step 1"
         assert steps[1]["action"] == "Step 2"
 
-    def test_find_steps_in_zephyr_format(self):
+    def test_find_steps_in_zephyr_format(self) -> None:
         """Test finding steps in Zephyr format."""
         parser = GenericTestFileParser()
 
@@ -80,7 +80,7 @@ class TestIntentDrivenParser:
         assert steps[0]["step"] == "Step 1"
         assert steps[1]["step"] == "Step 2"
 
-    def test_find_steps_in_nested_structure(self):
+    def test_find_steps_in_nested_structure(self) -> None:
         """Test finding steps in nested structures."""
         parser = GenericTestFileParser()
 
@@ -99,7 +99,7 @@ class TestIntentDrivenParser:
         assert steps[0]["description"] == "Nested step 1"
         assert steps[1]["description"] == "Nested step 2"
 
-    def test_find_tests_in_complex_structure(self):
+    def test_find_tests_in_complex_structure(self) -> None:
         """Test finding tests in complex nested structures."""
         parser = GenericTestFileParser()
 

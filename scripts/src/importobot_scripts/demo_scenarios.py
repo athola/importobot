@@ -10,7 +10,7 @@ from enum import Enum
 from typing import Any, TypedDict
 
 # Import from local demo_config module
-import numpy as np  # type: ignore[import-untyped]
+import numpy as np
 import pandas as pd  # type: ignore[import-untyped]
 
 from .demo_config import BusinessMetrics, EnterpriseScenario
@@ -294,12 +294,12 @@ class ScenarioModeler:
         for scale_data in scale_scenarios:
             scenario = EnterpriseScenario(
                 name=str(scale_data["name"]),
-                test_cases=int(scale_data["test_cases"]),  # type: ignore[arg-type]
-                team_size=int(scale_data["team_size"]),  # type: ignore[arg-type]
+                test_cases=int(scale_data["test_cases"]),
+                team_size=int(scale_data["team_size"]),
                 complexity_factor=1.0 + (int(scale_data["test_cases"]) / 10000),
             )
 
-            metrics = scenario.calculate_metrics(base_metrics)  # type: ignore[misc]
+            metrics = scenario.calculate_metrics(base_metrics)
             scenarios.append(
                 {
                     "scenario": scenario,
@@ -312,7 +312,7 @@ class ScenarioModeler:
 
     def model_risk_scenarios(
         self, base_scenario: EnterpriseScenario, base_metrics: BusinessMetrics
-    ) -> dict[str, dict]:
+    ) -> dict[str, dict[str, Any]]:
         """Model risk scenarios for manual vs automated approaches."""
         # Manual approach risks
         manual_risks: dict[str, RiskData] = {
@@ -509,7 +509,7 @@ def create_business_case() -> dict[str, Any]:
             team_size=10,
             complexity=ProjectComplexity.STANDARD,
         )
-        metrics = scenario.calculate_metrics(base_metrics)  # type: ignore[misc]
+        metrics = scenario.calculate_metrics(base_metrics)
         industry_scenarios.append(
             {"scenario": scenario, "metrics": metrics, "industry": industry}
         )

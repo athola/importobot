@@ -4,7 +4,9 @@ This module provides shared configuration and fixtures for property-based
 invariant testing across the entire codebase.
 """
 
+from collections.abc import Generator
 from pathlib import Path
+from typing import Any
 
 import pytest
 from hypothesis import Verbosity, settings
@@ -12,7 +14,7 @@ from hypothesis import Verbosity, settings
 pytestmark = pytest.mark.slow
 
 
-def pytest_collection_modifyitems(session, config, items):
+def pytest_collection_modifyitems(session: Any, config: Any, items: Any) -> None:
     """Mark invariant tests as slow to keep Hypothesis runs consistent."""
     base_dir = Path(__file__).parent.resolve()
     for item in items:
@@ -54,15 +56,15 @@ settings.load_profile("ci")
 
 
 @pytest.fixture(scope="session")
-def invariant_test_session():
+def invariant_test_session() -> Generator[None, None, None]:
     """Session-wide fixture for invariant test setup."""
     print("\n🔬 Starting system-wide invariant test session")
     yield
-    print("\n✅ Invariant test session completed")
+    print("\n Invariant test session completed")
 
 
 @pytest.fixture
-def clean_temp_dir(tmp_path):
+def clean_temp_dir(tmp_path: Path) -> Path:
     """Provide a clean temporary directory for each test."""
     return tmp_path
     # Cleanup is automatic with tmp_path

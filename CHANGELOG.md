@@ -5,6 +5,122 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **Module Refactoring**: Split `importobot.integrations.clients` into focused modules for better maintainability
+  - `base.py` - Shared API client functionality (BaseAPIClient, APISource protocol)
+  - `jira_xray.py` - JIRA/Xray platform client
+  - `testlink.py` - TestLink platform client
+  - `testrail.py` - TestRail platform client
+  - `zephyr.py` - Zephyr platform client
+- **Test Quality Improvements**:
+  - Added 55 named constants in `tests/test_constants.py` to eliminate magic numbers, organized into 9 logical categories with clear section markers
+  - Replaced `tempfile` usage with pytest's `tmp_path` fixture (modern pattern)
+  - Added type annotations (`-> None`) to all test functions
+  - Added Arrange-Act-Assert comments to integration tests for clarity
+  - Documented growth strategy: single-file approach until 200 constants, then split into sub-modules
+- **Type Safety**: Removed mypy test override to enforce type checking across entire test suite
+- **Documentation Cleanup**: Removed subjective marketing terms ("enterprise", "professional") in favor of factual descriptions
+
+### Removed
+- **Backwards Compatibility Code** (0.1.x has no external users):
+  - Removed `importlib_metadata` fallback for Python < 3.8 (project requires Python 3.10+)
+  - Removed `setup_logger()` function - use `get_logger()` instead
+  - Removed `get_cache_stats()` alias - use `get_stats()` instead
+
+### Breaking Changes
+
+#### API Client Module Structure
+**Old import paths:**
+```python
+from importobot.integrations.clients import (
+    BaseAPIClient,
+    ZephyrClient,
+    JiraXrayClient,
+    TestRailClient,
+    TestLinkClient,
+)
+```
+
+**New import paths (still supported):**
+```python
+# Public API (recommended)
+from importobot.integrations.clients import (
+    APISource,
+    BaseAPIClient,
+    ZephyrClient,
+    JiraXrayClient,
+    TestRailClient,
+    TestLinkClient,
+    get_api_client,
+)
+
+# Or import from specific modules (advanced use)
+from importobot.integrations.clients.base import BaseAPIClient, APISource
+from importobot.integrations.clients.zephyr import ZephyrClient
+from importobot.integrations.clients.jira_xray import JiraXrayClient
+from importobot.integrations.clients.testrail import TestRailClient
+from importobot.integrations.clients.testlink import TestLinkClient
+```
+
+**Migration:** No action required if importing from `importobot.integrations.clients` - the `__init__.py` re-exports all public APIs.
+
+#### Logging API
+**Before:**
+```python
+from importobot.utils.logging import setup_logger
+logger = setup_logger(__name__)
+```
+
+**After:**
+```python
+from importobot.utils.logging import get_logger
+logger = get_logger(__name__)
+```
+
+**Migration:** Replace all `setup_logger()` calls with `get_logger()`. Function signature is identical.
+
+#### Cache Statistics API
+**Before:**
+```python
+cache = LRUCache(...)
+stats = cache.get_cache_stats()
+
+perf_cache = PerformanceCache()
+stats = perf_cache.get_cache_stats()
+
+detection_cache = DetectionCache()
+stats = detection_cache.get_cache_stats()
+```
+
+**After:**
+```python
+cache = LRUCache(...)
+stats = cache.get_stats()
+
+perf_cache = PerformanceCache()
+stats = perf_cache.get_stats()
+
+detection_cache = DetectionCache()
+stats = detection_cache.get_stats()
+```
+
+**Migration:** Replace all `.get_cache_stats()` calls with `.get_stats()`. Return value structure is unchanged.
+
+### Fixed
+- Fixed 24 syntax errors from incorrect type annotation replacements in test files
+- Fixed missing `Any` import in `tests/unit/test_hash_file_example.py`
+- Fixed environmental test failure in `test_resource_manager.py` by using pytest's `tmp_path` fixture instead of `/tmp`
+
+### Technical Details
+- Blueprint storage classes moved to `blueprints/storage.py` (StepPattern, SuiteSettings, etc.)
+- Test suite: **1541/1541 tests passing (100% pass rate)**
+- Mypy enforcement now applies to tests (removed `[[tool.mypy.overrides]]` for `tests.*`)
+- Architecture Decision Record: `wiki/architecture/ADR-0006-client-module-refactoring.md`
+- Performance validation: No regression detected, lazy loading provides 3x import speed improvement
+  (see `wiki/architecture/performance-validation-module-split.md`)
+
 ## [0.1.3] - 2025-10-23
 
 ### Added
@@ -86,7 +202,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Multi-Format Support** for Zephyr, Xray, TestLink, TestRail, and Generic test formats
 - **Validation Service** with quality assessment and security gateway
 - **Invariant Testing Framework** with 34 property-based tests using Hypothesis
-- **Performance Optimization** with caching and enterprise-scale benchmarking
+- **Performance Optimization** with caching and large-scale benchmarking
 - **Example Scripts** for advanced features and CLI usage demonstrations
 - **Test suite for MVLP Bayesian Confidence Scorer** with 46 new tests achieving 78% coverage
   - Unit tests for `ConfidenceParameters`, `EvidenceMetrics`, and `MVLPBayesianConfidenceScorer`
@@ -97,7 +213,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded test suite to **1539 tests** (1493 → 1539) covering format detection, confidence scoring, and API integration
 - Added **mathematical foundations documentation** for confidence algorithms
 - Enhanced CI/CD with improved GitHub Packages integration
-- Added performance benchmarking and enterprise demo capabilities
+- Added performance benchmarking and demo capabilities
 
 ### Changed
 - Improved type annotations for better mypy compatibility
@@ -136,7 +252,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING**: New service layer with validation, security, and format detection
   - Security gateway now required for all input validation
   - Validation service provides unified quality assessment
-- **BREAKING**: Enhanced internal API surface with enterprise-focused capabilities
+- **BREAKING**: Enhanced internal API surface with new capabilities
   - Private modules (`importobot.core.*`, `importobot.medallion.*`) may change between minor versions
   - Only public API modules are guaranteed stable
 
@@ -148,14 +264,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Automated bulk processing** for handling hundreds or thousands of test cases
 - **Intelligent field mapping** with automatic detection of test steps, expected results, tags, and priorities
 - **Pandas-inspired API** with `JsonToRobotConverter` as the primary interface
-- **Enterprise toolkit** via `importobot.api` module for validation, converters, and suggestions
+- **Toolkit** via `importobot.api` module for validation, converters, and suggestions
 - **CLI interface** with `importobot` command-line tool
 - **Security validation** with SSH parameter extraction and security compliance checks
 - **Interactive demo system** with business case visualization and ROI calculations
-- **Performance benchmarking** infrastructure for enterprise-scale validation
+- **Performance benchmarking** infrastructure for large-scale validation
 - **Modular architecture** with extensible design for supporting additional input formats
 - **Quality assurance** with 1153+ tests achieving complete coverage
-- **Professional documentation** with complete API reference and usage examples
+- **Documentation** with complete API reference and usage examples
 
 ### Technical Features
 - **Multi-format support** for Zephyr, JIRA/Xray, and TestLink test management systems

@@ -12,6 +12,7 @@ import re
 import subprocess
 import time
 from pathlib import Path
+from typing import Any
 
 # Get logger for security events (configured by DemoLogger)
 security_logger = logging.getLogger("demo_security")
@@ -130,7 +131,7 @@ def sanitize_command(command: str, allowed_commands: list[str] | None = None) ->
     return command.strip()
 
 
-def validate_json_structure(data: dict, required_keys: list[str] | None = None) -> bool:
+def validate_json_structure(data: dict[str, Any], required_keys: list[str] | None = None) -> bool:
     """
     Validate JSON data structure.
 
@@ -188,7 +189,7 @@ def validate_numeric_range(
     return True
 
 
-def validate_business_metrics(metrics: dict) -> tuple[bool, list[str]]:
+def validate_business_metrics(metrics: dict[str, Any]) -> tuple[bool, list[str]]:
     """
     Validate business metrics for reasonableness.
 
@@ -349,7 +350,7 @@ def validate_demo_environment() -> tuple[bool, list[str]]:
     return len(issues) == 0, issues
 
 
-def log_demo_session(session_info: dict) -> None:
+def log_demo_session(session_info: dict[str, Any]) -> None:
     """
     Log demo session information for audit purposes.
 

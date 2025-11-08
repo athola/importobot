@@ -787,7 +787,7 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
         # Check for password usage
         if re.search(r"\bpassword\s*:\s*\S+", test_data, re.IGNORECASE):
             warnings.append(
-                "    # ⚠️  Security Warning: Hardcoded password detected in test data"
+                "    # WARNING: Hardcoded password detected in test data"
             )
 
         # Check for other sensitive patterns
@@ -795,13 +795,13 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
             r"\b(?:api[_\s]*key|secret|token)\s*:\s*\S+", test_data, re.IGNORECASE
         ):
             warnings.append(
-                "    # ⚠️  Security Warning: Sensitive credential detected in test data"
+                "    # WARNING: Sensitive credential detected in test data"
             )
 
         # Check for private key files
         if re.search(r"\.pem|\.key|id_rsa|id_dsa", test_data, re.IGNORECASE):
             warnings.append(
-                "    # ⚠️  Security Warning: Private key file reference detected"
+                "    # WARNING: Private key file reference detected"
             )
 
         return warnings

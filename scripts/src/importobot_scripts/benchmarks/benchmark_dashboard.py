@@ -242,7 +242,7 @@ def main(argv: list[str] | None = None) -> int:
     html_output = render_dashboard(run_results)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(html_output, encoding="utf-8")
-    print(f"📊 Benchmark dashboard written to {args.output}")
+    print(f"Benchmark dashboard written to {args.output}")
     return 0
 
 

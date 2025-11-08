@@ -21,7 +21,7 @@ pytestmark = pytest.mark.slow
 class TestOptimizerConfig:
     """Test OptimizerConfig dataclass."""
 
-    def test_default_config(self):
+    def test_default_config(self) -> None:
         """Test default optimizer configuration."""
         config = OptimizerConfig()
         assert config.learning_rate == 0.01
@@ -31,7 +31,7 @@ class TestOptimizerConfig:
         assert config.tolerance == 1e-6
         assert config.adaptive_learning is True
 
-    def test_custom_config(self):
+    def test_custom_config(self) -> None:
         """Test custom optimizer configuration."""
         config = OptimizerConfig(
             learning_rate=0.05,
@@ -52,7 +52,7 @@ class TestOptimizerConfig:
 class TestAnnealingConfig:
     """Test AnnealingConfig dataclass."""
 
-    def test_default_config(self):
+    def test_default_config(self) -> None:
         """Test default annealing configuration."""
         config = AnnealingConfig()
         assert config.initial_temperature == 100.0
@@ -60,7 +60,7 @@ class TestAnnealingConfig:
         assert config.min_temperature == 1e-6
         assert config.max_iterations == 1000
 
-    def test_custom_config(self):
+    def test_custom_config(self) -> None:
         """Test custom annealing configuration."""
         config = AnnealingConfig(
             initial_temperature=200.0,
@@ -77,7 +77,7 @@ class TestAnnealingConfig:
 class TestGradientDescentOptimizer:
     """Test GradientDescentOptimizer class."""
 
-    def test_init_default_config(self):
+    def test_init_default_config(self) -> None:
         """Test initialization with default config."""
         optimizer = GradientDescentOptimizer()
         assert optimizer.config.learning_rate == 0.01
@@ -85,14 +85,14 @@ class TestGradientDescentOptimizer:
         assert optimizer.iteration_count == 0
         assert not optimizer.convergence_history
 
-    def test_init_custom_config(self):
+    def test_init_custom_config(self) -> None:
         """Test initialization with custom config."""
         config = OptimizerConfig(learning_rate=0.05, max_iterations=100)
         optimizer = GradientDescentOptimizer(config)
         assert optimizer.config.learning_rate == 0.05
         assert optimizer.config.max_iterations == 100
 
-    def test_simple_quadratic_optimization(self):
+    def test_simple_quadratic_optimization(self) -> None:
         """Test optimization of simple quadratic function."""
 
         def quadratic_function(params):
@@ -115,7 +115,7 @@ class TestGradientDescentOptimizer:
         assert metadata["iterations"] > 0
         assert len(metadata["convergence_history"]) > 0
 
-    def test_optimization_with_bounds(self):
+    def test_optimization_with_bounds(self) -> None:
         """Test optimization with parameter bounds."""
 
         def quadratic_function(params):
@@ -136,7 +136,7 @@ class TestGradientDescentOptimizer:
         assert 1.5 <= best_params["x"] <= 3.0
         assert abs(best_params["x"] - 2.0) < 0.1
 
-    def test_optimization_with_custom_gradient(self):
+    def test_optimization_with_custom_gradient(self) -> None:
         """Test optimization with custom gradient function."""
 
         def quadratic_function(params):
@@ -160,7 +160,7 @@ class TestGradientDescentOptimizer:
         best_params, _, _ = result
         assert abs(best_params["x"]) < 0.1
 
-    def test_numerical_gradients(self):
+    def test_numerical_gradients(self) -> None:
         """Test numerical gradient computation."""
 
         def quadratic_function(params):
@@ -175,7 +175,7 @@ class TestGradientDescentOptimizer:
         # Gradient of x^2 at x=2 is 2*x = 4
         assert abs(gradients["x"] - 4.0) < 0.1
 
-    def test_adaptive_learning_rate(self):
+    def test_adaptive_learning_rate(self) -> None:
         """Test adaptive learning rate adjustment."""
         config = OptimizerConfig(adaptive_learning=True, learning_rate=0.1)
         optimizer = GradientDescentOptimizer(config)
@@ -196,7 +196,7 @@ class TestGradientDescentOptimizer:
         )
         assert new_rate < 0.1  # Should decrease
 
-    def test_convergence_check(self):
+    def test_convergence_check(self) -> None:
         """Test convergence detection."""
         optimizer = GradientDescentOptimizer(OptimizerConfig(tolerance=0.1))
 
@@ -208,7 +208,7 @@ class TestGradientDescentOptimizer:
         optimizer.convergence_history = [1.0] * 15
         assert optimizer._check_convergence(15) is True
 
-    def test_regularization(self):
+    def test_regularization(self) -> None:
         """Test L2 regularization application."""
         optimizer = GradientDescentOptimizer(OptimizerConfig(regularization=0.1))
         gradients = {"x": 1.0, "y": 2.0}
@@ -224,7 +224,7 @@ class TestGradientDescentOptimizer:
 class TestGeneticAlgorithmOptimizer:
     """Test GeneticAlgorithmOptimizer class."""
 
-    def test_init(self):
+    def test_init(self) -> None:
         """Test initialization."""
         optimizer = GeneticAlgorithmOptimizer(
             population_size=30,
@@ -241,7 +241,7 @@ class TestGeneticAlgorithmOptimizer:
         assert optimizer.max_generations == 50
         assert optimizer.tournament_size == 4
 
-    def test_simple_fitness_optimization(self):
+    def test_simple_fitness_optimization(self) -> None:
         """Test optimization of simple fitness function."""
 
         def fitness_function(params):
@@ -261,7 +261,7 @@ class TestGeneticAlgorithmOptimizer:
         assert best_fitness >= -1.0  # Should be high fitness
         assert len(metadata["fitness_history"]) > 0
 
-    def test_random_individual_generation(self):
+    def test_random_individual_generation(self) -> None:
         """Test random individual generation."""
         optimizer = GeneticAlgorithmOptimizer()
         parameter_ranges = {"x": (0.0, 10.0), "y": (-5.0, 5.0)}
@@ -271,7 +271,7 @@ class TestGeneticAlgorithmOptimizer:
         assert 0 <= individual["x"] <= 10
         assert -5 <= individual["y"] <= 5
 
-    def test_tournament_selection(self):
+    def test_tournament_selection(self) -> None:
         """Test tournament selection."""
         optimizer = GeneticAlgorithmOptimizer(tournament_size=2)
         population = [{"x": 1.0}, {"x": 2.0}, {"x": 3.0}, {"x": 4.0}]
@@ -282,7 +282,7 @@ class TestGeneticAlgorithmOptimizer:
             # Should select individual with index 3 (highest fitness in tournament)
             assert selected["x"] == 4.0
 
-    def test_crossover(self):
+    def test_crossover(self) -> None:
         """Test crossover operation."""
         optimizer = GeneticAlgorithmOptimizer()
         parent1 = {"x": 1.0, "y": 2.0}
@@ -293,7 +293,7 @@ class TestGeneticAlgorithmOptimizer:
             assert child["x"] == 1.0  # From parent1
             assert child["y"] == 4.0  # From parent2
 
-    def test_mutation(self):
+    def test_mutation(self) -> None:
         """Test mutation operation."""
         optimizer = GeneticAlgorithmOptimizer()
         individual = {"x": 5.0}
@@ -304,7 +304,7 @@ class TestGeneticAlgorithmOptimizer:
             # Should apply mutation but stay within bounds
             assert 0 <= mutated["x"] <= 10
 
-    def test_elitism(self):
+    def test_elitism(self) -> None:
         """Test elitism preservation."""
         optimizer = GeneticAlgorithmOptimizer(elitism_count=2)
         population = [{"x": 1.0}, {"x": 2.0}, {"x": 3.0}, {"x": 4.0}]
@@ -317,7 +317,7 @@ class TestGeneticAlgorithmOptimizer:
         assert {"x": 2.0} in elite  # Fitness 40
         assert {"x": 4.0} in elite  # Fitness 30
 
-    def test_convergence_check(self):
+    def test_convergence_check(self) -> None:
         """Test convergence detection for genetic algorithm."""
         optimizer = GeneticAlgorithmOptimizer()
 
@@ -333,7 +333,7 @@ class TestGeneticAlgorithmOptimizer:
 class TestSimulatedAnnealing:
     """Test simulated annealing function."""
 
-    def test_simple_optimization(self):
+    def test_simple_optimization(self) -> None:
         """Test simulated annealing on simple function."""
 
         def objective_function(params):
@@ -356,7 +356,7 @@ class TestSimulatedAnnealing:
         assert metadata["iterations"] > 0
         assert 0 <= metadata["acceptance_rate"] <= 1
 
-    def test_default_config(self):
+    def test_default_config(self) -> None:
         """Test simulated annealing with default configuration."""
 
         def objective_function(params):
@@ -372,7 +372,7 @@ class TestSimulatedAnnealing:
         assert "iterations" in metadata
         assert "acceptance_rate" in metadata
 
-    def test_temperature_cooling(self):
+    def test_temperature_cooling(self) -> None:
         """Test that temperature decreases during annealing."""
 
         def objective_function(params):
@@ -395,7 +395,7 @@ class TestSimulatedAnnealing:
         # Temperature should have cooled down
         assert metadata["final_temperature"] < config.initial_temperature
 
-    def test_parameter_bounds_enforcement(self):
+    def test_parameter_bounds_enforcement(self) -> None:
         """Test that parameter bounds are enforced."""
 
         def objective_function(params):
@@ -415,7 +415,7 @@ class TestSimulatedAnnealing:
 
     @patch("random.random")
     @patch("random.gauss")
-    def test_acceptance_probability(self, mock_gauss, mock_random):
+    def test_acceptance_probability(self, mock_gauss, mock_random) -> None:
         """Test acceptance probability calculation."""
         mock_gauss.return_value = 0.1
         mock_random.return_value = 0.5
@@ -441,7 +441,7 @@ class TestSimulatedAnnealing:
 class TestIntegrationScenarios:
     """Integration tests for optimization algorithms."""
 
-    def test_multi_parameter_optimization(self):
+    def test_multi_parameter_optimization(self) -> None:
         """Test optimization with multiple parameters."""
 
         def objective_function(params):
@@ -465,7 +465,7 @@ class TestIntegrationScenarios:
         assert abs(best_params["x"] - 1.0) < 0.5
         assert abs(best_params["y"] - 1.0) < 0.5
 
-    def test_genetic_vs_gradient_comparison(self):
+    def test_genetic_vs_gradient_comparison(self) -> None:
         """Compare genetic algorithm and gradient descent on same problem."""
 
         def fitness_function(params):
@@ -495,7 +495,7 @@ class TestIntegrationScenarios:
         assert abs(ga_result[0]["x"] - 2.0) < 0.5
         assert abs(gd_result[0]["x"] - 2.0) < 0.5
 
-    def test_convergence_with_noise(self):
+    def test_convergence_with_noise(self) -> None:
         """Test optimization with noisy objective function."""
 
         def noisy_quadratic(params):

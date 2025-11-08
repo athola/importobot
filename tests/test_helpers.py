@@ -130,7 +130,7 @@ class RobotFrameworkAssertion:
 
     def has_security_warnings(self) -> bool:
         """Check if content contains security warnings."""
-        return any("⚠️" in line and "Security Warning" in line for line in self.lines)
+        return any("WARNING" in line and "Security Warning" in line for line in self.lines)
 
 
 def assert_robot_content_equivalent(generated: str, expected: str) -> None:

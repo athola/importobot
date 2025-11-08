@@ -11,10 +11,12 @@ Tests properties that should always hold true for format detection:
 
 import math
 import time
+from typing import Any
 
 import pytest
 from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
+from hypothesis.strategies import DrawFn
 
 from importobot.medallion.bronze.format_detector import FormatDetector
 from importobot.medallion.bronze.shared_config import TESTRAIL_COMMON_FIELDS
@@ -23,7 +25,7 @@ from importobot.medallion.interfaces.enums import SupportedFormat
 
 # Custom strategies for generating test data structures
 @st.composite
-def json_like_structure(draw):
+def json_like_structure(draw: DrawFn) -> Any:
     """Generate JSON-like structures that might represent test data."""
     return draw(
         st.recursive(
@@ -49,7 +51,7 @@ def json_like_structure(draw):
 
 
 @st.composite
-def management_like_data(draw):
+def management_like_data(draw: DrawFn) -> Any:
     """Generate data that might look like test management system exports."""
     base_keys = draw(
         st.sets(
@@ -107,7 +109,7 @@ class TestFormatDetectionInvariants:
 
     @given(json_like_structure())
     @settings(max_examples=100)
-    def test_confidence_score_bounds_invariant(self, data):
+    def test_confidence_score_bounds_invariant(self, data: Any) -> None:
         """Invariant: Confidence scores should always be between 0.0 and 1.0."""
         assume(isinstance(data, dict))  # Only test with dict input
 
@@ -129,7 +131,7 @@ class TestFormatDetectionInvariants:
 
     @given(management_like_data())
     @settings(max_examples=50)
-    def test_format_detection_determinism_invariant(self, data):
+    def test_format_detection_determinism_invariant(self, data: Any) -> None:
         """Invariant: Format detection should be deterministic for same input."""
         detector = FormatDetector()
 
@@ -163,7 +165,7 @@ class TestFormatDetectionInvariants:
         )
     )
     @settings(max_examples=30)
-    def test_invalid_input_handling_invariant(self, invalid_data):
+    def test_invalid_input_handling_invariant(self, invalid_data: Any) -> None:
         """Invariant: Format detection should handle invalid input gracefully."""
         detector = FormatDetector()
 
@@ -191,7 +193,7 @@ class TestFormatDetectionInvariants:
         )
     )
     @settings(max_examples=50)
-    def test_confidence_consistency_invariant(self, data):
+    def test_confidence_consistency_invariant(self, data: Any) -> None:
         """Invariant: Higher confidence should correlate with format selection."""
         detector = FormatDetector()
 
@@ -223,7 +225,7 @@ class TestFormatDetectionInvariants:
 
     @given(management_like_data(), st.integers(min_value=1, max_value=100))
     @settings(max_examples=20, suppress_health_check=[HealthCheck.filter_too_much])
-    def test_format_detection_scalability_invariant(self, data, iterations):
+    def test_format_detection_scalability_invariant(self, data: Any, iterations: int) -> None:
         """Invariant: Format detection performance should be consistent."""
         assume(iterations <= 100)  # Limit to reasonable range for CI
 
@@ -292,7 +294,7 @@ class TestFormatDetectionInvariants:
         )
     )
     @settings(max_examples=50)
-    def test_specific_format_indicators_invariant(self, data_with_indicators):
+    def test_specific_format_indicators_invariant(self, data_with_indicators: Any) -> None:
         """Invariant: Specific format indicators increase confidence appropriately."""
         detector = FormatDetector()
 

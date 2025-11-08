@@ -19,6 +19,7 @@ from typing import Any
 import pytest
 from hypothesis import assume, given, settings
 from hypothesis import strategies as st
+from hypothesis.strategies import DrawFn
 
 from importobot.medallion.bronze.raw_data_processor import RawDataProcessor
 from importobot.medallion.bronze_layer import BronzeLayer
@@ -34,7 +35,7 @@ def _extract_detected_format(result: dict[str, Any]) -> SupportedFormat | str:
 
 
 @st.composite
-def medallion_test_data(draw):
+def medallion_test_data(draw: DrawFn) -> Any:
     """Generate realistic test data for Medallion architecture testing."""
     return draw(
         st.dictionaries(
@@ -84,7 +85,7 @@ class TestMedallionArchitectureInvariants:
 
     @given(medallion_test_data())
     @settings(max_examples=25)
-    def test_data_consistency_across_operations_invariant(self, test_data):
+    def test_data_consistency_across_operations_invariant(self, test_data: Any) -> None:
         """Invariant: Data should maintain consistency across multiple operations."""
         try:
             with tempfile.TemporaryDirectory() as temp_dir:
@@ -122,7 +123,7 @@ class TestMedallionArchitectureInvariants:
 
     @given(st.lists(medallion_test_data(), min_size=2, max_size=10))
     @settings(max_examples=15)
-    def test_resource_management_invariant(self, test_data_list):
+    def test_resource_management_invariant(self, test_data_list: list[Any]) -> None:
         """Invariant: System should manage resources properly under batch load."""
         try:
             with tempfile.TemporaryDirectory() as temp_dir:
@@ -163,7 +164,7 @@ class TestMedallionArchitectureInvariants:
 
     @given(medallion_test_data(), st.integers(min_value=1, max_value=5))
     @settings(max_examples=20)
-    def test_error_boundary_stability_invariant(self, test_data, corruption_factor):
+    def test_error_boundary_stability_invariant(self, test_data: Any, corruption_factor: int) -> None:
         """Invariant: System maintains stability with problematic data."""
         try:
             with tempfile.TemporaryDirectory() as temp_dir:
@@ -216,7 +217,7 @@ class TestMedallionArchitectureInvariants:
 
     @given(medallion_test_data())
     @settings(max_examples=30)
-    def test_performance_consistency_invariant(self, test_data):
+    def test_performance_consistency_invariant(self, test_data: Any) -> None:
         """Invariant: System performance should be consistent for similar operations."""
         try:
             with tempfile.TemporaryDirectory() as temp_dir:
@@ -304,7 +305,7 @@ class TestMedallionArchitectureInvariants:
 
     @given(medallion_test_data())
     @settings(max_examples=25)
-    def test_data_transformation_preservation_invariant(self, test_data):
+    def test_data_transformation_preservation_invariant(self, test_data: Any) -> None:
         """Invariant: Essential data properties preserved through transformations."""
         try:
             with tempfile.TemporaryDirectory() as temp_dir:
@@ -351,7 +352,7 @@ class TestMedallionArchitectureInvariants:
 
     @given(st.integers(min_value=1, max_value=100))
     @settings(max_examples=10)
-    def test_system_scalability_properties_invariant(self, data_multiplier):
+    def test_system_scalability_properties_invariant(self, data_multiplier: int) -> None:
         """Invariant: System should exhibit predictable scalability properties."""
         assume(data_multiplier <= 50)  # Keep test times reasonable
 

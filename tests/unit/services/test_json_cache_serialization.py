@@ -7,6 +7,7 @@ serialization when generating cache keys.
 
 import json
 import time
+from typing import Any
 from unittest.mock import patch
 
 from importobot.services.performance_cache import PerformanceCache
@@ -15,7 +16,7 @@ from importobot.services.performance_cache import PerformanceCache
 class TestJSONCacheSerializationOptimization:
     """Verify JSON caching uses identity-based keys to avoid double serialization."""
 
-    def test_json_cache_serializes_once_per_unique_object(self):
+    def test_json_cache_serializes_once_per_unique_object(self) -> None:
         """GIVEN an unhashable object (dict)
         WHEN caching it multiple times
         THEN json.dumps is called only once (not for key generation)
@@ -30,7 +31,7 @@ class TestJSONCacheSerializationOptimization:
         dumps_call_count = 0
         original_dumps = json.dumps
 
-        def counting_dumps(*args, **kwargs):
+        def counting_dumps(*args: Any, **kwargs: Any) -> str:
             nonlocal dumps_call_count
             dumps_call_count += 1
             return original_dumps(*args, **kwargs)
@@ -54,7 +55,7 @@ class TestJSONCacheSerializationOptimization:
         expected = json.dumps(test_data, sort_keys=True, separators=(",", ":"))
         assert result1 == expected
 
-    def test_json_cache_distinguishes_objects_by_identity(self):
+    def test_json_cache_distinguishes_objects_by_identity(self) -> None:
         """GIVEN two dicts with identical content but different identities
         WHEN caching both
         THEN each is serialized once (cache uses identity, not value)
@@ -70,7 +71,7 @@ class TestJSONCacheSerializationOptimization:
         dumps_call_count = 0
         original_dumps = json.dumps
 
-        def counting_dumps(*args, **kwargs):
+        def counting_dumps(*args: Any, **kwargs: Any) -> str:
             nonlocal dumps_call_count
             dumps_call_count += 1
             return original_dumps(*args, **kwargs)
@@ -93,7 +94,7 @@ class TestJSONCacheSerializationOptimization:
             _ = cache.get_cached_json_string(data2)
             assert dumps_call_count == 2, "Cache hits should not serialize"
 
-    def test_json_cache_faster_than_direct_serialization_on_hits(self):
+    def test_json_cache_faster_than_direct_serialization_on_hits(self) -> None:
         """GIVEN a complex nested structure
         WHEN caching and accessing repeatedly
         THEN cache hits are faster than direct json.dumps()
@@ -138,7 +139,7 @@ class TestJSONCacheSerializationOptimization:
             f"(cache={cache_time:.4f}s, direct={direct_time:.4f}s)"
         )
 
-    def test_hashable_data_uses_value_based_key(self):
+    def test_hashable_data_uses_value_based_key(self) -> None:
         """GIVEN hashable data (string, tuple, etc)
         WHEN caching
         THEN cache key uses the value directly (no id() needed)
@@ -155,7 +156,7 @@ class TestJSONCacheSerializationOptimization:
         dumps_call_count = 0
         original_dumps = json.dumps
 
-        def counting_dumps(*args, **kwargs):
+        def counting_dumps(*args: Any, **kwargs: Any) -> str:
             nonlocal dumps_call_count
             dumps_call_count += 1
             return original_dumps(*args, **kwargs)
@@ -171,7 +172,7 @@ class TestJSONCacheSerializationOptimization:
             # we're not serializing for the key generation.
             assert result1 == result2
 
-    def test_cache_eviction_doesnt_leak_identity_refs(self):
+    def test_cache_eviction_doesnt_leak_identity_refs(self) -> None:
         """GIVEN a small cache that triggers evictions
         WHEN filling beyond capacity
         THEN identity references are cleaned up properly
@@ -187,7 +188,7 @@ class TestJSONCacheSerializationOptimization:
             _ = cache.get_cached_json_string(obj)
 
         # Cache should be at max size
-        stats = cache.get_cache_stats()
+        stats = cache.get_stats()
         assert stats["json_cache_size"] <= 10
 
         # Identity refs should also be bounded (no leaks)
@@ -196,7 +197,7 @@ class TestJSONCacheSerializationOptimization:
         assert len(cache._json_cache) <= 10
         assert len(cache._json_identity_refs) <= 10
 
-    def test_identity_check_prevents_false_cache_hits(self):
+    def test_identity_check_prevents_false_cache_hits(self) -> None:
         """GIVEN an object that gets garbage collected and its id reused
         WHEN the new object with reused id is cached
         THEN the old cache entry is evicted (no false hit)

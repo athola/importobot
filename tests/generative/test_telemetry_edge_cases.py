@@ -13,6 +13,7 @@ import os
 import sys
 import threading
 from decimal import Decimal
+from typing import Any
 
 import pytest
 from hypothesis import assume, given, settings
@@ -37,13 +38,13 @@ class TestExtremParameterValues:
             allow_infinity=False,
         )
     )
-    def test_extreme_interval_values(self, interval):
+    def test_extreme_interval_values(self, interval: int) -> None:
         """Client should handle very large interval values."""
         client = TelemetryClient(min_emit_interval=interval, min_sample_delta=100)
         assert client._min_emit_interval == interval
 
     @given(st.integers(min_value=0, max_value=1_000_000_000))
-    def test_extreme_sample_delta_values(self, delta):
+    def test_extreme_sample_delta_values(self, delta: int) -> None:
         """Client should handle very large sample delta values."""
         client = TelemetryClient(min_emit_interval=60.0, min_sample_delta=delta)
         assert client._min_sample_delta == delta
@@ -52,7 +53,7 @@ class TestExtremParameterValues:
         st.integers(min_value=0, max_value=sys.maxsize),
         st.integers(min_value=0, max_value=sys.maxsize),
     )
-    def test_extreme_hit_miss_counts(self, hits, misses):
+    def test_extreme_hit_miss_counts(self, hits: int, misses: int) -> None:
         """Client should handle very large hit/miss counts."""
         # Limit total to avoid overflow in test execution
         assume(hits + misses < 1_000_000_000)
@@ -89,7 +90,7 @@ class TestUnusualDataTypes:
             max_size=10,
         )
     )
-    def test_various_extras_types(self, extras):
+    def test_various_extras_types(self, extras: Any) -> None:
         """Extras should handle various JSON-serializable types."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -106,14 +107,14 @@ class TestUnusualDataTypes:
             for key in extras:
                 assert key in payload
 
-    def test_non_serializable_extras_handled(self):
+    def test_non_serializable_extras_handled(self) -> None:
         """Non-JSON-serializable extras should be handled gracefully."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
 
         emitted = []
 
-        def safe_exporter(n, p):
+        def safe_exporter(n: str, p: Any) -> None:
             # Try to serialize - should handle via default=str
             json.dumps(p, default=str)
             emitted.append((n, p))
@@ -135,7 +136,7 @@ class TestMalformedInputs:
     """Test telemetry with malformed inputs."""
 
     @given(st.text())
-    def test_arbitrary_cache_names(self, cache_name):
+    def test_arbitrary_cache_names(self, cache_name: str) -> None:
         """Cache names should handle arbitrary strings."""
         assume(len(cache_name) > 0)  # Empty names might be invalid
 
@@ -159,7 +160,7 @@ class TestMalformedInputs:
             max_size=100,
         )
     )
-    def test_unicode_cache_names(self, cache_name):
+    def test_unicode_cache_names(self, cache_name: str) -> None:
         """Cache names should handle full unicode range."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -173,7 +174,7 @@ class TestMalformedInputs:
             assert emitted[0][1]["cache_name"] == cache_name
 
     @given(st.text(min_size=0, max_size=1000).filter(lambda s: "\x00" not in s))
-    def test_env_var_parsing_never_crashes(self, value):
+    def test_env_var_parsing_never_crashes(self, value: str) -> None:
         """Environment variable parsing should never crash (except null bytes)."""
         old_value = os.environ.get("TEST_VAR_GEN")
         try:
@@ -198,7 +199,7 @@ class TestMalformedInputs:
 class TestBoundaryConditions:
     """Test boundary conditions."""
 
-    def test_zero_interval_zero_delta(self):
+    def test_zero_interval_zero_delta(self) -> None:
         """Zero interval and delta should allow all emissions."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -212,7 +213,7 @@ class TestBoundaryConditions:
 
         assert len(emitted) == 10
 
-    def test_maximum_interval_maximum_delta(self):
+    def test_maximum_interval_maximum_delta(self) -> None:
         """Maximum values should effectively disable emissions."""
         client = TelemetryClient(
             min_emit_interval=float("inf"),
@@ -230,7 +231,7 @@ class TestBoundaryConditions:
         assert len(emitted) <= 2  # First emission + maybe one more
 
     @given(st.integers(min_value=-1000, max_value=1000))
-    def test_negative_hits_misses_handled(self, value):
+    def test_negative_hits_misses_handled(self, value: int) -> None:
         """Negative values should be handled (even if semantically invalid)."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -257,7 +258,7 @@ class TestSpecialCharactersAndEncoding:
             "cache\ttab",
             "cache\nneolinek",
             "cache\r\nwindows",
-            "emoji🎉cache",
+            "special_chars_cache",
             "中文缓存",
             "עברית",
             "العربية",
@@ -268,7 +269,7 @@ class TestSpecialCharactersAndEncoding:
             "cache<>brackets",
         ],
     )
-    def test_special_character_cache_names(self, cache_name):
+    def test_special_character_cache_names(self, cache_name: str) -> None:
         """Cache names with special characters should be handled."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -281,7 +282,7 @@ class TestSpecialCharactersAndEncoding:
         if emitted:
             assert emitted[0][1]["cache_name"] == cache_name
 
-    def test_very_long_cache_name(self):
+    def test_very_long_cache_name(self) -> None:
         """Very long cache names should be handled."""
         cache_name = "cache_" * 1000  # 6000 characters
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
@@ -303,7 +304,7 @@ class TestSpecialCharactersAndEncoding:
             max_size=20,
         )
     )
-    def test_extras_with_unicode_values(self, extras):
+    def test_extras_with_unicode_values(self, extras: Any) -> None:
         """Extras with unicode values should be handled."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -334,7 +335,7 @@ class TestEdgeCaseCompositions:
         ),
     )
     @settings(max_examples=50)
-    def test_combined_edge_cases(self, cache_name, hits, misses, extras):
+    def test_combined_edge_cases(self, cache_name: str, hits: int, misses: int, extras: Any) -> None:
         """Combination of edge cases should be handled robustly."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -352,7 +353,7 @@ class TestEdgeCaseCompositions:
             assert payload["misses"] == misses
             assert payload["total_requests"] == hits + misses
 
-    def test_rapid_state_transitions(self):
+    def test_rapid_state_transitions(self) -> None:
         """Rapid enable/disable transitions should be handled."""
         for _ in range(100):
             enabled = bool(_ % 2)
@@ -375,7 +376,7 @@ class TestFloatingPointPrecision:
         st.integers(min_value=0, max_value=1_000_000),
         st.integers(min_value=1, max_value=1_000_000),  # Avoid division by zero
     )
-    def test_hit_rate_precision(self, hits, total):
+    def test_hit_rate_precision(self, hits: int, total: int) -> None:
         """Hit rate calculation should maintain precision."""
         assume(hits <= total)
         misses = total - hits
@@ -394,12 +395,13 @@ class TestFloatingPointPrecision:
             actual_rate = payload["hit_rate"]
 
             # Should be very close (within floating-point precision)
+            assert isinstance(actual_rate, (int, float))
             assert abs(actual_rate - expected_rate) < 1e-10
 
     @given(
         st.floats(min_value=0.0, max_value=1e6, allow_nan=False, allow_infinity=False)
     )
-    def test_timestamp_precision(self, timestamp):
+    def test_timestamp_precision(self, timestamp: float) -> None:
         """Timestamps should maintain precision."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -413,17 +415,18 @@ class TestFloatingPointPrecision:
 
         if emitted:
             recorded_timestamp = emitted[0][1]["timestamp"]
+            assert isinstance(recorded_timestamp, (int, float))
             assert abs(recorded_timestamp - timestamp) < 1e-6
 
 
 class TestConcurrentEdgeCases:
     """Test edge cases under concurrent access."""
 
-    def test_concurrent_clear_and_record(self):
+    def test_concurrent_clear_and_record(self) -> None:
         """Concurrent clear and record should not crash."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
 
-        def worker():
+        def worker() -> None:
             for _ in range(100):
                 if _ % 10 == 0:
                     client.clear_exporters()
@@ -439,13 +442,13 @@ class TestConcurrentEdgeCases:
         # Should complete without crash
 
     @given(st.lists(st.text(min_size=1, max_size=20), min_size=1, max_size=20))
-    def test_concurrent_different_cache_names(self, cache_names):
+    def test_concurrent_different_cache_names(self, cache_names: list[str]) -> None:
         """Concurrent access to different cache names should be safe."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
         client.register_exporter(lambda n, p: None)
 
-        def worker(cache_name):
+        def worker(cache_name: str) -> None:
             for _ in range(10):
                 client.record_cache_metrics(cache_name, hits=10, misses=5)
 
@@ -463,7 +466,7 @@ class TestConcurrentEdgeCases:
 class TestRegressionCases:
     """Tests for specific regression scenarios."""
 
-    def test_empty_string_cache_name_handled(self):
+    def test_empty_string_cache_name_handled(self) -> None:
         """Empty cache name should be handled gracefully."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -477,7 +480,7 @@ class TestRegressionCases:
         if emitted:
             assert emitted[0][1]["cache_name"] == ""
 
-    def test_none_extras_handled(self):
+    def test_none_extras_handled(self) -> None:
         """None as extras should be handled gracefully."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -492,18 +495,18 @@ class TestRegressionCases:
             payload = emitted[0][1]
             assert "cache_name" in payload
 
-    def test_exporter_that_modifies_payload(self):
+    def test_exporter_that_modifies_payload(self) -> None:
         """Exporter modifying payload should not affect other exporters."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
 
         payloads_received = []
 
-        def mutating_exporter(_n, p):
+        def mutating_exporter(_n: str, p: Any) -> None:
             p["modified"] = True
             payloads_received.append(("mutating", dict(p)))
 
-        def observing_exporter(_n, p):
+        def observing_exporter(_n: str, p: Any) -> None:
             payloads_received.append(("observing", dict(p)))
 
         client.register_exporter(mutating_exporter)

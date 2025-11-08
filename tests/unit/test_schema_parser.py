@@ -24,7 +24,7 @@ from importobot.core.schema_parser import (
 class TestSchemaParser:
     """Tests for SchemaParser functionality."""
 
-    def test_parse_simple_field_definition(self):
+    def test_parse_simple_field_definition(self) -> None:
         """Test parsing a simple field definition."""
         content = """
         Name
@@ -44,7 +44,7 @@ class TestSchemaParser:
         assert len(field.examples) > 0
         assert "find --name" in field.examples[0]
 
-    def test_parse_multiple_field_definitions(self):
+    def test_parse_multiple_field_definitions(self) -> None:
         """Test parsing multiple field definitions."""
         content = """
         Objective
@@ -67,7 +67,7 @@ class TestSchemaParser:
         assert "Objective" in doc.fields
         assert "Precondition" in doc.fields
 
-    def test_parse_zephyr_sop_format(self):
+    def test_parse_zephyr_sop_format(self) -> None:
         """Test parsing Zephyr SOP-style documentation."""
         content = """
         Test Case Quickstart
@@ -104,7 +104,7 @@ class TestSchemaParser:
             "expected" in f.lower() for f in doc.fields
         )
 
-    def test_parse_field_with_examples(self):
+    def test_parse_field_with_examples(self) -> None:
         """Test extracting multiple examples from field description."""
         content = """
         Priority
@@ -123,7 +123,7 @@ class TestSchemaParser:
             field = doc.fields["Priority"]
             assert len(field.examples) > 0
 
-    def test_description_pattern_precedence_prefers_quoted_phrase(self):
+    def test_description_pattern_precedence_prefers_quoted_phrase(self) -> None:
         """Zephyr-style prose should win over simpler colon matches."""
         content = """
         Objective
@@ -139,7 +139,7 @@ class TestSchemaParser:
         assert field is not None
         assert field.description.startswith("capture final state"), field.description
 
-    def test_description_pattern_handles_inline_quotes(self):
+    def test_description_pattern_handles_inline_quotes(self) -> None:
         """Hyphenated descriptions should provide concise summaries."""
         content = """
         Expected Result
@@ -154,7 +154,7 @@ class TestSchemaParser:
         assert field is not None
         assert "What should happen" in field.description
 
-    def test_description_pattern_colon_default(self):
+    def test_description_pattern_colon_default(self) -> None:
         """Colon-separated definitions act as a secondary parsing mechanism."""
         content = """
         Precondition
@@ -169,7 +169,7 @@ class TestSchemaParser:
         assert field is not None
         assert field.description == "Environment must be provisioned."
 
-    def test_schema_document_find_field_by_name(self):
+    def test_schema_document_find_field_by_name(self) -> None:
         """Test finding fields by name."""
         doc = SchemaDocument()
         doc.fields["Name"] = FieldSchema(name="Name", aliases=["Title", "TestName"])
@@ -185,7 +185,7 @@ class TestSchemaParser:
         # Not found
         assert doc.find_field_by_name("NonExistent") is None
 
-    def test_schema_registry_registration(self):
+    def test_schema_registry_registration(self) -> None:
         """Test schema registry functionality."""
         registry = SchemaRegistry()
 
@@ -207,7 +207,7 @@ class TestSchemaParser:
         assert "Priority" in aliases
         assert "Importance" in aliases
 
-    def test_register_schema_file(self):
+    def test_register_schema_file(self) -> None:
         """Test registering schema from file."""
         content = """
         Name
@@ -232,7 +232,7 @@ class TestSchemaParser:
         finally:
             Path(temp_file).unlink(missing_ok=True)
 
-    def test_parse_file_handles_missing_file(self):
+    def test_parse_file_handles_missing_file(self) -> None:
         """Test that parser handles missing files gracefully."""
         parser = SchemaParser()
         doc = parser.parse_file("/nonexistent/file.txt")
@@ -241,7 +241,7 @@ class TestSchemaParser:
         assert len(doc.fields) == 0
         assert "/nonexistent/file.txt" in doc.source_file
 
-    def test_schema_registry_clear(self):
+    def test_schema_registry_clear(self) -> None:
         """Test clearing the schema registry."""
         registry = SchemaRegistry()
 
@@ -256,7 +256,7 @@ class TestSchemaParser:
         assert registry.find_field("Test") is None
         assert len(registry.get_all_fields()) == 0
 
-    def test_extract_description_patterns(self):
+    def test_extract_description_patterns(self) -> None:
         """Test extraction of field descriptions with various patterns."""
         parser = SchemaParser()
 
@@ -270,7 +270,7 @@ class TestSchemaParser:
         desc2 = parser._extract_description(content2)
         assert "test name" in desc2.lower()
 
-    def test_skip_general_sections(self):
+    def test_skip_general_sections(self) -> None:
         """Test that general sections like Overview are skipped."""
         content = """
         Overview
@@ -289,7 +289,7 @@ class TestSchemaParser:
         assert "Name" in doc.fields
         assert "Overview" not in doc.fields
 
-    def test_field_schema_defaults(self):
+    def test_field_schema_defaults(self) -> None:
         """Test FieldSchema default values."""
         field = FieldSchema(name="Test")
 
@@ -300,7 +300,7 @@ class TestSchemaParser:
         assert field.required is False
         assert field.field_type == "text"
 
-    def test_parse_file_enforces_size_limit(self, tmp_path):
+    def test_parse_file_enforces_size_limit(self, tmp_path) -> None:
         large_file = tmp_path / "schema.md"
         large_file.write_text("A" * (1024 * 1024 + 100), encoding="utf-8")
 
@@ -309,14 +309,14 @@ class TestSchemaParser:
 
         assert doc.fields == {}
 
-    def test_parse_content_sanitizes_control_characters(self):
+    def test_parse_content_sanitizes_control_characters(self) -> None:
         content = "Name\n\nDescription\x00with null"
         parser = SchemaParser()
         doc = parser.parse_content(content)
         assert "Name" in doc.fields
         assert "\x00" not in doc.fields["Name"].description
 
-    def test_parse_file_rejects_disallowed_extension(self, tmp_path: Path) -> None:
+    def test_parse_file_rejects_disallowed_extension(self, tmp_path) -> None:
         schema_file = tmp_path / "schema.pdf"
         schema_file.write_text("Name\n\nThe name field\n", encoding="utf-8")
 
@@ -328,7 +328,7 @@ class TestSchemaParser:
     @pytest.mark.skipif(
         not hasattr(os, "symlink") or os.name == "nt", reason="Symlinks unavailable"
     )
-    def test_parse_file_rejects_symlink(self, tmp_path: Path) -> None:
+    def test_parse_file_rejects_symlink(self, tmp_path) -> None:
         target = tmp_path / "schema.txt"
         target.write_text("Name\n\nThe name field\n", encoding="utf-8")
         link = tmp_path / "schema_link.txt"
@@ -339,7 +339,7 @@ class TestSchemaParser:
 
         assert doc.fields == {}
 
-    def test_parse_content_enforces_section_limit(self):
+    def test_parse_content_enforces_section_limit(self) -> None:
         parser = SchemaParser()
         sections = []
         for i in range(MAX_SCHEMA_SECTIONS + 10):
@@ -350,7 +350,7 @@ class TestSchemaParser:
 
         assert len(doc.fields) == MAX_SCHEMA_SECTIONS
 
-    def test_multiple_schema_files_merged_in_registry(self, tmp_path: Path) -> None:
+    def test_multiple_schema_files_merged_in_registry(self, tmp_path) -> None:
         """Test that multiple schema files are merged correctly."""
         # Create first schema file with test execution fields
         schema1 = tmp_path / "test_fields.md"
@@ -407,7 +407,7 @@ class TestSchemaParser:
 class TestSchemaParserSecurity:
     """Security-focused tests for schema parser."""
 
-    def test_parse_content_rejects_pathologically_large_input(self):
+    def test_parse_content_rejects_pathologically_large_input(self) -> None:
         """Test that extremely large inputs are rejected before processing."""
         parser = SchemaParser()
 
@@ -419,7 +419,7 @@ class TestSchemaParserSecurity:
 
         assert "exceeds maximum reasonable size" in str(exc_info.value)
 
-    def test_parse_content_truncates_moderately_large_input(self):
+    def test_parse_content_truncates_moderately_large_input(self) -> None:
         """Test that moderately large inputs are truncated, not rejected."""
         parser = SchemaParser()
 
@@ -440,7 +440,7 @@ class TestSchemaParserSecurity:
             sp.MAX_SCHEMA_CONTENT_LENGTH = original_limit
 
     def test_file_size_limit_error_suggests_splitting(
-        self, tmp_path: Path, caplog: LogCaptureFixture
+        self, tmp_path, caplog: LogCaptureFixture
     ) -> None:
         """Test that file size errors suggest splitting into multiple files."""
         large_file = tmp_path / "huge_schema.md"

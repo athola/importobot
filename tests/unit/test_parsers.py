@@ -5,7 +5,7 @@ Following TDD principles with comprehensive parsing validation.
 """
 
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from importobot.core.interfaces import TestFileParser
 from importobot.core.parsers import GenericTestFileParser
@@ -14,7 +14,7 @@ from importobot.core.parsers import GenericTestFileParser
 class TestGenericTestFileParserInitialization:
     """Test GenericTestFileParser initialization."""
 
-    def test_parser_initializes_correctly(self):
+    def test_parser_initializes_correctly(self) -> None:
         """Test that parser initializes with cached step field names."""
         parser = GenericTestFileParser()
 
@@ -25,12 +25,12 @@ class TestGenericTestFileParserInitialization:
             frozenset,
         )
 
-    def test_parser_implements_interface(self):
+    def test_parser_implements_interface(self) -> None:
         """Test that GenericTestFileParser implements TestFileParser interface."""
         parser = GenericTestFileParser()
         assert isinstance(parser, TestFileParser)
 
-    def test_parser_has_required_methods(self):
+    def test_parser_has_required_methods(self) -> None:
         """Test that parser has required methods."""
         parser = GenericTestFileParser()
 
@@ -43,7 +43,7 @@ class TestGenericTestFileParserInitialization:
 class TestFindTests:
     """Test find_tests method."""
 
-    def test_find_tests_with_explicit_tests_array(self):
+    def test_find_tests_with_explicit_tests_array(self) -> None:
         """Test find_tests with explicit tests array."""
         parser = GenericTestFileParser()
         data = {
@@ -56,7 +56,7 @@ class TestFindTests:
         assert result[0]["name"] == "Test 1"
         assert result[1]["name"] == "Test 2"
 
-    def test_find_tests_with_testcases_array(self):
+    def test_find_tests_with_testcases_array(self) -> None:
         """Test find_tests with testCases array."""
         parser = GenericTestFileParser()
         data = {
@@ -71,7 +71,7 @@ class TestFindTests:
         assert len(result) == 2
         assert result[0]["name"] == "Test A"
 
-    def test_find_tests_with_test_cases_snake_case(self):
+    def test_find_tests_with_test_cases_snake_case(self) -> None:
         """Test find_tests with test_cases (snake_case) array."""
         parser = GenericTestFileParser()
         data = {"test_cases": [{"name": "Snake Case Test", "steps": []}]}
@@ -81,7 +81,7 @@ class TestFindTests:
         assert len(result) == 1
         assert result[0]["name"] == "Snake Case Test"
 
-    def test_find_tests_with_test_case_single(self):
+    def test_find_tests_with_test_case_single(self) -> None:
         """Test find_tests with single test_case object."""
         parser = GenericTestFileParser()
         data = {"test_case": {"name": "Single Test", "steps": []}}
@@ -92,7 +92,7 @@ class TestFindTests:
         assert result[0]["name"] == "Single Test"
 
     @patch("importobot.core.parsers.is_test_case")
-    def test_find_tests_with_single_test_case_root(self, mock_is_test_case):
+    def test_find_tests_with_single_test_case_root(self, mock_is_test_case: MagicMock) -> None:
         """Test find_tests with single test case at root level."""
         mock_is_test_case.return_value = True
 
@@ -104,7 +104,7 @@ class TestFindTests:
         assert len(result) == 1
         assert result[0]["name"] == "Root Level Test"
 
-    def test_find_tests_with_non_dict_input(self):
+    def test_find_tests_with_non_dict_input(self) -> None:
         """Test find_tests with non-dictionary input."""
         parser = GenericTestFileParser()
 
@@ -118,7 +118,7 @@ class TestFindTests:
         result = parser.find_tests({"items": []})
         assert not result
 
-    def test_find_tests_with_mixed_valid_invalid_items(self):
+    def test_find_tests_with_mixed_valid_invalid_items(self) -> None:
         """Test find_tests filters out non-dict items from arrays."""
         parser = GenericTestFileParser()
         data = {
@@ -136,7 +136,7 @@ class TestFindTests:
         assert result[0]["name"] == "Valid Test"
         assert result[1]["name"] == "Another Valid Test"
 
-    def test_find_tests_with_empty_data(self):
+    def test_find_tests_with_empty_data(self) -> None:
         """Test find_tests with empty dictionary."""
         parser = GenericTestFileParser()
         data: dict[str, Any] = {}
@@ -145,7 +145,7 @@ class TestFindTests:
         assert not result
 
     @patch("importobot.core.parsers.is_test_case")
-    def test_find_tests_with_non_test_case_root(self, mock_is_test_case):
+    def test_find_tests_with_non_test_case_root(self, mock_is_test_case: MagicMock) -> None:
         """Test find_tests when root is not a valid test case."""
         mock_is_test_case.return_value = False
 
@@ -155,7 +155,7 @@ class TestFindTests:
         result = parser.find_tests(data)
         assert not result
 
-    def test_find_tests_case_insensitive_keys(self):
+    def test_find_tests_case_insensitive_keys(self) -> None:
         """Test find_tests handles case-insensitive keys."""
         parser = GenericTestFileParser()
 
@@ -176,7 +176,7 @@ class TestFindTests:
 class TestFindSteps:
     """Test find_steps method (requires reading the full implementation)."""
 
-    def test_find_steps_basic_functionality(self):
+    def test_find_steps_basic_functionality(self) -> None:
         """Test find_steps basic functionality."""
         parser = GenericTestFileParser()
 
@@ -186,14 +186,14 @@ class TestFindSteps:
         result = parser.find_steps(test_data)
         assert isinstance(result, list)
 
-    def test_find_steps_with_none_input(self):
+    def test_find_steps_with_none_input(self) -> None:
         """Test find_steps with None input."""
         parser = GenericTestFileParser()
 
         result = parser.find_steps({})
         assert isinstance(result, list)
 
-    def test_find_steps_with_empty_dict(self):
+    def test_find_steps_with_empty_dict(self) -> None:
         """Test find_steps with empty dictionary."""
         parser = GenericTestFileParser()
 
@@ -204,14 +204,14 @@ class TestFindSteps:
 class TestPrivateMethods:
     """Test private helper methods."""
 
-    def test_get_step_field_names_returns_frozenset(self):
+    def test_get_step_field_names_returns_frozenset(self) -> None:
         """Test _get_step_field_names returns frozenset."""
         parser = GenericTestFileParser()
 
         result = parser._get_step_field_names()  # pylint: disable=protected-access
         assert isinstance(result, frozenset)
 
-    def test_get_step_field_names_caching(self):
+    def test_get_step_field_names_caching(self) -> None:
         """Test that step field names are cached."""
         parser = GenericTestFileParser()
 
@@ -224,7 +224,7 @@ class TestPrivateMethods:
 class TestParserIntegration:
     """Test parser integration scenarios."""
 
-    def test_complex_nested_structure(self):
+    def test_complex_nested_structure(self) -> None:
         """Test parser with complex nested test structure."""
         parser = GenericTestFileParser()
         data = {
@@ -253,7 +253,7 @@ class TestParserIntegration:
         assert result[0]["name"] == "Login Test Suite"
         assert result[1]["name"] == "Registration Test Suite"
 
-    def test_multiple_test_arrays_in_single_document(self):
+    def test_multiple_test_arrays_in_single_document(self) -> None:
         """Test parser when document contains multiple test arrays."""
         parser = GenericTestFileParser()
         data = {
@@ -266,7 +266,7 @@ class TestParserIntegration:
         assert len(result) >= 2
 
     @patch("importobot.core.parsers.is_test_case")
-    def test_parser_behavior_with_no_test_arrays(self, mock_is_test_case):
+    def test_parser_behavior_with_no_test_arrays(self, mock_is_test_case: MagicMock) -> None:
         """Test parser behavior when no explicit test arrays are found."""
         # First call should return False (not a test case)
         # This simulates when no explicit test arrays are found
@@ -278,7 +278,7 @@ class TestParserIntegration:
         result = parser.find_tests(data)
         assert not result
 
-    def test_parser_error_handling(self):
+    def test_parser_error_handling(self) -> None:
         """Test parser error handling with malformed data."""
         parser = GenericTestFileParser()
 
@@ -295,7 +295,7 @@ class TestParserIntegration:
             assert isinstance(result, list)
             # Should handle gracefully and return empty or filtered results
 
-    def test_parser_with_real_world_structure(self):
+    def test_parser_with_real_world_structure(self) -> None:
         """Test parser with realistic test management tool export structure."""
         parser = GenericTestFileParser()
         data = {
@@ -351,7 +351,7 @@ class TestParserIntegration:
 class TestParserPerformance:
     """Test parser performance characteristics."""
 
-    def test_parser_handles_large_test_arrays(self):
+    def test_parser_handles_large_test_arrays(self) -> None:
         """Test parser can handle large test arrays efficiently."""
         parser = GenericTestFileParser()
 
@@ -372,7 +372,7 @@ class TestParserPerformance:
         assert result[0]["name"] == "Test 0"
         assert result[-1]["name"] == "Test 999"
 
-    def test_parser_memory_efficiency(self):
+    def test_parser_memory_efficiency(self) -> None:
         """Test parser doesn't unnecessarily duplicate data."""
         parser = GenericTestFileParser()
 
