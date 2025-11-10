@@ -13,6 +13,7 @@ import random
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -36,7 +37,7 @@ class TestEnvironmentParsingInvariants:
     """Invariants for environment variable parsing."""
 
     @given(st.text().filter(lambda s: "\x00" not in s))
-    def test_flag_parsing_never_raises(self, value) -> None:
+    def test_flag_parsing_never_raises(self, value: str) -> None:
         """Flag parsing should never raise regardless of input (except null bytes)."""
         old_value = os.environ.get("TEST_VAR_HYPOTHESIS")
         try:
@@ -50,7 +51,7 @@ class TestEnvironmentParsingInvariants:
                 os.environ["TEST_VAR_HYPOTHESIS"] = old_value
 
     @given(st.text().filter(lambda s: "\x00" not in s))
-    def test_float_parsing_never_raises(self, value) -> None:
+    def test_float_parsing_never_raises(self, value: str) -> None:
         """Float parsing should never raise regardless of input (except null bytes)."""
         old_value = os.environ.get("TEST_VAR_HYPOTHESIS")
         try:
@@ -64,7 +65,7 @@ class TestEnvironmentParsingInvariants:
                 os.environ["TEST_VAR_HYPOTHESIS"] = old_value
 
     @given(st.text().filter(lambda s: "\x00" not in s))
-    def test_int_parsing_never_raises(self, value) -> None:
+    def test_int_parsing_never_raises(self, value: str) -> None:
         """Int parsing should never raise regardless of input (except null bytes)."""
         old_value = os.environ.get("TEST_VAR_HYPOTHESIS")
         try:
@@ -78,7 +79,7 @@ class TestEnvironmentParsingInvariants:
                 os.environ["TEST_VAR_HYPOTHESIS"] = old_value
 
     @given(st.floats(allow_nan=False, allow_infinity=False))
-    def test_float_parsing_roundtrip(self, value) -> None:
+    def test_float_parsing_roundtrip(self, value: float) -> None:
         """Valid floats should roundtrip through env parsing."""
         old_value = os.environ.get("TEST_VAR_HYPOTHESIS")
         try:
@@ -92,7 +93,7 @@ class TestEnvironmentParsingInvariants:
                 os.environ["TEST_VAR_HYPOTHESIS"] = old_value
 
     @given(st.integers(min_value=-1_000_000, max_value=1_000_000))
-    def test_int_parsing_roundtrip(self, value) -> None:
+    def test_int_parsing_roundtrip(self, value: int) -> None:
         """Valid ints should roundtrip through env parsing."""
         old_value = os.environ.get("TEST_VAR_HYPOTHESIS")
         try:
@@ -113,7 +114,9 @@ class TestTelemetryClientInvariants:
         st.floats(min_value=0.0, max_value=1000.0, allow_nan=False),
         st.integers(min_value=0, max_value=10000),
     )
-    def test_client_initialization_never_raises(self, interval, delta) -> None:
+    def test_client_initialization_never_raises(
+        self, interval: float, delta: int
+    ) -> None:
         """Client should initialize with any valid parameters."""
         client = TelemetryClient(min_emit_interval=interval, min_sample_delta=delta)
         assert client._min_emit_interval == interval
@@ -154,7 +157,7 @@ class TestTelemetryClientInvariants:
         st.integers(min_value=0, max_value=10000),
         st.integers(min_value=0, max_value=10000),
     )
-    def test_hit_rate_bounded_0_to_1(self, hits, misses) -> None:
+    def test_hit_rate_bounded_0_to_1(self, hits: int, misses: int) -> None:
         """Hit rate must always be in range [0.0, 1.0]."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -173,7 +176,9 @@ class TestTelemetryClientInvariants:
         st.integers(min_value=0, max_value=10000),
         st.integers(min_value=0, max_value=10000),
     )
-    def test_total_requests_equals_hits_plus_misses(self, hits, misses) -> None:
+    def test_total_requests_equals_hits_plus_misses(
+        self, hits: int, misses: int
+    ) -> None:
         """Total requests must always equal hits + misses."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -400,7 +405,9 @@ class TestMetricConsistencyInvariants:
             max_size=20,
         )
     )
-    def test_sequential_metric_recording_consistent(self, metric_sequence) -> None:
+    def test_sequential_metric_recording_consistent(
+        self, metric_sequence: list[tuple[int, int]]
+    ) -> None:
         """Sequential metric recording must maintain consistency."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -413,18 +420,18 @@ class TestMetricConsistencyInvariants:
 
         # All emitted metrics should be valid
         for _event_name, payload in emitted:
-            hits = payload["hits"]
-            misses = payload["misses"]
-            total = payload["total_requests"]
-            hit_rate = payload["hit_rate"]
-            assert isinstance(hits, int)
-            assert hits >= 0
-            assert isinstance(misses, int)
-            assert misses >= 0
-            assert isinstance(total, int)
-            assert total == hits + misses
-            assert isinstance(hit_rate, float)
-            assert 0.0 <= hit_rate <= 1.0
+            hits_val: int = payload["hits"]  # type: ignore[assignment]
+            misses_val: int = payload["misses"]  # type: ignore[assignment]
+            total_val: int = payload["total_requests"]  # type: ignore[assignment]
+            hit_rate_val: float = payload["hit_rate"]  # type: ignore[assignment]
+            assert isinstance(hits_val, int)
+            assert hits_val >= 0
+            assert isinstance(misses_val, int)
+            assert misses_val >= 0
+            assert isinstance(total_val, int)
+            assert total_val == hits_val + misses_val
+            assert isinstance(hit_rate_val, float)
+            assert 0.0 <= hit_rate_val <= 1.0
 
     def test_extras_never_override_core_fields(self) -> None:
         """Extra payload fields must not override core metric fields."""
@@ -524,12 +531,12 @@ class TestExporterInvariants:
 
         call_order = []
 
-        def modifying_exporter(_name, _payload):
+        def modifying_exporter(_name: Any, _payload: Any) -> None:
             call_order.append("modifying")
             # Try to modify exporter list during emission
             client.register_exporter(lambda n, p: call_order.append("late"))
 
-        def normal_exporter(_name, _payload):
+        def normal_exporter(_name: Any, _payload: Any) -> None:
             call_order.append("normal")
 
         client.register_exporter(modifying_exporter)
@@ -553,7 +560,7 @@ class TestConcurrentStateInvariants:
         emitted = []
         lock = threading.Lock()
 
-        def safe_exporter(name, payload):
+        def safe_exporter(name: str, payload: Any) -> None:
             with lock:
                 emitted.append((name, payload))
 
@@ -577,7 +584,7 @@ class TestConcurrentStateInvariants:
 
     @settings(max_examples=10, deadline=2000)  # Fewer examples due to threading
     @given(st.integers(min_value=2, max_value=10))
-    def test_parallel_cache_access_safe(self, num_threads) -> None:
+    def test_parallel_cache_access_safe(self, num_threads: int) -> None:
         """Parallel access to different caches must be safe."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -585,13 +592,13 @@ class TestConcurrentStateInvariants:
         results = []
         lock = threading.Lock()
 
-        def exporter(_name, payload):
+        def exporter(_name: str, payload: Any) -> None:
             with lock:
                 results.append(payload)
 
         client.register_exporter(exporter)
 
-        def worker(thread_id):
+        def worker(thread_id: int) -> None:
             for i in range(10):
                 client.record_cache_metrics(f"cache_{thread_id}", hits=i * 2, misses=i)
 

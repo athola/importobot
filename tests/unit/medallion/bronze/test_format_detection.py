@@ -831,17 +831,19 @@ class TestFormatDetectionBusinessLogic(unittest.TestCase):
             {str(i): f"value_{i}" for i in range(1000)},  # Very large dict
         ]
 
-        for example in malformed_examples:
+        def _detect_malformed(example: Any) -> None:
             try:
                 detected = self.detector.detect_format(example)
-                # Should handle gracefully, return UNKNOWN for non-dict types
                 if not isinstance(example, dict):
                     assert detected == SupportedFormat.UNKNOWN
-            except Exception as e:
+            except Exception as exc:
                 error_msg = (
-                    f"Format detection crashed on malformed data {type(example)}: {e}"
+                    f"Format detection crashed on malformed data {type(example)}: {exc}"
                 )
                 self.fail(error_msg)
+
+        for example in malformed_examples:
+            _detect_malformed(example)
 
     def test_empty_data_handling(self) -> None:
         """Test handling of empty data structures."""

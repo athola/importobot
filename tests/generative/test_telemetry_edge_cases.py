@@ -335,7 +335,9 @@ class TestEdgeCaseCompositions:
         ),
     )
     @settings(max_examples=50)
-    def test_combined_edge_cases(self, cache_name: str, hits: int, misses: int, extras: Any) -> None:
+    def test_combined_edge_cases(
+        self, cache_name: str, hits: int, misses: int, extras: Any
+    ) -> None:
         """Combination of edge cases should be handled robustly."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()

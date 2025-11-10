@@ -1,6 +1,6 @@
 # Getting Started
 
-This guide covers the installation of Importobot and the conversion of a test export.
+This guide walks through installing Importobot and converting your first test export.
 
 > If you are new to the codebase, read [How to Navigate this Codebase](How-to-Navigate-this-Codebase.md) to understand the architecture and code organization.
 
@@ -11,7 +11,7 @@ This guide covers the installation of Importobot and the conversion of a test ex
 
 ## Installing uv
 
-Importobot uses [uv](https://github.com/astral-sh/uv) for package management. We recommend installing it with `pipx`.
+Importobot uses [uv](https://github.com/astral-sh/uv) for package and project management. The official documentation recommends the following installation methods.
 
 ### macOS/Linux:
 ```bash
@@ -23,44 +23,42 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-Verify the installation:
+Verify the installation by checking the version:
 ```bash
 uv --version
 ```
 
 ## Project Setup
 
-Once uv is installed, set up the project:
+Once uv is installed, you can set up the project.
 
 ```bash
 # Clone the repository
 git clone https://github.com/athola/importobot.git
 cd importobot
 
-# Install project dependencies
+# Create the virtual environment and install dependencies
 uv sync --dev
 
-# Run the test suite to verify the installation
+# Run the test suite to confirm the setup
 uv run pytest
 ```
 
 ## Basic Usage
 
-### Convert a single file
+To convert a single file, provide the input and output paths:
 ```bash
 uv run importobot zephyr_export.json converted_tests.robot
 ```
 
-### Convert multiple files
+To convert all files in a directory, use the `--batch` flag:
 ```bash
 uv run importobot --batch input_dir/ output_dir/
 ```
 
 ## Example Workflow
 
-1.  Export a test suite from Zephyr, Xray, etc.
-2.  Convert it with a single Importobot command.
-3.  Dry-run and execute the generated Robot tests.
+A common workflow is to export a test suite, convert it, and then run the generated Robot tests:
 
 ```bash
 # Convert the export

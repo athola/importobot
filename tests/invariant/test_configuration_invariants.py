@@ -51,7 +51,9 @@ class TestConfigurationInvariants:
         )
     )
     @settings(max_examples=50)
-    def test_storage_config_validation_invariant(self, config_data: dict[str, Any]) -> None:
+    def test_storage_config_validation_invariant(
+        self, config_data: dict[str, Any]
+    ) -> None:
         """Invariant: Configuration validation should be comprehensive and safe."""
         try:
             config = StorageConfig.from_dict(config_data)
@@ -160,32 +162,28 @@ class TestConfigurationInvariants:
             {"backup_retention_days": numeric_value},
         ]
 
-        for config_data in numeric_configs:
+        def _validate_numeric_config(config_data: dict[str, int]) -> None:
             try:
                 config = StorageConfig.from_dict(config_data)
                 issues = config.validate()
 
-                # Validation should catch negative or zero values where inappropriate
                 field_name = next(iter(config_data.keys()))
                 field_value = config_data[field_name]
 
                 if field_value <= 0:
-                    # Should have validation issues for non-positive values
                     relevant_issues = [
                         issue for issue in issues if field_name in issue.lower()
                     ]
-                    assert (
-                        len(relevant_issues) > 0 or field_value == 0
-                    )  # Some fields might allow 0
+                    assert len(relevant_issues) > 0 or field_value == 0
 
-                # Issues should be descriptive
                 for issue in issues:
                     assert isinstance(issue, str)
-                    assert len(issue) > 10  # Should be descriptive
-
+                    assert len(issue) > 10
             except (TypeError, ValueError):
-                # Expected for invalid numeric values
                 pass
+
+        for config_data in numeric_configs:
+            _validate_numeric_config(config_data)
 
     @given(st.sampled_from(["local", "invalid", "s3", "azure", "gcp", "", None, 123]))
     @settings(max_examples=20)
@@ -260,7 +258,9 @@ class TestConfigurationInvariants:
         )
     )
     @settings(max_examples=20)
-    def test_configuration_isolation_invariant(self, config_updates: dict[str, Any]) -> None:
+    def test_configuration_isolation_invariant(
+        self, config_updates: dict[str, Any]
+    ) -> None:
         """Invariant: Configuration instances are independent."""
         try:
             # Create initial config

@@ -1,6 +1,8 @@
 """Tests ensuring code follows project automation philosophy from CLAUDE.md."""
 
 import re
+from contextlib import suppress
+from typing import Any
 
 from importobot.core.keywords.generators.api_keywords import APIKeywordGenerator
 from importobot.core.keywords.generators.ssh_keywords import SSHKeywordGenerator
@@ -103,97 +105,62 @@ class TestAutomationPhilosophyCompliance:
             WebKeywordGenerator(),
             APIKeywordGenerator(),
         ]
-
         test_cases = ["", "empty input", "minimal data"]
 
-        for generator in generators:  # pylint: disable=too-many-nested-blocks
-            for method_name in dir(generator):
-                if method_name.startswith("generate_") and callable(
-                    getattr(generator, method_name)
-                ):
-                    method = getattr(generator, method_name)
+        for generator in generators:
+            for method_name, method in self._iter_generator_methods(generator):
+                if method_name == "generate_step_keywords":
+                    self._assert_step_keyword_variables(method, test_cases)
+                    continue
+                self._assert_string_method_variables(method_name, method, test_cases)
 
-                    # Skip methods that require specific parameters
-                    # or special signatures
-                    if method_name in [
-                        "generate_file_transfer_keyword",
-                        "generate_directory_operations_keyword",
-                    ]:
-                        continue
+    def _iter_generator_methods(self, generator: Any) -> list[tuple[str, Any]]:
+        methods: list[tuple[str, Any]] = []
+        for method_name in dir(generator):
+            if not method_name.startswith("generate_"):
+                continue
+            method = getattr(generator, method_name)
+            if not callable(method):
+                continue
+            if method_name in {
+                "generate_file_transfer_keyword",
+                "generate_directory_operations_keyword",
+            }:
+                continue
+            methods.append((method_name, method))
+        return methods
 
-                    # Handle methods that expect dictionary input differently
-                    if method_name == "generate_step_keywords":
-                        # This method expects a dictionary, not a string
-                        for test_data in test_cases:
-                            try:
-                                # Use a sample dictionary matching expected step format
-                                step_dict = {
-                                    "description": test_data,
-                                    "test_data": test_data,
-                                }
-                                result = method(step_dict)
+    def _assert_step_keyword_variables(self, method: Any, cases: list[str]) -> None:
+        for test_data in cases:
+            with suppress(TypeError):
+                step_dict = {"description": test_data, "test_data": test_data}
+                self._assert_variables_valid(method(step_dict))
 
-                                variables = re.findall(r"\$\{([^}]+)\}", result)
+    def _assert_string_method_variables(
+        self, method_name: str, method: Any, cases: list[str]
+    ) -> None:
+        for test_data in cases:
+            with suppress(TypeError):
+                if "file_transfer" in method_name:
+                    result = method(test_data, "upload")
+                elif "directory" in method_name:
+                    result = method(test_data, "create")
+                else:
+                    result = method(test_data)
+                self._assert_variables_valid(result)
 
-                                for var in variables:
-                                    message_prefix = f"Variable ${{{var}}}"
-                                    upper_error = _var_message(
-                                        message_prefix,
-                                        "should be uppercase in",
-                                        result,
-                                    )
-                                    no_space_error = _var_message(
-                                        message_prefix,
-                                        "should not contain spaces in",
-                                        result,
-                                    )
-                                    descriptive_error = _var_message(
-                                        message_prefix,
-                                        "should be descriptive in",
-                                        result,
-                                    )
-
-                                    assert var.isupper(), upper_error
-                                    assert " " not in var, no_space_error
-                                    assert len(var) > 1, descriptive_error
-
-                            except TypeError:
-                                # Skip methods with different signatures
-                                continue
-                        continue  # Skip to next method after handling this special case
-
-                    for test_data in test_cases:
-                        try:
-                            if "file_transfer" in method_name:
-                                result = method(test_data, "upload")
-                            elif "directory" in method_name:
-                                result = method(test_data, "create")
-                            else:
-                                result = method(test_data)
-
-                            # Find all variable references
-                            variables = re.findall(r"\$\{([^}]+)\}", result)
-
-                            for var in variables:
-                                # Must be uppercase Robot Framework convention
-                                assert var.isupper(), (
-                                    f"Variable ${{{var}}} should be uppercase in "
-                                    f"{result}"
-                                )
-                                # Must not contain spaces
-                                assert " " not in var, (
-                                    f"Variable ${{{var}}} should not contain spaces "
-                                    f"in {result}"
-                                )
-                                # Must be descriptive
-                                assert len(var) > 1, (
-                                    f"Variable ${{{var}}} should be descriptive in "
-                                    f"{result}"
-                                )
-
-                        except TypeError:
-                            # Skip methods with different signatures
-                            continue
+    def _assert_variables_valid(self, result: str) -> None:
+        for var in re.findall(r"\$\{([^}]+)\}", result):
+            message_prefix = f"Variable ${{{var}}}"
+            assert var.isupper(), _var_message(
+                message_prefix, "should be uppercase in", result
+            )
+            assert " " not in var, _var_message(
+                message_prefix, "should not contain spaces in", result
+            )
+            assert len(var) > 1, _var_message(
+                message_prefix, "should be descriptive in", result
+            )
 
     def test_no_business_logic_assumptions_in_generators(self) -> None:
         """Generators must not make domain-specific business assumptions."""

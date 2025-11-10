@@ -1,44 +1,51 @@
-# ADR-0003: API Integration Architecture
+# ADR-0003: Direct API Ingestion from Test Management Tools
 
 **Status**: Implemented
 **Date**: 2025-10-16
-**Decision**: Enable direct API ingestion for test platforms while preserving bronze/silver/gold architecture
 
 ## Context
 
-Issue [#58](https://github.com/athola/importobot/issues/58) requested the ability to fetch test suites directly from supported platforms via API credentials, rather than requiring users to manually export and import JSON files.
+Users requested the ability to fetch test suites directly from platforms like Jira and TestRail, as documented in Issue [#58](https://github.com/athola/importobot/issues/58). This would avoid the manual process of exporting and importing files.
 
 ## Decision
 
-Implemented a flexible API client architecture that:
+We will create a set of API clients to ingest data directly from supported test management platforms. The raw data fetched from the APIs will be treated as a new data source for the existing Medallion (Bronze/Silver/Gold) pipeline.
 
-1. **Supports multiple platforms**: Jira/Xray, Zephyr for Jira, TestRail, and TestLink
-2. **Preserves existing architecture**: Raw payloads feed into the bronze layer for normalization
-3. **Provides flexible authentication**: CLI flags override environment variables
-4. **Handles platform variability**: Adaptive discovery and secondary mechanisms
+This approach will:
+
+1.  **Support multiple platforms**: Initially Jira/Xray, Zephyr, TestRail, and TestLink.
+2.  **Reuse the existing pipeline**: Raw API payloads will be saved and fed into the Bronze layer, requiring no changes to the Silver or Gold layers.
+3.  **Offer flexible authentication**: Users can provide credentials via CLI flags, which override environment variables.
+4.  **Adapt to platform differences**: The clients will automatically discover API endpoints and try multiple authentication strategies to handle variations between different server versions and configurations.
 
 ## Architecture
 
-### Core Components
+The data flows from the command line, through a client factory to a platform-specific client, and the resulting payload is sent to the Bronze layer.
 
 ```
 CLI Layer → API Client Factory → Platform-Specific Clients → Raw Payloads → Bronze Layer
 ```
 
-**API Client Factory** (`importobot.integrations.clients`):
-- `get_api_client()` factory function for client instantiation
-- `APISource` protocol defining `fetch_all(progress_cb)` interface
-- Centralized credential resolution and validation
+### Core Components
 
-**Platform-Specific Clients**:
-- **ZephyrClient**: Adaptive API discovery, multiple auth strategies, configurable pagination
-- **XrayClient**: Jira API integration with issue search and test case retrieval
-- **TestRailClient**: Test run and case management API integration
-- **TestLinkClient**: Legacy XML/JSON API integration
+**API Client Factory** (`importobot.integrations.clients`)
 
-### Enhanced Zephyr Client
+This module is responsible for creating the correct API client. It contains:
+- A factory function, `get_api_client()`, that returns a specific client based on the requested platform.
+- The `APISource` protocol, which defines the common interface that all clients must implement (e.g., `fetch_all()`).
+- Centralized logic for resolving and validating credentials from the CLI and environment variables.
 
-The Zephyr client implements sophisticated adaptation:
+**Platform-Specific Clients**
+
+Each supported platform has its own client:
+- **ZephyrClient**: Handles variations in Zephyr API endpoints, authentication methods, and pagination.
+- **XrayClient**: Interacts with the Jira API to search for and retrieve test cases.
+- **TestRailClient**: Connects to the TestRail API for test run and case data.
+- **TestLinkClient**: Manages integration with the older TestLink XML/JSON API.
+
+### Zephyr Client Example
+
+The `ZephyrClient` is the most complex, as it must handle significant variation between different Zephyr server instances. It is configured to automatically try multiple API endpoint patterns, authentication strategies, and page sizes.
 
 ```python
 class ZephyrClient(BaseAPIClient):
@@ -88,67 +95,75 @@ class ZephyrClient(BaseAPIClient):
 
 ### API Discovery Process
 
-1. **Pattern Discovery**: Try endpoint patterns until finding working configuration
-2. **Secondary Authentication Strategies**: Attempt multiple auth strategies automatically
-3. **Pagination Adaptation**: Test page sizes (100, 200, 250, 500) to find optimal limits
-4. **Payload Structure Handling**: Extract results from various response formats
+To handle variations in platforms (particularly Zephyr), the clients perform an automatic discovery process upon connection:
+
+1.  **Endpoint Discovery**: The client attempts to connect to a list of known API endpoint patterns to find a valid one.
+2.  **Authentication Discovery**: If the initial authentication method fails, it automatically tries a series of secondary strategies (e.g., bearer token, API key, basic auth).
+3.  **Pagination Discovery**: The client tests different page sizes to find the most efficient one supported by the server.
+4.  **Payload Adaptation**: The client can extract the test case data from several known response structures.
 
 ### Data Flow
 
-1. **API Ingestion**: `handle_api_ingest()` orchestrates client instantiation and data retrieval
-2. **Progress Tracking**: Real-time progress callbacks during large fetches
-3. **Payload Storage**: Raw JSON saved to configured directory with metadata
-4. **Bronze Integration**: Saved files feed into existing bronze layer processing
-5. **Conversion Pipeline**: Standard silver/gold processing continues unchanged
+The end-to-end process for API ingestion is as follows:
+
+1.  The `handle_api_ingest()` function manages the process, creating a client and retrieving the data.
+2.  For large test suites, the client can issue real-time progress callbacks.
+3.  The raw JSON payloads fetched from the API are saved to a configured directory, along with a metadata file.
+4.  These saved files are then passed to the Bronze layer, treating them the same as manually provided files.
+5.  The rest of the conversion pipeline (Silver and Gold layers) continues without any changes.
 
 ### Error Handling
 
-- **Authentication Failures**: Clear error messages with configuration suggestions
-- **Rate Limiting**: Exponential backoff with jitter and `Retry-After` header support
-- **Network Issues**: Configurable retry budgets and timeout handling
-- **Payload Validation**: JSON structure validation before bronze layer processing
+The API clients include robust error handling:
+- **Authentication Failures**: If authentication fails, the tool provides clear error messages suggesting which credentials might be incorrect.
+- **Rate Limiting**: The clients respect `Retry-After` headers and use an exponential backoff strategy with jitter to avoid overwhelming the server API.
+- **Network Issues**: Connection timeouts and temporary network failures are handled with a configurable number of retries.
+- **Payload Validation**: The structure of the fetched JSON is validated before it is passed to the Bronze layer.
 
 ## Security Considerations
 
-- **Token Masking**: All tokens masked in logs and error messages
-- **Secure Storage**: Recommendation for environment variables over shell history
-- **Input Validation**: URL validation and credential format checking
-- **Audit Trail**: Metadata files record fetch details without exposing secrets
+The following security measures are in place:
+- **Token Masking**: Authentication tokens are masked in all logs and error messages to prevent accidental exposure.
+- **Secure Storage**: The documentation recommends using environment variables for storing credentials, as they are less likely to be exposed in shell history.
+- **Input Validation**: All user-provided inputs, such as API URLs and credentials, are validated.
+- **Audit Trail**: The metadata files saved alongside the fetched payloads record details of the fetch operation without including any secrets.
 
 ## Consequences
 
 ### Positive
 
-- **Improved User Experience**: Single-command fetch and conversion
-- **Automation Ready**: Direct CI/CD integration without manual export steps
-- **Platform Flexibility**: Adapts to different server configurations automatically
-- **Architecture Preservation**: No changes to existing bronze/silver/gold pipeline
-- **Extensibility**: Easy to add new platform clients following established patterns
+- Users can now fetch and convert tests with a single command.
+- The feature can be integrated directly into CI/CD pipelines, removing the need for manual exports.
+- The client's adaptive nature allows it to work with different server versions and configurations automatically.
+- The existing Medallion pipeline is reused without modification.
+- The design makes it straightforward to add clients for new platforms in the future.
 
 ### Negative
 
-- **Increased Complexity**: Additional authentication and error handling logic
-- **Dependency Management**: HTTP client dependencies and retry logic
-- **Testing Surface**: More integration scenarios requiring test coverage
+- The overall codebase complexity is higher due to the new authentication and error handling logic.
+- New dependencies for the HTTP client and retry logic have been added.
+- The testing surface area has increased, requiring more integration tests.
 
 ### Risks
 
-- **API Changes**: Platform APIs may evolve, requiring client updates
-- **Authentication Complexity**: Dual-token and multi-auth scenarios increase complexity
-- **Rate Limiting**: Aggressive fetching may trigger platform rate limits
+- **API Instability**: Future changes to a platform's API may break a client, requiring maintenance.
+- **Authentication Complexity**: Supporting multiple authentication methods for a single platform adds complexity.
+- **Rate Limiting**: Fetching very large test suites may trigger rate limits on the target platform.
 
-## Migration Path
+## Adoption Strategy
 
-1. **Backward Compatibility**: Existing file-based conversion unchanged
-2. **Gradual Adoption**: Users can adopt API integration incrementally
-3. **Alternative Options**: File import remains available when API integration fails
-4. **Configuration Migration**: Environment variables provide easy credential management
+The introduction of this feature does not remove any existing functionality.
+- **Backward Compatibility**: File-based conversion works exactly as it did before.
+- **Gradual Adoption**: Users can continue to use file-based workflows and adopt the API integration at their own pace.
+- **Default Option**: File-based import remains a stable option if API integration is not desired or fails.
+- **Configuration**: Using environment variables for credentials allows for easy and secure configuration management.
 
-## Future Enhancements
+## Future Work
 
-- **Caching**: ETag support for conditional requests
-- **Async Fetching**: Concurrent request handling for large datasets
-- **Resume Capability**: Resume interrupted downloads from last known state
-- **Additional Platforms**: Extend pattern to other test management systems
+The following enhancements could be built on this architecture:
+- **Caching**: Use `ETag` headers to avoid re-downloading unchanged test suites.
+- **Asynchronous Fetching**: Use concurrent requests to speed up fetching of large data sets.
+- **Resumable Downloads**: Add the ability to resume an interrupted download.
+- **New Platforms**: Add clients for other test management systems.
 
 ---

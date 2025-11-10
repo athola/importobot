@@ -10,7 +10,7 @@
 
 </div>
 
-Importobot is a Python package that converts test exports from Zephyr, TestRail, Xray, and TestLink into executable Robot Framework files.
+Importobot is a Python package for converting test case exports from Zephyr, TestRail, Xray, and TestLink into runnable Robot Framework suites. It was built to automate the tedious process of manually migrating large test libraries.
 
 ## What's new
 
@@ -18,28 +18,32 @@ See the [changelog](CHANGELOG.md) for a full list of changes.
 
 ## Installation
 
+For end-users, install from PyPI:
 ```sh
 pip install importobot
 ```
+For developers contributing to the project, see the [Project Setup](https://github.com/athola/importobot/wiki/Getting-Started#project-setup) instructions.
 
 ## Quick Start
 
 ```python
 import importobot
 
-# Convert a single file
+# Convert a single file from Zephyr JSON to a Robot Framework file
 converter = importobot.JsonToRobotConverter()
 summary = converter.convert_file("zephyr_export.json", "output.robot")
 
-# Convert a directory
+# Convert an entire directory of exports
 result = converter.convert_directory("./exports", "./converted")
 ```
 
-See the [User Guide](https://github.com/athola/importobot/wiki/User-Guide) for more examples.
-
 ## Documentation
 
-The official documentation is hosted on the [project wiki](https://github.com/athola/importobot/wiki).
+All documentation is in the [project wiki](https://github.com/athola/importobot/wiki).
+
+- **[Getting Started](https://github.com/athola/importobot/wiki/Getting-Started)**: Install the tool and run your first conversion.
+- **[User Guide](https://github.com/athola/importobot/wiki/User-Guide)**: See detailed examples and usage patterns.
+- **[How to Navigate this Codebase](https://github.com/athola/importobot/wiki/How-to-Navigate-this-Codebase)**: For developers who want to understand the architecture.
 
 ## Community
 

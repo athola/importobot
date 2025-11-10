@@ -18,49 +18,65 @@ def ssh_generator() -> SSHKeywordGenerator:
 class TestSSHKeywordGenerator:
     """Tests for the SSHKeywordGenerator class."""
 
-    def test_generate_connect_keyword_ssh_format(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_connect_keyword_ssh_format(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH connection keyword generation from ssh command format."""
         test_data = "ssh testuser@example.com"
         result = ssh_generator.generate_connect_keyword(test_data)
         assert result == "Open Connection    example.com    testuser"
 
-    def test_generate_connect_keyword_structured_format(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_connect_keyword_structured_format(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH connection keyword generation from structured format."""
         test_data = "host: example.com username: testuser password: testpass"
         result = ssh_generator.generate_connect_keyword(test_data)
         assert result == "Open Connection    example.com    testuser    testpass"
 
-    def test_generate_connect_keyword_host_only(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_connect_keyword_host_only(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH connection keyword generation with host only."""
         test_data = "host: example.com"
         result = ssh_generator.generate_connect_keyword(test_data)
         assert result == "Open Connection    example.com"
 
-    def test_generate_connect_keyword_empty_input(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_connect_keyword_empty_input(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH connection keyword generation with empty input data."""
         test_data = ""
         result = ssh_generator.generate_connect_keyword(test_data)
         assert result == "Open Connection    ${HOST}"
 
-    def test_generate_execute_keyword_ssh_format(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_execute_keyword_ssh_format(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH execute command keyword generation."""
         test_data = "command: ls -la"
         result = ssh_generator.generate_execute_keyword(test_data)
         assert result == "Execute Command    ls -la"
 
-    def test_generate_execute_keyword_cmd_alias(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_execute_keyword_cmd_alias(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH execute command keyword generation with cmd alias."""
         test_data = "cmd: pwd"
         result = ssh_generator.generate_execute_keyword(test_data)
         assert result == "Execute Command    pwd"
 
-    def test_generate_execute_keyword_empty_input(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_execute_keyword_empty_input(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH execute command keyword generation with empty input data."""
         test_data = ""
         result = ssh_generator.generate_execute_keyword(test_data)
         assert result == "Execute Command    ${COMMAND}"
 
-    def test_generate_execute_keyword_generic_data(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_execute_keyword_generic_data(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH execute command keyword generation with generic test data."""
         test_data = "localhost testuser"
         result = ssh_generator.generate_execute_keyword(test_data)
@@ -70,37 +86,49 @@ class TestSSHKeywordGenerator:
 class TestSSHFileTransferKeywords:
     """Tests for SSH file transfer keyword generation."""
 
-    def test_generate_file_transfer_keyword_upload(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_file_transfer_keyword_upload(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH file upload keyword generation."""
         test_data = "source: /local/file destination: /remote/file"
         result = ssh_generator.generate_file_transfer_keyword(test_data, "upload")
         assert result == "Put File    /local/file    /remote/file"
 
-    def test_generate_file_transfer_keyword_download(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_file_transfer_keyword_download(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH file download keyword generation."""
         test_data = "source: /remote/file destination: /local/file"
         result = ssh_generator.generate_file_transfer_keyword(test_data, "download")
         assert result == "Get File    /remote/file    /local/file"
 
-    def test_generate_file_transfer_keyword_put_operation(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_file_transfer_keyword_put_operation(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH file transfer with put operation."""
         test_data = "from: /local/file to: /remote/file"
         result = ssh_generator.generate_file_transfer_keyword(test_data, "put")
         assert result == "Put File    /local/file    /remote/file"
 
-    def test_generate_file_transfer_keyword_get_operation(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_file_transfer_keyword_get_operation(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH file transfer with get operation."""
         test_data = "from: /remote/file to: /local/file"
         result = ssh_generator.generate_file_transfer_keyword(test_data, "get")
         assert result == "Get File    /remote/file    /local/file"
 
-    def test_generate_file_transfer_keyword_missing_data(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_file_transfer_keyword_missing_data(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH file transfer keyword generation with missing data."""
         test_data = ""
         result = ssh_generator.generate_file_transfer_keyword(test_data, "upload")
         assert result == "Put File    ${SOURCE_FILE}    ${DESTINATION_PATH}"
 
-    def test_generate_file_transfer_keyword_unknown_operation(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_file_transfer_keyword_unknown_operation(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH file transfer keyword with unknown operation defaults to upload."""
         test_data = "source: /local/file destination: /remote/file"
         result = ssh_generator.generate_file_transfer_keyword(test_data, "unknown")
@@ -110,7 +138,9 @@ class TestSSHFileTransferKeywords:
 class TestSSHFileVerificationKeywords:
     """Tests for SSH file verification keyword generation."""
 
-    def test_generate_file_verification_keyword_existence(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_file_verification_keyword_existence(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH file verification keyword for existence."""
         test_data = "file: /path/to/file"
         result = ssh_generator.generate_file_verification_keyword(
@@ -118,7 +148,9 @@ class TestSSHFileVerificationKeywords:
         )
         assert result == "File Should Exist    /path/to/file"
 
-    def test_generate_file_verification_keyword_non_existence(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_file_verification_keyword_non_existence(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH file verification keyword for non-existence."""
         test_data = "path: /path/to/file"
         result = ssh_generator.generate_file_verification_keyword(
@@ -126,7 +158,9 @@ class TestSSHFileVerificationKeywords:
         )
         assert result == "File Should Not Exist    /path/to/file"
 
-    def test_generate_file_verification_keyword_empty_input(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_file_verification_keyword_empty_input(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH file verification keyword generation with empty input data."""
         test_data = ""
         result = ssh_generator.generate_file_verification_keyword(
@@ -138,7 +172,9 @@ class TestSSHFileVerificationKeywords:
 class TestSSHDirectoryOperationKeywords:
     """Tests for SSH directory operation keyword generation."""
 
-    def test_generate_directory_operations_keyword_create(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_directory_operations_keyword_create(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH directory creation keyword generation."""
         test_data = "directory: /path/to/dir"
         result = ssh_generator.generate_directory_operations_keyword(
@@ -146,7 +182,9 @@ class TestSSHDirectoryOperationKeywords:
         )
         assert result == "Create Directory    /path/to/dir"
 
-    def test_generate_directory_operations_keyword_remove(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_directory_operations_keyword_remove(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH directory removal keyword generation."""
         test_data = "dir: /path/to/dir"
         result = ssh_generator.generate_directory_operations_keyword(
@@ -154,13 +192,17 @@ class TestSSHDirectoryOperationKeywords:
         )
         assert result == "Remove Directory    /path/to/dir"
 
-    def test_generate_directory_operations_keyword_list(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_directory_operations_keyword_list(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH directory listing keyword generation."""
         test_data = "path: /home/user"
         result = ssh_generator.generate_directory_operations_keyword(test_data, "list")
         assert result == "List Directory    /home/user"
 
-    def test_generate_directory_operations_keyword_verify_exists(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_directory_operations_keyword_verify_exists(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH directory existence verification keyword generation."""
         test_data = "directory: /path/to/dir"
         result = ssh_generator.generate_directory_operations_keyword(
@@ -169,7 +211,7 @@ class TestSSHDirectoryOperationKeywords:
         assert result == "Directory Should Exist    /path/to/dir"
 
     def test_generate_directory_operations_keyword_verify_not_exists(
-        self, ssh_generator
+        self, ssh_generator: SSHKeywordGenerator
     ) -> None:
         """Test SSH directory non-existence verification keyword generation."""
         test_data = "directory: /path/to/dir"
@@ -179,7 +221,7 @@ class TestSSHDirectoryOperationKeywords:
         assert result == "Directory Should Not Exist    /path/to/dir"
 
     def test_generate_directory_operations_keyword_with_empty_input(
-        self, ssh_generator
+        self, ssh_generator: SSHKeywordGenerator
     ) -> None:
         """Test SSH directory operations keyword generation with empty input data."""
         test_data = ""
@@ -189,7 +231,7 @@ class TestSSHDirectoryOperationKeywords:
         assert result == "Create Directory    ${DIRECTORY_PATH}"
 
     def test_generate_directory_operations_keyword_default_operation(
-        self, ssh_generator
+        self, ssh_generator: SSHKeywordGenerator
     ) -> None:
         """Test SSH directory operations keyword with unknown operation defaults to
         list."""
@@ -203,27 +245,33 @@ class TestSSHDirectoryOperationKeywords:
 class TestSSHInteractiveShellKeywords:
     """Tests for SSH interactive shell keyword generation."""
 
-    def test_generate_interactive_shell_keyword_write_text(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_interactive_shell_keyword_write_text(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH interactive shell write keyword generation."""
         test_data = "text: echo hello"
         result = ssh_generator.generate_interactive_shell_keyword(test_data, "write")
         assert result == "Write    echo hello"
 
     def test_generate_interactive_shell_keyword_write_with_send_alias(
-        self, ssh_generator
+        self, ssh_generator: SSHKeywordGenerator
     ) -> None:
         """Test SSH interactive shell write keyword with send alias."""
         test_data = "send: sudo su"
         result = ssh_generator.generate_interactive_shell_keyword(test_data, "write")
         assert result == "Write    sudo su"
 
-    def test_generate_interactive_shell_keyword_read(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_interactive_shell_keyword_read(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH interactive shell read keyword generation."""
         test_data = ""
         result = ssh_generator.generate_interactive_shell_keyword(test_data, "read")
         assert result == "Read"
 
-    def test_generate_interactive_shell_keyword_read_until(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_interactive_shell_keyword_read_until(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH interactive shell read until keyword generation."""
         test_data = "until: $ expected: prompt"
         result = ssh_generator.generate_interactive_shell_keyword(
@@ -231,7 +279,9 @@ class TestSSHInteractiveShellKeywords:
         )
         assert result == "Read Until    $ expected: prompt"
 
-    def test_generate_interactive_shell_keyword_read_until_prompt(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_interactive_shell_keyword_read_until_prompt(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH interactive shell read until prompt keyword generation."""
         test_data = ""
         result = ssh_generator.generate_interactive_shell_keyword(
@@ -240,7 +290,7 @@ class TestSSHInteractiveShellKeywords:
         assert result == "Read Until Prompt"
 
     def test_generate_interactive_shell_keyword_write_with_empty_input(
-        self, ssh_generator
+        self, ssh_generator: SSHKeywordGenerator
     ) -> None:
         """Test SSH interactive shell write keyword generation with empty input data."""
         test_data = ""
@@ -248,7 +298,7 @@ class TestSSHInteractiveShellKeywords:
         assert result == "Write    ${TEXT_TO_WRITE}"
 
     def test_generate_interactive_shell_keyword_read_until_with_empty_input(
-        self, ssh_generator
+        self, ssh_generator: SSHKeywordGenerator
     ) -> None:
         """Test SSH interactive shell read until keyword generation with empty input
         data."""
@@ -258,7 +308,9 @@ class TestSSHInteractiveShellKeywords:
         )
         assert result == "Read Until    ${EXPECTED_TEXT}"
 
-    def test_generate_interactive_shell_keyword_unknown_operation(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_interactive_shell_keyword_unknown_operation(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH interactive shell keyword with unknown operation defaults to
         read."""
         test_data = ""
@@ -271,35 +323,45 @@ class TestSSHConnectionKeywords:
 
     # pylint: disable=protected-access
 
-    def test_generate_connection_keywords_open_connection(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_connection_keywords_open_connection(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH connection keywords for opening connections."""
         combined = "connect to server"
         test_data = "host: example.com username: user"
         result = ssh_generator._generate_connection_keywords(combined, test_data)
         assert result == "Open Connection    example.com    user"
 
-    def test_generate_connection_keywords_close_connection(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_connection_keywords_close_connection(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH connection keywords for closing connections."""
         combined = "disconnect from server"
         test_data = ""
         result = ssh_generator._generate_connection_keywords(combined, test_data)
         assert result == "Close Connection"
 
-    def test_generate_connection_keywords_close_all_connections(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_connection_keywords_close_all_connections(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH connection keywords for closing all connections."""
         combined = "close all connections"
         test_data = ""
         result = ssh_generator._generate_connection_keywords(combined, test_data)
         assert result == "Close All Connections"
 
-    def test_generate_connection_keywords_switch_connection(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_connection_keywords_switch_connection(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH connection keywords for switching connections."""
         combined = "switch connection to another server"
         test_data = ""
         result = ssh_generator._generate_connection_keywords(combined, test_data)
         assert result == "Switch Connection    ${CONNECTION_ALIAS}"
 
-    def test_generate_connection_keywords_no_pattern_match(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_connection_keywords_no_pattern_match(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH connection keywords when no pattern matches."""
         combined = "unrelated operation"
         test_data = ""
@@ -312,14 +374,18 @@ class TestSSHAuthenticationKeywords:
 
     # pylint: disable=protected-access
 
-    def test_generate_authentication_keywords_login_password(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_authentication_keywords_login_password(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH authentication keywords for password login."""
         combined = "login to server"
         test_data = "username: testuser password: testpass"
         result = ssh_generator._generate_authentication_keywords(combined, test_data)
         assert result == "Login    testuser    testpass"
 
-    def test_generate_authentication_keywords_login_key(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_authentication_keywords_login_key(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH authentication keywords for key-based login."""
         combined = "login with public key"
         test_data = "username: testuser keyfile: /path/to/key"
@@ -327,7 +393,7 @@ class TestSSHAuthenticationKeywords:
         assert result == "Login With Public Key    testuser    /path/to/key"
 
     def test_generate_authentication_keywords_login_password_with_empty_input(
-        self, ssh_generator
+        self, ssh_generator: SSHKeywordGenerator
     ) -> None:
         """Test SSH authentication keywords for password login with empty input data."""
         combined = "login to server"
@@ -336,7 +402,7 @@ class TestSSHAuthenticationKeywords:
         assert result == "Login    ${USERNAME}    ${PASSWORD}"
 
     def test_generate_authentication_keywords_login_key_with_empty_input(
-        self, ssh_generator
+        self, ssh_generator: SSHKeywordGenerator
     ) -> None:
         """Test SSH authentication keywords for key login with empty input data."""
         combined = "login with key authentication"
@@ -344,7 +410,9 @@ class TestSSHAuthenticationKeywords:
         result = ssh_generator._generate_authentication_keywords(combined, test_data)
         assert result == "Login With Public Key    ${USERNAME}    ${KEYFILE}"
 
-    def test_generate_authentication_keywords_no_pattern_match(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_authentication_keywords_no_pattern_match(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH authentication keywords when no pattern matches."""
         combined = "unrelated operation"
         test_data = ""
@@ -357,21 +425,27 @@ class TestSSHCommandExecutionKeywords:
 
     # pylint: disable=protected-access
 
-    def test_generate_command_execution_keywords_regular_execution(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_command_execution_keywords_regular_execution(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH command execution keywords for regular execution."""
         combined = "execute command on server"
         test_data = "command: ls -la"
         result = ssh_generator._generate_command_execution_keywords(combined, test_data)
         assert result == "Execute Command    ls -la"
 
-    def test_generate_command_execution_keywords_background_execution(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_command_execution_keywords_background_execution(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH command execution keywords for background execution."""
         combined = "start command in background"
         test_data = "command: python script.py"
         result = ssh_generator._generate_command_execution_keywords(combined, test_data)
         assert result == "Start Command    python script.py"
 
-    def test_generate_command_execution_keywords_read_output(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_command_execution_keywords_read_output(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH command execution keywords for reading output."""
         combined = "read command output"
         test_data = ""
@@ -379,7 +453,7 @@ class TestSSHCommandExecutionKeywords:
         assert result == "Read Command Output"
 
     def test_generate_command_execution_keywords_start_with_empty_input(
-        self, ssh_generator
+        self, ssh_generator: SSHKeywordGenerator
     ) -> None:
         """Test SSH command execution keywords for start command with empty input
         data."""
@@ -388,7 +462,9 @@ class TestSSHCommandExecutionKeywords:
         result = ssh_generator._generate_command_execution_keywords(combined, test_data)
         assert result == "Start Command    ${COMMAND}"
 
-    def test_generate_command_execution_keywords_no_pattern_match(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_command_execution_keywords_no_pattern_match(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH command execution keywords when no pattern matches."""
         combined = "unrelated operation"
         test_data = ""
@@ -401,35 +477,45 @@ class TestSSHFileOperationKeywords:
 
     # pylint: disable=protected-access
 
-    def test_generate_file_operation_keywords_upload(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_file_operation_keywords_upload(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH file operation keywords for upload."""
         combined = "upload file to server"
         test_data = "source: /local/file destination: /remote/file"
         result = ssh_generator._generate_file_operation_keywords(combined, test_data)
         assert result == "Put File    /local/file    /remote/file"
 
-    def test_generate_file_operation_keywords_download(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_file_operation_keywords_download(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH file operation keywords for download."""
         combined = "download file from server"
         test_data = "source: /remote/file destination: /local/file"
         result = ssh_generator._generate_file_operation_keywords(combined, test_data)
         assert result == "Get File    /remote/file    /local/file"
 
-    def test_generate_file_operation_keywords_file_existence_verification(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_file_operation_keywords_file_existence_verification(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH file operation keywords for file existence verification."""
         combined = "verify file exists"
         test_data = "file: /path/to/file"
         result = ssh_generator._generate_file_operation_keywords(combined, test_data)
         assert result == "File Should Exist    /path/to/file"
 
-    def test_generate_file_operation_keywords_file_non_existence_verification(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_file_operation_keywords_file_non_existence_verification(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH file operation keywords for file non-existence verification."""
         combined = "file should not exist"
         test_data = "file: /path/to/file"
         result = ssh_generator._generate_file_operation_keywords(combined, test_data)
         assert result == "File Should Not Exist    /path/to/file"
 
-    def test_generate_file_operation_keywords_file_creation(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_file_operation_keywords_file_creation(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH file operation keywords for file creation."""
         combined = "create file on server"
         test_data = "file: /path/to/file content: hello world"
@@ -437,7 +523,7 @@ class TestSSHFileOperationKeywords:
         assert result == "Create File    /path/to/file    hello world"
 
     def test_generate_file_operation_keywords_create_file_no_content(
-        self, ssh_generator
+        self, ssh_generator: SSHKeywordGenerator
     ) -> None:
         """Test SSH file operation keywords for file creation without content."""
         combined = "create file on server"
@@ -446,7 +532,7 @@ class TestSSHFileOperationKeywords:
         assert result == "Create File    /path/to/file"
 
     def test_generate_file_operation_keywords_create_file_with_empty_input(
-        self, ssh_generator
+        self, ssh_generator: SSHKeywordGenerator
     ) -> None:
         """Test SSH file operation keywords for file creation with empty input data."""
         combined = "create file on server"
@@ -454,7 +540,9 @@ class TestSSHFileOperationKeywords:
         result = ssh_generator._generate_file_operation_keywords(combined, test_data)
         assert result == "Create File    ${FILE_PATH}    ${CONTENT}"
 
-    def test_generate_file_operation_keywords_file_removal(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_file_operation_keywords_file_removal(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH file operation keywords for file removal."""
         combined = "remove file from server"
         test_data = "file: /path/to/file"
@@ -462,7 +550,7 @@ class TestSSHFileOperationKeywords:
         assert result == "Remove File    /path/to/file"
 
     def test_generate_file_operation_keywords_remove_file_with_empty_input(
-        self, ssh_generator
+        self, ssh_generator: SSHKeywordGenerator
     ) -> None:
         """Test SSH file operation keywords for file removal with empty input data."""
         combined = "delete file from server"
@@ -470,7 +558,9 @@ class TestSSHFileOperationKeywords:
         result = ssh_generator._generate_file_operation_keywords(combined, test_data)
         assert result == "Remove File    ${FILE_PATH}"
 
-    def test_generate_file_operation_keywords_no_pattern_match(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_file_operation_keywords_no_pattern_match(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH file operation keywords when no pattern matches."""
         combined = "unrelated operation"
         test_data = ""
@@ -481,7 +571,9 @@ class TestSSHFileOperationKeywords:
 class TestSSHStepKeywords:
     """Tests for complete SSH step keyword generation."""
 
-    def test_generate_step_keywords_connection_scenario(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_step_keywords_connection_scenario(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH step keyword generation for connection scenario."""
         step = {
             "step": "Connect to SSH server",
@@ -496,7 +588,9 @@ class TestSSHStepKeywords:
         assert result[2] == "# Expected Result: Connection established"
         assert result[3] == "Open Connection    example.com    testuser"
 
-    def test_generate_step_keywords_file_transfer_scenario(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_step_keywords_file_transfer_scenario(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH step keyword generation for file transfer scenario."""
         step = {
             "description": "Upload configuration file",
@@ -512,7 +606,9 @@ class TestSSHStepKeywords:
         )
         assert result[2] == "Put File    config.txt    /etc/config.txt"
 
-    def test_generate_step_keywords_command_execution_scenario(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_step_keywords_command_execution_scenario(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH step keyword generation for command execution scenario."""
         step = {
             "action": "Execute system command",
@@ -525,7 +621,9 @@ class TestSSHStepKeywords:
         assert result[1] == "    # Test Data: command: systemctl status nginx"
         assert result[2] == "Execute Command    systemctl status nginx"
 
-    def test_generate_step_keywords_unrecognized_operation(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_step_keywords_unrecognized_operation(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH step keyword generation for unrecognized operation."""
         step = {
             "instruction": "Perform unknown operation",
@@ -538,7 +636,9 @@ class TestSSHStepKeywords:
         assert result[1] == "    # Test Data: some unknown data"
         assert result[2] == "No Operation  # SSH operation not recognized"
 
-    def test_generate_step_keywords_minimal_step_data(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_step_keywords_minimal_step_data(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH step keyword generation with minimal step data."""
         step: dict[str, Any] = {}
         result = ssh_generator.generate_step_keywords(step)
@@ -546,7 +646,9 @@ class TestSSHStepKeywords:
         assert len(result) == 1
         assert result[0] == "No Operation  # SSH operation not recognized"
 
-    def test_generate_step_keywords_directory_operations(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_step_keywords_directory_operations(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH step keyword generation for directory operations."""
         step = {
             "step": "Create directory for logs",
@@ -559,7 +661,9 @@ class TestSSHStepKeywords:
         assert result[1] == "    # Test Data: directory: /var/log/myapp"
         assert result[2] == "Create Directory    /var/log/myapp"
 
-    def test_generate_step_keywords_interactive_shell_operations(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_step_keywords_interactive_shell_operations(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH step keyword generation for interactive shell operations."""
         step = {"step": "Write command to shell", "test_data": "text: sudo apt update"}
         result = ssh_generator.generate_step_keywords(step)
@@ -569,7 +673,9 @@ class TestSSHStepKeywords:
         assert result[1] == "    # Test Data: text: sudo apt update"
         assert result[2] == "Write    sudo apt update"
 
-    def test_generate_step_keywords_logging_operations(self, ssh_generator: SSHKeywordGenerator) -> None:
+    def test_generate_step_keywords_logging_operations(
+        self, ssh_generator: SSHKeywordGenerator
+    ) -> None:
         """Test SSH step keyword generation for logging operations."""
         step = {
             "step": "Enable SSH logging",

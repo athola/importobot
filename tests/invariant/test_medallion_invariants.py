@@ -14,7 +14,7 @@ import gc
 import tempfile
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 import pytest
 from hypothesis import assume, given, settings
@@ -23,11 +23,20 @@ from hypothesis.strategies import DrawFn
 
 from importobot.medallion.bronze.raw_data_processor import RawDataProcessor
 from importobot.medallion.bronze_layer import BronzeLayer
+from importobot.medallion.interfaces.data_models import ProcessingResult
 from importobot.medallion.interfaces.enums import ProcessingStatus, SupportedFormat
 from importobot.medallion.interfaces.records import BronzeRecord
 
 
-def _extract_detected_format(result: dict[str, Any]) -> SupportedFormat | str:
+class ProcessingResultDict(TypedDict):
+    """TypedDict for processing result dictionary structure."""
+
+    processing_result: ProcessingResult
+    quality_metrics: dict[str, Any]
+    detected_format: str
+
+
+def _extract_detected_format(result: ProcessingResultDict) -> SupportedFormat | str:
     detected_format = result.get("detected_format")
     if isinstance(detected_format, (SupportedFormat, str)):
         return detected_format
@@ -164,7 +173,9 @@ class TestMedallionArchitectureInvariants:
 
     @given(medallion_test_data(), st.integers(min_value=1, max_value=5))
     @settings(max_examples=20)
-    def test_error_boundary_stability_invariant(self, test_data: Any, corruption_factor: int) -> None:
+    def test_error_boundary_stability_invariant(
+        self, test_data: Any, corruption_factor: int
+    ) -> None:
         """Invariant: System maintains stability with problematic data."""
         try:
             with tempfile.TemporaryDirectory() as temp_dir:
@@ -229,74 +240,11 @@ class TestMedallionArchitectureInvariants:
                     "timestamp": "2024-01-01T00:00:00",
                 }
 
-                # Test functional consistency instead of timing
-                # Run same operation multiple times for determinism
-                results = []
-                for _run in range(3):
-                    result = processor.ingest_with_detection(test_data, source_info)
-                    results.append(result)
-
-                    # Result should be valid and have consistent structure
-                    assert isinstance(result, dict | BronzeRecord)
-
-                    # Check for expected attributes whether it's a dict or BronzeRecord
-                    if isinstance(result, dict):
-                        # If it's dict-like, check for expected keys
-                        expected_keys = [
-                            "processing_result",
-                            "quality_metrics",
-                            "detected_format",
-                        ]
-                        for key in expected_keys:
-                            # Some implementations return different keys
-                            if key in ["processing_result", "quality_metrics"]:
-                                # These are essential for the test
-                                assert key in result, f"Missing essential key: {key}"
-                    else:
-                        # If it's a BronzeRecord, check for expected attributes
-                        assert hasattr(result, "metadata")
-                        assert hasattr(result, "format_detection")
-
-                # Check determinism: same input yields equivalent results
-                if len(results) >= 2:
-                    # Compare format detection results (should be deterministic)
-                    def get_format(
-                        result: dict[str, Any] | BronzeRecord,
-                    ) -> SupportedFormat | str:
-                        if isinstance(result, dict) and not isinstance(
-                            result, BronzeRecord
-                        ):
-                            return _extract_detected_format(result)
-                        # BronzeRecord path
-                        assert isinstance(result, BronzeRecord)  # Type narrowing
-                        return result.format_detection.detected_format
-
-                    first_format = get_format(results[0])
-                    for result in results[1:]:
-                        current_format = get_format(result)
-                        assert first_format == current_format, (
-                            "Format detection should be deterministic"
-                        )
-
-                    # Compare processing status (should be deterministic for same input)
-                    def get_status(
-                        result: dict[str, Any] | BronzeRecord,
-                    ) -> ProcessingStatus | None:
-                        if isinstance(result, dict):
-                            if "processing_result" in result:
-                                proc_result = result["processing_result"]
-                                return getattr(proc_result, "status", None)
-                            return None
-                        # BronzeRecord path
-                        assert isinstance(result, BronzeRecord)  # Type narrowing
-                        return result.metadata.processing_status
-
-                    first_status = get_status(results[0])
-                    for result in results[1:]:
-                        current_status = get_status(result)
-                        assert first_status == current_status, (
-                            "Processing status should be deterministic"
-                        )
+                results = self._ingest_repeated_results(
+                    processor, test_data, source_info
+                )
+                self._assert_deterministic_formats(results)
+                self._assert_deterministic_status(results)
 
         except Exception as e:
             pytest.fail(
@@ -350,9 +298,80 @@ class TestMedallionArchitectureInvariants:
                 f"{type(e).__name__}: {e}"
             )
 
+    def _ingest_repeated_results(
+        self,
+        processor: RawDataProcessor,
+        test_data: Any,
+        source_info: dict[str, Any],
+        runs: int = 3,
+    ) -> list[ProcessingResultDict | BronzeRecord]:
+        results: list[ProcessingResultDict | BronzeRecord] = []
+        for _ in range(runs):
+            result = processor.ingest_with_detection(test_data, source_info)
+            self._assert_result_shape(result)
+            results.append(result)
+        return results
+
+    def _assert_result_shape(self, result: dict[str, Any] | BronzeRecord) -> None:
+        assert isinstance(result, (dict, BronzeRecord))
+        if isinstance(result, dict):
+            essential_keys = ["processing_result", "quality_metrics"]
+            for key in essential_keys:
+                assert key in result, f"Missing essential key: {key}"
+            assert "detected_format" in result
+        else:
+            assert hasattr(result, "metadata")
+            assert hasattr(result, "format_detection")
+
+    def _assert_deterministic_formats(
+        self, results: list[ProcessingResultDict | BronzeRecord]
+    ) -> None:
+        if len(results) < 2:
+            return
+        first_format = self._extract_format(results[0])
+        for result in results[1:]:
+            assert self._extract_format(result) == first_format, (
+                "Format detection should be deterministic"
+            )
+
+    def _assert_deterministic_status(
+        self, results: list[ProcessingResultDict | BronzeRecord]
+    ) -> None:
+        if len(results) < 2:
+            return
+        first_status = self._extract_status(results[0])
+        for result in results[1:]:
+            assert self._extract_status(result) == first_status, (
+                "Processing status should be deterministic"
+            )
+
+    @staticmethod
+    def _extract_format(
+        result: ProcessingResultDict | BronzeRecord,
+    ) -> SupportedFormat | str:
+        if isinstance(result, dict) and not isinstance(result, BronzeRecord):
+            return _extract_detected_format(result)
+        assert isinstance(result, BronzeRecord)
+        return result.format_detection.detected_format
+
+    @staticmethod
+    def _extract_status(
+        result: ProcessingResultDict | BronzeRecord,
+    ) -> ProcessingStatus | None:
+        if isinstance(result, dict):
+            # Use direct key access instead of get() for better type inference
+            if "processing_result" in result:
+                proc_result = result["processing_result"]
+                return getattr(proc_result, "status", None)
+            return None
+        assert isinstance(result, BronzeRecord)
+        return result.metadata.processing_status
+
     @given(st.integers(min_value=1, max_value=100))
     @settings(max_examples=10)
-    def test_system_scalability_properties_invariant(self, data_multiplier: int) -> None:
+    def test_system_scalability_properties_invariant(
+        self, data_multiplier: int
+    ) -> None:
         """Invariant: System should exhibit predictable scalability properties."""
         assume(data_multiplier <= 50)  # Keep test times reasonable
 

@@ -143,9 +143,11 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
             ),
             IntentType.INPUT_USERNAME: (
                 lambda: web.generate_input_keyword(
-                    "email"
-                    if self._has_email_indicator(description, test_data)
-                    else "username",
+                    (
+                        "email"
+                        if self._has_email_indicator(description, test_data)
+                        else "username"
+                    ),
                     test_data,
                 )
             ),
@@ -786,22 +788,16 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
 
         # Check for password usage
         if re.search(r"\bpassword\s*:\s*\S+", test_data, re.IGNORECASE):
-            warnings.append(
-                "    # WARNING: Hardcoded password detected in test data"
-            )
+            warnings.append("    # WARNING: Hardcoded password detected in test data")
 
         # Check for other sensitive patterns
         if re.search(
             r"\b(?:api[_\s]*key|secret|token)\s*:\s*\S+", test_data, re.IGNORECASE
         ):
-            warnings.append(
-                "    # WARNING: Sensitive credential detected in test data"
-            )
+            warnings.append("    # WARNING: Sensitive credential detected in test data")
 
         # Check for private key files
         if re.search(r"\.pem|\.key|id_rsa|id_dsa", test_data, re.IGNORECASE):
-            warnings.append(
-                "    # WARNING: Private key file reference detected"
-            )
+            warnings.append("    # WARNING: Private key file reference detected")
 
         return warnings

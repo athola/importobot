@@ -4,6 +4,7 @@ import json
 import os
 import re
 import tempfile
+from pathlib import Path
 from typing import Any
 from unittest.mock import Mock, patch
 
@@ -129,7 +130,7 @@ class TestLoadJsonFile:
             load_json_file(None)
 
     def test_load_json_file_missing_file_gives_clear_error(
-        self, tmp_path
+        self, tmp_path: Path
     ) -> None:
         """User gets clear error message when file doesn't exist."""
         non_existent_file = tmp_path / "non_existent_file.json"
@@ -220,7 +221,7 @@ class TestSaveImprovedJsonAndConvert:
 
     @patch("importobot.utils.file_operations.convert_with_temp_file")
     def test_saves_json_and_converts(
-        self, mock_convert_with_temp_file: Mock, tmp_path
+        self, mock_convert_with_temp_file: Mock, tmp_path: Path
     ) -> None:
         """Test saving improved JSON and converting to Robot Framework."""
         improved_data = {"name": "Test", "steps": []}
@@ -256,7 +257,7 @@ class TestSaveImprovedJsonAndConvert:
 
     @patch("importobot.utils.file_operations.convert_with_temp_file")
     def test_uses_custom_output_file(
-        self, mock_convert_with_temp_file: Mock, tmp_path
+        self, mock_convert_with_temp_file: Mock, tmp_path: Path
     ) -> None:
         """Test using custom output file name."""
         improved_data = {"name": "Test", "steps": []}
@@ -435,7 +436,10 @@ class TestProcessSingleFileWithSuggestions:
     @patch("importobot.core.converter.apply_conversion_suggestions")
     @patch("importobot.utils.file_operations.load_json_file")
     def test_handles_empty_json_data(
-        self, mock_load_json, mock_apply_suggestions, mock_save_convert
+        self,
+        mock_load_json: Mock,
+        mock_apply_suggestions: Mock,
+        mock_save_convert: Mock,
     ) -> None:
         """Test handling of empty JSON data."""
         mock_load_json.return_value = {}

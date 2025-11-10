@@ -51,10 +51,8 @@ class TestValidationType:
 
     def test_validate_type_error_message_format(self) -> None:
         """Test that validate_type error messages are properly formatted."""
-        try:
+        with pytest.raises(ValidationError, match="test_list must be a str, got list"):
             validate_type([], str, "test_list")
-        except ValidationError as e:
-            assert "test_list must be a str, got list" in str(e)
 
 
 class TestValidateNotEmpty:
@@ -288,17 +286,25 @@ class TestValidationContext:
 
     def test_validation_context_with_single_error(self) -> None:
         """Test ValidationContext with single validation error."""
-        with pytest.raises(ValidationError, match="Validation failed"):
+
+        def run_validation() -> None:
             with ValidationContext() as ctx:
                 ctx.validate(False, "This validation failed")
 
+        with pytest.raises(ValidationError, match="Validation failed"):
+            run_validation()
+
     def test_validation_context_with_multiple_errors(self) -> None:
         """Test ValidationContext accumulates multiple errors."""
-        with pytest.raises(ValidationError) as exc_info:
+
+        def run_validation() -> None:
             with ValidationContext() as ctx:
                 ctx.validate(False, "First error")
                 ctx.validate(False, "Second error")
                 ctx.validate_type(42, str, "param")
+
+        with pytest.raises(ValidationError) as exc_info:
+            run_validation()
 
         error_msg = str(exc_info.value)
         assert "First error" in error_msg
@@ -307,35 +313,51 @@ class TestValidationContext:
 
     def test_validation_context_type_validation(self) -> None:
         """Test ValidationContext type validation method."""
-        with pytest.raises(ValidationError) as exc_info:
+
+        def run_validation() -> None:
             with ValidationContext() as ctx:
                 ctx.validate_type(42, str, "number_param")
+
+        with pytest.raises(ValidationError) as exc_info:
+            run_validation()
 
         assert "number_param must be a str, got int" in str(exc_info.value)
 
     def test_validation_context_not_empty_validation(self) -> None:
         """Test ValidationContext not empty validation method."""
-        with pytest.raises(ValidationError) as exc_info:
+
+        def run_validation() -> None:
             with ValidationContext() as ctx:
                 ctx.validate_not_empty("", "empty_param")
+
+        with pytest.raises(ValidationError) as exc_info:
+            run_validation()
 
         assert "empty_param cannot be empty" in str(exc_info.value)
 
     def test_validation_context_not_empty_with_whitespace(self) -> None:
         """Test ValidationContext not empty validation with whitespace."""
-        with pytest.raises(ValidationError) as exc_info:
+
+        def run_validation() -> None:
             with ValidationContext() as ctx:
                 ctx.validate_not_empty("   ", "whitespace_param")
+
+        with pytest.raises(ValidationError) as exc_info:
+            run_validation()
 
         assert "whitespace_param cannot be empty or whitespace" in str(exc_info.value)
 
     def test_validation_context_mixed_validation_methods(self) -> None:
         """Test ValidationContext with mixed validation methods."""
-        with pytest.raises(ValidationError) as exc_info:
+
+        def run_validation() -> None:
             with ValidationContext() as ctx:
                 ctx.validate(False, "Custom validation failed")
                 ctx.validate_type([], str, "list_param")
                 ctx.validate_not_empty({}, "dict_param")
+
+        with pytest.raises(ValidationError) as exc_info:
+            run_validation()
 
         error_msg = str(exc_info.value)
         assert "Custom validation failed" in error_msg
@@ -445,7 +467,8 @@ class TestIntegrationScenarios:
 
     def test_validation_context_full_scenario(self) -> None:
         """Test ValidationContext in a full scenario."""
-        with pytest.raises(ValidationError) as exc_info:
+
+        def run_validation() -> None:
             with ValidationContext() as ctx:
                 # Mix of different validation types
                 ctx.validate(len("short") > 10, "String too short")
@@ -455,6 +478,9 @@ class TestIntegrationScenarios:
                 # Also test some passing validations
                 ctx.validate(len("hello") == 5, "String length should be 5")
                 ctx.validate_type([1, 2, 3], list, "list_param")
+
+        with pytest.raises(ValidationError) as exc_info:
+            run_validation()
 
         error_msg = str(exc_info.value)
         # Should contain failing validations but not passing ones

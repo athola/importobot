@@ -307,7 +307,7 @@ class BuiltInKeywordGenerator(
     DataStructureKeywordsMixin,
     BaseKeywordGenerator,
 ):
-    """Generates BuiltIn Robot Framework keywords for core functionality."""
+    """Generate BuiltIn Robot Framework keywords for core functionality."""
 
     def generate_step_keywords(self, step: dict[str, Any]) -> list[str]:
         """Generate Robot Framework keywords for a BuiltIn step."""

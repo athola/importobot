@@ -1,7 +1,7 @@
-"""P(E|¬H) parameter learning from empirical data.
+"""Learn P(E|¬H) parameters from empirical cross-format evidence.
 
-This module implements data-driven estimation of P(E|¬H) parameters
-to replace or validate the hardcoded quadratic decay formula.
+Replaces hardcoded quadratic decay with data-driven parameter estimation
+based on observed likelihood patterns from test data.
 """
 
 from __future__ import annotations
@@ -11,16 +11,8 @@ from typing import Any
 
 import numpy as np
 
-# Local imports for test data (moved here to avoid import-outside-toplevel issues)
-from importobot.medallion.interfaces.enums import SupportedFormat
-
-try:
-    from tests.unit.medallion.bronze.test_format_detection_integration import (
-        TestFormatDetectionIntegration,
-    )
-except ImportError:
-    # To handle cases where test modules are not available
-    TestFormatDetectionIntegration: Any = None  # type: ignore[no-redef]
+# Production code should not import from test modules.
+# Use external data sources or pass data as parameters.
 
 try:
     from scipy import optimize  # pyright: ignore[reportMissingModuleSource]
@@ -33,39 +25,30 @@ except ImportError:
 
 @dataclass
 class PENotHParameters:
-    """Parameters for P(E|¬H) estimation.
+    """Parameters for P(E|¬H) estimation using formula: P(E|¬H) = a + b * (1 - L) ** c.
 
-    The formula is: P(E|¬H) = a + b * (1 - L) ** c
-
-    where:
-        a: minimum P(E|¬H) for perfect evidence (L=1.0)
-        b: scale factor
-        c: decay exponent (2.0 = quadratic, 1.0 = linear)
+    Args:
+        a: Minimum P(E|¬H) for perfect evidence (L=1.0)
+        b: Scale factor
+        c: Decay exponent (2.0 = quadratic, 1.0 = linear)
     """
 
-    a: float = 0.01  # Minimum for perfect evidence
-    b: float = 0.49  # Scale factor
-    c: float = 2.0  # Quadratic decay
+    a: float = 0.01
+    b: float = 0.49
+    c: float = 2.0
 
     def __call__(self, likelihood: float) -> float:
         """Calculate P(E|¬H) for given likelihood."""
         return float(self.a + self.b * (1.0 - likelihood) ** self.c)
 
     def validate(self) -> bool:
-        """Validate parameters satisfy constraints."""
-        # a must be positive and small
+        """Validate parameters satisfy probability and range constraints."""
         if not 0.0 < self.a < 0.1:
             return False
-
-        # b must be positive
         if not 0.0 < self.b < 1.0:
             return False
-
-        # a + b must be <= 1.0 (probability constraint)
         if self.a + self.b > 1.0:
             return False
-
-        # c must be positive (decay exponent)
         return 0.5 <= self.c <= 3.0
 
 
@@ -73,7 +56,7 @@ class PENotHLearner:
     """Learn P(E|¬H) parameters from cross-format evidence data."""
 
     def __init__(self) -> None:
-        """Initialize learner with default hardcoded parameters."""
+        """Initialize learner with default parameters."""
         self.parameters = PENotHParameters()
         self.training_data: list[tuple[float, float]] = []
 
@@ -84,19 +67,11 @@ class PENotHLearner:
 
         Args:
             cross_format_observations: List of (likelihood, observed_p_e_not_h) pairs
-                - likelihood: Evidence strength for format A when true format is B
-                - observed_p_e_not_h: Empirical frequency of this likelihood
 
         Returns:
             Learned PENotHParameters
 
-        The learning process:
-        1. For each test sample with true_format = F_true:
-        2. Measure likelihood L for detecting F_target (where F_target != F_true)
-        3. This likelihood represents P(E_target|¬F_target) empirically
-        4. Fit parameters (a, b, c) to minimize MSE between:
-           - Predicted: a + b * (1 - L) ** c
-           - Observed: empirical P(E|¬H)
+        Fits parameters (a, b, c) to minimize MSE between predicted and observed values.
         """
         self.training_data = cross_format_observations
 
@@ -104,10 +79,8 @@ class PENotHLearner:
             return self.parameters
 
         if not _SCIPY_AVAILABLE:
-            # Use lightweight heuristic optimization
             return self._learn_with_heuristics(cross_format_observations)
 
-        # Use scipy optimization for advanced parameter fitting
         return self._learn_with_scipy(cross_format_observations)
 
     def _learn_with_scipy(
@@ -124,19 +97,16 @@ class PENotHLearner:
                 mse += (predicted - observed_p) ** 2
             return mse / len(observations)
 
-        # Constraint to ensure a + b <= 1
         sum_constraint = optimize.NonlinearConstraint(
             lambda x: x[0] + x[1], -np.inf, 1.0
         )
 
-        # Bounds
         bounds = [
             (0.001, 0.1),  # a
             (0.1, 0.9),  # b
             (0.5, 3.0),  # c
         ]
 
-        # Initial guess: current hardcoded values
         x0 = np.array([self.parameters.a, self.parameters.b, self.parameters.c])
 
         result = optimize.minimize(
@@ -154,17 +124,15 @@ class PENotHLearner:
             if learned.validate():
                 return learned
 
-        # If optimization fails, return hardcoded
         return self.parameters
 
     def _learn_with_heuristics(
         self, observations: list[tuple[float, float]]
     ) -> PENotHParameters:
-        """Learn parameters using simple heuristics without scipy."""
+        """Learn parameters using heuristic estimation when scipy unavailable."""
         likelihoods = np.array([L for L, _ in observations])
         observed_p = np.array([p for _, p in observations])
 
-        # Estimate 'a' from high likelihood samples (L > 0.9)
         high_lik_mask = likelihoods > 0.9
         if high_lik_mask.any():
             a_est = float(np.mean(observed_p[high_lik_mask]))
@@ -172,7 +140,6 @@ class PENotHLearner:
         else:
             a = self.parameters.a
 
-        # Estimate 'b' from low likelihood samples (L < 0.1)
         low_lik_mask = likelihoods < 0.1
         if low_lik_mask.any():
             b_est = float(np.mean(observed_p[low_lik_mask])) - a
@@ -180,7 +147,6 @@ class PENotHLearner:
         else:
             b = self.parameters.b
 
-        # Estimate decay exponent `c` from remaining points.
         eps = 1e-8
         denom = max(b, eps)
         valid_mask = (
@@ -216,15 +182,12 @@ class PENotHLearner:
         """Compare learned vs hardcoded parameters.
 
         Returns:
-            Dictionary with comparison metrics:
-            - mse_hardcoded: MSE of hardcoded formula
-            - mse_learned: MSE of learned formula
-            - improvement_percent: % improvement
+            Dictionary with MSE comparison and improvement metrics.
         """
         if not cross_format_observations:
             return {}
 
-        hardcoded = PENotHParameters()  # Default hardcoded values
+        hardcoded = PENotHParameters()
         learned = self.learn_from_cross_format_data(cross_format_observations)
 
         mse_hardcoded = 0.0
@@ -257,35 +220,15 @@ class PENotHLearner:
 
 
 def load_test_data_for_learning() -> list[tuple[dict[str, Any], Any]]:
-    """Load labeled test data from integration test fixtures.
+    """Load labeled test data for learning P(E|¬H) parameters.
 
     Returns:
-        List of (test_data, ground_truth_format) tuples
+        List of (test_data, ground_truth_format) tuples.
+
+    Note:
+        Production code should load from external data sources, not test modules.
     """
-    if SupportedFormat is None or TestFormatDetectionIntegration is None:
-        return []
-
-    if TestFormatDetectionIntegration is not None:
-        test_instance = TestFormatDetectionIntegration()
-        if hasattr(test_instance, "setUp"):
-            test_instance.setUp()
-
-    labeled_samples = []
-
-    # Map test data keys to formats
-    format_mapping = {
-        "zephyr_complete": SupportedFormat.ZEPHYR,
-        "xray_with_jira": SupportedFormat.JIRA_XRAY,
-        "testrail_api_response": SupportedFormat.TESTRAIL,
-        "testlink_xml_export": SupportedFormat.TESTLINK,
-        "generic_unstructured": SupportedFormat.GENERIC,
-    }
-
-    for key, true_format in format_mapping.items():
-        if key in test_instance.test_data_samples:
-            labeled_samples.append((test_instance.test_data_samples[key], true_format))
-
-    return labeled_samples
+    return []
 
 
 __all__ = ["PENotHLearner", "PENotHParameters", "load_test_data_for_learning"]

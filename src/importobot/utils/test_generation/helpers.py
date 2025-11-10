@@ -15,7 +15,7 @@ def generate_test_suite(
     distribution: DistributionDict | None = None,
     weights: WeightsDict | None = None,
 ) -> DistributionDict:
-    """Generate a test suite using the enterprise generator.
+    """Generate a test suite.
 
     Args:
         output_dir: Directory to save generated test files

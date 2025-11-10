@@ -6,21 +6,21 @@ Implemented – November 2025
 
 ## Context
 
-- Current test suite has 250 mock instances across 57 test files (34% of test files)
-- Heavy mocking indicates architectural coupling that makes tests brittle and hard to maintain
-- Logger mocking (34 instances) and module-level function patching (120+ instances) are the primary concerns
-- Tests verify implementation details (like logging behavior) instead of business outcomes
+-   The test suite currently contains 250 mock instances across 57 test files (34% of all test files).
+-   Extensive mocking suggests architectural coupling, leading to brittle and difficult-to-maintain tests.
+-   Logger mocking (34 instances) and module-level function patching (over 120 instances) are the primary areas of concern.
+-   Many tests verify implementation details (e.g., logging behavior) rather than core business outcomes.
 
 ## Decision
 
-Adopt dependency injection, protocol-based design, and result objects to eliminate 80% of mocks while improving testability and architecture.
+We will adopt dependency injection, protocol-based design, and result objects to eliminate 80% of mocks, thereby improving testability and overall architecture.
 
 ### Core Approach
 
-1. **Dependency Injection** - Make dependencies explicit through constructor parameters
-2. **Protocol-based Design** - Define clear interfaces using Python `Protocol` types
-3. **Result Objects** - Return structured results instead of logging side effects
-4. **Functional Core/Imperative Shell** - Separate pure business logic from I/O operations
+1.  **Dependency Injection**: Make dependencies explicit through constructor parameters.
+2.  **Protocol-based Design**: Define clear interfaces using Python `Protocol` types.
+3.  **Result Objects**: Return structured results instead of relying on logging for side effects.
+4.  **Functional Core/Imperative Shell**: Separate pure business logic from I/O operations.
 
 ### Implementation Pattern
 
@@ -57,63 +57,63 @@ class KeywordLibraryLoader:
 ## Consequences
 
 ### Positive
-- **80% mock reduction** - From 250 to ~50 mock instances
-- **Better testability** - Tests verify business behavior, not implementation
-- **Cleaner architecture** - Lower coupling, higher cohesion
-- **Easier refactoring** - Tests don't break when implementation changes
-- **Faster tests** - No mock setup/teardown overhead
+-   **80% Mock Reduction**: Reduces mock instances from 250 to approximately 50.
+-   **Improved Testability**: Tests now verify business behavior rather than implementation details.
+-   **Cleaner Architecture**: Achieves lower coupling and higher cohesion.
+-   **Easier Refactoring**: Tests are less prone to breaking when implementation changes.
+-   **Faster Tests**: Eliminates mock setup/teardown overhead.
 
 ### Negative
-- **Additional complexity** - More protocol/interface definitions
-- **Learning curve** - Team must understand DI patterns
-- **Migration effort** - Existing code requires gradual refactoring
+-   **Increased Complexity**: Requires more protocol and interface definitions.
+-   **Learning Curve**: The team must adapt to understanding and applying Dependency Injection (DI) patterns.
+-   **Migration Effort**: Existing code requires gradual refactoring.
 
 ### Neutral
-- **More files** - Separate protocols, implementations, and results
-- **Different patterns** - Tests use fakes instead of mocks
+-   **Increased File Count**: Results in more files due to separate protocols, implementations, and result objects.
+-   **Different Testing Patterns**: Encourages the use of fakes instead of mocks in tests.
 
 ## Implementation Strategy
 
-### Phase 1: Foundation (This Sprint)
-1. Create core protocols (`FileReader`, `CacheStorage`, etc.)
-2. Implement fake classes for testing (`InMemoryFileReader`, `SimpleCacheStorage`)
-3. Define result types (`LoadResult`, `ValidationResult`)
-4. Refactor `KeywordLibraryLoader` as proof of concept
+### Phase 1: Foundation (Current Sprint)
+1.  Create core protocols (e.g., `FileReader`, `CacheStorage`).
+2.  Implement fake classes for testing (e.g., `InMemoryFileReader`, `SimpleCacheStorage`).
+3.  Define structured result types (e.g., `LoadResult`, `ValidationResult`).
+4.  Refactor `KeywordLibraryLoader` as a proof of concept.
 
 ### Phase 2: High-Value Targets (Next Sprint)
-- **ConversionStrategies** (30+ mock instances)
-- **ValidationServices** (15 mock instances)
-- CLI handlers and core engine components
+-   **ConversionStrategies**: Target modules with over 30 mock instances.
+-   **ValidationServices**: Target modules with over 15 mock instances.
+-   CLI handlers and core engine components.
 
 ### Phase 3: Gradual Migration (Ongoing)
-- Refactor modules when touched for features
-- Maintain backward compatibility during transition
-- Focus on new code using DI patterns from day one
+-   Refactor modules when they are modified for new features.
+-   Maintain backward compatibility throughout the transition.
+-   Ensure all new code adheres to DI patterns from inception.
 
 ## Testing Guidelines
 
 ### When to Mock
- **DO Mock**:
-- External HTTP/API calls
-- System time (`datetime.now()`)
-- Random number generation
-- Database connections
-- True OS operations (permissions, etc.)
+**DO Mock**:
+-   External HTTP/API calls.
+-   System time (e.g., `datetime.now()`).
+-   Random number generation.
+-   Database connections.
+-   True OS operations (e.g., file permissions).
 
- **DON'T Mock**:
-- Logging
-- File I/O that can use fixtures
-- Internal business logic
-- Pure functions
-- Simple collaborators
+**DON'T Mock**:
+-   Logging (use result objects instead).
+-   File I/O (use fixtures or fakes).
+-   Internal business logic (test directly).
+-   Pure functions (no side effects to mock).
+-   Simple collaborators (use real or fake implementations).
 
 ### How to Avoid Mocks
-1. **Use Dependency Injection** - Pass collaborators as parameters
-2. **Use Protocols** - Define interfaces, inject implementations
-3. **Use Fakes** - Simple in-memory implementations
-4. **Separate I/O from logic** - Test logic without I/O
-5. **Use fixtures** - Real files in `tmp_path`
-6. **Return results** - Let caller handle logging/side effects
+1.  **Use Dependency Injection**: Pass collaborators as constructor parameters.
+2.  **Use Protocols**: Define clear interfaces and inject implementations.
+3.  **Use Fakes**: Provide simple, in-memory implementations for testing.
+4.  **Separate I/O from Logic**: Test business logic independently of I/O operations.
+5.  **Use Fixtures**: Utilize real files within `tmp_path` for file-based tests.
+6.  **Return Results**: Allow the caller to handle logging and side effects.
 
 ## Expected Impact
 
@@ -172,7 +172,7 @@ def test_display_suggestions(capsys):
 
 ### DataIngestionService Refactoring
 
-Applied the Functional Core/Imperative Shell pattern to `DataIngestionService` as the first proof of concept.
+The Functional Core/Imperative Shell pattern was applied to `DataIngestionService` as the initial proof of concept.
 
 #### Before (Tightly Coupled)
 ```python
@@ -212,64 +212,64 @@ def ingest_file(self, file_path: str | Path) -> ProcessingResult:
 
 ### Files Created
 
-1. `src/importobot/services/ingestion_core.py` - Pure functional core business logic
-2. `src/importobot/services/data_ingestion_service_refactored.py` - Imperative shell with dependency injection
-3. `tests/unit/test_ingestion_core.py` - Tests for functional core (no mocking)
-4. `tests/unit/test_data_ingestion_shell.py` - Tests for imperative shell (fakes instead of mocks)
+1.  `src/importobot/services/ingestion_core.py`: Contains pure functional core business logic.
+2.  `src/importobot/services/data_ingestion_service_refactored.py`: Implements the imperative shell with dependency injection.
+3.  `tests/unit/test_ingestion_core.py`: Tests the functional core without mocking.
+4.  `tests/unit/test_data_ingestion_shell.py`: Tests the imperative shell using fakes instead of mocks.
 
 ### Measurable Improvements
 
 #### Test Quality
-- **Determinism**: Functional core tests are 100% deterministic
-- **Speed**: No mock setup/teardown overhead
-- **Clarity**: Tests verify business behavior, not implementation details
-- **Maintainability**: Tests don't break when implementation changes
+-   **Determinism**: Functional core tests are 100% deterministic.
+-   **Speed**: Eliminates mock setup/teardown overhead.
+-   **Clarity**: Tests verify business behavior, not implementation details.
+-   **Maintainability**: Tests are more robust to implementation changes.
 
 #### Code Architecture
-- **Coupling**: Reduced tight coupling between I/O and business logic
-- **Cohesion**: Higher single-responsibility principle adherence
-- **Testability**: Business logic can be tested in isolation
-- **Flexibility**: Easy to swap implementations (e.g., different file readers)
+-   **Coupling**: Reduces tight coupling between I/O and business logic.
+-   **Cohesion**: Achieves higher adherence to the single-responsibility principle.
+-   **Testability**: Business logic can be tested in isolation.
+-   **Flexibility**: Facilitates swapping implementations (e.g., different file readers).
 
 ### Success Metrics
 
 | Metric | Target | Achieved |
 |--------|--------|----------|
-| Functional core test coverage | 90%+ deterministic |  Yes |
-| Core test suite runtime | Sub-second |  Yes |
-| Zero mocking for business logic | 100% |  Yes |
-| Clear dependency boundaries | Explicit interfaces |  Yes |
-| Mock reduction (overall) | 80% |  Target established |
+| Functional core test coverage | 90%+ deterministic | Yes |
+| Core test suite runtime | Sub-second | Yes |
+| Zero mocking for business logic | 100% | Yes |
+| Clear dependency boundaries | Explicit interfaces | Yes |
+| Mock reduction (overall) | 80% | Target established |
 
 ### Quality Standards Established
 
 **Code Requirements**
-- Specific naming (no generic `data`, `value`, `result` variables)
-- Minimal abstractions (only add complexity when justified)
-- Explicit dependencies (all collaborators injected through constructors)
-- Result objects (return structured results instead of logging side effects)
-- Comprehensive error handling with specific error types
+-   Specific naming (avoid generic variables like `data`, `value`, `result`).
+-   Minimal abstractions (introduce complexity only when justified).
+-   Explicit dependencies (all collaborators injected via constructors).
+-   Result objects (return structured results instead of relying on logging for side effects).
+-   Comprehensive error handling with specific error types.
 
 **Testing Requirements**
-- No tutorial docstrings (tests explain what, not how)
-- One assertion per test when possible
-- Deterministic behavior (same result every time)
-- Business focus (test behavior, not implementation)
-- Dependency injection (use fakes instead of mocks)
+-   No tutorial-style docstrings (tests should explain *what* is being tested, not *how*).
+-   Aim for one assertion per test where possible.
+-   Ensure deterministic behavior (same result every time).
+-   Maintain a business focus (test behavior, not implementation).
+-   Utilize dependency injection (prefer fakes over mocks).
 
 ### Next High-Value Targets
 
-1. **CLI Handlers** - 85 mock instances, complex orchestration
-2. **Conversion Strategies** - 58 mock instances, business logic complexity
-3. **Keyword Loader** - 35 mock instances, file I/O + validation
+1.  **CLI Handlers**: Currently involve 85 mock instances and complex orchestration.
+2.  **Conversion Strategies**: Involve 58 mock instances and significant business logic complexity.
+3.  **Keyword Loader**: Involves 35 mock instances, primarily due to file I/O and validation.
 
 ## Conclusion
 
-This architectural change addresses the root cause of heavy mocking by improving system design, not just test patterns. The investment in dependency injection and protocol-based design will pay dividends in:
+This architectural change addresses the underlying issues contributing to extensive mocking by improving system design, rather than merely altering test patterns. The investment in dependency injection and protocol-based design will yield significant benefits in:
 
-- **Maintainability** - Clearer contracts and dependencies
-- **Testability** - Business logic tested in isolation
-- **Flexibility** - Easy to swap implementations
-- **Reliability** - Tests focus on behavior, not implementation details
+-   **Maintainability**: Achieves clearer contracts and dependencies.
+-   **Testability**: Enables business logic to be tested in isolation.
+-   **Flexibility**: Facilitates easy swapping of implementations.
+-   **Reliability**: Ensures tests focus on behavior rather than implementation details.
 
-The mock reduction is a side effect of better architecture, not the primary goal. The successful refactoring of `DataIngestionService` demonstrates that the 80% mock reduction target is achievable while improving overall code quality.
+Mock reduction is a beneficial outcome of improved architecture, not the primary objective. The successful refactoring of `DataIngestionService` demonstrates that the 80% mock reduction target is achievable while simultaneously enhancing overall code quality.

@@ -107,9 +107,7 @@ class TestFormatDetectionIntegration(unittest.TestCase):
                                 "displayName": "Jane Tester",
                                 "emailAddress": "jane.tester@company.com",
                             },
-                            "customfield_10100": {  # Xray test type
-                                "value": "Manual"
-                            },
+                            "customfield_10100": {"value": "Manual"},  # Xray test type
                             "labels": ["api", "authentication", "regression", "smoke"],
                         },
                     }

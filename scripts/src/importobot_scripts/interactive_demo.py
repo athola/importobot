@@ -1,12 +1,6 @@
 #!/usr/bin/env python3
-"""
-Interactive demo script for Importobot.
+"""Interactive demo script for Importobot with conversion examples and visualizations."""
 
-Shows test conversion examples with visualizations.
-Walks through the demos from the importobot presentation.
-"""
-
-# Standard library imports
 import json
 import os
 import shutil
@@ -14,7 +8,6 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
-# Third-party conditional imports
 try:
     import matplotlib.pyplot as plt
 
@@ -29,12 +22,8 @@ try:
 except ImportError:
     NUMPY_AVAILABLE = False
 
-# Local imports
-# Import configuration first to set up environment
 from .demo_config import EnterpriseScenario
 from .demo_configuration import DemoConfiguration
-
-# Import modular components
 from .demo_loader import ModuleLoader
 from .demo_utilities import CommandRunner, FileOperations, UserInterface
 from .demo_visualization import (
@@ -440,13 +429,15 @@ def animate_value_counter(
 
 def _display_business_challenge(metrics: Any) -> None:
     """Display the business challenge description."""
-    print(f"""
+    print(
+        f"""
 THE CHALLENGE:
 - {metrics.test_cases}+ test cases requiring migration to Robot Framework
 - Manual conversion: {metrics.manual_time_per_test_days} days per test case
 - Team daily cost: ${metrics.daily_cost_usd}
 - High cognitive load and error-prone process
-    """)
+    """
+    )
 
 
 def _display_business_impact(business_metrics: dict[str, Any]) -> None:
@@ -463,7 +454,8 @@ def _display_business_impact(business_metrics: dict[str, Any]) -> None:
     )
     roi_text = "Infinite ROI" if roi == float("inf") else f"{roi:.0f}x ROI"
 
-    print(f"""
+    print(
+        f"""
 BUSINESS IMPACT:
 - {speed_text} conversion
   ({business_metrics["manual_time_days"]:.0f} days →
@@ -471,7 +463,8 @@ BUSINESS IMPACT:
 - {time_reduction:.1f}% time reduction
 - {chart_factory.format_large_number(cost_savings)} cost savings
 - {roi_text}
-    """)
+    """
+    )
 
 
 def _create_kpi_cards(
@@ -611,7 +604,8 @@ def _display_business_summary(business_metrics: dict[str, Any]) -> None:
         automation_cost / savings * 365 if savings > 0 else float("inf"),
     )
 
-    print(f"""
+    print(
+        f"""
 ========================================================================
                            COST ANALYSIS SUMMARY
 ========================================================================
@@ -623,7 +617,8 @@ Success rate:        99.8% vs 75% manual
 Payback period:      {payback_period:.0f} days
 ROI:                 {roi_display:.0f}x return on investment
 ========================================================================
-    """)
+    """
+    )
 
 
 def demo_business_case() -> bool:
@@ -984,7 +979,8 @@ def _display_performance_summary(
     """Display performance test results summary."""
     successful_tests = int(max_tests * (metrics.importobot_success_rate / 100))
 
-    print(f"""
+    print(
+        f"""
 ========================================================================
                         PERFORMANCE TEST RESULTS
 ========================================================================
@@ -999,7 +995,8 @@ Benchmark:            3.5x faster than Excel macros,
                          custom Python/PowerShell scripts
 Future Benchmark:     TBD vs MIG Migration Toolkit, Testiny migration
 ========================================================================
-    """)
+    """
+    )
 
 
 def _create_enterprise_readiness_comparison(viz_config: Any, fig: Any, gs: Any) -> None:
@@ -1380,13 +1377,19 @@ def _create_roi_analysis_chart(
         title="Return on Investment by Scenario",
         ylabel="ROI Multiplier (x)",
         colors=[
-            viz_config.colors.success
-            if roi >= 80
-            else viz_config.colors.primary
-            if roi >= 50
-            else viz_config.colors.warning
-            if roi >= 25
-            else viz_config.colors.danger
+            (
+                viz_config.colors.success
+                if roi >= 80
+                else (
+                    viz_config.colors.primary
+                    if roi >= 50
+                    else (
+                        viz_config.colors.warning
+                        if roi >= 25
+                        else viz_config.colors.danger
+                    )
+                )
+            )
             for roi in scenario_roi
         ],
         value_format="{:.1f}x",
@@ -1567,45 +1570,50 @@ def _make_portfolio_charts(
 def _process_scale_scenarios(
     business_case: dict[str, Any],
 ) -> tuple[list[str], list[float], list[float]]:
-    """Process scale scenarios from business case and extract data for visualization."""
+    """Process scale scenarios from business case."""
     scale_scenarios = business_case["scale_scenarios"]
 
     scenario_names = []
     scenario_savings = []
     scenario_roi = []
 
-    for i, s in enumerate(scale_scenarios):
+    def _extract_scenario(
+        index: int, scenario: dict[str, Any]
+    ) -> tuple[str, float, float]:
         try:
-            # Try to get name from scenario object
             if (
-                "scenario" in s
-                and hasattr(s["scenario"], "name")
-                and s["scenario"].name
+                "scenario" in scenario
+                and hasattr(scenario["scenario"], "name")
+                and scenario["scenario"].name
             ):
-                scenario_names.append(s["scenario"].name)
+                name = scenario["scenario"].name
             else:
-                scenario_names.append(f"Scenario {i + 1}")
+                name = f"Scenario {index + 1}"
 
-            # Get metrics
-            if "metrics" in s:
-                scenario_savings.append(s["metrics"]["cost_savings_usd"])
-                roi_val = s["metrics"]["roi_multiplier"]
-                scenario_roi.append(roi_val if roi_val != float("inf") else 100)
+            if "metrics" in scenario:
+                savings = scenario["metrics"].get("cost_savings_usd", 0)
+                roi_val = scenario["metrics"].get("roi_multiplier", 1)
+                roi = roi_val if roi_val != float("inf") else 100
             else:
-                scenario_savings.append(0)
-                scenario_roi.append(1)
+                savings = 0
+                roi = 1
 
-        except Exception as e:
-            demo_logger.warning(f"Error processing scenario {i}: {e}")
-            scenario_names.append(f"Scenario {i + 1}")
-            scenario_savings.append(0)
-            scenario_roi.append(1)
+            return name, savings, roi
+        except Exception as exc:  # pragma: no cover - defensive logging
+            demo_logger.warning(f"Error processing scenario {index}: {exc}")
+            return f"Scenario {index + 1}", 0, 1
+
+    for i, scenario in enumerate(scale_scenarios):
+        name, savings, roi = _extract_scenario(i, scenario)
+        scenario_names.append(name)
+        scenario_savings.append(savings)
+        scenario_roi.append(roi)
 
     return scenario_names, scenario_savings, scenario_roi
 
 
 def _log_business_metrics_report(local_vars: dict[str, Any]) -> None:
-    """Log business metrics for analysis and reporting."""
+    """Log business metrics."""
     if metrics_reporter:
         try:
             # Ensure we have required variables with safe defaults
@@ -1633,9 +1641,11 @@ def _log_business_metrics_report(local_vars: dict[str, Any]) -> None:
                     ),
                     "average_roi": executive_summary.get(
                         "average_roi",
-                        sum(safe_scenario_roi) / len(safe_scenario_roi)
-                        if safe_scenario_roi
-                        else 1,
+                        (
+                            sum(safe_scenario_roi) / len(safe_scenario_roi)
+                            if safe_scenario_roi
+                            else 1
+                        ),
                     ),
                 },
             )
@@ -1674,9 +1684,11 @@ def demo_business_benefits() -> bool:
             10,
             25,
             50,
-            business_metrics["roi_multiplier"]
-            if business_metrics["roi_multiplier"] != float("inf")
-            else 100,
+            (
+                business_metrics["roi_multiplier"]
+                if business_metrics["roi_multiplier"] != float("inf")
+                else 100
+            ),
         ]
 
     # Create executive portfolio visualization and get time values
@@ -1689,7 +1701,8 @@ def demo_business_benefits() -> bool:
     avg_roi = sum(scenario_roi) / len(scenario_roi)
     max_savings = max(scenario_savings)
 
-    print(f"""
+    print(
+        f"""
 ========================================================================
                         BUSINESS BENEFITS SUMMARY
 ========================================================================
@@ -1713,7 +1726,8 @@ PERFORMANCE:
 • Average ROI:        {avg_roi:.0f}x across scenarios
 
 ========================================================================
-    """)
+    """
+    )
 
     # Log business metrics for reporting
     _log_business_metrics_report(locals())
@@ -1725,7 +1739,8 @@ def _show_welcome_screen() -> None:
     """Show welcome screen for interactive mode."""
     if not NON_INTERACTIVE:
         ui.clear_screen()
-        print("""
+        print(
+            """
 ============================================================================
                               IMPORTOBOT DEMO
                         Test Framework Conversion Demo
@@ -1751,7 +1766,8 @@ def _show_welcome_screen() -> None:
 
         GOAL: Show how Importobot converts test cases
            from various formats to Robot Framework
-    """)
+    """
+        )
 
         ui.press_to_continue()
 
@@ -1812,7 +1828,7 @@ def _run_demo_sequence(demos: list[tuple[str, Any]], progress: Any) -> None:
 
 
 def _cleanup_demo_session() -> None:
-    """Clean up demo session and generate reports with proper resource management."""
+    """Clean up demo session."""
     # Generate session report
     if demo_logger:
         try:
@@ -1843,7 +1859,7 @@ def _cleanup_demo_session() -> None:
 
 
 def _cleanup_temporary_directory() -> None:
-    """Clean up temporary directory with proper error handling."""
+    """Clean up temporary directory."""
     if not (NON_INTERACTIVE and os.path.exists(USER_TMP_DIR)):
         return
 
@@ -1863,7 +1879,8 @@ def _cleanup_temporary_directory() -> None:
 def _show_completion_screen() -> None:
     """Show completion screen for interactive mode."""
     if not NON_INTERACTIVE:
-        print("""
+        print(
+            """
 ============================================================================
                             DEMO COMPLETE
                      Importobot Conversion Examples
@@ -1888,11 +1905,12 @@ def _show_completion_screen() -> None:
 
         Importobot automates the conversion process and saves
         significant time compared to manual migration.
-    """)
+    """
+        )
 
 
 def _initialize_demo_session() -> None:
-    """Initialize demo session with security and environment validation."""
+    """Initialize demo session."""
     # Initialize demo session
     if SECURITY_MANAGER:
         SECURITY_MANAGER.start_session()

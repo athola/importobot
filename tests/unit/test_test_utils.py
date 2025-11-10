@@ -118,11 +118,10 @@ class TestValidateTestScriptStructure:
 
     def test_validates_large_steps_list(self) -> None:
         """Test validation with a large number of steps."""
-        steps = []
-        for i in range(100):
-            steps.append(
-                {"step": f"Step {i + 1}", "testData": f"Test data for step {i + 1}"}
-            )
+        steps = [
+            {"step": f"Step {i + 1}", "testData": f"Test data for step {i + 1}"}
+            for i in range(100)
+        ]
 
         test_script = {"type": "STEP_BY_STEP", "steps": steps}
 

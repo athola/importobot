@@ -1,5 +1,6 @@
 """Tests for SSH keyword security validation and recommendations."""
 
+from typing import Any
 
 import pytest
 
@@ -20,7 +21,9 @@ class TestSSHSecurityValidation:
         """Return an IntentRecognitionEngine instance."""
         return IntentRecognitionEngine()
 
-    def test_ssh_password_security_warning(self, security_validator: SecurityValidator) -> None:
+    def test_ssh_password_security_warning(
+        self, security_validator: SecurityValidator
+    ) -> None:
         """Test security validation for SSH password usage."""
         test_case = {
             "steps": [
@@ -39,7 +42,9 @@ class TestSSHSecurityValidation:
         password_warnings = [w for w in warnings if "password" in w.lower()]
         assert len(password_warnings) > 0, "Should warn about password usage in SSH"
 
-    def test_ssh_key_authentication_no_warning(self, security_validator: SecurityValidator) -> None:
+    def test_ssh_key_authentication_no_warning(
+        self, security_validator: SecurityValidator
+    ) -> None:
         """Test that key-based SSH authentication doesn't trigger password warnings."""
         test_case = {
             "steps": [
@@ -62,7 +67,9 @@ class TestSSHSecurityValidation:
             "Should not warn about passwords when using keys"
         )
 
-    def test_ssh_dangerous_command_validation(self, security_validator) -> None:
+    def test_ssh_dangerous_command_validation(
+        self, security_validator: SecurityValidator
+    ) -> None:
         """Test security validation for dangerous SSH commands."""
         dangerous_commands = [
             "rm -rf /",
@@ -101,7 +108,9 @@ class TestSSHSecurityValidation:
                 f"Should warn about dangerous command: {cmd}"
             )
 
-    def test_ssh_safe_command_no_warning(self, security_validator) -> None:
+    def test_ssh_safe_command_no_warning(
+        self, security_validator: SecurityValidator
+    ) -> None:
         """Test that safe SSH commands don't trigger security warnings."""
         safe_commands = [
             "ls -la",
@@ -138,7 +147,9 @@ class TestSSHSecurityValidation:
                 f"Should not warn about safe command: {cmd}"
             )
 
-    def test_ssh_file_path_traversal_validation(self, security_validator) -> None:
+    def test_ssh_file_path_traversal_validation(
+        self, security_validator: SecurityValidator
+    ) -> None:
         """Test security validation for path traversal in file operations."""
         traversal_paths = [
             "../../../etc/passwd",
@@ -173,7 +184,9 @@ class TestSSHSecurityValidation:
             ]
             assert len(path_warnings) > 0, f"Should warn about suspicious path: {path}"
 
-    def test_ssh_production_environment_validation(self, security_validator) -> None:
+    def test_ssh_production_environment_validation(
+        self, security_validator: SecurityValidator
+    ) -> None:
         """Test enhanced security validation for production environments."""
         production_indicators = [
             "prod.example.com",
@@ -202,7 +215,9 @@ class TestSSHSecurityValidation:
                 f"Should warn about production access: {host}"
             )
 
-    def test_ssh_multiple_security_issues(self, security_validator) -> None:
+    def test_ssh_multiple_security_issues(
+        self, security_validator: SecurityValidator
+    ) -> None:
         """Test handling of multiple security issues in one test case."""
         test_case = {
             "steps": [
@@ -241,7 +256,9 @@ class TestSSHSecurityValidation:
             "Should warn about sensitive file access"
         )
 
-    def test_ssh_security_recommendations_generation(self, intent_engine) -> None:
+    def test_ssh_security_recommendations_generation(
+        self, intent_engine: IntentRecognitionEngine
+    ) -> None:
         """Test generation of SSH security recommendations."""
         ssh_guidelines = intent_engine.get_ssh_security_guidelines()
 
@@ -265,7 +282,9 @@ class TestSSHSecurityValidation:
         for topic in expected_topics:
             assert topic in guidelines_text, f"Should include guidance on: {topic}"
 
-    def test_ssh_parameter_sanitization_validation(self, security_validator) -> None:
+    def test_ssh_parameter_sanitization_validation(
+        self, security_validator: SecurityValidator
+    ) -> None:
         """Test validation of SSH parameter sanitization."""
         malicious_inputs = [
             "host; rm -rf /",
@@ -303,7 +322,9 @@ class TestSSHSecurityValidation:
                 f"Should detect injection attempt: {malicious_input}"
             )
 
-    def test_ssh_credential_exposure_validation(self, security_validator) -> None:
+    def test_ssh_credential_exposure_validation(
+        self, security_validator: SecurityValidator
+    ) -> None:
         """Test validation for credential exposure in SSH operations."""
         test_case = {
             "steps": [
@@ -337,7 +358,9 @@ class TestSSHSecurityValidation:
         ]
         assert len(credential_warnings) > 0, "Should warn about credential exposure"
 
-    def test_ssh_logging_security_validation(self, security_validator) -> None:
+    def test_ssh_logging_security_validation(
+        self, security_validator: SecurityValidator
+    ) -> None:
         """Test security validation for SSH logging operations."""
         test_case = {
             "steps": [
@@ -364,7 +387,9 @@ class TestSSHSecurityValidation:
         # Note: This might not trigger warnings depending on current implementation
         # But the test establishes the expectation
 
-    def test_ssh_connection_validation_comprehensive(self, security_validator) -> None:
+    def test_ssh_connection_validation_comprehensive(
+        self, security_validator: SecurityValidator
+    ) -> None:
         """Test comprehensive SSH connection security validation."""
         test_cases = [
             {
@@ -420,7 +445,9 @@ class TestSSHSecurityValidation:
                     f"Should not have critical warnings for: {test_case['name']}"
                 )
 
-    def test_ssh_security_guidelines_comprehensive(self, intent_engine) -> None:
+    def test_ssh_security_guidelines_comprehensive(
+        self, intent_engine: IntentRecognitionEngine
+    ) -> None:
         """Test comprehensive SSH security guidelines."""
         guidelines = intent_engine.get_ssh_security_guidelines()
 
@@ -453,7 +480,9 @@ class TestSSHSecurityValidation:
             f"Security guidelines coverage too low: {coverage_ratio:.1%}"
         )
 
-    def test_ssh_security_validation_edge_cases(self, security_validator) -> None:
+    def test_ssh_security_validation_edge_cases(
+        self, security_validator: SecurityValidator
+    ) -> None:
         """Test SSH security validation with edge cases."""
         edge_cases = [
             {
@@ -484,11 +513,9 @@ class TestSSHSecurityValidation:
             },
         ]
 
-        for edge_case in edge_cases:
-            # Should not crash on edge cases
+        def _validate_edge_case(edge_case: dict[str, Any]) -> None:
             try:
                 result = security_validator.validate_test_security(edge_case)
-                # Result dict should be returned with warnings list (even if empty)
                 assert isinstance(result, dict), (
                     f"Should return dict for: {edge_case['name']}"
                 )
@@ -496,12 +523,18 @@ class TestSSHSecurityValidation:
                 assert isinstance(warnings, list), (
                     f"Warnings should be list for: {edge_case['name']}"
                 )
-            except Exception as e:
+            except Exception as exc:
                 pytest.fail(
-                    f"Security validation crashed on edge case {edge_case['name']}: {e}"
+                    "Security validation crashed on edge case "
+                    f"{edge_case['name']}: {exc}"
                 )
 
-    def test_ssh_security_context_awareness(self, security_validator) -> None:
+        for edge_case in edge_cases:
+            _validate_edge_case(edge_case)
+
+    def test_ssh_security_context_awareness(
+        self, security_validator: SecurityValidator
+    ) -> None:
         """Test that SSH security validation is context-aware."""
         # Same operation in different contexts should have different security
         # implications

@@ -6,29 +6,29 @@ Implemented – November 2025
 
 ## Context
 
-The `importobot.integrations.clients` module had grown to 1,200+ lines in a single `__init__.py` file containing:
-- Base API client with retry logic, circuit breaker, and rate limiting (300+ lines)
-- Four platform-specific client implementations (200+ lines each)
-- Shared utilities and protocols (100+ lines)
+The `importobot.integrations.clients` module had grown to over 1,200 lines within a single `__init__.py` file, encompassing:
+-   A base API client with retry logic, circuit breaker, and rate limiting (over 300 lines).
+-   Four platform-specific client implementations (each over 200 lines).
+-   Shared utilities and protocols (over 100 lines).
 
 ### Problems
 
-1. **Poor Maintainability**: Single 1,200-line file made code navigation difficult
-2. **Coupling**: All clients in one file increased risk of unintended dependencies
-3. **Testing Complexity**: Changes to one client could break tests for other clients
-4. **Code Review Burden**: Large file changes required reviewing unrelated client logic
-5. **Import Bloat**: Importing any client loaded all client implementations
+1.  **Poor Maintainability**: A single 1,200-line file hindered code navigation and understanding.
+2.  **Tight Coupling**: Consolidating all clients in one file increased the risk of unintended dependencies.
+3.  **Testing Complexity**: Modifications to one client could inadvertently affect tests for other clients.
+4.  **Code Review Burden**: Large file changes necessitated reviewing unrelated client logic.
+5.  **Import Bloat**: Importing any client resulted in loading all client implementations.
 
 ### Metrics
 
-- File size: 1,200+ lines
-- Number of classes: 5 (BaseAPIClient + 4 platform clients)
-- Cyclomatic complexity: High due to multiple authentication strategies per client
-- Test coupling: 38 test files importing from single module
+-   File size: Over 1,200 lines.
+-   Number of classes: 5 (BaseAPIClient + 4 platform clients).
+-   Cyclomatic complexity: High, attributed to multiple authentication strategies per client.
+-   Test coupling: 38 test files imported from this single module.
 
 ## Decision
 
-Split `importobot.integrations.clients/__init__.py` into focused modules with clear responsibilities.
+We will split `importobot.integrations.clients/__init__.py` into focused modules, each with clear responsibilities.
 
 ### Module Structure
 
@@ -44,10 +44,10 @@ src/importobot/integrations/clients/
 
 ### Design Principles
 
-1. **Single Responsibility**: Each file contains one client implementation or shared base functionality
-2. **Clear Boundaries**: Platform-specific logic isolated from shared infrastructure
-3. **Stable Public API**: `__init__.py` re-exports maintain backward compatibility
-4. **Testability**: Each module can be tested independently
+1.  **Single Responsibility**: Each file will contain a single client implementation or shared base functionality.
+2.  **Clear Boundaries**: Platform-specific logic will be isolated from shared infrastructure.
+3.  **Stable Public API**: The `__init__.py` file will re-export public APIs to maintain backward compatibility.
+4.  **Improved Testability**: Each module can now be tested independently.
 
 ### Public API Design
 
@@ -71,7 +71,7 @@ from importobot.integrations.clients.base import BaseAPIClient
 ## Alternatives Considered
 
 ### Alternative 1: Keep Single File with Better Organization
-**Rejected** - Comments and sections don't solve the fundamental maintainability issue. A 1,200-line file with "clear sections" is still difficult to navigate and test.
+**Rejected**: Comments and sections do not fundamentally resolve the maintainability issues of a 1,200-line file, which remains difficult to navigate and test.
 
 ### Alternative 2: Split Into Package Per Client
 ```
@@ -84,63 +84,63 @@ clients/
 │   └── ...
 ```
 
-**Rejected** - Over-engineering for current complexity. Each client is 200-300 lines and doesn't need package-level organization. This structure adds unnecessary nesting and makes imports more complex.
+**Rejected**: This approach was deemed over-engineering for the current complexity. Each client, being 200-300 lines, does not necessitate package-level organization, and this structure would introduce unnecessary nesting and more complex imports.
 
 ### Alternative 3: Monolithic clients.py File
-**Rejected** - Current approach. Led to the problems we're solving.
+**Rejected**: This represents the current problematic approach that this ADR aims to resolve.
 
 ## Consequences
 
 ### Positive
 
-1. **Improved Maintainability**: Each module is <400 lines, easy to navigate
-2. **Better Separation**: Platform-specific logic clearly separated from shared base
-3. **Faster Imports**: Only load needed client implementations
-4. **Easier Testing**: Test files can import only what they need
-5. **Clearer Git History**: Changes to ZephyrClient don't show up in TestRail diffs
-6. **Lower Review Burden**: PRs touching one client don't require reviewing others
+1.  **Improved Maintainability**: Each module is now under 400 lines, simplifying navigation.
+2.  **Better Separation of Concerns**: Platform-specific logic is clearly separated from shared base infrastructure.
+3.  **Faster Imports**: Only necessary client implementations are loaded, reducing import times.
+4.  **Easier Testing**: Test files can import only the specific components they need.
+5.  **Clearer Git History**: Changes to one client (e.g., `ZephyrClient`) do not appear in diffs for unrelated clients (e.g., `TestRailClient`).
+6.  **Lower Review Burden**: Pull requests affecting a single client do not require reviewing unrelated client logic.
 
 ### Negative
 
-1. **More Files**: 6 files instead of 1 (manageable trade-off)
-2. **Import Changes**: Advanced users importing directly need to update paths (documented in CHANGELOG)
+1.  **Increased File Count**: The refactoring results in 6 files instead of 1, which is considered a manageable trade-off.
+2.  **Import Path Changes**: Advanced users who directly import from sub-modules will need to update their import paths (as documented in the CHANGELOG).
 
 ### Migration Impact
 
-**For 0.1.x users (none exist):** No impact - breaking changes acceptable
+**For 0.1.x users (none exist)**: No impact, as breaking changes are acceptable for pre-1.0 versions.
 
-**For future 1.0 users:**
-- Public API unchanged - imports from `importobot.integrations.clients` work as before
-- Advanced imports from sub-modules documented with examples
-- Migration time: <5 minutes for typical usage
+**For future 1.0 users**:
+-   The public API remains unchanged; imports from `importobot.integrations.clients` function as before.
+-   Advanced imports from sub-modules are documented with examples.
+-   Typical migration time is estimated to be less than 5 minutes.
 
 ## Implementation Notes
 
 ### File Organization
 
-**base.py** (shared infrastructure):
-- `BaseAPIClient` - Retry logic, circuit breaker, rate limiting
-- `APISource` protocol - Interface all clients implement
-- `_KeyBatch`, `_default_user_agent()` - Shared utilities
+**`base.py`** (shared infrastructure):
+-   `BaseAPIClient`: Provides retry logic, circuit breaker, and rate limiting.
+-   `APISource` protocol: Defines the interface that all clients must implement.
+-   `_KeyBatch`, `_default_user_agent()`: Contains shared utility functions.
 
-**Platform clients** (zephyr.py, jira_xray.py, testrail.py, testlink.py):
-- Each file contains one client class
-- Authentication strategies specific to platform
-- Pagination logic specific to API
+**Platform clients** (`zephyr.py`, `jira_xray.py`, `testrail.py`, `testlink.py`):
+-   Each file encapsulates a single client class.
+-   Includes authentication strategies specific to the platform.
+-   Contains pagination logic tailored to the respective API.
 
-**__init__.py** (public API):
-- Re-exports all public classes and functions
-- Maintains backward compatibility
-- Documents recommended usage patterns
+**`__init__.py`** (public API):
+-   Re-exports all public classes and functions.
+-   Maintains backward compatibility.
+-   Documents recommended usage patterns.
 
 ### Performance Impact
 
-Module splitting should have **negligible performance impact**:
-- Python's import system caches modules after first load
-- No additional runtime overhead
-- Import time may slightly improve (lazy loading)
+The module splitting is expected to have **negligible performance impact**:
+-   Python's import system caches modules after the first load.
+-   No additional runtime overhead is introduced.
+-   Import time may slightly improve due to lazy loading.
 
-Measured impact: ~0-2ms difference in import time (within noise threshold)
+Measured impact: Approximately 0-2ms difference in import time (within noise threshold).
 
 ## References
 

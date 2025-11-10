@@ -4,6 +4,7 @@ import json
 import subprocess
 import sys
 from io import StringIO
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -78,7 +79,7 @@ class TestInputDetection:
 class TestCLIUserWorkflows:
     """Test actual user workflows through the CLI."""
 
-    def test_user_can_convert_simple_json_file_via_cli(self, tmp_path) -> None:
+    def test_user_can_convert_simple_json_file_via_cli(self, tmp_path: Path) -> None:
         """User can successfully convert a JSON file to Robot Framework using CLI."""
         # Arrange: Create test data that represents a real user scenario
         test_data = {
@@ -113,7 +114,9 @@ class TestCLIUserWorkflows:
         )
 
         # Assert: User should get successful conversion
-        assert result.returncode == EXIT_CODE_SUCCESS, f"CLI failed with error: {result.stderr}"
+        assert result.returncode == EXIT_CODE_SUCCESS, (
+            f"CLI failed with error: {result.stderr}"
+        )
         assert output_file.exists(), "Output Robot file was not created"
 
         # Verify the output contains expected Robot Framework structure
@@ -122,7 +125,7 @@ class TestCLIUserWorkflows:
         assert "User Login Test" in robot_content
         assert "Navigate to login page" in robot_content
 
-    def test_user_can_convert_multiple_files_via_cli(self, tmp_path) -> None:
+    def test_user_can_convert_multiple_files_via_cli(self, tmp_path: Path) -> None:
         """User can convert multiple files using --files flag."""
         # Arrange: Create test data and multiple input files
         test_data = {
@@ -158,15 +161,15 @@ class TestCLIUserWorkflows:
         result = subprocess.run(cmd, capture_output=True, text=True, check=False)
 
         # Assert: Verify successful conversion and output files created
-        assert result.returncode == EXIT_CODE_SUCCESS, f"CLI failed with error: {result.stderr}"
+        assert result.returncode == EXIT_CODE_SUCCESS, (
+            f"CLI failed with error: {result.stderr}"
+        )
 
         for i in range(CLI_TEST_MULTIPLE_FILES_COUNT):
             output_file = output_dir / f"test_{i}.robot"
-            assert output_file.exists(), (
-                f"Output file {output_file} was not created"
-            )
+            assert output_file.exists(), f"Output file {output_file} was not created"
 
-    def test_user_can_convert_directory_via_cli(self, tmp_path) -> None:
+    def test_user_can_convert_directory_via_cli(self, tmp_path: Path) -> None:
         """User can convert an entire directory using --directory flag."""
         # Arrange: Create input directory with JSON files
         test_data = {
@@ -206,20 +209,20 @@ class TestCLIUserWorkflows:
         )
 
         # Assert: Verify successful conversion and all files converted
-        assert result.returncode == EXIT_CODE_SUCCESS, f"CLI failed with error: {result.stderr}"
+        assert result.returncode == EXIT_CODE_SUCCESS, (
+            f"CLI failed with error: {result.stderr}"
+        )
         assert output_dir.exists(), "Output directory was not created"
 
         for i in range(CLI_TEST_DIRECTORY_FILES_COUNT):
             output_file = output_dir / f"test_{i}.robot"
-            assert output_file.exists(), (
-                f"Output file {output_file} was not created"
-            )
+            assert output_file.exists(), f"Output file {output_file} was not created"
 
 
 class TestCLIUserErrorScenarios:
     """Test how CLI handles real user error scenarios."""
 
-    def test_user_gets_helpful_error_for_corrupted_json(self, tmp_path) -> None:
+    def test_user_gets_helpful_error_for_corrupted_json(self, tmp_path: Path) -> None:
         """User gets clear guidance when JSON file is corrupted."""
 
         corrupted_file = tmp_path / "corrupted.json"
@@ -258,7 +261,7 @@ class TestCLIUserErrorScenarios:
             or "fix" in result.stderr.lower()
         )
 
-    def test_user_gets_clear_error_when_file_not_found(self, tmp_path) -> None:
+    def test_user_gets_clear_error_when_file_not_found(self, tmp_path: Path) -> None:
         """User gets clear error when input file doesn't exist."""
 
         missing_file = tmp_path / "nonexistent.json"
@@ -285,7 +288,9 @@ class TestCLIUserErrorScenarios:
         )
         assert "nonexistent.json" in result.stderr
 
-    def test_user_gets_guidance_when_output_directory_missing(self, tmp_path) -> None:
+    def test_user_gets_guidance_when_output_directory_missing(
+        self, tmp_path: Path
+    ) -> None:
         """User gets helpful error when output directory doesn't exist."""
 
         test_data = {"tests": [{"name": "Test", "steps": []}]}
@@ -306,9 +311,7 @@ class TestCLIUserErrorScenarios:
         # User should get helpful guidance
         assert result.returncode != 0
         # Should help user understand what to do
-        assert (
-            "directory" in result.stderr.lower() or "path" in result.stderr.lower()
-        )
+        assert "directory" in result.stderr.lower() or "path" in result.stderr.lower()
 
     def test_user_can_get_help_information(self) -> None:
         """User can easily get help on how to use the tool."""
@@ -326,7 +329,7 @@ class TestCLIUserErrorScenarios:
         assert "json" in result.stdout.lower()
         assert "robot" in result.stdout.lower()
 
-    def test_user_gets_feedback_during_batch_processing(self, tmp_path) -> None:
+    def test_user_gets_feedback_during_batch_processing(self, tmp_path: Path) -> None:
         """User gets feedback when processing multiple files."""
 
         test_data = {"tests": [{"name": "Test", "steps": []}]}
@@ -355,9 +358,13 @@ class TestCLIUserErrorScenarios:
         # User should get feedback about batch processing
         assert result.returncode == EXIT_CODE_SUCCESS
         assert "converted" in result.stdout.lower()
-        assert str(CLI_TEST_BATCH_FILES_COUNT) in result.stdout or "files" in result.stdout
+        assert (
+            str(CLI_TEST_BATCH_FILES_COUNT) in result.stdout or "files" in result.stdout
+        )
 
-    def test_user_understands_when_no_valid_files_in_directory(self, tmp_path) -> None:
+    def test_user_understands_when_no_valid_files_in_directory(
+        self, tmp_path: Path
+    ) -> None:
         """User gets clear message when directory has no JSON files."""
 
         # Create directory with non-JSON files
@@ -387,9 +394,7 @@ class TestCLIUserErrorScenarios:
 
         # User should understand what happened
         assert result.returncode != 0
-        assert (
-            "json" in result.stderr.lower() or "no.*files" in result.stderr.lower()
-        )
+        assert "json" in result.stderr.lower() or "no.*files" in result.stderr.lower()
 
 
 class TestErrorHandling:
@@ -411,7 +416,9 @@ class TestErrorHandling:
             or "Could not find" in result.stderr
         )
 
-    def test_user_understands_missing_file_vs_directory_issues(self, tmp_path) -> None:
+    def test_user_understands_missing_file_vs_directory_issues(
+        self, tmp_path: Path
+    ) -> None:
         """User can distinguish between missing files and directory problems."""
         input_file = tmp_path / "missing.json"
         # Don't create the file to trigger the error
@@ -437,22 +444,21 @@ class TestErrorHandling:
         # Mock stderr to capture the output
         captured_stderr = StringIO()
 
-        with patch("sys.argv", ["importobot", "input.json", "output.robot"]):
-            with patch(
+        with (
+            patch("sys.argv", ["importobot", "input.json", "output.robot"]),
+            patch(
                 "importobot.__main__.handle_positional_args",
                 side_effect=Exception("Unexpected error"),
-            ):
-                with patch("sys.stderr", captured_stderr):
-                    with pytest.raises(SystemExit) as exc_info:
-                        main()
+            ),
+            patch("sys.stderr", captured_stderr),
+            pytest.raises(SystemExit) as exc_info,
+        ):
+            main()
 
-                    assert isinstance(exc_info.value, SystemExit)
-                    assert exc_info.value.code == 1
-                    stderr_output = captured_stderr.getvalue()
-                    assert (
-                        "An unexpected error occurred: Unexpected error"
-                        in stderr_output
-                    )
+        assert isinstance(exc_info.value, SystemExit)
+        assert exc_info.value.code == 1
+        stderr_output = captured_stderr.getvalue()
+        assert "An unexpected error occurred: Unexpected error" in stderr_output
 
     def test_no_input(self) -> None:
         """Test that the script exits with an error if no input is provided."""

@@ -92,6 +92,9 @@ class TestConcurrentConversionWorkflows:
         request_contexts = []
 
         def handle_api_request(client_id: str) -> None:
+            # Clear any existing context to ensure request-level isolation
+            clear_context()
+
             # Each API request gets its own context
             context = get_context()
             request_contexts.append((client_id, id(context)))
@@ -298,7 +301,7 @@ class TestContextInProductionScenarios:
             raise ValueError("Simulated error")
 
         # First operation fails
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Simulated error"):
             risky_operation()
 
         # Context should still work

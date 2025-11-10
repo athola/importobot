@@ -41,7 +41,9 @@ class TestSSHKeywordCoverage:
             f"got {len(all_ssh_keywords)}"
         )
 
-    def test_ssh_generator_covers_all_keywords(self, ssh_generator: SSHKeywordTestGenerator, all_ssh_keywords: list[str]) -> None:
+    def test_ssh_generator_covers_all_keywords(
+        self, ssh_generator: SSHKeywordTestGenerator, all_ssh_keywords: list[str]
+    ) -> None:
         """Verify SSH generator can generate tests for all keywords."""
         covered_keywords = set(ssh_generator.keyword_generators.keys())
         expected_keywords = set(all_ssh_keywords)
@@ -112,7 +114,9 @@ class TestSSHKeywordCoverage:
             "Disable Ssh Logging",
         ],
     )
-    def test_generate_individual_ssh_keyword_test(self, ssh_generator: SSHKeywordTestGenerator, keyword: str) -> None:
+    def test_generate_individual_ssh_keyword_test(
+        self, ssh_generator: SSHKeywordTestGenerator, keyword: str
+    ) -> None:
         """Test generation of individual SSH keyword test cases."""
         # Generate test case for the specific keyword
         test_case = ssh_generator.generate_ssh_keyword_test(keyword)
@@ -162,7 +166,9 @@ class TestSSHKeywordCoverage:
             if robot_file_path:
                 Path(robot_file_path).unlink(missing_ok=True)
 
-    def test_generate_all_ssh_keyword_tests(self, ssh_generator: SSHKeywordTestGenerator) -> None:
+    def test_generate_all_ssh_keyword_tests(
+        self, ssh_generator: SSHKeywordTestGenerator
+    ) -> None:
         """Test generation of all SSH keyword test cases in bulk."""
         all_tests = ssh_generator.generate_all_ssh_keyword_tests()
 
@@ -181,7 +187,9 @@ class TestSSHKeywordCoverage:
             f"Expected 42 unique keywords, got {len(keywords_covered)}"
         )
 
-    def test_ssh_keyword_test_data_realism(self, ssh_generator: SSHKeywordTestGenerator, all_ssh_keywords: list[str]) -> None:
+    def test_ssh_keyword_test_data_realism(
+        self, ssh_generator: SSHKeywordTestGenerator, all_ssh_keywords: list[str]
+    ) -> None:
         """Verify that generated test data is realistic and varied."""
         # Generate multiple test cases for each keyword and check variety
         for keyword in all_ssh_keywords[:5]:  # Test first 5 keywords for performance
@@ -201,7 +209,9 @@ class TestSSHKeywordCoverage:
                 f"No variation in test data for {keyword}: {test_data_strings}"
             )
 
-    def test_ssh_connection_keywords_integration(self, ssh_generator: SSHKeywordTestGenerator) -> None:
+    def test_ssh_connection_keywords_integration(
+        self, ssh_generator: SSHKeywordTestGenerator
+    ) -> None:
         """Test that connection-related keywords work together."""
         connection_keywords = [
             "Open Connection",
@@ -256,7 +266,9 @@ class TestSSHKeywordCoverage:
             if robot_file_path:
                 Path(robot_file_path).unlink(missing_ok=True)
 
-    def test_ssh_file_operations_integration(self, ssh_generator: SSHKeywordTestGenerator) -> None:
+    def test_ssh_file_operations_integration(
+        self, ssh_generator: SSHKeywordTestGenerator
+    ) -> None:
         """Test that file operation keywords work together."""
         file_keywords = [
             "Put File",
@@ -301,7 +313,9 @@ class TestSSHKeywordCoverage:
             if robot_file_path:
                 Path(robot_file_path).unlink(missing_ok=True)
 
-    def test_ssh_interactive_shell_workflow(self, ssh_generator: SSHKeywordTestGenerator) -> None:
+    def test_ssh_interactive_shell_workflow(
+        self, ssh_generator: SSHKeywordTestGenerator
+    ) -> None:
         """Test interactive shell operation sequence."""
         shell_keywords = [
             "Write",
@@ -329,7 +343,9 @@ class TestSSHKeywordCoverage:
         assert "write" in steps[0]["step"].lower()
         assert "read" in steps[1]["step"].lower()
 
-    def test_ssh_full_scenario_generation(self, ssh_generator: SSHKeywordTestGenerator) -> None:
+    def test_ssh_full_scenario_generation(
+        self, ssh_generator: SSHKeywordTestGenerator
+    ) -> None:
         """Generate a full SSH scenario using multiple keyword categories."""
         # Select representative keywords from each category
         scenario_keywords = [
@@ -419,7 +435,9 @@ class TestSSHKeywordCoverage:
             if robot_file_path:
                 Path(robot_file_path).unlink(missing_ok=True)
 
-    def test_ssh_keyword_security_considerations(self, ssh_generator: SSHKeywordTestGenerator) -> None:
+    def test_ssh_keyword_security_considerations(
+        self, ssh_generator: SSHKeywordTestGenerator
+    ) -> None:
         """Test that security-sensitive keywords generate appropriate test data."""
         security_keywords = [
             "Login",
@@ -462,7 +480,9 @@ class TestSSHKeywordCoverage:
                         f"Dangerous command pattern found: {pattern}"
                     )
 
-    def test_ssh_error_handling_keywords(self, ssh_generator: SSHKeywordTestGenerator) -> None:
+    def test_ssh_error_handling_keywords(
+        self, ssh_generator: SSHKeywordTestGenerator
+    ) -> None:
         """Test keywords that might commonly fail or need error handling."""
         error_prone_keywords = get_basic_ssh_connection_keywords()
 
@@ -490,7 +510,9 @@ class TestSSHKeywordCoverage:
                 f"Generated test for {keyword} lacks positive expectation: {expected}"
             )
 
-    def test_ssh_performance_and_scale(self, ssh_generator: SSHKeywordTestGenerator) -> None:
+    def test_ssh_performance_and_scale(
+        self, ssh_generator: SSHKeywordTestGenerator
+    ) -> None:
         """Test generation performance and ability to handle scale."""
 
         # Test generation time for all keywords

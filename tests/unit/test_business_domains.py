@@ -369,7 +369,9 @@ class TestTestCaseTemplates:
         assert len(labels) == len(TestCaseTemplates.ENTERPRISE_LABELS)
 
     @patch("random.sample")
-    def test_get_enterprise_labels_uses_random_sample(self, mock_sample: MagicMock) -> None:
+    def test_get_enterprise_labels_uses_random_sample(
+        self, mock_sample: MagicMock
+    ) -> None:
         """Test get_enterprise_labels uses random.sample for selection."""
         mock_sample.return_value = ["selected1", "selected2"]
 

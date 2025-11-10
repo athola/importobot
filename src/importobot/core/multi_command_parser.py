@@ -1,6 +1,6 @@
-"""Multi-command parsing module for Robot Framework conversion.
+"""Provides multi-command parsing for Robot Framework conversion.
 
-This module handles the conversion of single JSON test steps into multiple
+This module facilitates the conversion of single JSON test steps into multiple
 Robot Framework commands, enabling more sophisticated test automation scenarios.
 """
 
@@ -9,14 +9,14 @@ import shlex
 
 
 class MultiCommandParser:
-    """Parser generating multiple Robot Framework commands from a single JSON step.
+    """Generate multiple Robot Framework commands from a single JSON step.
 
-    This parser handles the conversion of single JSON test steps into multiple
-    Robot Framework commands, enabling more sophisticated test automation scenarios.
+    This parser converts single JSON test steps into multiple Robot Framework commands,
+    thereby enabling more sophisticated test automation scenarios.
     """
 
     def parse_test_data(self, test_data: str) -> dict[str, str]:
-        """Parse test data string into key-value pairs."""
+        """Parse a test data string into key-value pairs."""
         if not test_data:
             return {}
 
@@ -48,7 +48,7 @@ class MultiCommandParser:
     def should_generate_multiple_commands(
         self, description: str, parsed_data: dict[str, str]
     ) -> bool:
-        """Determine if multiple commands should be generated from parsed data."""
+        """Determine if multiple commands should be generated from the parsed data."""
         # Check for form filling scenarios
         form_indicators = ["fill", "enter", "input", "form", "details", "credentials"]
         if any(indicator in description.lower() for indicator in form_indicators):
@@ -98,7 +98,7 @@ class MultiCommandParser:
     def generate_multiple_robot_keywords(
         self, description: str, parsed_data: dict[str, str], expected: str
     ) -> list[str]:
-        """Generate multiple Robot Framework keywords from parsed data."""
+        """Generate multiple Robot Framework keywords from the parsed data."""
         keywords = []
 
         # Detect the type of operations needed
@@ -125,7 +125,7 @@ class MultiCommandParser:
     def _is_form_filling_operation(
         self, description: str, parsed_data: dict[str, str]
     ) -> bool:
-        """Check if this is a form filling operation."""
+        """Check if the operation is a form-filling action."""
         # parsed_data parameter is kept for interface consistency
         # but not used in this implementation
         _ = parsed_data  # Mark as intentionally unused
@@ -133,17 +133,17 @@ class MultiCommandParser:
         return any(indicator in description.lower() for indicator in form_indicators)
 
     def _is_database_operation(self, description: str) -> bool:
-        """Check if this is a database operation."""
+        """Check if the operation is a database interaction."""
         return "query" in description.lower() and "verify" in description.lower()
 
     def _is_api_operation(self, description: str) -> bool:
-        """Check if this is an API operation."""
+        """Check if the operation is an API call."""
         return "api" in description.lower() or (
             "request" in description.lower() and "validate" in description.lower()
         )
 
     def _is_file_upload_operation(self, description: str) -> bool:
-        """Check if this is a file upload operation."""
+        """Check if the operation is a file upload."""
         return "upload" in description.lower() and "verify" in description.lower()
 
     def _is_hash_comparison_operation(
@@ -164,7 +164,7 @@ class MultiCommandParser:
     def _generate_command_comparison_keywords(
         self, parsed_data: dict[str, str]
     ) -> list[str]:
-        """Generate commands to compare outputs of two hash commands."""
+        """Generate commands to compare the outputs of two hash commands."""
         source_command = (
             parsed_data.get("command_1")
             or parsed_data.get("source_command")
@@ -193,7 +193,7 @@ class MultiCommandParser:
         return commands
 
     def _split_command(self, command: str) -> list[str]:
-        """Split a shell command into Robot Framework arguments."""
+        """Split a shell command into arguments suitable for Robot Framework."""
         try:
             tokens = shlex.split(command)
         except ValueError:
@@ -201,7 +201,7 @@ class MultiCommandParser:
         return [token for token in tokens if token]
 
     def _format_run_process_command(self, tokens: list[str], var_name: str) -> str:
-        """Format a Run Process command capturing stdout into a variable."""
+        """Format a `Run Process` command to capture stdout into a variable."""
         if not tokens:
             return "Run Process"
         command = tokens[0]
@@ -212,7 +212,7 @@ class MultiCommandParser:
         return f"Run Process    {command}    {stdout_capture}"
 
     def _generate_form_filling_keywords(self, parsed_data: dict[str, str]) -> list[str]:
-        """Generate form filling keywords from parsed data."""
+        """Generate form-filling keywords from the parsed data."""
         keywords = []
 
         for field, value in parsed_data.items():
@@ -343,7 +343,7 @@ class MultiCommandParser:
         return keywords
 
     def detect_field_types(self, parsed_data: dict[str, str]) -> dict[str, str]:
-        """Detect input field types from parsed data."""
+        """Detect input field types from the parsed data."""
         field_types = {}
 
         for field in parsed_data:

@@ -224,7 +224,7 @@ def test_client_uses_honest_user_agent(monkeypatch: pytest.MonkeyPatch) -> None:
     ]
     session = DummySession(responses)
 
-    def mock_session():
+    def mock_session() -> DummySession:
         return session
 
     monkeypatch.setattr(

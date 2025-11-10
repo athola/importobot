@@ -2,6 +2,7 @@
 
 import json
 import tempfile
+from collections.abc import Generator
 from pathlib import Path
 from typing import Any
 
@@ -13,7 +14,7 @@ from importobot.core.templates import configure_template_sources
 
 
 @pytest.fixture(autouse=True)
-def reset_templates():
+def reset_templates() -> Generator[None, None, None]:
     """Clear template state between tests."""
     configure_template_sources([])
     yield

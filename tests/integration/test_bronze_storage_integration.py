@@ -303,7 +303,7 @@ class TestBronzeStorageIntegration(unittest.TestCase):
 
         results = {"ingested": 0, "retrieved": 0}
 
-        def ingest_data():
+        def ingest_data() -> None:
             for i in range(5):
                 test_data = {"testCase": {"name": f"Concurrent Test {i}"}}
                 metadata = LayerMetadata(
@@ -314,7 +314,7 @@ class TestBronzeStorageIntegration(unittest.TestCase):
                 self.bronze_layer.ingest(test_data, metadata)
                 results["ingested"] += 1
 
-        def retrieve_data():
+        def retrieve_data() -> None:
             for _ in range(5):
                 records = self.bronze_layer.get_bronze_records()
                 results["retrieved"] = len(records)

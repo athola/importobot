@@ -77,7 +77,6 @@ ALLOWED_TEMPLATE_SUFFIXES = (
 TEMPLATE_CACHE_VERSION = 1
 
 
-
 def _is_path_within_root(candidate: Path, root: Path) -> bool:
     try:
         candidate.relative_to(root)
@@ -388,8 +387,6 @@ def _sanitize_template_payload(content: str) -> str:
     cleaned = cleaned.replace("\r\n", "\n").replace("\r", "\n")
     allowed_control = {"\n", "\t"}
     return "".join(ch for ch in cleaned if ch in allowed_control or ch.isprintable())
-
-
 
 
 def _ensure_textual_file(path: Path) -> None:

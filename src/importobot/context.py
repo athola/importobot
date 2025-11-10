@@ -1,48 +1,12 @@
-"""Application context for managing runtime state and dependencies.
+"""Manage application context for runtime state and dependencies.
 
-Provides a clean way to manage application-level singletons without global variables.
+This module provides a structured approach to managing application-level singletons
+without relying on global variables. The context is thread-local and is
+automatically cleaned up when a thread is garbage collected.
 
-Thread Lifecycle and Memory Management
---------------------------------------
-The context registry uses WeakKeyDictionary to automatically clean up contexts when
-threads are garbage collected. However, in practice, thread objects may be kept alive
-by the Python interpreter or external references, which can delay or prevent cleanup.
-
-To mitigate potential memory leaks:
-
-1. **Explicit Cleanup**: Call clear_context() when done with a thread's context,
-   especially in long-running applications or thread pools.
-
-2. **Thread Pool Usage**: When using thread pools (ThreadPoolExecutor, etc.),
-   contexts will accumulate for worker threads. Consider:
-   - Calling clear_context() at the end of each task
-   - Using cleanup_stale_contexts() periodically
-   - Setting IMPORTOBOT_CONTEXT_CLEANUP_INTERVAL to enable automatic cleanup
-
-3. **Monitoring**: Use get_registry_stats() to monitor context accumulation in
-   production. If registry size grows unbounded, investigate thread lifecycle.
-
-4. **Testing**: In tests, always use clear_context() in teardown to prevent
-   cross-test pollution.
-
-Example usage in thread pool:
-    ```python
-    from importobot.context import get_context, clear_context
-
-    def worker_task():
-        try:
-            context = get_context()
-            # ... use context ...
-        finally:
-            clear_context()  # Explicit cleanup
-    ```
-
-Environment Variables
----------------------
-- IMPORTOBOT_CONTEXT_CLEANUP_INTERVAL: Seconds between automatic cleanup
-  (default: disabled)
-- IMPORTOBOT_CONTEXT_MAX_SIZE: Warn when registry exceeds this size
-  (default: 100)
+For long-running applications or thread pools, it is recommended to call
+`clear_context()` when a thread's context is no longer needed to prevent
+potential memory leaks.
 """
 
 from __future__ import annotations
@@ -62,26 +26,19 @@ logger = get_logger()
 
 
 class ApplicationContext:
-    """Central registry for application-level dependencies and state.
-
-    This replaces scattered global variables with a single, testable context object.
-    Each application instance gets its own context, enabling:
-    - Clean testing (no global state pollution)
-    - Multiple concurrent instances
-    - Explicit dependency management
-    """
+    """A central, testable registry for application-level dependencies and state."""
 
     def __init__(self) -> None:
-        """Initialize application context with lazy-loaded dependencies."""
+        """Initialize the application context."""
         self._performance_cache: PerformanceCache | None = None
         self._telemetry_client: TelemetryClient | None = None
 
     @property
     def performance_cache(self) -> PerformanceCache:
-        """Get or create the performance cache instance.
+        """Get the performance cache instance.
 
         Returns:
-            Performance cache for string/JSON operations
+            The performance cache for string/JSON operations.
         """
         if self._performance_cache is None:
             self._performance_cache = PerformanceCache()
@@ -90,10 +47,10 @@ class ApplicationContext:
 
     @property
     def telemetry_client(self) -> TelemetryClient:
-        """Get or create the telemetry client.
+        """Get the telemetry client instance.
 
         Returns:
-            Telemetry client for metrics/logging
+            The telemetry client for metrics and logging.
         """
         if self._telemetry_client is None:
             client = get_telemetry_client()
@@ -107,17 +64,17 @@ class ApplicationContext:
         return self._telemetry_client
 
     def clear_caches(self) -> None:
-        """Clear all cached data (useful for testing)."""
+        """Clear all cached data."""
         if self._performance_cache is not None:
             self._performance_cache.clear_cache()
 
     def reset(self) -> None:
-        """Reset context to initial state (useful for testing)."""
+        """Reset the context to its initial state."""
         self._performance_cache = None
         self._telemetry_client = None
 
     def __enter__(self) -> ApplicationContext:
-        """Context manager entry - return self for use in with statement."""
+        """Enter a runtime context."""
         return self
 
     def __exit__(
@@ -126,16 +83,7 @@ class ApplicationContext:
         exc_val: BaseException | None,
         exc_tb: object,
     ) -> Literal[False]:
-        """Context manager exit - perform cleanup when exiting with statement.
-
-        Args:
-            exc_type: Exception type if an exception occurred (None otherwise)
-            exc_val: Exception value if an exception occurred (None otherwise)
-            exc_tb: Exception traceback if an exception occurred (None otherwise)
-
-        Returns:
-            False to propagate exceptions (standard context manager behavior)
-        """
+        """Exit the runtime context and perform cleanup."""
         self.reset()
         clear_context()
         return False
@@ -155,7 +103,7 @@ _cleanup_enabled = _CLEANUP_INTERVAL > 0
 
 
 class CleanupStats(TypedDict):
-    """Type definition for cleanup performance statistics."""
+    """Define the data structure for cleanup performance statistics."""
 
     cleanup_count: int
     total_cleanup_time_ms: float
@@ -168,10 +116,10 @@ class CleanupStats(TypedDict):
 
 
 class CleanupPerformanceTracker:
-    """Thread-safe tracker for context cleanup performance statistics."""
+    """Track performance statistics for context cleanup operations."""
 
     def __init__(self) -> None:
-        """Initialize performance tracker with default values."""
+        """Initialize the performance tracker."""
         self._stats = {
             "cleanup_count": 0,
             "total_cleanup_time_ms": 0.0,
@@ -185,11 +133,11 @@ class CleanupPerformanceTracker:
         self._lock = threading.RLock()
 
     def record_cleanup(self, cleanup_duration_ms: float, total_threads: int) -> None:
-        """Record a cleanup operation with its performance metrics.
+        """Record a cleanup operation and its performance metrics.
 
         Args:
-            cleanup_duration_ms: Duration of the cleanup operation in milliseconds
-            total_threads: Total number of threads processed
+            cleanup_duration_ms: The duration of the cleanup operation in milliseconds.
+            total_threads: The number of threads processed during the cleanup.
         """
         with self._lock:
             # Update running totals - cast to ensure proper types
@@ -225,16 +173,16 @@ class CleanupPerformanceTracker:
             )
 
     def get_stats(self) -> CleanupStats:
-        """Get a copy of current performance statistics.
+        """Get a copy of the current performance statistics.
 
         Returns:
-            Dictionary containing all performance metrics
+            A dictionary containing all performance metrics.
         """
         with self._lock:
             return self._stats.copy()  # type: ignore[return-value]
 
     def reset(self) -> None:
-        """Reset all performance statistics to default values."""
+        """Reset all performance statistics."""
         with self._lock:
             self._stats = {
                 "cleanup_count": 0,
@@ -253,7 +201,7 @@ _performance_tracker = CleanupPerformanceTracker()
 
 
 def _register_context(context: ApplicationContext) -> None:
-    """Register context for current thread with monitoring."""
+    """Register the context for the current thread."""
     thread = threading.current_thread()
     with _context_lock:
         _context_registry[thread] = context
@@ -276,16 +224,16 @@ def _register_context(context: ApplicationContext) -> None:
 
 
 def _unregister_context() -> None:
-    """Unregister context for current thread."""
+    """Unregister the context for the current thread."""
     thread = threading.current_thread()
     with _context_lock:
         _context_registry.pop(thread, None)
 
 
 def _temporal_cleanup_stale_contexts() -> None:
-    """Run cleanup if enough time has elapsed since last cleanup.
+    """Run cleanup if enough time has passed since the last one.
 
-    Must be called with _context_lock held.
+    This function must be called while `_context_lock` is held.
     """
     current_time = time.time()
     if current_time - _cleanup_state["last_cleanup_time"] >= _CLEANUP_INTERVAL:
@@ -294,13 +242,9 @@ def _temporal_cleanup_stale_contexts() -> None:
 
 
 def _cleanup_stale_contexts_locked() -> None:
-    """Remove contexts for dead threads with performance monitoring.
+    """Remove contexts associated with dead threads.
 
-    Must be called with _context_lock held.
-
-    WeakKeyDictionary should handle this automatically, but in practice
-    thread objects may be kept alive by the interpreter. This explicitly
-    removes contexts for threads that are no longer alive.
+    This function must be called while `_context_lock` is held.
     """
     start_time = time.perf_counter()
     total_threads = len(_context_registry)
@@ -338,12 +282,12 @@ def _cleanup_stale_contexts_locked() -> None:
 
 
 def get_context() -> ApplicationContext:
-    """Get the current application context.
+    """Get the application context for the current thread.
 
-    Creates a new context if none exists for this thread.
+    A new context is created if one does not already exist for the current thread.
 
     Returns:
-        Current application context
+        The current application context.
     """
     if not hasattr(_context_storage, "context"):
         context = ApplicationContext()
@@ -356,17 +300,14 @@ def set_context(context: ApplicationContext) -> None:
     """Set the application context for the current thread.
 
     Args:
-        context: Application context to use
+        context: The application context to be used.
     """
     _context_storage.context = context
     _register_context(context)
 
 
 def clear_context() -> None:
-    """Clear the current thread's context.
-
-    Useful for testing to ensure clean state between tests.
-    """
+    """Clear the application context for the current thread."""
     if hasattr(_context_storage, "context"):
         _context_storage.context.reset()
         delattr(_context_storage, "context")
@@ -374,19 +315,13 @@ def clear_context() -> None:
 
 
 def cleanup_stale_contexts() -> int:
-    """Manually remove contexts for threads that are no longer alive.
+    """Manually remove contexts associated with threads that are no longer alive.
 
-    This is useful in long-running applications with thread pools to prevent
-    memory leaks when threads are kept alive by the interpreter but are no
-    longer active.
+    This helps prevent memory leaks in long-running applications that use
+    thread pools.
 
     Returns:
-        Number of stale contexts removed
-
-    Example:
-        >>> from importobot.context import cleanup_stale_contexts
-        >>> removed = cleanup_stale_contexts()
-        >>> print(f"Cleaned up {removed} stale contexts")
+        The number of stale contexts removed.
     """
     with _context_lock:
         before_count = len(_context_registry)
@@ -396,20 +331,10 @@ def cleanup_stale_contexts() -> int:
 
 
 def get_registry_stats() -> dict[str, int | list[str]]:
-    """Get statistics about the context registry for monitoring.
+    """Get statistics about the context registry.
 
     Returns:
-        Dictionary with registry statistics:
-        - size: Number of contexts in registry
-        - alive_threads: Number of threads that are still alive
-        - dead_threads: Number of threads that are dead but still in registry
-        - thread_names: Names of first 10 threads in registry
-
-    Example:
-        >>> from importobot.context import get_registry_stats
-        >>> stats = get_registry_stats()
-        >>> if stats['dead_threads'] > 10:
-        ...     cleanup_stale_contexts()
+        A dictionary containing registry statistics.
     """
     with _context_lock:
         threads = list(_context_registry.keys())
@@ -428,37 +353,19 @@ def get_cleanup_performance_stats() -> CleanupStats:
     """Get performance statistics for context registry cleanup operations.
 
     Returns:
-        Dictionary with cleanup performance statistics:
-        - cleanup_count: Number of cleanup operations performed
-        - total_cleanup_time_ms: Total time spent in cleanup operations (ms)
-        - average_cleanup_time_ms: Average cleanup time per operation (ms)
-        - max_cleanup_duration_ms: Maximum cleanup duration observed (ms)
-        - min_cleanup_duration_ms: Minimum cleanup duration observed (ms)
-        - last_cleanup_time: Timestamp of last cleanup operation
-        - last_cleanup_duration_ms: Duration of last cleanup operation (ms)
-        - total_threads_processed: Total number of threads processed across all cleanups
-
-    Example:
-        >>> from importobot.context import get_cleanup_performance_stats
-        >>> stats = get_cleanup_performance_stats()
-        >>> if (stats['average_cleanup_time_ms'] and
-        ...     stats['average_cleanup_time_ms'] > 50):
-        ...     print("Cleanup performance may be problematic")
+        A dictionary containing cleanup performance statistics.
     """
     # Return a copy to prevent external modification
     return _performance_tracker.get_stats()
 
 
 def reset_cleanup_performance_stats() -> None:
-    """Reset cleanup performance statistics.
-
-    Useful for testing or when monitoring specific time periods.
-    """
+    """Reset cleanup performance statistics."""
     _performance_tracker.reset()
 
 
 def _cleanup_on_exit() -> None:
-    """Clean up all contexts on application exit."""
+    """Clean up all contexts upon application exit."""
     with _context_lock:
         _context_registry.clear()
 

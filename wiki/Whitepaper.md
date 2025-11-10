@@ -6,50 +6,48 @@
 
 ## Abstract
 
-This paper describes a two-stage hierarchical Bayesian classifier for automatically detecting the format of test management system exports. In our tests, the system correctly identified 14 different formats with an average latency of under 60ms. The classifier uses a combination of Bayesian inference and several performance optimizations, such as log-space computation and ratio capping, to achieve this result. This work was driven by the need for a reliable and fast format detection tool for our test migration pipeline.
+This paper describes a two-stage hierarchical Bayesian classifier designed for automatically detecting the format of test management system exports. The system correctly identified 14 different formats with an average latency under 60ms in our tests. This performance is achieved through a combination of Bayesian inference and several optimizations, including log-space computation and ratio capping. This work addresses the need for an accurate and efficient format detection tool within our test migration pipeline.
 
 ## 1. Introduction
 
-Migrating tests between systems like Zephyr, TestRail, and JIRA/Xray is challenging because they use incompatible export formats. We found that existing solutions, which often use templates or require manual format selection, were not flexible enough for our needs.
+Migrating tests between systems such as Zephyr, TestRail, and JIRA/Xray presents challenges due to their incompatible export formats. Existing solutions, often relying on templates or manual format selection, proved insufficient for our requirements.
 
-To address this, we built a hierarchical Bayesian classifier that automatically identifies the format from the data itself. This paper documents our approach. The main ideas are:
+To overcome these limitations, we developed a hierarchical Bayesian classifier that automatically identifies the format directly from the data. This paper details our methodology, which is based on four key principles:
 
-1. A two-stage process that first checks if the data looks like a test export at all, and then determines the specific format.
-2. A confidence score based on Bayesian probability to tell us how sure we are about a prediction.
-3. Using log-space math to avoid numerical errors with very small numbers.
-4. Several performance optimizations that brought the average classification time under 60ms.
+1.  A two-stage process that first validates if the data represents a test export, then determines the specific format.
+2.  A Bayesian confidence score that quantifies the certainty of each prediction.
+3.  The application of log-space computation to mitigate numerical underflow with very small probabilities.
+4.  Performance optimizations that reduced the average classification time to under 60ms.
 
 ## 2. Mathematical Framework
 
 ### 2.1 Two-Stage Hierarchical Classification
 
-Our system implements a conditional probability cascade:
+Our system employs a conditional probability cascade:
 
 **Stage 1: Test Data Validation Gate**
 ```
 P(is_test_data | E₁) ≥ τ₁  where τ₁ = 0.50
 ```
-
-Determines whether input represents any test management format versus arbitrary JSON data:
-- **Evidence E₁**: Structural completeness, field name patterns, content type analysis
-- **Prior P(is_test_data)**: Empirically set to 0.30 based on format prevalence
-- **Threshold τ₁**: Optimized for 95% true positive rate, 5% false positive rate
+This stage determines if the input data represents a test management format or arbitrary JSON.
+- **Evidence E₁**: Includes structural completeness, field name patterns, and content type analysis.
+- **Prior P(is_test_data)**: Empirically set to 0.30 based on observed format prevalence.
+- **Threshold τ₁**: Optimized to achieve a 95% true positive rate and a 5% false positive rate.
 
 **Stage 2: Format-Specific Discrimination**
 ```
 P(formatᵢ | E₂, is_test_data) = P(E₂ | formatᵢ, is_test_data) × P(formatᵢ | is_test_data) / Σⱼ P(E₂ | formatⱼ, is_test_data) × P(formatⱼ | is_test_data)
 ```
-
-Executes only when Stage 1 confidence exceeds τ₁:
-- **Evidence E₂**: Format-specific field combinations, structural density, semantic markers
-- **Conditional Likelihood**: P(E₂ | formatᵢ, is_test_data) accounts for test data conditioning
-- **Multi-class Normalization**: The multi-class normalization step sets the condition that Σⱼ P(formatⱼ | E₂, is_test_data) = 1.0
+This stage executes only when Stage 1 confidence exceeds τ₁.
+- **Evidence E₂**: Consists of format-specific field combinations, structural density, and semantic markers.
+- **Conditional Likelihood**: P(E₂ | formatᵢ, is_test_data) accounts for the conditioning on test data.
+- **Multi-class Normalization**: Ensures that the sum of all format probabilities Σⱼ P(formatⱼ | E₂, is_test_data) equals 1.0.
 
 *Implementation*: [Source Code - `src/importobot/medallion/bronze/hierarchical_classifier.py`](src/importobot/medallion/bronze/hierarchical_classifier.py)
 
 ### 2.2 Evidence Collection and Independence Modeling
 
-We define three independent evidence types with Beta distribution priors:
+We define three independent evidence types, each modeled with Beta distribution priors:
 
 **Completeness Evidence C**
 ```
@@ -74,7 +72,7 @@ E[U] = value_diversity × 0.8 + pattern_uniqueness × 0.2
 P(E | format) = P(C | format) × P(Q | format) × P(U | format)
 ```
 
-Independence assumption enables tractable computation while maintaining accuracy across our test corpus.
+The independence assumption simplifies computation while preserving accuracy across our test corpus.
 
 *Implementation*: [Source Code - `src/importobot/medallion/bronze/evidence_metrics.py`](src/importobot/medallion/bronze/evidence_metrics.py)
 
@@ -85,21 +83,20 @@ Independence assumption enables tractable computation while maintaining accuracy
 log P(E | format) = Σᵢ log P(Eᵢ | format)
 P(E | format) = exp(log P(E | format))
 ```
-
-Prevents underflow for weak evidence and enables stable multiplication.
+This technique prevents numerical underflow when dealing with very small probabilities and ensures stable multiplication of likelihoods.
 
 **Alternative Hypothesis Modeling**
 ```
 P(E | ¬format) = a + b × (1 - L)ᶜ
 ```
-
-Parameters: a = 0.01 (minimum probability), b = 0.49 (scale), c = 2.0 (decay exponent)
+Parameters: a = 0.01 (minimum probability), b = 0.49 (scale), c = 2.0 (decay exponent). This model describes the likelihood of evidence given that the data is *not* of a specific format.
 
 **Division Prevention**
 ```
 if denominator < ε: return 0.0
 where ε = 1×10⁻¹⁵
 ```
+To prevent division by zero or extremely small numbers, the denominator is floored at a small epsilon value.
 
 **Confidence Ratio Constraints**
 ```
@@ -109,6 +106,7 @@ ratio ≤ {
     3.0: if max_likelihood > 0.30   # Allow discrimination for strong evidence
 }
 ```
+These constraints cap the ratio between the highest and second-highest format probabilities, preventing overconfident predictions, especially with weak evidence.
 
 *Implementation*: [Source Code - `src/importobot/medallion/bronze/independent_bayesian_scorer.py`](src/importobot/medallion/bronze/independent_bayesian_scorer.py)
 
@@ -116,13 +114,15 @@ ratio ≤ {
 
 ### 3.1 Hierarchical Processing Pipeline
 
+The system processes input through a hierarchical pipeline:
+
 ```
 Input JSON → Evidence Collection → Stage 1 Classification → [Gate Check] → Stage 2 Classification → Confidence Output
 ```
 
-**Fast Path Optimization**: When E₁ contains ≥3 strong test data indicators, bypass full Bayesian computation and assign P(is_test_data|E₁) = 1.0.
+**Fast Path Optimization**: If Evidence E₁ contains three or more strong test data indicators, the system bypasses full Bayesian computation and directly assigns P(is_test_data|E₁) = 1.0.
 
-**Early Termination**: When P(formatᵢ|E₂) ≥ 0.90 with unique field combinations, skip Stage 2 normalization.
+**Early Termination**: If P(formatᵢ|E₂) ≥ 0.90 and unique field combinations are present, the system skips Stage 2 normalization.
 
 ### 3.2 Evidence Metrics Computation
 
@@ -154,20 +154,22 @@ value_uniqueness = unique_values / total_values
 
 ### 4.1 Dataset and Methodology
 
-**Test Corpus**: 14 format variants across 4 test management systems:
+**Test Corpus**: Our test corpus comprises 14 format variants across 4 test management systems:
 - **Zephyr**: 3 variants (standard JIRA, custom fields, mixed exports)
 - **TestRail**: 4 variants (API responses, case exports, results exports, custom fields)
 - **JIRA/Xray**: 3 variants (single issue, bulk issues, custom projects)
 - **TestLink**: 2 variants (XML exports, JSON conversions)
 - **Generic**: 2 variants (minimal test data, malformed edge cases)
 
-**Evaluation Metrics**:
-- **Accuracy**: Correct format identification rate
-- **Confidence Calibration**: Alignment between confidence scores and actual correctness
-- **Inference Latency**: Time per classification on single CPU core
-- **Memory Usage**: Peak RAM consumption during classification
+**Evaluation Metrics**: We assessed the system using the following metrics:
+- **Accuracy**: The rate of correct format identification.
+- **Confidence Calibration**: The alignment between predicted confidence scores and actual correctness.
+- **Inference Latency**: The time required per classification on a single CPU core.
+- **Memory Usage**: The peak RAM consumption during classification.
 
 ### 4.2 Results
+
+The empirical evaluation yielded the following results:
 
 | Metric | Value | Benchmark |
 |--------|------|----------|
@@ -179,28 +181,27 @@ value_uniqueness = unique_values / total_values
 | Throughput | 1,825 classifications/sec | Production-ready |
 
 **Confidence Distribution Analysis**:
-- **High Confidence (>0.8)**: 71% of cases, 99.2% accuracy
-- **Medium Confidence (0.5-0.8)**: 22% of cases, 95.5% accuracy
-- **Low Confidence (<0.5)**: 7% of cases, 83.3% accuracy
+- **High Confidence (>0.8)**: Achieved 99.2% accuracy in 71% of cases.
+- **Medium Confidence (0.5-0.8)**: Achieved 95.5% accuracy in 22% of cases.
+- **Low Confidence (<0.5)**: Achieved 83.3% accuracy in 7% of cases.
 
 **Ratio Constraint Effectiveness**:
-- **Ambiguous cases (ratio < 2.0)**: 83% correctly capped at 1.5:1
-- **Strong evidence cases**: 94% correctly allowed up to 3.0:1 ratio
-- **Overall ratio compliance**: 91.3% within target bounds
+- **Ambiguous cases (ratio < 2.0)**: 83% were correctly capped at a 1.5:1 ratio.
+- **Strong evidence cases**: 94% were correctly allowed up to a 3.0:1 ratio.
+- **Overall ratio compliance**: 91.3% of cases fell within the target bounds.
 
 ### 4.3 Ablation Studies
 
 **Component Contribution Analysis**:
-- **Evidence Collection**: 34% of accuracy contribution
-- **Bayesian Scoring**: 43% of accuracy contribution
-- **Hierarchical Design**: 18% of accuracy contribution
-- **Numerical Stability**: 5% of accuracy contribution (prevents crashes)
+- **Evidence Collection**: Contributes 34% to overall accuracy.
+- **Bayesian Scoring**: Contributes 43% to overall accuracy.
+- **Hierarchical Design**: Contributes 18% to overall accuracy.
+- **Numerical Stability**: Contributes 5% to overall accuracy by preventing crashes.
 
 **Fast Path Impact**:
-- **Stage 1 Fast Path**: 67% reduction in computation time for obvious test data
-- **Stage 2 Fast Path**: 23% reduction in computation time for unique format signatures
-- **Overall Optimization**: 2.8x speedup over naive Bayesian implementation
-```
+- **Stage 1 Fast Path**: Achieves a 67% reduction in computation time for obvious test data.
+- **Stage 2 Fast Path**: Achieves a 23% reduction in computation time for unique format signatures.
+- **Overall Optimization**: Provides a 2.8x speedup compared to a naive Bayesian implementation.
 
 *Implementation*: [Source Code - `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`](tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py)
 
@@ -209,23 +210,23 @@ value_uniqueness = unique_values / total_values
 ### 5.1 Computational Complexity
 
 **Time Complexity**:
-- **Evidence Collection**: O(n) where n = input data size
-- **Likelihood Computation**: O(k × m) where k = formats (5), m = evidence types (3)
-- **Posterior Normalization**: O(k) where k = formats
-- **Overall**: O(n + k × m) = O(n) for practical input sizes
+- **Evidence Collection**: O(n), where n is the input data size.
+- **Likelihood Computation**: O(k × m), where k is the number of formats (5) and m is the number of evidence types (3).
+- **Posterior Normalization**: O(k), where k is the number of formats.
+- **Overall**: O(n + k × m), which simplifies to O(n) for practical input sizes.
 
 **Space Complexity**:
-- **Evidence Storage**: O(k × m) constant space per format-evidence matrix
-- **Intermediate Results**: O(k) for posterior computations
-- **Overall**: O(k × m) = O(1) constant space (15 floating-point values)
+- **Evidence Storage**: O(k × m) constant space per format-evidence matrix.
+- **Intermediate Results**: O(k) for posterior computations.
+- **Overall**: O(k × m), which simplifies to O(1) constant space (approximately 15 floating-point values).
 
 ### 5.2 Scalability Characteristics
 
-**Linear Scaling**: Performance scales linearly with input data size, maintaining sub-60ms latency for typical test exports (100-1000 test cases).
+**Linear Scaling**: The system's performance scales linearly with input data size, consistently maintaining sub-60ms latency for typical test exports (100-1000 test cases).
 
-**Constant Memory**: Fixed 2.1MB peak usage regardless of input size, enabling deployment in memory-constrained environments.
+**Constant Memory**: Peak memory usage remains fixed at 2.1MB regardless of input size, which enables deployment in memory-constrained environments.
 
-**Format Extensibility**: Adding new formats requires O(1) evidence pattern definitions without algorithm changes.
+**Format Extensibility**: Adding new formats requires only O(1) evidence pattern definitions, without necessitating changes to the core algorithm.
 
 ## 6. Theoretical Analysis
 
@@ -239,21 +240,21 @@ P(formatᵢ | E) ∝ P(E | formatᵢ) × P(formatᵢ)
 **Calibration Guarantees**: With Beta distribution priors and empirical likelihood mapping, the system converges to true posterior probabilities given sufficient training data.
 
 **Ratio Constraint Validity**: Imposing maximum likelihood ratios prevents overconfident predictions while preserving discriminative power:
-- **Information-Theoretic Justification**: Ratio caps bound KL-divergence
-- **Decision Theory Impact**: Optimizes expected utility under 0-1 loss function
+- **Information-Theoretic Justification**: Ratio caps bound KL-divergence.
+- **Decision Theory Impact**: Optimizes expected utility under a 0-1 loss function.
 
 ### 6.2 Independence Assumption Analysis
 
-Our assumption of conditional independence between evidence types C, Q, U enables tractable computation:
+Our assumption of conditional independence between evidence types C, Q, and U enables tractable computation:
 
 **Justification**:
-- Structural completeness, semantic quality, and value uniqueness measure different aspects of format "signature"
-- Cross-correlation analysis shows <15% mutual information between evidence types
-- Independence enables closed-form posterior computation with minimal accuracy loss
+- Structural completeness, semantic quality, and value uniqueness measure distinct aspects of a format's "signature."
+- Cross-correlation analysis indicates less than 15% mutual information between evidence types.
+- This independence allows for closed-form posterior computation with minimal accuracy loss.
 
 **Limitations**:
-- Fails to capture format-specific field dependencies (e.g., testCase always implies steps in Zephyr)
-- Mitigated through format-specific evidence boosters in Stage 2
+- The model may not fully capture format-specific field dependencies (e.g., `testCase` always implies `steps` in Zephyr).
+- This limitation is mitigated through the use of format-specific evidence boosters in Stage 2.
 
 ## 7. Related Work
 
@@ -274,33 +275,33 @@ Our assumption of conditional independence between evidence types C, Q, U enable
 
 ### 8.1 Production Performance
 
-**Real-world Deployment**: Processing 50,000+ test exports in production CI/CD pipelines with 99.8% uptime.
+**Real-world Deployment**: The system processes over 50,000 test exports in production CI/CD pipelines with 99.8% uptime.
 
 **Error Handling**: Numerical stability measures prevent production crashes:
-- Division by zero protection through epsilon bounds
-- Log-space computation prevents underflow
-- Graceful degradation for malformed input data
+- Division by zero protection is implemented through epsilon bounds.
+- Log-space computation prevents numerical underflow.
+- Graceful degradation handles malformed input data.
 
-**Integration Compatibility**: Python-based implementation with minimal dependencies:
-- **Core Requirements**: Python 3.10+, typing extensions
-- **Optional Dependencies**: scipy for advanced statistical functions (a default implementation is available)
-- **Memory Footprint**: 15MB total including standard library and dependencies
+**Integration Compatibility**: The Python-based implementation has minimal dependencies:
+- **Core Requirements**: Python 3.10+, typing extensions.
+- **Optional Dependencies**: SciPy for advanced statistical functions (a default implementation is available).
+- **Memory Footprint**: Total memory usage is 15MB, including the standard library and dependencies.
 
 ### 8.2 Configuration Management
 
-**Adaptive Thresholds**: System automatically adjusts classification thresholds based on:
-- Historical accuracy metrics
-- Input data characteristics
-- Performance requirements (speed vs. accuracy trade-off)
+**Adaptive Thresholds**: The system automatically adjusts classification thresholds based on:
+- Historical accuracy metrics.
+- Input data characteristics.
+- Performance requirements (e.g., speed vs. accuracy trade-off).
 
-**Format Evolution Support**: New format patterns learned through:
-- Evidence weight updates from classification feedback
-- Format family detection for related systems (e.g., Atlassian suite)
-- Confidence threshold optimization using ROC analysis
+**Format Evolution Support**: New format patterns are learned through:
+- Evidence weight updates derived from classification feedback.
+- Format family detection for related systems (e.g., Atlassian suite).
+- Confidence threshold optimization using ROC analysis.
 
 ## 9. Conclusion
 
-Our Bayesian classifier has proven to be a reliable tool for detecting test format exports. It correctly identified all 14 of our test formats with an average speed of under 60ms, which is fast enough for our production needs. The two-stage design and other optimizations discussed have been key to this success. We believe this approach is a solid foundation for building robust test migration tools.
+Our Bayesian classifier has proven to be an effective tool for detecting test format exports. It correctly identified all 14 test formats with an average speed under 60ms, meeting our production requirements. The two-stage design and discussed optimizations were crucial to this success. This approach provides a robust foundation for building reliable test migration tools.
 
 ## References
 
@@ -315,23 +316,23 @@ Our Bayesian classifier has proven to be a reliable tool for detecting test form
 
 ### A.1 Posterior Normalization Proof
 
-Given formats F = {f₁, f₂, ..., fₖ} and evidence E, we show:
+Given formats F = {f₁, f₂, ..., fₖ} and evidence E, we demonstrate that:
 ```
 Σᵢ₌₁ᴷ P(fᵢ | E) = 1.0
 ```
 
 **Proof**:
-From Bayes' theorem:
+From Bayes' theorem, the posterior probability is:
 ```
 P(fᵢ | E) = P(E | fᵢ) × P(fᵢ) / P(E)
 ```
 
-Where:
+Where the marginal likelihood P(E) is given by:
 ```
 P(E) = Σⱼ P(E | fⱼ) × P(fⱼ)
 ```
 
-Substituting:
+Substituting P(E) into the sum of posteriors:
 ```
 Σᵢ P(E | fᵢ) × P(fᵢ) / Σⱼ P(E | fⱼ) × P(fⱼ) = Σⱼ P(E | fⱼ) × P(fⱼ) / Σⱼ P(E | fⱼ) × P(fⱼ) = 1.0
 ```
@@ -340,7 +341,7 @@ Substituting:
 
 ### A.2 Ratio Constraint Derivation
 
-For confidence ratio R = maxᵢ P(fᵢ | E) / second_maxⱼ P(fⱼ | E), we impose:
+For the confidence ratio R = maxᵢ P(fᵢ | E) / second_maxⱼ P(fⱼ | E), we impose the following constraints:
 
 **Conservative Constraint** (max_likelihood ≤ 0.30):
 ```
@@ -352,20 +353,20 @@ R ≤ 1.5 = log₂(3)
 R ≤ 3.0 = log₂(8)
 ```
 
-**Justification**: Ratio constraints bound the information content of the decision, preventing overconfident predictions while maintaining discriminative power.
+**Justification**: These ratio constraints limit the information content of the decision, preventing overconfident predictions while preserving discriminative power.
 
 ### A.3 Numerical Stability Bounds
 
-**Log-Likelihood Floor**: We set ε = 10⁻¹² to:
-- Values > machine epsilon (2.2 × 10⁻¹⁶ for double precision)
-- Sufficiently small to prevent log(0) but large enough to avoid underflow
-- Conservative safety margin for numerical precision
+**Log-Likelihood Floor**: We set ε = 10⁻¹² to ensure:
+- Values are greater than machine epsilon (2.2 × 10⁻¹⁶ for double precision).
+- The value is sufficiently small to prevent `log(0)` but large enough to avoid underflow.
+- A conservative safety margin for numerical precision is maintained.
 
 **Quadratic Decay Properties**: For P(E | ¬H) = a + b(1-L)ᶜ with 0 ≤ L ≤ 1:
-- Monotonically decreasing function of evidence strength L
-- Maximum at L = 0: P(E | ¬H) = a + b = 0.50
-- Minimum at L = 1: P(E | ¬H) = a = 0.01
-- Smooth interpolation preventing threshold artifacts
+- This function is monotonically decreasing with evidence strength L.
+- It has a maximum at L = 0: P(E | ¬H) = a + b = 0.50.
+- It has a minimum at L = 1: P(E | ¬H) = a = 0.01.
+- The smooth interpolation prevents threshold artifacts.
 
 ## Appendix B: Experimental Results
 
@@ -373,7 +374,7 @@ R ≤ 3.0 = log₂(8)
 
 | Input Format | Predicted | Confidence | Correct | Notes |
 |-------------|-----------|-----------|---------|-------|
-| Zephyr Standard | Zephyr | 0.94 | ✓ | Strong testCase/steps pattern |
+| Zephyr Standard | Zephyr | 0.94 | ✓ | Strong `testCase`/`steps` pattern |
 | Zephyr Custom | Zephyr | 0.87 | ✓ | Weak field signatures |
 | TestRail API | TestRail | 0.91 | ✓ | ID-heavy structure |
 | TestRail Custom | TestRail | 0.83 | ✓ | Non-standard field names |
@@ -396,7 +397,7 @@ Confidence Range    Accuracy Rate    Mean Confidence
 0.0 - 0.2          28.7%           0.31
 ```
 
-**Expected Calibration Error (ECE)**: 0.043, indicating well-calibrated confidence scores across the prediction space.
+**Expected Calibration Error (ECE)**: An ECE of 0.043 indicates well-calibrated confidence scores across the prediction space.
 
 ### B.3 Performance Benchmarking
 

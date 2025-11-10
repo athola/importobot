@@ -24,7 +24,7 @@ def _remote_path(name: str) -> str:
 
 
 class SSHKeywordTestGenerator:
-    """Generates comprehensive test cases for SSH keyword coverage."""
+    """Generate comprehensive test cases for SSH keyword coverage."""
 
     def __init__(self) -> None:
         """Initialize SSH keyword test generator."""

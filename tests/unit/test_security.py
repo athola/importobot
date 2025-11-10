@@ -43,8 +43,7 @@ class TestSSHParameterValidation:
 
         assert len(warnings) == 1
         assert (
-            "WARNING: Potentially dangerous command pattern detected: rm\\s+-rf"
-            in warnings[0]
+            "Potentially dangerous command pattern detected: rm\\s+-rf" in warnings[0]
         )
 
     def test_validate_ssh_parameters_multiple_patterns(self) -> None:
@@ -161,7 +160,7 @@ class TestFileOperationsValidation:
         warnings = validator.validate_file_operations("file.txt", "delete")
 
         assert len(warnings) == 1
-        assert "WARNING: Destructive operation 'delete'" in warnings[0]
+        assert "Destructive operation 'delete'" in warnings[0]
 
     def test_validate_file_operations_multiple_warnings(self) -> None:
         """Test file operations validation with multiple warnings."""

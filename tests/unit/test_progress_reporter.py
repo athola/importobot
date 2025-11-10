@@ -195,7 +195,7 @@ class TestWithProgressReporting:
         """Test decorator with successful function execution."""
 
         @with_progress_reporting(total_items=10, operation_name="test_op")
-        def test_function(reporter, x, y) -> None:
+        def test_function(reporter: ProgressReporter, x: int, y: int) -> int:
             for _ in range(10):
                 reporter.update(1)
             return x + y
@@ -220,7 +220,7 @@ class TestWithProgressReporting:
         """Test decorator handles exceptions properly."""
 
         @with_progress_reporting(total_items=5, operation_name="failing_op")
-        def failing_function(reporter):
+        def failing_function(reporter: ProgressReporter) -> None:
             raise ValueError("Test error")
 
         with patch(
@@ -252,7 +252,7 @@ class TestWithProgressReporting:
             logger=custom_logger,
             milestone_percentage=25,
         )
-        def custom_function(reporter):
+        def custom_function(reporter: ProgressReporter) -> str:
             _ = reporter  # Mark as used
             return "done"
 

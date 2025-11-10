@@ -6,11 +6,11 @@ from importobot.utils.credential_manager import CredentialManager, EncryptedCred
 
 
 @pytest.fixture(autouse=True)
-def clear_env(monkeypatch):
+def clear_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("IMPORTOBOT_ENCRYPTION_KEY", raising=False)
 
 
-def test_encrypt_decrypt_roundtrip(monkeypatch) -> None:
+def test_encrypt_decrypt_roundtrip(monkeypatch: pytest.MonkeyPatch) -> None:
     # Use deterministic key for reproducibility
     monkeypatch.setenv("IMPORTOBOT_ENCRYPTION_KEY", "A" * 44)
     manager = CredentialManager()
@@ -24,7 +24,7 @@ def test_encrypt_decrypt_roundtrip(monkeypatch) -> None:
     assert decrypted == "s3cr3t!"
 
 
-def test_uses_base64_when_library_missing(monkeypatch) -> None:
+def test_uses_base64_when_library_missing(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("IMPORTOBOT_ENCRYPTION_KEY", raising=False)
     manager = CredentialManager()
     encrypted = manager.encrypt_credential("secondary-secret")
@@ -34,5 +34,5 @@ def test_uses_base64_when_library_missing(monkeypatch) -> None:
 
 def test_reject_empty_credentials() -> None:
     manager = CredentialManager()
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Credential must be non-empty"):
         manager.encrypt_credential("")

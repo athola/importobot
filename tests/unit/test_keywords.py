@@ -15,14 +15,18 @@ class TestGenericKeywordGeneratorCore:
     # pylint: disable=redefined-outer-name,protected-access
     """Tests for core GenericKeywordGenerator functionality."""
 
-    def test_format_test_data_comment_short(self, generator: GenericKeywordGenerator) -> None:
+    def test_format_test_data_comment_short(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test that a short test data comment is not split."""
         comment = "short comment"
         result = generator._format_test_data_comment(comment)
         assert len(result) == 1
         assert result[0] == f"    # Test Data: {comment}"
 
-    def test_format_test_data_comment_long(self, generator: GenericKeywordGenerator) -> None:
+    def test_format_test_data_comment_long(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test that a long test data comment is split."""
         long_comment = (
             "a very long comment that should be split into multiple lines, "
@@ -33,7 +37,9 @@ class TestGenericKeywordGeneratorCore:
         assert result[0].startswith("    # Test Data:")
         assert result[1].startswith("    # Test Data (cont.):")
 
-    def test_determine_robot_keyword_command_execution(self, generator: GenericKeywordGenerator) -> None:
+    def test_determine_robot_keyword_command_execution(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test that the command_execution intent is handled correctly."""
         description = "run a command"
         test_data = "command: echo hello"
@@ -41,7 +47,9 @@ class TestGenericKeywordGeneratorCore:
         result = generator._determine_robot_keyword(description, test_data, expected)
         assert result == "Run    echo hello"
 
-    def test_determine_robot_keyword_unknown_intent(self, generator: GenericKeywordGenerator) -> None:
+    def test_determine_robot_keyword_unknown_intent(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test that unknown intents are handled gracefully with No Operation."""
         description = "unknown action"
         test_data = "some data"
@@ -102,7 +110,9 @@ class TestGenericKeywordGeneratorCommands:
     # pylint: disable=redefined-outer-name
     """Tests for operating system and command keyword generation."""
 
-    def test_command_keyword_preserves_robot_framework_keywords(self, generator) -> None:
+    def test_command_keyword_preserves_robot_framework_keywords(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test Robot Framework keywords preserved instead of wrapped in Run Process."""
         # Test BuiltIn library keywords (normalized to lowercase)
         result = generator.operating_system_generator.generate_command_keyword(
@@ -127,7 +137,9 @@ class TestGenericKeywordGeneratorCommands:
         )
         assert result == "get file    ${filename}"
 
-    def test_command_keyword_maps_hash_commands_to_run_keyword(self, generator) -> None:
+    def test_command_keyword_maps_hash_commands_to_run_keyword(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test hash and shasum commands mapped to Run keyword for system execution."""
         # Test hash command mapping
         result = generator.operating_system_generator.generate_command_keyword(
@@ -159,7 +171,9 @@ class TestGenericKeywordGeneratorCommands:
         )
         assert result == "Run    md5sum ${test_file}"
 
-    def test_command_keyword_wraps_non_robot_commands_in_run_process(self, generator) -> None:
+    def test_command_keyword_wraps_non_robot_commands_in_run_process(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test that non-Robot Framework commands are wrapped appropriately."""
         # Echo commands use OperatingSystem.Run for consistency
         result = generator.operating_system_generator.generate_command_keyword(
@@ -182,7 +196,9 @@ class TestGenericKeywordGeneratorFiles:
     # pylint: disable=redefined-outer-name
     """Tests for file operation keyword generation."""
 
-    def test_file_operation_copy_with_json_variables(self, generator) -> None:
+    def test_file_operation_copy_with_json_variables(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test Copy File keyword extracts source and destination from JSON."""
         description = "copy file from source to destination"
         test_data = (
@@ -195,7 +211,9 @@ class TestGenericKeywordGeneratorFiles:
         expected = "Copy File    /path/to/source.txt    /path/to/dest.txt"
         assert result == expected
 
-    def test_file_operation_copy_with_variables(self, generator) -> None:
+    def test_file_operation_copy_with_variables(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test Copy File keyword handles Robot Framework variables."""
         description = "copy ${source_var} to ${dest_var}"
         test_data = ""
@@ -205,7 +223,9 @@ class TestGenericKeywordGeneratorFiles:
         expected = "Copy File    ${source_var}    ${dest_var}"
         assert result == expected
 
-    def test_file_operation_copy_with_alt_json_format(self, generator) -> None:
+    def test_file_operation_copy_with_alt_json_format(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test Copy File keyword with alternative JSON field names."""
         description = "copy file operation"
         test_data = '{"source": "original.txt", "destination": "copy.txt"}'
@@ -215,7 +235,9 @@ class TestGenericKeywordGeneratorFiles:
         expected = "Copy File    original.txt    copy.txt"
         assert result == expected
 
-    def test_file_operation_copy_with_missing_json_data(self, generator) -> None:
+    def test_file_operation_copy_with_missing_json_data(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test Copy File keyword uses variables when no JSON data found."""
         description = "copy file"
         test_data = '{"unrelated": "data"}'
@@ -225,7 +247,9 @@ class TestGenericKeywordGeneratorFiles:
         expected = "Copy File    ${source_file}    ${destination_file}"
         assert result == expected
 
-    def test_file_operation_move_with_json_variables(self, generator) -> None:
+    def test_file_operation_move_with_json_variables(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test Move File keyword extracts source and destination from JSON."""
         description = "move file from source to destination"
         test_data = (
@@ -238,7 +262,9 @@ class TestGenericKeywordGeneratorFiles:
         expected = "Move File    /old/location.txt    /new/location.txt"
         assert result == expected
 
-    def test_file_operation_move_with_variables(self, generator) -> None:
+    def test_file_operation_move_with_variables(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test Move File keyword handles Robot Framework variables."""
         description = "move ${source_var} to ${dest_var}"
         test_data = ""
@@ -248,7 +274,9 @@ class TestGenericKeywordGeneratorFiles:
         expected = "Move File    ${source_var}    ${dest_var}"
         assert result == expected
 
-    def test_file_operation_move_with_alt_json_format(self, generator) -> None:
+    def test_file_operation_move_with_alt_json_format(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test Move File keyword with alternative JSON field names."""
         description = "move file operation"
         test_data = '{"source": "temp.txt", "destination": "final.txt"}'
@@ -258,7 +286,9 @@ class TestGenericKeywordGeneratorFiles:
         expected = "Move File    temp.txt    final.txt"
         assert result == expected
 
-    def test_file_operation_move_with_missing_json_data(self, generator) -> None:
+    def test_file_operation_move_with_missing_json_data(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test Move File keyword uses variables when no JSON data found."""
         description = "move file"
         test_data = '{"unrelated": "data"}'
@@ -273,7 +303,9 @@ class TestGenericKeywordGeneratorVerification:
     # pylint: disable=redefined-outer-name,protected-access
     """Tests for verification keyword generation."""
 
-    def test_verification_with_message_text(self, generator) -> None:
+    def test_verification_with_message_text(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test verification step with specific message text."""
         description = "Verify successful registration"
         test_data = "verify: Welcome message displayed"
@@ -282,7 +314,9 @@ class TestGenericKeywordGeneratorVerification:
         assert "Page Should Contain" in result
         assert "Welcome message displayed" in result
 
-    def test_verification_with_expected_result(self, generator) -> None:
+    def test_verification_with_expected_result(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test verification uses expected result when available."""
         description = "Verify successful registration"
         test_data = "verify: Welcome message displayed"
@@ -292,7 +326,9 @@ class TestGenericKeywordGeneratorVerification:
         # The implementation extracts the message from test_data, not expected
         assert "Welcome message displayed" in result
 
-    def test_verification_general_pattern(self, generator) -> None:
+    def test_verification_general_pattern(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test general verification pattern without specific keywords."""
         description = "Verify successful operation"
         test_data = "verify: Success message"
@@ -301,7 +337,9 @@ class TestGenericKeywordGeneratorVerification:
         assert "Page Should Contain" in result
         assert "Success message" in result
 
-    def test_verification_with_colon_format(self, generator) -> None:
+    def test_verification_with_colon_format(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test verification extracts text after colon in test data."""
         description = "Check result"
         test_data = "verify: Operation completed successfully"
@@ -310,7 +348,9 @@ class TestGenericKeywordGeneratorVerification:
         assert "Page Should Contain" in result
         assert "Operation completed successfully" in result
 
-    def test_verification_element_should_contain_with_id_locator(self, generator) -> None:
+    def test_verification_element_should_contain_with_id_locator(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test verification uses Element Should Contain for ID locators."""
         description = "Verify username field contains correct value"
         test_data = "verify: element=id=username_field, text=JohnDoe"
@@ -320,7 +360,9 @@ class TestGenericKeywordGeneratorVerification:
         assert "id=username_field" in result
         assert "JohnDoe" in result
 
-    def test_verification_element_should_contain_with_xpath(self, generator) -> None:
+    def test_verification_element_should_contain_with_xpath(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test verification uses Element Should Contain for XPath locators."""
         description = "Verify element contains text"
         test_data = "verify: element=xpath=//div[@class='message'], text=Success"
@@ -330,7 +372,9 @@ class TestGenericKeywordGeneratorVerification:
         assert "xpath=//div[@class='message']" in result
         assert "Success" in result
 
-    def test_verification_element_should_contain_with_css(self, generator) -> None:
+    def test_verification_element_should_contain_with_css(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test verification uses Element Should Contain for CSS locators."""
         description = "Check element content"
         test_data = "verify: element=css=.status-message, text=Operation complete"
@@ -340,7 +384,9 @@ class TestGenericKeywordGeneratorVerification:
         assert "css=.status-message" in result
         assert "Operation complete" in result
 
-    def test_verification_should_contain_with_variables(self, generator) -> None:
+    def test_verification_should_contain_with_variables(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test verification uses Should Contain for variable comparison."""
         description = "Verify output contains expected content"
         test_data = "verify: container=${response_data}, text=${expected_value}"
@@ -350,7 +396,9 @@ class TestGenericKeywordGeneratorVerification:
         assert "${response_data}" in result
         assert "${expected_value}" in result
 
-    def test_verification_should_contain_with_mixed_variables(self, generator) -> None:
+    def test_verification_should_contain_with_mixed_variables(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test verification uses Should Contain when variables are detected."""
         description = "Check if result contains value"
         test_data = "verify: ${actual_result} contains success"
@@ -360,7 +408,9 @@ class TestGenericKeywordGeneratorVerification:
         assert "${actual_result}" in result
         assert "success" in result
 
-    def test_verification_page_should_contain_for_general_text(self, generator) -> None:
+    def test_verification_page_should_contain_for_general_text(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test verification uses Page Should Contain for general text."""
         description = "Verify success message appears"
         test_data = "verify: Registration completed successfully"
@@ -369,7 +419,9 @@ class TestGenericKeywordGeneratorVerification:
         assert "Page Should Contain" in result
         assert "Registration completed successfully" in result
 
-    def test_verification_element_should_contain_alternative_format(self, generator) -> None:
+    def test_verification_element_should_contain_alternative_format(
+        self, generator: GenericKeywordGenerator
+    ) -> None:
         """Test verification handles alternative element verification format."""
         description = "Verify button text"
         test_data = "element: id=submit_btn, expected: Submit Registration"

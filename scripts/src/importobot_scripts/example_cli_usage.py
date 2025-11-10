@@ -184,7 +184,7 @@ def pipeline_integration_example() -> None:
     pipeline_script = root_dir / "examples" / "pipeline_example.sh"
     pipeline_script.parent.mkdir(exist_ok=True)
 
-    pipeline_content = f'''#!/bin/bash
+    pipeline_content = f"""#!/bin/bash
 # Example CI/CD pipeline integration for Importobot
 
 set -e  # Exit on error
@@ -245,7 +245,7 @@ if [ $TOTAL_COUNT -gt 0 ]; then
 fi
 
 echo "Pipeline completed. Report saved to: $REPORT_FILE"
-'''
+"""
 
     # Write pipeline script
     with open(pipeline_script, "w", encoding="utf-8") as f:

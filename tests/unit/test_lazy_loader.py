@@ -1,6 +1,7 @@
 """Tests for LazyDataLoader utility following TDD principles."""
 
 import json
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -11,7 +12,7 @@ from importobot.utils.lazy_loader import LazyDataLoader
 class TestLazyDataLoader:
     """Test LazyDataLoader class following TDD methodology."""
 
-    def test_load_templates_with_existing_file(self, tmp_path) -> None:
+    def test_load_templates_with_existing_file(self, tmp_path: Path) -> None:
         """Test loading templates from existing JSON file."""
         LazyDataLoader.load_templates.cache_clear()
         # Arrange
@@ -54,7 +55,7 @@ class TestLazyDataLoader:
         assert "__precomputed__" in result
         assert isinstance(result, dict)
 
-    def test_load_keyword_mappings_with_existing_file(self, tmp_path) -> None:
+    def test_load_keyword_mappings_with_existing_file(self, tmp_path: Path) -> None:
         """Test loading keyword mappings from existing JSON file."""
         LazyDataLoader.load_keyword_mappings.cache_clear()
         # Clear any cached results first
@@ -99,7 +100,7 @@ class TestLazyDataLoader:
         assert "__precomputed__" in result
         assert isinstance(result, dict)
 
-    def test_caching_behavior_templates(self, tmp_path) -> None:
+    def test_caching_behavior_templates(self, tmp_path: Path) -> None:
         """Test that templates are cached using LRU cache."""
         LazyDataLoader.load_templates.cache_clear()
         # Arrange
@@ -119,7 +120,7 @@ class TestLazyDataLoader:
             assert result1 == result2
             assert result1 is result2  # Should be same object due to caching
 
-    def test_caching_behavior_keyword_mappings(self, tmp_path) -> None:
+    def test_caching_behavior_keyword_mappings(self, tmp_path: Path) -> None:
         """Test that keyword mappings are cached using LRU cache."""
         LazyDataLoader.load_keyword_mappings.cache_clear()
         # Arrange
@@ -187,7 +188,7 @@ class TestLazyDataLoader:
         assert "a, b" in result
         assert "(5 total items)" in result
 
-    def test_json_file_encoding_utf8(self, tmp_path) -> None:
+    def test_json_file_encoding_utf8(self, tmp_path: Path) -> None:
         """Test that JSON files are read with UTF-8 encoding."""
         # Arrange
         template_data = {"unicode_test": "测试数据"}
@@ -228,7 +229,7 @@ class TestLazyDataLoader:
             assert "__precomputed__" in result
             mock_path.assert_called()
 
-    def test_json_parsing_error_handling(self, tmp_path) -> None:
+    def test_json_parsing_error_handling(self, tmp_path: Path) -> None:
         """Test handling of malformed JSON files."""
         # Arrange
         template_dir = tmp_path / "data" / "templates"

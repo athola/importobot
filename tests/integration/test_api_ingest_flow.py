@@ -2,8 +2,9 @@
 
 import json
 from argparse import Namespace
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -19,7 +20,7 @@ class DummyClient:
     def __init__(self, payloads: Iterable[dict[str, object]]) -> None:
         self.payloads = list(payloads)
 
-    def fetch_all(self, progress_cb):
+    def fetch_all(self, progress_cb: Callable[..., None]) -> Iterable[dict[str, Any]]:
         """Yield payloads while emitting progress callbacks."""
         for payload in self.payloads:
             items = payload.get("items", [])
@@ -31,7 +32,7 @@ class DummyClient:
             yield payload
 
 
-def make_args(tmp_path) -> Namespace:
+def make_args(tmp_path: Path) -> Namespace:
     """Construct CLI args namespace for integration tests."""
     return Namespace(
         fetch_format=SupportedFormat.TESTRAIL,
@@ -53,7 +54,7 @@ def make_args(tmp_path) -> Namespace:
 
 
 def test_ingestion_then_conversion(
-    monkeypatch: pytest.MonkeyPatch, tmp_path
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """Fetched payload should feed into existing conversion flow."""
     payloads: list[dict[str, object]] = [{"items": [{"id": 1}]}]
@@ -93,14 +94,16 @@ def test_ingestion_then_conversion(
 
 
 def test_ingest_metadata_tracks_payloads(
-    monkeypatch: pytest.MonkeyPatch, tmp_path
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """Metadata file reflects payload counts with multi-stage progress callbacks."""
 
     class MultiStageClient:
         """Client that emits key discovery and detail fetch progress events."""
 
-        def fetch_all(self, progress_cb):
+        def fetch_all(
+            self, progress_cb: Callable[..., None]
+        ) -> Iterable[dict[str, Any]]:
             """Fetch all test items with progress callback."""
             progress_cb(items=0, total=None, page=None)
             payload = {

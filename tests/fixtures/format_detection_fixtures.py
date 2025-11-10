@@ -167,61 +167,58 @@ class FormatTestDataGenerator:
         cases_count: int = 3,
     ) -> dict[str, Any]:
         """Create TestRail data with configurable parameters."""
-        runs = []
-        for i in range(runs_count):
-            runs.append(
-                {
-                    "id": 100 + i,
-                    "suite_id": 1,
-                    "name": f"Test Run {i + 1}",
-                    "description": f"Test run {i + 1} description",
-                    "milestone_id": 1,
-                    "assignedto_id": 1,
-                    "include_all": True,
-                    "is_completed": False,
-                    "created_on": 1640995200 + i * 3600,
-                    "created_by": 1,
-                }
-            )
+        runs = [
+            {
+                "id": 100 + i,
+                "suite_id": 1,
+                "name": f"Test Run {i + 1}",
+                "description": f"Test run {i + 1} description",
+                "milestone_id": 1,
+                "assignedto_id": 1,
+                "include_all": True,
+                "is_completed": False,
+                "created_on": 1640995200 + i * 3600,
+                "created_by": 1,
+            }
+            for i in range(runs_count)
+        ]
 
-        tests = []
-        for i in range(tests_count):
-            tests.append(
-                {
-                    "id": 200 + i,
-                    "case_id": 300 + (i % cases_count),
-                    "status_id": 1 if i % 5 != 0 else 5,
-                    "title": f"Test Execution {i + 1}",
-                    "run_id": runs[0]["id"],
-                    "assignedto_id": 1,
-                    "created_on": 1640995200 + i * 60,
-                    "comment": f"Execution comments for test {i + 1}",
-                    "estimate": f"{30 + i * 5}m",
-                }
-            )
+        tests = [
+            {
+                "id": 200 + i,
+                "case_id": 300 + (i % cases_count),
+                "status_id": 1 if i % 5 != 0 else 5,
+                "title": f"Test Execution {i + 1}",
+                "run_id": runs[0]["id"],
+                "assignedto_id": 1,
+                "created_on": 1640995200 + i * 60,
+                "comment": f"Execution comments for test {i + 1}",
+                "estimate": f"{30 + i * 5}m",
+            }
+            for i in range(tests_count)
+        ]
 
-        cases = []
-        for i in range(cases_count):
-            cases.append(
-                {
-                    "id": 300 + i,
-                    "title": f"Test Case {i + 1}",
-                    "section_id": 1,
-                    "template_id": 1,
-                    "type_id": 3,
-                    "priority_id": i % 4 + 1,
-                    "milestone_id": 1,
-                    "refs": f"REQ-{i + 100}",
-                    "custom_steps_separated": [
-                        {
-                            "content": f"Test step {j + 1} for case {i + 1}",
-                            "expected": f"Expected result {j + 1}",
-                        }
-                        for j in range(i % 3 + 2)
-                    ],
-                    "estimate": f"{30 + i * 10}m",
-                }
-            )
+        cases = [
+            {
+                "id": 300 + i,
+                "title": f"Test Case {i + 1}",
+                "section_id": 1,
+                "template_id": 1,
+                "type_id": 3,
+                "priority_id": i % 4 + 1,
+                "milestone_id": 1,
+                "refs": f"REQ-{i + 100}",
+                "custom_steps_separated": [
+                    {
+                        "content": f"Test step {j + 1} for case {i + 1}",
+                        "expected": f"Expected result {j + 1}",
+                    }
+                    for j in range(i % 3 + 2)
+                ],
+                "estimate": f"{30 + i * 10}m",
+            }
+            for i in range(cases_count)
+        ]
 
         return {
             "runs": runs,
@@ -612,11 +609,14 @@ def validate_performance_metrics(
             f"exceeds limit {max_allowed_time:.3f}s"
         )
 
-    if memory_usage is not None and max_allowed_memory is not None:
-        if memory_usage > max_allowed_memory:
-            errors.append(
-                f"Memory usage {memory_usage:.1f}MB "
-                f"exceeds limit {max_allowed_memory:.1f}MB"
-            )
+    if (
+        memory_usage is not None
+        and max_allowed_memory is not None
+        and memory_usage > max_allowed_memory
+    ):
+        errors.append(
+            f"Memory usage {memory_usage:.1f}MB "
+            f"exceeds limit {max_allowed_memory:.1f}MB"
+        )
 
     return len(errors) == 0, errors

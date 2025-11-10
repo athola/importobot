@@ -158,7 +158,7 @@ class ResourceManager:
             self.logger.warning("Could not check memory usage: %s", e)
 
     def start_operation(self, operation_name: str) -> str:
-        """Start tracking a resource-intensive operation."""
+        """Start tracking an operation."""
         if self._active_operations >= self.limits.max_concurrent_operations:
             max_ops = self.limits.max_concurrent_operations
             raise RuntimeError(
@@ -266,7 +266,7 @@ class ResourceManager:
             self.logger.warning("Could not check directory file count: %s", e)
 
     def track_file_generated(self, file_path: str, size_mb: float) -> None:
-        """Track a generated file for resource monitoring."""
+        """Track a generated file."""
         self._total_files_generated += 1
         self._total_disk_usage_mb += size_mb
 

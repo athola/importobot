@@ -36,9 +36,9 @@ class TestCoreInvariants:
             result = validate_safe_path(path_str)
             # If no exception, result should be a valid path string
             assert result is None or isinstance(result, str)
-        except (ValidationError, ValueError, OSError) as e:
-            # Expected exceptions are fine
-            assert isinstance(e, ValidationError | ValueError | OSError)
+        except (ValidationError, ValueError, OSError):
+            # Expected exceptions are acceptable for invalid inputs
+            return
         except Exception as e:
             # Unexpected exceptions should not occur
             pytest.fail(
@@ -105,11 +105,14 @@ class TestCoreInvariants:
     )
     @settings(max_examples=30)
     def test_converter_initialization_invariant(
-        self, _config_data: dict[str, str]
+        self, config_data: dict[str, str]
     ) -> None:
         """Invariant: Converter should initialize safely with various configurations."""
         try:
             converter = JsonToRobotConverter()
+
+            # Hypothesis provides diverse configuration data even if not used directly
+            assert isinstance(config_data, dict)
 
             # Converter should always have required attributes after initialization
             assert hasattr(converter, "conversion_engine")

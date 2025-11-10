@@ -45,13 +45,17 @@ class TestEnvironmentParsing:
         "value",
         ["1", "true", "True", "TRUE", "yes", "YES", "on", "ON", "  1  ", "  true  "],
     )
-    def test_flag_from_env_truthy(self, monkeypatch: pytest.MonkeyPatch, value: str) -> None:
+    def test_flag_from_env_truthy(
+        self, monkeypatch: pytest.MonkeyPatch, value: str
+    ) -> None:
         """Various truthy strings should parse as True."""
         monkeypatch.setenv("TEST_FLAG", value)
         assert _flag_from_env("TEST_FLAG") is True
 
     @pytest.mark.parametrize("value", ["0", "false", "no", "off", "random", "", "  "])
-    def test_flag_from_env_falsy(self, monkeypatch: pytest.MonkeyPatch, value: str) -> None:
+    def test_flag_from_env_falsy(
+        self, monkeypatch: pytest.MonkeyPatch, value: str
+    ) -> None:
         """Non-truthy strings should parse as False."""
         monkeypatch.setenv("TEST_FLAG", value)
         assert _flag_from_env("TEST_FLAG") is False
@@ -65,13 +69,17 @@ class TestEnvironmentParsing:
         ("value", "expected"),
         [("1.5", 1.5), ("0.0", 0.0), ("-2.5", -2.5), ("100", 100.0)],
     )
-    def test_float_from_env_valid(self, monkeypatch: pytest.MonkeyPatch, value: str, expected: float) -> None:
+    def test_float_from_env_valid(
+        self, monkeypatch: pytest.MonkeyPatch, value: str, expected: float
+    ) -> None:
         """Valid numeric strings should parse correctly."""
         monkeypatch.setenv("TEST_FLOAT", value)
         assert _float_from_env("TEST_FLOAT", default=0.0) == expected
 
     @pytest.mark.parametrize("value", ["invalid", "", "3.14.15"])
-    def test_float_from_env_invalid_returns_default(self, monkeypatch: pytest.MonkeyPatch, value: str) -> None:
+    def test_float_from_env_invalid_returns_default(
+        self, monkeypatch: pytest.MonkeyPatch, value: str
+    ) -> None:
         """Invalid numeric strings should fall back to default."""
         monkeypatch.setenv("TEST_FLOAT", value)
         assert _float_from_env("TEST_FLOAT", default=42.0) == 42.0
@@ -84,13 +92,17 @@ class TestEnvironmentParsing:
     @pytest.mark.parametrize(
         ("value", "expected"), [("42", 42), ("0", 0), ("-10", -10), ("1000", 1000)]
     )
-    def test_int_from_env_valid(self, monkeypatch: pytest.MonkeyPatch, value: str, expected: int) -> None:
+    def test_int_from_env_valid(
+        self, monkeypatch: pytest.MonkeyPatch, value: str, expected: int
+    ) -> None:
         """Valid integer strings should parse correctly."""
         monkeypatch.setenv("TEST_INT", value)
         assert _int_from_env("TEST_INT", default=0) == expected
 
     @pytest.mark.parametrize("value", ["invalid", "", "3.14", "10.5"])
-    def test_int_from_env_invalid_returns_default(self, monkeypatch: pytest.MonkeyPatch, value: str) -> None:
+    def test_int_from_env_invalid_returns_default(
+        self, monkeypatch: pytest.MonkeyPatch, value: str
+    ) -> None:
         """Invalid integer strings should fall back to default."""
         monkeypatch.setenv("TEST_INT", value)
         assert _int_from_env("TEST_INT", default=99) == 99
@@ -411,7 +423,9 @@ class TestExporterErrorHandling:
 class TestGlobalSingleton:
     """Test global telemetry client singleton."""
 
-    def test_get_telemetry_client_returns_singleton(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_get_telemetry_client_returns_singleton(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Multiple calls should return the same instance."""
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")
         reset_telemetry_client()
@@ -423,7 +437,9 @@ class TestGlobalSingleton:
         assert client2 is not None
         assert client1 is client2
 
-    def test_reset_telemetry_client_clears_singleton(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_reset_telemetry_client_clears_singleton(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Reset should allow new instance creation."""
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")
         reset_telemetry_client()
@@ -460,7 +476,9 @@ class TestGlobalSingleton:
         # Should only have default exporter
         assert len(client._exporters) == 1
 
-    def test_singleton_initialization_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_singleton_initialization_from_env(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Singleton should initialize from environment variables."""
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")
         monkeypatch.setenv("IMPORTOBOT_TELEMETRY_MIN_INTERVAL_SECONDS", "30")
@@ -473,7 +491,9 @@ class TestGlobalSingleton:
         assert client._min_emit_interval == 30.0
         assert client._min_sample_delta == 50
 
-    def test_singleton_disabled_by_default(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_singleton_disabled_by_default(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Telemetry should be disabled by default."""
         monkeypatch.delenv("IMPORTOBOT_ENABLE_TELEMETRY", raising=False)
         reset_telemetry_client()
@@ -540,7 +560,9 @@ class TestThreadSafety:
         # 1 default + 5 threads * 10 exporters = 51
         assert len(client._exporters) == 51
 
-    def test_global_singleton_thread_safety(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_global_singleton_thread_safety(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Global singleton should be thread-safe during initialization."""
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")
         reset_telemetry_client()

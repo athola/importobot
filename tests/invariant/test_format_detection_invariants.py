@@ -204,12 +204,11 @@ class TestFormatDetectionInvariants:
             detected_confidence = detector.get_format_confidence(data, detected_format)
 
             # Get confidence for all other formats
-            other_confidences = []
-            for format_type in detector.get_supported_formats():
-                if format_type != detected_format:
-                    other_confidences.append(
-                        detector.get_format_confidence(data, format_type)
-                    )
+            other_confidences = [
+                detector.get_format_confidence(data, format_type)
+                for format_type in detector.get_supported_formats()
+                if format_type != detected_format
+            ]
 
             # If a specific format was detected (not UNKNOWN), its confidence
             # should be among the highest (accounting for priority weights)
@@ -225,7 +224,9 @@ class TestFormatDetectionInvariants:
 
     @given(management_like_data(), st.integers(min_value=1, max_value=100))
     @settings(max_examples=20, suppress_health_check=[HealthCheck.filter_too_much])
-    def test_format_detection_scalability_invariant(self, data: Any, iterations: int) -> None:
+    def test_format_detection_scalability_invariant(
+        self, data: Any, iterations: int
+    ) -> None:
         """Invariant: Format detection performance should be consistent."""
         assume(iterations <= 100)  # Limit to reasonable range for CI
 
@@ -294,7 +295,9 @@ class TestFormatDetectionInvariants:
         )
     )
     @settings(max_examples=50)
-    def test_specific_format_indicators_invariant(self, data_with_indicators: Any) -> None:
+    def test_specific_format_indicators_invariant(
+        self, data_with_indicators: Any
+    ) -> None:
         """Invariant: Specific format indicators increase confidence appropriately."""
         detector = FormatDetector()
 

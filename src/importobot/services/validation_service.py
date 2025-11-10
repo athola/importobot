@@ -161,13 +161,12 @@ class ValidationService:
     ) -> dict[str, Any]:
         """Perform k-fold cross-validation on data using multiple strategies.
 
-        This method implements statistical cross-validation to assess the
-        reliability and consistency of validation results across different
-        data subsets and validation strategies.
+        Assess the reliability and consistency of validation results across
+        different data subsets and validation strategies.
 
         Args:
             data: Data to validate (must be iterable for cross-validation)
-            strategies: List of validation strategy names
+            strategies: List of strategy names to apply
             k_folds: Number of folds for cross-validation (default: 5)
             context: Additional validation context
 

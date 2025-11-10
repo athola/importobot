@@ -1,13 +1,13 @@
 # Performance Benchmarks
 
-Importobot uses two complementary benchmarking systems:
+Importobot utilizes two complementary benchmarking systems:
 
-1. **ASV (Airspeed Velocity)** - Tracks performance across releases with automated visualization
-2. **Performance Benchmark Script** - Quick validation during development
+1.  **ASV (Airspeed Velocity)**: Tracks performance across releases with automated visualization.
+2.  **Development Benchmark Script**: Provides quick validation during development.
 
 ## ASV Performance Tracking
 
-[Airspeed Velocity (ASV)](https://asv.readthedocs.io/) is used to track the performance of Importobot over time. It automatically runs benchmarks on each commit and generates detailed reports that can be used to identify performance regressions.
+[Airspeed Velocity (ASV)](https://asv.readthedocs.io/) tracks Importobot's performance over time. It automatically runs benchmarks on each commit and generates detailed reports to identify performance regressions.
 
 ### Running ASV Benchmarks
 
@@ -25,7 +25,7 @@ asv preview
 
 ## Development Benchmark Script
 
-A script is provided for running quick performance benchmarks during development. This is useful for validating the performance impact of your changes before submitting a pull request.
+A dedicated script facilitates quick performance benchmarks during development. This script helps validate the performance impact of changes before submitting a pull request.
 
 ### Running the Benchmark Script
 
@@ -39,10 +39,10 @@ uv run python -m importobot_scripts.benchmarks.performance_benchmark --iteration
 
 ### Key Metrics
 
-The benchmark script captures the following key metrics:
+The development benchmark script captures the following key metrics:
 
--   **Throughput:** The number of files processed per second.
--   **Latency:** The time it takes to process a single file.
--   **Memory Usage:** The amount of memory used by the process.
+-   **Throughput**: The number of files processed per second.
+-   **Latency**: The time required to process a single file.
+-   **Memory Usage**: The amount of memory consumed by the process.
 
 Results are printed to the console and saved to `performance_benchmark_results.json`.

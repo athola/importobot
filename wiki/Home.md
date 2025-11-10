@@ -1,8 +1,10 @@
 # Importobot Wiki
 
-This wiki contains all documentation for Importobot, a tool for converting Zephyr, Xray, and TestLink exports into Robot Framework suites. We built it to automate the conversion of large test suites after finding that manual conversion was taking hours for single exports.
+This wiki contains all documentation for Importobot.
 
-The goal of Importobot is to generate Robot files that run without any post-conversion editing. When it can't convert a step reliably, it flags the step instead of guessing, which prevents silent errors in generated tests.
+Importobot converts Zephyr, Xray, and TestLink exports into Robot Framework test suites. It was built to automate a manual conversion process that took hours for a single export.
+
+Importobot aims to generate Robot files that require no manual edits after conversion. If a step cannot be converted reliably, it is flagged with a comment to prevent silent errors in the final test suite.
 
 If you are new to the project, see the [Getting Started](Getting-Started.md) guide.
 
@@ -34,7 +36,7 @@ If you are new to the project, see the [Getting Started](Getting-Started.md) gui
 ```python
 import importobot
 
-# Convert a directory of Zephyr exports to Robot tests
+# Converts all Zephyr JSON exports in a directory to Robot Framework files.
 converter = importobot.JsonToRobotConverter()
 result = converter.convert_directory("/zephyr/exports", "/robot/tests")
 print(result)
@@ -48,4 +50,4 @@ print(result)
 
 - **Tests**: 2,105 tests passing
 - **Code quality**: ruff & mypy clean
-- **Performance**: ~6s to convert 1000 tests
+- **Performance**: ~6s to convert 1000 tests (see [Benchmarks](Performance-Benchmarks.md))

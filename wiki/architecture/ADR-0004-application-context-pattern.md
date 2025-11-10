@@ -6,26 +6,26 @@ Accepted – October 2025
 
 ## Context
 
-- Pre-context Importobot used module-level global variables for shared services (caches, telemetry, etc.)
-- Global state caused test isolation issues and made multi-threading complex
-- CI/CD integration needed clean dependency injection for testability
-- Thread safety required explicit locking mechanisms around global state
-- Multiple concurrent instances were impossible due to shared global state
+-   Prior to this decision, Importobot relied on module-level global variables for shared services (e.g., caches, telemetry).
+-   This global state led to test isolation issues and complicated multi-threading.
+-   CI/CD integration required a cleaner dependency injection mechanism for improved testability.
+-   Ensuring thread safety necessitated explicit locking around global state.
+-   The shared global state prevented the creation of multiple concurrent instances within a single process.
 
 ## Decision
 
-- Replace module-level globals with thread-local Application Context pattern
-- Implement `ApplicationContext` class with lazy-loaded service properties
-- Provide `get_context()` and `set_context()` helpers for context management
-- Maintain backward compatibility through existing helper functions
-- Add automatic context clearing fixtures for test isolation
+-   We will replace module-level global variables with a thread-local Application Context pattern.
+-   An `ApplicationContext` class will be implemented, featuring lazy-loaded service properties.
+-   Helper functions, `get_context()` and `set_context()`, will be provided for managing the application context.
+-   Backward compatibility will be maintained through existing helper functions.
+-   Automatic context-clearing fixtures will be added to ensure test isolation.
 
 ## Consequences
 
-- Eliminates global state pollution and improves test isolation
-- Enables multiple concurrent instances per process
-- Provides automatic thread safety via thread-local storage
-- Makes dependency injection explicit and testable
-- Maintains backward compatibility through existing helper functions
-- Requires context awareness in new code development
-- Improves overall code maintainability and testing reliability
+-   Eliminates global state pollution, thereby improving test isolation.
+-   Enables the creation of multiple concurrent instances within a single process.
+-   Provides automatic thread safety through the use of thread-local storage.
+-   Makes dependency injection explicit and enhances testability.
+-   Maintains backward compatibility via existing helper functions.
+-   Requires new code development to be context-aware.
+-   Improves overall code maintainability and testing reliability.

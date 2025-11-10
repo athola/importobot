@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import tempfile
+from collections.abc import Generator
 from pathlib import Path
 from typing import Any
 
@@ -17,7 +18,7 @@ from tests.test_helpers import EXPECTED_PUBLIC_EXPORTS, assert_module_exports
 
 
 @pytest.fixture(autouse=True)
-def isolate_blueprint_state():
+def isolate_blueprint_state() -> Generator[None, None, None]:
     """Ensure blueprint system is disabled for API surface tests.
 
     This prevents test pollution from other integration tests that may have

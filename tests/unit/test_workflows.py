@@ -1,6 +1,5 @@
 """Tests for GitHub Actions workflow validation."""
 
-
 from pathlib import Path
 
 import pytest

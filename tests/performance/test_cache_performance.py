@@ -167,7 +167,7 @@ class TestCacheMemoryEfficiency:
         # Wait for TTL
         time.sleep(1.2)
 
-        # Trigger cleanup and check cache size (without accessing entries, which would refresh TTL)
+        # Trigger cleanup and check cache size without refreshing TTL.
         cache._cleanup_expired_entries()
 
         # Most entries should have expired and been cleaned up

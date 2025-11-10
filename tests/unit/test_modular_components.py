@@ -66,11 +66,7 @@ class TestModularComponents:
         engine = GenericSuggestionEngine()
 
         # Test with incomplete data that should generate suggestions
-        data = {
-            "steps": [
-                {"expectedResult": "Something happens"}  # Missing action
-            ]
-        }
+        data = {"steps": [{"expectedResult": "Something happens"}]}  # Missing action
 
         suggestions = engine.get_suggestions(data)
         # Should have suggestions for missing fields

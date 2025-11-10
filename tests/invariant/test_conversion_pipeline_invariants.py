@@ -55,9 +55,11 @@ def json_test_data(draw: DrawFn) -> dict[str, Any]:
     test_cases = draw(st.lists(_test_case_structure(), min_size=1, max_size=5))
 
     return {
-        "testCase": draw(st.sampled_from(test_cases))
-        if test_cases
-        else draw(_test_case_structure()),
+        "testCase": (
+            draw(st.sampled_from(test_cases))
+            if test_cases
+            else draw(_test_case_structure())
+        ),
         "project": draw(st.text(min_size=0, max_size=50)),
         "version": draw(st.text(min_size=0, max_size=20)),
         "execution": {
@@ -78,7 +80,9 @@ class TestConversionPipelineInvariants:
 
     @given(json_test_data())
     @settings(max_examples=30)
-    def test_conversion_preserves_test_name_invariant(self, test_data: dict[str, Any]) -> None:
+    def test_conversion_preserves_test_name_invariant(
+        self, test_data: dict[str, Any]
+    ) -> None:
         """Invariant: Test name should be preserved in Robot Framework output."""
         converter = JsonToRobotConverter()
 
@@ -193,7 +197,9 @@ class TestConversionPipelineInvariants:
         )
     )
     @settings(max_examples=30)
-    def test_malformed_input_handling_invariant(self, malformed_data: dict[str, Any]) -> None:
+    def test_malformed_input_handling_invariant(
+        self, malformed_data: dict[str, Any]
+    ) -> None:
         """Invariant: Conversion should handle malformed input gracefully."""
         converter = JsonToRobotConverter()
 
@@ -332,7 +338,9 @@ class TestConversionPipelineInvariants:
 
     @given(st.lists(json_test_data(), min_size=1, max_size=5))
     @settings(max_examples=15)
-    def test_batch_conversion_consistency_invariant(self, test_data_list: list[dict[str, Any]]) -> None:
+    def test_batch_conversion_consistency_invariant(
+        self, test_data_list: list[dict[str, Any]]
+    ) -> None:
         """Invariant: Batch conversion should maintain individual conversion quality."""
         converter = JsonToRobotConverter()
 
@@ -375,7 +383,9 @@ class TestConversionPipelineInvariants:
 
     @given(_test_case_structure())
     @settings(max_examples=20)
-    def test_special_characters_handling_invariant(self, test_case: dict[str, Any]) -> None:
+    def test_special_characters_handling_invariant(
+        self, test_case: dict[str, Any]
+    ) -> None:
         """Invariant: Conversion should handle special characters safely."""
         # Add some special characters to test robustness
         special_chars_data = {

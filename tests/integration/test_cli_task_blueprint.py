@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator
 from pathlib import Path
 
 import pytest
@@ -16,7 +17,7 @@ TEMPLATE_DIR = BASE_DIR / "tests" / "fixtures" / "robot_templates"
 
 
 @pytest.fixture(autouse=True)
-def reset_blueprint_sources():
+def reset_blueprint_sources() -> Generator[None, None, None]:
     """Ensure each test starts with a clean blueprint registry."""
     configure_template_sources([])
     try:

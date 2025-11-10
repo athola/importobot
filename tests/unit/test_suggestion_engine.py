@@ -116,7 +116,9 @@ class TestGetSuggestions:
         assert len(suggestions) >= 1
 
     @patch("importobot.core.suggestions.suggestion_engine.GenericTestFileParser")
-    def test_get_suggestions_handles_parser_errors(self, mock_parser_class: Mock) -> None:
+    def test_get_suggestions_handles_parser_errors(
+        self, mock_parser_class: Mock
+    ) -> None:
         """Test that get_suggestions handles parser errors gracefully."""
         mock_parser = Mock()
         mock_parser.find_steps.side_effect = Exception("Parser error")
@@ -300,7 +302,9 @@ class TestPrivateMethods:
         assert isinstance(result, str)
         assert "Invalid JSON structure" in result
 
-    def test_extract_test_cases_for_improvement_matches_extract_test_cases(self) -> None:
+    def test_extract_test_cases_for_improvement_matches_extract_test_cases(
+        self,
+    ) -> None:
         """Test that both extraction methods behave consistently."""
         engine = GenericSuggestionEngine()
 
