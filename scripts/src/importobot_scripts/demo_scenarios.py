@@ -79,7 +79,7 @@ class IndustryCharacteristics:
 
 
 class ScenarioModeler:
-    """Advanced scenario modeling for business case analysis."""
+    """Scenario modeling for business case analysis."""
 
     def __init__(self) -> None:
         """Initialize the scenario modeler with industry characteristics."""

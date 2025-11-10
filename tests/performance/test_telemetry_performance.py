@@ -245,7 +245,9 @@ class TestRateLimitingPerformance:
         )
         assert result["elapsed"] < threshold
 
-    def test_time_interval_check_efficient(self, benchmark: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_time_interval_check_efficient(
+        self, benchmark: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Time interval checking should be efficient."""
         client = TelemetryClient(min_emit_interval=60.0, min_sample_delta=0)
         client.clear_exporters()
@@ -347,7 +349,9 @@ class TestRealWorldScenarios:
         stats = cache.get_stats()
         assert stats["cache_hits"] + stats["cache_misses"] == 10_000
 
-    def test_high_frequency_logging_throttled(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_high_frequency_logging_throttled(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """High-frequency logging should be throttled effectively."""
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")
         monkeypatch.setenv("IMPORTOBOT_TELEMETRY_MIN_SAMPLE_DELTA", "100")
@@ -442,7 +446,9 @@ class TestTelemetryDisabledPerformance:
         # Disabled should be at least 10x faster
         assert avg_disabled * 10 < avg_enabled or avg_disabled < 0.000001
 
-    def test_production_config_performance(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_production_config_performance(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test performance with production-like configuration."""
         # Production config: enabled, moderate rate limiting
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")

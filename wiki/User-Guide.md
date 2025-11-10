@@ -1,20 +1,20 @@
 # User Guide
 
-This guide explains how to use Importobot to convert test cases from various test management systems to Robot Framework.
-
-For a quick collection of common usage patterns, see the [Usage Examples](Usage-Examples.md) page.
+This guide details some of Importobot's key features and how to use them. For a complete list of commands and examples, see the [API Reference](API-Reference.md) and [Usage Examples](Usage-Examples.md).
 
 ## Supported Input Formats
 
-- Zephyr JSON exports
-- JIRA/Xray JSON
-- TestLink XML/JSON
-- TestRail API payloads
-- Generic dictionaries
+Importobot can process files or API responses from:
 
-## API Integration
+- Zephyr (JSON)
+- JIRA/Xray (JSON)
+- TestLink (XML, JSON)
+- TestRail (API Payloads)
+- Custom formats via Python dictionaries
 
-Importobot can fetch test data directly from test management systems.
+## Fetching Data from an API
+
+Instead of using a local file, Importobot can fetch test data directly from a test management tool's API.
 
 ### CLI Usage
 
@@ -46,9 +46,9 @@ for page in client.fetch_all():
     process_page(page)
 ```
 
-## Schema-Driven Parsing
+## Mapping Custom Field Names
 
-If your test exports use custom field names, you can provide a schema file to map them to the standard names that Importobot expects.
+If your export file uses custom field names (e.g., `Test_Title` instead of `name`), you can provide a schema file to map your custom names to the standard fields Importobot recognizes.
 
 ### Example Schema File (`docs/field_guide.md`)
 
@@ -69,7 +69,7 @@ uv run importobot \
   converted.robot
 ```
 
-## Key Features
+## Other Features
 
-- **Library Detection**: Automatically adds the required Robot Framework libraries (e.g., `SeleniumLibrary`, `SSHLibrary`) to the generated files by analyzing the text of the test steps.
-- **Format Detection**: Uses a Bayesian confidence scorer to automatically identify the format of your test export files.
+- **Automatic Library Imports**: Importobot detects keywords in test steps (e.g., `Open Browser`, `Execute Command`) and automatically adds the corresponding `Library` statements (e.g., `SeleniumLibrary`, `SSHLibrary`) to the generated Robot Framework file.
+- **Automatic Format Detection**: When you provide a file, Importobot automatically detects its format (e.g., Zephyr, Xray). This means you don't have to specify the format manually for file-based conversions.

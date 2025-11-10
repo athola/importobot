@@ -1,5 +1,9 @@
 """Tests for DetectionCache configuration safeguards."""
 
+from typing import Any
+
+import pytest
+
 from importobot.medallion.bronze import detection_cache as detection_cache_module
 from importobot.medallion.bronze.detection_cache import DetectionCache
 from importobot.medallion.interfaces.enums import SupportedFormat
@@ -22,7 +26,9 @@ class TestDetectionCacheConfiguration:
         cache = DetectionCache(collision_chain_limit=5)
         assert cache._max_collision_chain_length == 5
 
-    def test_configuration_constant_sets_limit(self, monkeypatch) -> None:
+    def test_configuration_constant_sets_limit(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Module-level configuration controls default limit."""
         monkeypatch.setattr(
             detection_cache_module,
@@ -33,7 +39,9 @@ class TestDetectionCacheConfiguration:
         cache = DetectionCache()
         assert cache._max_collision_chain_length == 7
 
-    def test_invalid_configuration_falls_back(self, monkeypatch, caplog) -> None:
+    def test_invalid_configuration_falls_back(
+        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
         """Invalid configuration values fall back to safe default."""
         monkeypatch.setattr(
             detection_cache_module,
@@ -46,14 +54,16 @@ class TestDetectionCacheConfiguration:
         assert cache._max_collision_chain_length == cache.MAX_COLLISION_CHAIN_LENGTH
         assert "Collision chain limit" in caplog.text
 
-    def test_reject_non_positive_limits(self, caplog) -> None:
+    def test_reject_non_positive_limits(self, caplog: pytest.LogCaptureFixture) -> None:
         """Non-positive limits are rejected and a warning emitted."""
         with caplog.at_level("WARNING"):
             cache = DetectionCache(collision_chain_limit=0)
         assert cache._max_collision_chain_length == cache.MAX_COLLISION_CHAIN_LENGTH
         assert "Collision chain limit" in caplog.text
 
-    def test_detection_result_ttl_expires(self, monkeypatch) -> None:
+    def test_detection_result_ttl_expires(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Cached detection results expire after the configured TTL."""
         cache = DetectionCache(ttl_seconds=1)
         data = {"sample": 1}
@@ -76,7 +86,9 @@ class TestDetectionCacheConfiguration:
 
         assert cache.get_cached_detection_result(data) is None
 
-    def test_detection_cache_emits_telemetry(self, telemetry_events) -> None:
+    def test_detection_cache_emits_telemetry(
+        self, telemetry_events: list[tuple[str, dict[str, Any]]]
+    ) -> None:
         """Detection cache should emit telemetry for hit/miss accounting."""
         cache = DetectionCache()
         data = {"sample": 42}
@@ -90,7 +102,7 @@ class TestDetectionCacheConfiguration:
         assert event_name == "cache_metrics"
         assert payload["cache_name"] == "detection_cache"
 
-    def test_rejects_oversized_content(self, monkeypatch) -> None:
+    def test_rejects_oversized_content(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Oversized payloads should be rejected and not cached."""
         cache = DetectionCache()
         monkeypatch.setattr(cache, "MAX_CONTENT_SIZE", 8, raising=False)
@@ -103,7 +115,9 @@ class TestDetectionCacheConfiguration:
         assert not cache._data_string_cache  # pylint: disable=protected-access
         assert cache._rejected_large_content == 1  # pylint: disable=protected-access
 
-    def test_collision_chain_limit_enforced(self, monkeypatch) -> None:
+    def test_collision_chain_limit_enforced(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Collision chains should be capped to prevent DoS."""
         cache = DetectionCache(collision_chain_limit=1)
 
@@ -132,7 +146,9 @@ class TestDetectionCacheConfiguration:
         assert len(cache._data_string_cache) == 1  # pylint: disable=protected-access
         assert cache._collision_count == 1  # pylint: disable=protected-access
 
-    def test_eviction_metrics_include_counts(self, telemetry_events) -> None:
+    def test_eviction_metrics_include_counts(
+        self, telemetry_events: list[tuple[str, dict[str, Any]]]
+    ) -> None:
         """Evictions should be counted and surfaced via telemetry."""
         cache = DetectionCache(max_cache_size=2)
         cache.cache_detection_result({"id": 1}, SupportedFormat.ZEPHYR)

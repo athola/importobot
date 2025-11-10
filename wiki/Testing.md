@@ -1,42 +1,26 @@
 # Testing Guide
 
-How tests are organized and executed within Importobot.
+This guide details how tests are organized, executed, and written within the Importobot project.
 
 ## Table of Contents
 
 - [Overview](#overview)
-- [Test Organization](#test-organization)
 - [Invariant Tests](#invariant-tests)
 - [Integration Tests](#integration-tests)
 - [Unit Tests](#unit-tests)
 - [Running Tests](#running-tests)
-- [Writing Tests](#writing-tests)
-- [CI/CD Integration](#cicd-integration)
 
 ## Overview
 
-Importobot uses layered testing:
+The Importobot test suite is structured to provide comprehensive coverage:
 
-1. **Invariant tests** — property-based runs with Hypothesis.
-2. **Integration tests** — end-to-end workflows.
-3. **Unit tests** — component-level checks.
-4. **Generative tests** — automated case generation.
+- **Unit tests**: Verify individual components in isolation.
+- **Integration tests**: Validate end-to-end workflows and interactions between components.
+- **Invariant tests**: Use property-based testing to ensure core rules hold true across a wide range of inputs.
 
-Current count: 1,946 tests across modules with 0 skips.
+For a detailed breakdown of test types and their locations, see the [Test Structure](How-to-Navigate-this-Codebase.md#test-structure) section in the codebase navigation guide.
 
-## Test Organization
-
-```
-tests/
-├── invariant/          # Property-based invariant tests
-├── integration/        # End-to-end workflow tests
-├── unit/              # Component-level tests
-│   ├── core/          # Core conversion logic
-│   ├── medallion/     # Data architecture tests
-│   ├── services/      # Service layer tests
-│   └── utils/         # Utility function tests
-└── generative/        # Automated test generation
-```
+Current status: 1,946 tests across modules with 0 skips.
 
 ## Invariant Tests
 
@@ -91,9 +75,9 @@ def test_json_to_robot_selenium_execution(tmp_path, mock_server):
 ```
 
 **Security Workflows** (`test_security_validation_cicd.py`)
-- Test security validation in CI/CD environments
-- Verify dangerous operations are blocked
-- Validate safe operations pass through
+- These tests validate security controls within CI/CD environments.
+- They verify that dangerous operations are correctly blocked.
+- They also ensure that safe operations pass through as expected.
 
 ## Running Tests
 

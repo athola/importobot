@@ -166,7 +166,7 @@ class TestDirectoryConversionSuite:
     """Tests for DirectoryConversionSuite benchmark class."""
 
     @pytest.mark.parametrize("num_files", [5, 10, 25])
-    def test_setup_creates_multiple_files(self, num_files) -> None:
+    def test_setup_creates_multiple_files(self, num_files: int) -> None:
         """Verify setup creates correct number of input files."""
         suite = DirectoryConversionSuite()
         suite.setup(num_files)
@@ -188,7 +188,7 @@ class TestDirectoryConversionSuite:
             suite.teardown(num_files)
 
     @pytest.mark.parametrize("num_files", [5])
-    def test_time_convert_directory_runs(self, num_files) -> None:
+    def test_time_convert_directory_runs(self, num_files: int) -> None:
         """Verify directory conversion benchmark runs (test with small count)."""
         suite = DirectoryConversionSuite()
         suite.setup(num_files)

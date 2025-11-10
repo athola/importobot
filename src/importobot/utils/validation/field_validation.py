@@ -18,11 +18,7 @@ logger = get_logger()
 
 
 class FieldValidator:
-    """Validates and suggests improvements for test case fields.
-
-    Consolidated from the original core/suggestions/field_validator.py
-    to provide centralized field validation capabilities.
-    """
+    """Validate and suggest improvements for test case fields."""
 
     def check_test_case_fields(
         self, test_case: dict[str, Any], case_num: int, suggestions: list[str]

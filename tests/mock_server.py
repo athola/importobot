@@ -50,7 +50,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         return
 
 
-def start_mock_server(server_port: int | None = None) -> tuple[socketserver.TCPServer, int]:
+def start_mock_server(
+    server_port: int | None = None,
+) -> tuple[socketserver.TCPServer, int]:
     """Start the mock server.
 
     Args:

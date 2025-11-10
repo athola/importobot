@@ -109,7 +109,9 @@ def sample_zephyr_json() -> dict[str, Any]:
 
 
 @pytest.fixture(autouse=True)
-def cleanup_test_files(tmp_path: pytest.TempPathFactory) -> Generator[Callable[[str], None], None, None]:
+def cleanup_test_files(
+    tmp_path: pytest.TempPathFactory,
+) -> Generator[Callable[[str], None], None, None]:
     """Automatically clean up any test-generated files after each test.
 
     This fixture uses isolated temporary directories and proper cleanup tracking
@@ -136,7 +138,9 @@ def cleanup_test_files(tmp_path: pytest.TempPathFactory) -> Generator[Callable[[
 
 
 @pytest.fixture
-def telemetry_events(monkeypatch: pytest.MonkeyPatch) -> Generator[list[tuple[str, Any]], None, None]:
+def telemetry_events(
+    monkeypatch: pytest.MonkeyPatch,
+) -> Generator[list[tuple[str, Any]], None, None]:
     """Capture telemetry events emitted during a test."""
     monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")
     monkeypatch.setenv("IMPORTOBOT_TELEMETRY_MIN_SAMPLE_DELTA", "0")
@@ -156,7 +160,7 @@ def telemetry_events(monkeypatch: pytest.MonkeyPatch) -> Generator[list[tuple[st
 
 
 @pytest.fixture
-def benchmark():
+def benchmark() -> Callable[..., dict[str, Any]]:
     """Provide simple benchmark fixture for performance tests."""
 
     def _benchmark(func: Callable[[], Any], *, iterations: int = 1) -> dict[str, Any]:
@@ -183,7 +187,9 @@ def test_config() -> dict[str, int | float]:
 
 
 @pytest.fixture(autouse=True)
-def configure_timeout(request: pytest.FixtureRequest, test_config: dict[str, Any]) -> None:
+def configure_timeout(
+    request: pytest.FixtureRequest, test_config: dict[str, Any]
+) -> None:
     """Automatically apply timeout to all tests."""
     # Set timeout based on test configuration
     timeout = test_config["timeout"]

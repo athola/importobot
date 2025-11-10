@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 import pytest
 
@@ -15,7 +15,9 @@ from importobot.services.data_ingestion_service import DataIngestionService
 class _DummyBronzeLayer:
     """Minimal Bronze layer stub returning successful results."""
 
-    def ingest(self, _data, metadata):  # pragma: no cover - behavior mocked in tests
+    def ingest(
+        self, _data: Any, metadata: Any
+    ) -> Any:  # pragma: no cover - behavior mocked in tests
         """Return the provided metadata to satisfy the service contract."""
         return metadata  # DataIngestionService ignores the concrete result in our test
 
@@ -27,7 +29,7 @@ def test_batch_ingestion_parallelism(monkeypatch: pytest.MonkeyPatch) -> None:
 
     files: list[str | Path] = [Path(f"test_{i}.json") for i in range(12)]
 
-    def slow_ingest(file_path):
+    def slow_ingest(file_path: str | Path) -> str | Path:
         time.sleep(0.02)
         return file_path
 

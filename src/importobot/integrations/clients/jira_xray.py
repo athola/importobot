@@ -1,4 +1,4 @@
-"""JIRA/Xray API client for fetching test issues."""
+"""JIRA/Xray API client for retrieving test issues."""
 
 from __future__ import annotations
 
@@ -9,13 +9,13 @@ from importobot.integrations.clients.base import BaseAPIClient, ProgressCallback
 
 
 class JiraXrayClient(BaseAPIClient):
-    """Client for Jira/Xray issue search."""
+    """Client for performing Jira/Xray issue searches."""
 
     __test__ = False
     _page_size = 200
 
     def fetch_all(self, progress_cb: ProgressCallback) -> Iterator[dict[str, Any]]:
-        """Fetch all issues from Jira/Xray API with pagination."""
+        """Retrieve all issues from the Jira/Xray API, handling pagination."""
         start_at = 0
         total: int | None = None
         while True:

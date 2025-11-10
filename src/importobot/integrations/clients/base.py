@@ -35,7 +35,7 @@ class _KeyBatch(NamedTuple):
 
 
 def _default_user_agent() -> str:
-    """Return a descriptive User-Agent for outbound API calls."""
+    """Generate a descriptive User-Agent string for outbound API calls."""
     try:
         version = metadata.version("importobot")
     except metadata.PackageNotFoundError:
@@ -45,31 +45,31 @@ def _default_user_agent() -> str:
 
 @runtime_checkable
 class APISource(Protocol):
-    """Protocol for platform-specific API clients."""
+    """Defines the protocol for platform-specific API clients."""
 
     def fetch_all(self, progress_cb: ProgressCallback) -> Iterator[dict[str, Any]]:
-        """Yield paginated payloads while reporting progress."""
+        """Retrieve paginated payloads while reporting progress."""
         ...
 
 
 class BaseAPIClient:
-    """Shared functionality for API clients.
+    """Provides shared functionality for API clients.
 
-    Retry Behavior:
-        - Maximum retries: 3 attempts per request
-        - Backoff strategy: Exponential with base 2.0
-        - Maximum retry delay: 30 seconds
-        - Respects Retry-After headers from server
+    **Retry Behavior**:
+        - Maximum retries: 3 attempts per request.
+        - Backoff strategy: Exponential with base 2.0.
+        - Maximum retry delay: 30 seconds.
+        - Respects `Retry-After` headers from the server.
 
-    Circuit Breaker:
-        - Failure threshold: 5 consecutive failures
-        - Half-open timeout: 60 seconds
-        - Resets on successful request
+    **Circuit Breaker**:
+        - Failure threshold: 5 consecutive failures.
+        - Half-open timeout: 60 seconds.
+        - Resets upon a successful request.
 
-    Error Handler Hooks:
-        - Custom error handlers can be registered via set_error_handler()
-        - Handlers receive error context (URL, attempt, status code, timestamp)
-        - Handlers can suppress exceptions by returning True
+    **Error Handler Hooks**:
+        - Custom error handlers can be registered via `set_error_handler()`.
+        - Handlers receive error context (URL, attempt, status code, timestamp).
+        - Handlers can suppress exceptions by returning `True`.
     """
 
     _max_retries = 3
@@ -87,7 +87,7 @@ class BaseAPIClient:
         max_concurrency: int | None,
         verify_ssl: bool,
     ) -> None:
-        """Initialize BaseAPIClient with API connection parameters."""
+        """Initialize the BaseAPIClient with API connection parameters."""
         self.api_url = api_url
         self.tokens = tokens
         self.user = user
@@ -134,22 +134,23 @@ class BaseAPIClient:
     def set_error_handler(
         self, handler: Callable[[dict[str, Any]], bool | None]
     ) -> None:
-        """Register a custom error handler for enterprise scenarios.
+        """Register a custom error handler.
 
         The handler receives error context and can optionally suppress exceptions.
 
         Args:
-            handler: Callable that receives error_info dict with keys:
-                - url: Request URL
-                - status_code: HTTP status code
-                - error: Error message or payload
-                - attempt: Current retry attempt number
-                - timestamp: Error timestamp
+            handler: Callable receiving `error_info` dictionary with following fields:
+                - `url`: The request URL.
+                - `status_code`: The HTTP status code.
+                - `error`: The error message or payload.
+                - `attempt`: The current retry attempt number.
+                - `timestamp`: The error timestamp.
 
         Returns:
-            None if exception should be raised, True to suppress exception
+            `None` if the exception should be raised, `True` to suppress the exception.
 
         Example:
+            ```python
             def log_and_suppress_503(error_info):
                 if error_info['status_code'] == 503:
                     logger.warning("Service unavailable, gracefully degrading")
@@ -157,11 +158,12 @@ class BaseAPIClient:
                 return None  # Let exception propagate
 
             client.set_error_handler(log_and_suppress_503)
+            ```
         """
         self._error_handler = handler
 
     def _check_circuit_breaker(self) -> None:
-        """Check circuit breaker state and raise if circuit is open."""
+        """Check circuit-breaker state and raises exception if circuit is open."""
         if not self._circuit_open:
             return
 
@@ -198,7 +200,7 @@ class BaseAPIClient:
             )
 
     def _record_success(self) -> None:
-        """Record a successful request - resets circuit breaker."""
+        """Record a successful request, which resets the circuit breaker."""
         if self._circuit_failure_count > 0:
             logger.debug(
                 "Resetting circuit breaker after successful request (had %d failures)",
@@ -209,7 +211,7 @@ class BaseAPIClient:
         self._circuit_last_failure_time = None
 
     def _auth_headers(self) -> dict[str, str]:
-        """Return default authorization headers."""
+        """Return the default authorization headers."""
         headers: dict[str, str] = {"Accept": "application/json"}
         if self.tokens:
             headers["Authorization"] = f"Bearer {self.tokens[0]}"
@@ -221,11 +223,11 @@ class BaseAPIClient:
         """Determine retry delay using Retry-After header or exponential backoff.
 
         Args:
-            response: HTTP response object (None if request failed before response)
-            attempt: Current retry attempt number
+            response: HTTP response (or `None` if request failed before response).
+            attempt: The current retry attempt number.
 
         Returns:
-            Delay in seconds before next retry
+            The delay in seconds before the next retry.
         """
         if response:
             retry_after = response.headers.get("Retry-After")
@@ -239,15 +241,15 @@ class BaseAPIClient:
         return float(min(BACKOFF_BASE**attempt, MAX_RETRY_DELAY_SECONDS))
 
     def _sleep(self, seconds: float) -> None:
-        """Sleep for specified number of seconds.
+        """Pauses execution for the specified number of seconds.
 
         Args:
-            seconds: Number of seconds to sleep
+            seconds: The number of seconds to sleep.
         """
         time.sleep(seconds)
 
     def _project_value(self) -> str | int | None:
-        """Return preferred project identifier."""
+        """Return the preferred project identifier."""
         if self.project_name:
             return self.project_name
         if self.project_id is not None:
@@ -339,8 +341,8 @@ class BaseAPIClient:
     ) -> bool:
         """Handle HTTP error responses.
 
-        Returns True if the error should be suppressed (return empty response),
-        False if the error should be raised.
+        Returns `True` if the error should be suppressed (leading to an empty response),
+        `False` if the error should be raised.
         """
         error_info = {
             "url": url,
@@ -373,7 +375,7 @@ class BaseAPIClient:
         return should_suppress
 
     def _create_empty_response(self) -> requests.Response:
-        """Create an empty response for graceful degradation."""
+        """Create an empty response object to facilitate graceful degradation."""
 
         class EmptyResponse:
             status_code = 0
@@ -393,7 +395,7 @@ class BaseAPIClient:
         headers: dict[str, str],
         json: dict[str, Any] | None,
     ) -> requests.Response:
-        """Dispatch HTTP request to the underlying session."""
+        """Dispatches the HTTP request using the underlying session."""
         self._rate_limiter.acquire()
         if method.upper() == "GET":
             return self._session.get(url, params=params or {}, headers=headers)

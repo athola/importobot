@@ -13,7 +13,7 @@ Business Requirements:
 import threading
 import time
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from importobot.medallion.bronze.format_detector import (
     FormatRegistry,
@@ -377,7 +377,9 @@ class TestFormatRegistry(unittest.TestCase):
 
     @patch("importobot.medallion.bronze.formats.create_zephyr_format")
     @patch("importobot.medallion.bronze.formats.create_testlink_format")
-    def test_load_built_in_formats(self, mock_testlink, mock_zephyr) -> None:
+    def test_load_built_in_formats(
+        self, mock_testlink: "Mock", mock_zephyr: "Mock"
+    ) -> None:
         """Test loading built-in format definitions."""
         # Mock the format creation functions
         zephyr_format = FormatDefinition(
@@ -406,7 +408,7 @@ class TestFormatRegistry(unittest.TestCase):
         assert len(formats) > 0
 
         # Use different format types to avoid conflicts
-        def create_format(suffix):
+        def create_format(suffix: str) -> FormatDefinition:
             return FormatDefinition(
                 name=f"Thread Test {suffix}",
                 format_type=SupportedFormat.UNKNOWN,  # All use UNKNOWN for test
@@ -421,9 +423,9 @@ class TestFormatRegistry(unittest.TestCase):
         test_registry._formats = {}  # pylint: disable=protected-access
         completed_registrations = []
 
-        def register_format(suffix):
+        def register_format(suffix: str) -> None:
             try:
-                format_def = create_format(suffix)  # type: ignore[no-untyped-call]
+                format_def = create_format(suffix)
                 test_registry.register_format(format_def)
                 completed_registrations.append(suffix)
                 time.sleep(0.001)  # Small delay to encourage race conditions

@@ -158,10 +158,8 @@ class TestIndependentBayesianScorer(unittest.TestCase):
             previous = -1.0
             for value in sample_values:
                 likelihood = self.scorer._metric_to_likelihood(value, evidence_type)
-                self.assertGreaterEqual(
-                    likelihood,
-                    previous - 1e-9,  # small tolerance for floating point noise
-                    f"{evidence_type.value} likelihood dropped at value {value}",
+                assert likelihood >= previous - 1e-9, (
+                    f"{evidence_type.value} likelihood dropped at value {value}"
                 )
                 previous = likelihood
 
@@ -184,7 +182,7 @@ class TestIndependentBayesianScorer(unittest.TestCase):
     def test_posterior_bayesian_update(self) -> None:
         """Posterior calculation should follow Bayes' theorem.
 
-        Mathematical Requirement: P(H|E) ∝ P(E|H) × P(H)
+        Mathematical Requirement: P(H|E) ∝ P(E|H) * P(H)
         Business Logic: Higher likelihood with prior should increase posterior
         """
         # Use a scorer with custom priors so the test exercises the prior effect.
@@ -262,11 +260,9 @@ class TestIndependentBayesianScorer(unittest.TestCase):
         # Should be generally increasing with uniqueness
         for i in range(1, len(likelihoods)):
             if likelihoods[i] > 0.1:  # Only check non-trivial likelihoods
-                self.assertGreaterEqual(
-                    likelihoods[i],
-                    likelihoods[i - 1] * 0.8,  # Allow some variation
+                assert likelihoods[i] >= likelihoods[i - 1] * 0.8, (
                     f"Likelihood monotonic: {likelihoods[i]:.3f} >= "
-                    f"{likelihoods[i - 1] * 0.8:.3f}",
+                    f"{likelihoods[i - 1] * 0.8:.3f}"
                 )
 
     def test_parameter_sensitivity(self) -> None:
@@ -299,11 +295,8 @@ class TestIndependentBayesianScorer(unittest.TestCase):
         # Note: Conservative likelihood mapping may reduce differences
         if abs(low_beta_likelihood - high_beta_likelihood) < 1e-4:
             # Conservative mapping makes them equal - this is acceptable behavior
-            self.assertAlmostEqual(
-                low_beta_likelihood,
-                high_beta_likelihood,
-                places=3,
-                msg="Conservative mapping makes likelihoods equal",
+            assert round(low_beta_likelihood - high_beta_likelihood, 3) == 0, (
+                "Conservative mapping makes likelihoods equal"
             )
         else:
             assert low_beta_likelihood > high_beta_likelihood, (
@@ -346,10 +339,8 @@ class TestIndependentBayesianScorer(unittest.TestCase):
 
         # Conservative mapping reduces ratios, but should still provide advantage
         # With the research-backed conservative approach, we accept lower ratios
-        self.assertGreaterEqual(
-            likelihood_ratio,
-            1.1,  # Very conservative requirement due to likelihood ratio capping
-            f"JIRA should provide >=1.1x advantage: {likelihood_ratio:.2f}",
+        assert likelihood_ratio >= 1.1, (
+            f"JIRA should provide >=1.1x advantage: {likelihood_ratio:.2f}"
         )
 
     def test_posterior_distribution_normalization(self) -> None:
@@ -362,7 +353,7 @@ class TestIndependentBayesianScorer(unittest.TestCase):
 
         distribution = self.scorer.calculate_posterior_distribution(metrics_by_format)
 
-        self.assertAlmostEqual(sum(distribution.values()), 1.0, places=9)
+        assert round(sum(distribution.values()) - 1.0, 9) == 0
         for name, posterior in distribution.items():
             with self.subTest(format=name):
                 assert posterior >= 0.0

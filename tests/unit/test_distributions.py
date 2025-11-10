@@ -260,14 +260,14 @@ class TestDistributionManagerWeightedDistribution:
 class TestPrintTestDistribution:
     """Test print_test_distribution function."""
 
-    def test_print_test_distribution_empty(self, capsys) -> None:
+    def test_print_test_distribution_empty(self, capsys: Any) -> None:
         """Test print_test_distribution with empty distribution."""
         print_test_distribution({})
 
         captured = capsys.readouterr()
         assert "Test Distribution Summary (Total: 0 tests)" in captured.out
 
-    def test_print_test_distribution_single_category(self, capsys) -> None:
+    def test_print_test_distribution_single_category(self, capsys: Any) -> None:
         """Test print_test_distribution with single category."""
         distribution = {"web_testing": 10}
 
@@ -277,7 +277,7 @@ class TestPrintTestDistribution:
         assert "Test Distribution Summary (Total: 10 tests)" in captured.out
         assert "Web_Testing:   10 tests (100.0%)" in captured.out
 
-    def test_print_test_distribution_multiple_categories(self, capsys) -> None:
+    def test_print_test_distribution_multiple_categories(self, capsys: Any) -> None:
         """Test print_test_distribution with multiple categories."""
         distribution = {"web_testing": 6, "api_testing": 3, "database_testing": 1}
 
@@ -292,7 +292,7 @@ class TestPrintTestDistribution:
         assert "3 tests ( 30.0%)" in captured.out
         assert "1 tests ( 10.0%)" in captured.out
 
-    def test_print_test_distribution_sorted_categories(self, capsys) -> None:
+    def test_print_test_distribution_sorted_categories(self, capsys: Any) -> None:
         """Test print_test_distribution sorts categories alphabetically."""
         distribution = {"zebra": 1, "alpha": 2, "beta": 3}
 
@@ -307,7 +307,7 @@ class TestPrintTestDistribution:
         assert "Beta:" in category_lines[1]
         assert "Zebra:" in category_lines[2]
 
-    def test_print_test_distribution_percentage_formatting(self, capsys) -> None:
+    def test_print_test_distribution_percentage_formatting(self, capsys: Any) -> None:
         """Test print_test_distribution percentage formatting."""
         distribution = {"cat1": 1, "cat2": 1, "cat3": 1}  # 33.3% each
 
@@ -316,7 +316,7 @@ class TestPrintTestDistribution:
         captured = capsys.readouterr()
         assert "33.3%" in captured.out
 
-    def test_print_test_distribution_zero_total(self, capsys) -> None:
+    def test_print_test_distribution_zero_total(self, capsys: Any) -> None:
         """Test print_test_distribution with zero total (edge case)."""
         distribution = {"cat1": 0, "cat2": 0}
 

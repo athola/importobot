@@ -4,6 +4,7 @@ Tests the generic keyword generator implementation.
 Following TDD principles with comprehensive keyword generation testing.
 """
 
+from contextlib import suppress
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
@@ -176,7 +177,9 @@ class TestGenerateStepKeywords:
         assert any("# Expected Result: Credentials accepted" in line for line in result)
 
     @patch("importobot.core.keyword_generator.IntentRecognitionEngine")
-    def test_generate_step_keywords_with_intent_recognition(self, mock_intent_engine: MagicMock) -> None:
+    def test_generate_step_keywords_with_intent_recognition(
+        self, mock_intent_engine: MagicMock
+    ) -> None:
         """Test generate_step_keywords with intent recognition."""
         mock_intent_engine.recognize_intent.return_value = IntentType.CLICK_ACTION
 
@@ -217,7 +220,9 @@ class TestDetectLibraries:
     """Test detect_libraries method."""
 
     @patch("importobot.core.keyword_generator.LibraryDetector")
-    def test_detect_libraries_calls_detector(self, mock_library_detector: MagicMock) -> None:
+    def test_detect_libraries_calls_detector(
+        self, mock_library_detector: MagicMock
+    ) -> None:
         """Test that detect_libraries calls LibraryDetector."""
         mock_library_detector.detect_libraries_from_steps.return_value = {
             "SeleniumLibrary"
@@ -376,7 +381,9 @@ class TestIntentHandling:
         mock_ssh_generator.generate_connect_keyword.assert_called_once_with("server")
 
     @patch("importobot.core.keyword_generator.IntentRecognitionEngine")
-    def test_determine_robot_keyword_unrecognized_intent(self, mock_intent_engine: MagicMock) -> None:
+    def test_determine_robot_keyword_unrecognized_intent(
+        self, mock_intent_engine: MagicMock
+    ) -> None:
         """Test _determine_robot_keyword with unrecognized intent."""
         mock_intent_engine.recognize_intent.return_value = None  # Unknown intent
 
@@ -413,7 +420,9 @@ class TestFileOperationHandling:
     """Test file operation handling methods."""
 
     @patch("importobot.core.keyword_generator.SSHKeywordGenerator")
-    def test_handle_file_transfer_ssh_upload(self, mock_ssh_generator_class: MagicMock) -> None:
+    def test_handle_file_transfer_ssh_upload(
+        self, mock_ssh_generator_class: MagicMock
+    ) -> None:
         """Test _handle_file_transfer with SSH upload."""
         mock_ssh_generator = Mock()
         mock_ssh_generator.generate_file_transfer_keyword.return_value = "Put File"
@@ -428,7 +437,9 @@ class TestFileOperationHandling:
         mock_ssh_generator.generate_file_transfer_keyword.assert_called_once()
 
     @patch("importobot.core.keyword_generator.SSHKeywordGenerator")
-    def test_handle_file_transfer_ssh_download(self, mock_ssh_generator_class: MagicMock) -> None:
+    def test_handle_file_transfer_ssh_download(
+        self, mock_ssh_generator_class: MagicMock
+    ) -> None:
         """Test _handle_file_transfer with SSH download."""
         mock_ssh_generator = Mock()
         mock_ssh_generator.generate_file_transfer_keyword.return_value = "Get File"
@@ -445,7 +456,9 @@ class TestFileOperationHandling:
         )
 
     @patch("importobot.core.keyword_generator.FileKeywordGenerator")
-    def test_handle_file_transfer_local(self, mock_file_generator_class: MagicMock) -> None:
+    def test_handle_file_transfer_local(
+        self, mock_file_generator_class: MagicMock
+    ) -> None:
         """Test _handle_file_transfer with local file operations."""
         mock_file_generator = Mock()
         mock_file_generator.generate_transfer_keyword.return_value = "Copy File"
@@ -462,7 +475,9 @@ class TestFileOperationHandling:
         )
 
     @patch("importobot.core.keyword_generator.SSHKeywordGenerator")
-    def test_handle_file_verification_ssh(self, mock_ssh_generator_class: MagicMock) -> None:
+    def test_handle_file_verification_ssh(
+        self, mock_ssh_generator_class: MagicMock
+    ) -> None:
         """Test _handle_file_verification with SSH context."""
         mock_ssh_generator = Mock()
         mock_ssh_generator.generate_file_verification_keyword.return_value = (
@@ -481,7 +496,9 @@ class TestFileOperationHandling:
         )
 
     @patch("importobot.core.keyword_generator.FileKeywordGenerator")
-    def test_handle_file_verification_local(self, mock_file_generator_class: MagicMock) -> None:
+    def test_handle_file_verification_local(
+        self, mock_file_generator_class: MagicMock
+    ) -> None:
         """Test _handle_file_verification with local context."""
         mock_file_generator = Mock()
         mock_file_generator.generate_exists_keyword.return_value = "File Should Exist"
@@ -575,12 +592,9 @@ class TestKeywordGeneratorIntegration:
                 # Extract number after "Step "
                 parts = suggestion.split("Step ")
                 for part in parts[1:]:
-                    try:
-                        # Get the number before the colon
+                    with suppress(ValueError, IndexError):
                         num_str = part.split(":")[0].strip()
                         step_numbers.append(int(num_str))
-                    except (ValueError, IndexError):
-                        continue
 
         # Verify we found step numbers and they're in order
         if step_numbers:

@@ -1,7 +1,6 @@
 # Medallion Layer Interactions
 
-This diagram illustrates how data flows through Importobot's medallion
-architecture and supporting services.
+This document illustrates the data flow through Importobot's Medallion architecture and its supporting services.
 
 ```mermaid
 flowchart TD
@@ -26,9 +25,7 @@ flowchart TD
     opt -.-> gold
 ```
 
-Supporting notes:
+Supporting Notes:
 
-- `PerformanceCache` and `DetectionCache` accelerate detection and ingestion
-  paths shared by Bronze/Silver layers.
-- The optimization service consults Bronze/Silver outputs when simulating
-  alternative exports in Gold.
+-   `PerformanceCache` and `DetectionCache` accelerate detection and ingestion paths for both Bronze and Silver layers.
+-   The optimization service utilizes outputs from the Bronze and Silver layers when simulating alternative exports in the Gold layer.

@@ -8,7 +8,11 @@ These tests verify end-to-end telemetry behavior when integrated with:
 """
 
 import time
+from pathlib import Path
+from typing import Any
 from unittest.mock import Mock
+
+import pytest
 
 from importobot.services.data_ingestion_service import (
     FileContentCache,
@@ -28,7 +32,9 @@ from importobot.telemetry import (
 class TestPerformanceCacheTelemetry:
     """Integration tests for PerformanceCache telemetry."""
 
-    def test_performance_cache_emits_metrics_on_operations(self, telemetry_events) -> None:
+    def test_performance_cache_emits_metrics_on_operations(
+        self, telemetry_events: list[tuple[str, dict[str, Any]]]
+    ) -> None:
         """PerformanceCache should emit telemetry during normal operations."""
         cache = PerformanceCache(max_cache_size=100, ttl_seconds=0)
 
@@ -70,7 +76,9 @@ class TestPerformanceCacheTelemetry:
         assert stats["cache_misses"] == 1
         assert stats["hit_rate_percent"] == 90.0
 
-    def test_performance_cache_ttl_affects_metrics(self, monkeypatch) -> None:
+    def test_performance_cache_ttl_affects_metrics(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """TTL expiration should cause cache misses."""
         cache = PerformanceCache(max_cache_size=100, ttl_seconds=1)
 
@@ -115,7 +123,9 @@ class TestPerformanceCacheTelemetry:
 class TestFileContentCacheTelemetry:
     """Integration tests for FileContentCache telemetry."""
 
-    def test_file_cache_emits_metrics(self, tmp_path, telemetry_events) -> None:
+    def test_file_cache_emits_metrics(
+        self, tmp_path: Path, telemetry_events: list[tuple[str, dict[str, Any]]]
+    ) -> None:
         """FileContentCache should emit telemetry during file operations."""
         cache = FileContentCache(max_size_mb=10, ttl_seconds=0)
 
@@ -136,7 +146,7 @@ class TestFileContentCacheTelemetry:
         ]
         assert len(cache_events) > 0
 
-    def test_file_cache_handles_file_changes(self, tmp_path) -> None:
+    def test_file_cache_handles_file_changes(self, tmp_path: Path) -> None:
         """File modifications should invalidate cache and increase misses."""
         cache = FileContentCache(max_size_mb=10, ttl_seconds=0)
 
@@ -159,7 +169,7 @@ class TestFileContentCacheTelemetry:
         result = cache.get_cached_content(test_file)
         assert result is None  # Cache invalidated
 
-    def test_file_cache_respects_size_limits(self, tmp_path) -> None:
+    def test_file_cache_respects_size_limits(self, tmp_path: Path) -> None:
         """Cache should evict entries when size limit is exceeded."""
         cache = FileContentCache(max_size_mb=1, ttl_seconds=0)  # Small limit
 
@@ -185,8 +195,8 @@ class TestOptimizationServiceTelemetry:
         """OptimizationService should use performance cache with telemetry."""
         service = OptimizationService(cache_ttl_seconds=0)
 
-        def objective(params):
-            return params.get("x", 0) ** 2
+        def objective(params: dict[str, float]) -> float:
+            return params.get("x", 0.0) ** 2
 
         service.register_scenario(
             "test_scenario",
@@ -205,7 +215,7 @@ class TestDataIngestionServiceTelemetry:
     """Integration tests for DataIngestionService telemetry."""
 
     def test_file_content_cache_emits_telemetry_directly(
-        self, tmp_path, telemetry_events
+        self, tmp_path: Path, telemetry_events: list[tuple[str, dict[str, Any]]]
     ) -> None:
         """FileContentCache used by DataIngestionService should emit telemetry."""
         # Test FileContentCache directly since full DataIngestionService
@@ -231,7 +241,9 @@ class TestDataIngestionServiceTelemetry:
 class TestCrossCacheTelemetry:
     """Test telemetry when multiple caches are active."""
 
-    def test_multiple_caches_emit_separate_metrics(self, tmp_path, telemetry_events) -> None:
+    def test_multiple_caches_emit_separate_metrics(
+        self, tmp_path: Path, telemetry_events: list[tuple[str, dict[str, Any]]]
+    ) -> None:
         """Different caches should emit independently tracked metrics."""
         perf_cache = PerformanceCache(max_cache_size=100, ttl_seconds=0)
         file_cache = FileContentCache(max_size_mb=10, ttl_seconds=0)
@@ -273,7 +285,9 @@ class TestCrossCacheTelemetry:
 class TestTelemetryRateLimitingIntegration:
     """Test rate limiting behavior in real-world scenarios."""
 
-    def test_high_frequency_cache_operations_throttled(self, monkeypatch) -> None:
+    def test_high_frequency_cache_operations_throttled(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """High-frequency operations should be throttled appropriately."""
         # Configure aggressive rate limiting
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")
@@ -284,7 +298,7 @@ class TestTelemetryRateLimitingIntegration:
         # Re-register exporter after reset
         events: list[tuple[str, TelemetryPayload]] = []
 
-        def capture_exporter(name, payload):
+        def capture_exporter(name: str, payload: dict[str, Any]) -> None:
             events.append((name, payload))
 
         clear_telemetry_exporters()
@@ -300,7 +314,9 @@ class TestTelemetryRateLimitingIntegration:
         # Fewer than 50 events due to throttling
         assert len(events) < 50
 
-    def test_different_caches_independent_throttling(self, monkeypatch) -> None:
+    def test_different_caches_independent_throttling(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Different cache names should have independent rate limiting."""
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")
         monkeypatch.setenv("IMPORTOBOT_TELEMETRY_MIN_SAMPLE_DELTA", "10")
@@ -330,7 +346,7 @@ class TestTelemetryErrorResilience:
     def test_failing_exporter_doesnt_break_cache(self) -> None:
         """Cache should continue working even if telemetry fails."""
 
-        def failing_exporter(name, payload):
+        def failing_exporter(name: str, payload: dict[str, Any]) -> None:
             raise RuntimeError("Telemetry export failed")
 
         clear_telemetry_exporters()
@@ -349,7 +365,9 @@ class TestTelemetryErrorResilience:
         assert result2.lower() == str({"test": "data"}).lower()
         assert cache.get_stats()["cache_hits"] == 1
 
-    def test_telemetry_disabled_services_work_normally(self, monkeypatch, tmp_path) -> None:
+    def test_telemetry_disabled_services_work_normally(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
         """Services should work normally when telemetry is disabled."""
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "0")
         reset_telemetry_client()
@@ -371,7 +389,7 @@ class TestTelemetryErrorResilience:
 class TestTelemetryLifecycle:
     """Test telemetry initialization and cleanup."""
 
-    def test_telemetry_client_lifecycle(self, monkeypatch) -> None:
+    def test_telemetry_client_lifecycle(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test full lifecycle of telemetry client."""
         # Start disabled
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "0")
@@ -388,14 +406,16 @@ class TestTelemetryLifecycle:
         assert client2 is not None
         assert isinstance(client2, TelemetryClient)
 
-    def test_exporter_registration_survives_operations(self, monkeypatch) -> None:
+    def test_exporter_registration_survives_operations(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Custom exporters should persist through cache operations."""
         custom_events: list[tuple[str, TelemetryPayload]] = []
 
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")
         reset_telemetry_client()
 
-        def custom_exporter(name, payload):
+        def custom_exporter(name: str, payload: dict[str, Any]) -> None:
             custom_events.append((name, payload))
 
         register_telemetry_exporter(custom_exporter)
@@ -409,7 +429,9 @@ class TestTelemetryLifecycle:
         # Custom exporter should have received events
         assert len(custom_events) > 0
 
-    def test_clear_exporters_resets_to_default(self, monkeypatch) -> None:
+    def test_clear_exporters_resets_to_default(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Clearing exporters should restore default logger exporter."""
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")
         reset_telemetry_client()

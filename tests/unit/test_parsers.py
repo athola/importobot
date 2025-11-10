@@ -92,7 +92,9 @@ class TestFindTests:
         assert result[0]["name"] == "Single Test"
 
     @patch("importobot.core.parsers.is_test_case")
-    def test_find_tests_with_single_test_case_root(self, mock_is_test_case: MagicMock) -> None:
+    def test_find_tests_with_single_test_case_root(
+        self, mock_is_test_case: MagicMock
+    ) -> None:
         """Test find_tests with single test case at root level."""
         mock_is_test_case.return_value = True
 
@@ -145,7 +147,9 @@ class TestFindTests:
         assert not result
 
     @patch("importobot.core.parsers.is_test_case")
-    def test_find_tests_with_non_test_case_root(self, mock_is_test_case: MagicMock) -> None:
+    def test_find_tests_with_non_test_case_root(
+        self, mock_is_test_case: MagicMock
+    ) -> None:
         """Test find_tests when root is not a valid test case."""
         mock_is_test_case.return_value = False
 
@@ -266,7 +270,9 @@ class TestParserIntegration:
         assert len(result) >= 2
 
     @patch("importobot.core.parsers.is_test_case")
-    def test_parser_behavior_with_no_test_arrays(self, mock_is_test_case: MagicMock) -> None:
+    def test_parser_behavior_with_no_test_arrays(
+        self, mock_is_test_case: MagicMock
+    ) -> None:
         """Test parser behavior when no explicit test arrays are found."""
         # First call should return False (not a test case)
         # This simulates when no explicit test arrays are found
@@ -356,14 +362,13 @@ class TestParserPerformance:
         parser = GenericTestFileParser()
 
         # Create a large number of test cases
-        large_test_array = []
-        for i in range(1000):
-            large_test_array.append(
-                {
-                    "name": f"Test {i}",
-                    "steps": [{"step": f"Step {j}"} for j in range(5)],
-                }
-            )
+        large_test_array = [
+            {
+                "name": f"Test {i}",
+                "steps": [{"step": f"Step {j}"} for j in range(5)],
+            }
+            for i in range(1000)
+        ]
 
         data = {"tests": large_test_array}
 

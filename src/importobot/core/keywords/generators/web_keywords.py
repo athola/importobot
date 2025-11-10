@@ -15,7 +15,7 @@ _QUOTED_PATTERN = re.compile(r'"([^"]*)"')
 
 
 class WebKeywordGenerator(BaseKeywordGenerator):
-    """Generates web and browser-related Robot Framework keywords."""
+    """Generate web and browser-related Robot Framework keywords."""
 
     def generate_browser_keyword(self, test_data: str) -> str:
         """Generate browser opening keyword with Chrome options for CI/headless."""

@@ -1,16 +1,16 @@
 # Deployment Guide
 
-This guide provides instructions for deploying Importobot in various environments.
+This guide covers several common methods for deploying and running Importobot.
 
-## Local Deployment
+## Running from Source
 
-For local development and testing, you can clone the repository and run the tool directly.
+For local development or testing, you can run Importobot directly from a clone of the repository. This setup is covered in detail in the [Getting Started](Getting-Started.md) guide.
 
 ```bash
 git clone https://github.com/athola/importobot.git
 cd importobot
-uv sync
-uv run python -m pytest
+uv sync --dev
+uv run pytest
 ```
 
 ## Containerized Deployment
@@ -26,6 +26,8 @@ docker build -t importobot:latest .
 ### Running Basic Conversions
 
 ```bash
+# --rm: Automatically remove the container when it exits
+# -v: Mount the local ./data directory into the container at /data
 docker run --rm -v $PWD/data:/data importobot:latest \
     uv run importobot /data/input.json /data/output.robot
 ```
@@ -67,7 +69,9 @@ docker run --rm \
 
 ### Kubernetes Deployment
 
-For large-scale deployments, you can use the provided Kubernetes Job specification to run Importobot as a one-off task.
+For large-scale or scheduled tasks, you can run Importobot as a one-off task in Kubernetes using a Job.
+
+First, ensure your API credentials are stored in a Kubernetes Secret named `importobot-secrets`. Then, you can apply the following Job definition:
 
 ```yaml
 apiVersion: batch/v1
@@ -104,4 +108,6 @@ spec:
 
 ## CI/CD Integration
 
-Importobot is designed to be easily integrated into your CI/CD pipelines. For a complete example of how to use Importobot in a GitHub Actions workflow, see the [test.yml](/.github/workflows/test.yml) file.
+Importobot can be integrated into any CI/CD pipeline. The general approach is to use a containerized deployment (as shown above) within a pipeline step to automatically convert test suites as part of your build or test process.
+
+For a complete, working example using GitHub Actions, see the project's own [test workflow file](https://github.com/athola/importobot/blob/main/.github/workflows/test.yml).

@@ -1,4 +1,4 @@
-"""Centralized field definitions for test case parsing and conversion."""
+"""Centralizes field definitions for test case parsing and conversion."""
 
 from dataclasses import dataclass
 from typing import Any
@@ -8,17 +8,17 @@ from importobot.core.constants import EXPECTED_RESULT_FIELD_NAMES, TEST_DATA_FIE
 
 @dataclass(frozen=True)
 class FieldGroup:
-    """Represents a group of field names that serve the same purpose."""
+    """Represents a collection of field names serving a common purpose."""
 
     fields: tuple[str, ...]
     description: str
 
     def __contains__(self, item: str) -> bool:
-        """Check if a field name is in this group."""
+        """Check if a given field name exists within this group."""
         return item.lower() in (f.lower() for f in self.fields)
 
     def find_first(self, data: dict[str, Any]) -> tuple[str | None, Any]:
-        """Find the first matching field in data and return (field_name, value)."""
+        """Find the first matching field in data and returns its name and value."""
         for field in self.fields:
             if data.get(field):
                 return field, data[field]
@@ -184,18 +184,18 @@ LIBRARY_KEYWORDS = {
 
 
 def get_field_value(data: dict[str, Any], field_group: FieldGroup) -> str:
-    """Extract value from first matching field in group."""
+    """Extract the value from the first matching field within the specified group."""
     _, value = field_group.find_first(data)
     return str(value) if value else ""
 
 
 def has_field(data: dict[str, Any], field_group: FieldGroup) -> bool:
-    """Check if data has any field from the group."""
+    """Check if the provided data contains any field from the specified group."""
     return any(field in data and data[field] for field in field_group.fields)
 
 
 def detect_libraries_from_text(text: str) -> set[str]:
-    """Detect required libraries from text content."""
+    """Detect required libraries based on the provided text content."""
     text_lower = text.lower()
     text_words = set(text_lower.split())
 
@@ -214,14 +214,14 @@ ZEPHYR_TEST_INDICATORS = frozenset(
 
 
 def is_test_case(data: Any) -> bool:
-    """Check if data looks like a test case."""
+    """Determine if the provided data resembles a test case structure."""
     if not isinstance(data, dict):
         return False
     return bool(TEST_INDICATORS & {key.lower() for key in data})
 
 
 def is_zephyr_test_case(data: Any) -> bool:
-    """Check if data follows Zephyr test case structure."""
+    """Determine if the provided data adheres to the Zephyr test case structure."""
     if not isinstance(data, dict):
         return False
 

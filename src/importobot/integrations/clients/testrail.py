@@ -1,4 +1,4 @@
-"""TestRail API client for fetching test runs and cases."""
+"""TestRail API client for retrieving test runs and cases."""
 
 from __future__ import annotations
 
@@ -10,22 +10,22 @@ from importobot.integrations.clients.base import BaseAPIClient, ProgressCallback
 
 
 class TestRailClient(BaseAPIClient):
-    """Client for TestRail API pagination."""
+    """Manage interactions with the TestRail API to retrieve test runs and cases."""
 
     __test__ = False
 
     def __init__(self, **kwargs: Any) -> None:
-        """Initialize TestRailClient with API connection parameters."""
+        """Initialize the TestRailClient with API connection parameters."""
         super().__init__(**kwargs)
         if self.user and self.tokens:
             self._session.auth = (self.user, self.tokens[0])
 
     def _auth_headers(self) -> dict[str, str]:
-        """Override to rely on requests' built-in Basic auth handling."""
+        """Override auth headers to use requests' built-in Basic authentication."""
         return {}
 
     def fetch_all(self, progress_cb: ProgressCallback) -> Iterator[dict[str, Any]]:
-        """Fetch all test runs from TestRail API with pagination."""
+        """Retrieve all test runs from the TestRail API, handling pagination."""
         offset = 0
         page = 1
         while True:

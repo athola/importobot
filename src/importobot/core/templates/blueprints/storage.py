@@ -243,7 +243,7 @@ class KnowledgeBase:
 
 
 class KeywordLibrary:
-    """Stores discovered keyword names from templates/resources/python files."""
+    """Store discovered keyword names from templates/resources/python files."""
 
     def __init__(self) -> None:
         """Initialise the keyword store."""

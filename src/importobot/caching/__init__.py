@@ -1,6 +1,7 @@
-"""Unified caching system for Importobot.
+"""Provides a unified caching system for Importobot.
 
-Replaces multiple scattered cache implementations with a single, clean hierarchy.
+This module consolidates multiple scattered cache implementations into a single,
+coherent hierarchy.
 """
 
 from importobot.caching.base import CacheConfig, CacheStrategy, EvictionPolicy

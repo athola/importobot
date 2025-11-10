@@ -1,20 +1,13 @@
-"""Base class for SSH test generators to eliminate code duplication."""
+"""Base class for SSH test generators."""
 
 from typing import Any
 
 
 class BaseSSHTestGenerator:
-    """Base class for SSH test generators with common placeholder methods."""
+    """Base class for SSH test generators."""
 
     def _generate_placeholder_method(self, config: dict[str, Any]) -> list[str]:
-        """Generate placeholder test cases (to be overridden by subclasses).
-
-        Args:
-            config: Configuration for test generation
-
-        Returns:
-            List of generated test cases
-        """
+        """Generate placeholder test cases."""
         _ = config  # Unused parameter
         return []
 

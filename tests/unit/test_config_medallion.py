@@ -8,7 +8,7 @@ from importobot.config import update_medallion_config
 from importobot.medallion.storage.config import StorageConfig
 
 
-def test_update_medallion_config_mutates_known_fields(tmp_path) -> None:
+def test_update_medallion_config_mutates_known_fields(tmp_path: Path) -> None:
     """Known fields should be applied to the returned StorageConfig."""
     cfg = update_medallion_config(base_path=tmp_path, retention_days=42)
 

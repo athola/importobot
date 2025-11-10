@@ -15,7 +15,7 @@ logger = get_logger()
 
 
 class SecurityValidator:
-    """Validates and sanitizes test parameters for security concerns.
+    """Validate and sanitizes test parameters for security concerns.
 
     Supports configurable security policies for different environments.
     Logs security validation failures with specific rule violations and context.
@@ -787,7 +787,7 @@ class SecurityValidator:
         return recommendations
 
     def validate_test_security(self, test_case: dict[str, Any]) -> dict[str, list[str]]:
-        """Comprehensive security validation for test cases.
+        """Validate test case security.
 
         Performs security validation of test cases:
         - Extracts and validates SSH parameters from test steps
@@ -815,9 +815,7 @@ class SecurityValidator:
 def validate_test_security(test_case: dict[str, Any]) -> dict[str, list[str]]:
     """Security validation for test cases.
 
-    Standalone function that creates a SecurityValidator with standard security level
-    and performs validation of test cases. This is the main entry point
-    for test security validation.
+    Creates a SecurityValidator with standard security level and performs validation.
 
     Args:
         test_case: Test case dictionary containing steps and test data

@@ -49,9 +49,10 @@ def validate_file_path(
         raise ValidationError("File path must be a non-empty string")
 
     # Check for path traversal attempts
-    if ".." in file_path or file_path.startswith("/"):
-        if not file_path.startswith("/tmp/"):  # Allow /tmp/ for temporary files
-            raise SecurityError(f"Potentially unsafe path detected: {file_path}")
+    if (".." in file_path or file_path.startswith("/")) and not file_path.startswith(
+        "/tmp/"
+    ):
+        raise SecurityError(f"Potentially unsafe path detected: {file_path}")
 
     # Validate path format
     try:
@@ -60,11 +61,12 @@ def validate_file_path(
         raise ValidationError(f"Invalid path format: {e}") from e
 
     # Check extension if specified
-    if allowed_extensions:
-        if not any(file_path.endswith(ext) for ext in allowed_extensions):
-            raise ValidationError(
-                f"File must have one of these extensions: {allowed_extensions}"
-            )
+    if allowed_extensions and not any(
+        file_path.endswith(ext) for ext in allowed_extensions
+    ):
+        raise ValidationError(
+            f"File must have one of these extensions: {allowed_extensions}"
+        )
 
     # Check existence if required
     if must_exist and not path_obj.exists():
@@ -131,7 +133,9 @@ def sanitize_command(command: str, allowed_commands: list[str] | None = None) ->
     return command.strip()
 
 
-def validate_json_structure(data: dict[str, Any], required_keys: list[str] | None = None) -> bool:
+def validate_json_structure(
+    data: dict[str, Any], required_keys: list[str] | None = None
+) -> bool:
     """
     Validate JSON data structure.
 
@@ -231,7 +235,7 @@ def validate_business_metrics(metrics: dict[str, Any]) -> tuple[bool, list[str]]
 
 def safe_remove_file(file_path: str) -> None:
     """
-    Safely remove a file with validation.
+    Safely remove a file.
 
     Args:
         file_path: Path to the file to remove.
@@ -266,7 +270,7 @@ def safe_execute_command(
     command: str, cwd: str | None = None, timeout: int = 60
 ) -> tuple[bool, str, str]:
     """
-    Safely execute a shell command with proper validation and error handling.
+    Safely execute a shell command.
 
     Args:
         command: Command to execute
@@ -325,9 +329,12 @@ def validate_demo_environment() -> tuple[bool, list[str]]:
 
     # Check for required dependencies
     required_deps = ["matplotlib", "numpy", "pandas", "seaborn"]
-    for dep in required_deps:
-        if importlib.util.find_spec(dep) is None:
-            issues.append(f"Missing required dependency: {dep}")
+    missing_deps = [
+        f"Missing required dependency: {dep}"
+        for dep in required_deps
+        if importlib.util.find_spec(dep) is None
+    ]
+    issues.extend(missing_deps)
 
     # Check for importobot availability
     success, _stdout, _stderr = safe_execute_command("uv run importobot --help")
@@ -352,7 +359,7 @@ def validate_demo_environment() -> tuple[bool, list[str]]:
 
 def log_demo_session(session_info: dict[str, Any]) -> None:
     """
-    Log demo session information for audit purposes.
+    Log demo session information.
 
     Args:
         session_info: Dictionary containing session information

@@ -7,6 +7,8 @@ Tests verify caching behavior in actual conversion scenarios:
 """
 
 import json
+from collections.abc import Generator
+from pathlib import Path
 from typing import Any, cast
 
 import pytest
@@ -23,7 +25,7 @@ class TestCachingInConversionWorkflow:
     """Test caching behavior during actual test conversion."""
 
     @pytest.fixture(autouse=True)
-    def _clean_context(self):
+    def _clean_context(self) -> Generator[None, None, None]:
         """Ensure clean context for each test."""
         clear_context()
         yield
@@ -188,13 +190,13 @@ class TestCachingWithRealFiles:
     """Test caching with actual JSON test files."""
 
     @pytest.fixture(autouse=True)
-    def _clean_context(self):
+    def _clean_context(self) -> Generator[None, None, None]:
         """Ensure clean context for each test."""
         clear_context()
         yield
         clear_context()
 
-    def test_caching_with_example_files(self, tmp_path) -> None:
+    def test_caching_with_example_files(self, tmp_path: Path) -> None:
         """GIVEN real JSON test files
         WHEN converting them with caching enabled
         THEN conversions complete and cache is utilized
@@ -248,7 +250,7 @@ class TestCachingWithRealFiles:
             # (due to repeated strings like "Setup", "Cleanup")
             assert hit_rate > 0
 
-    def test_large_file_conversion_uses_cache_effectively(self, tmp_path) -> None:
+    def test_large_file_conversion_uses_cache_effectively(self, tmp_path: Path) -> None:
         """GIVEN a large test file with many test cases
         WHEN converting it
         THEN cache provides performance benefit
@@ -301,7 +303,7 @@ class TestCacheInvalidation:
     """Test cache invalidation scenarios."""
 
     @pytest.fixture(autouse=True)
-    def _clean_context(self):
+    def _clean_context(self) -> Generator[None, None, None]:
         """Ensure clean context for each test."""
         clear_context()
         yield

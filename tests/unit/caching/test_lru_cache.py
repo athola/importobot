@@ -255,7 +255,7 @@ class TestTTLExpiration:
 class TestSecurityPolicies:
     """Test security constraints (content size, collision chains)."""
 
-    def test_rejects_oversized_content(self, caplog) -> None:
+    def test_rejects_oversized_content(self, caplog: pytest.LogCaptureFixture) -> None:
         """GIVEN a cache with max_content_size=100 bytes
         WHEN setting a value larger than 100 bytes
         THEN the value is rejected and warning is logged
@@ -287,7 +287,9 @@ class TestSecurityPolicies:
         stats = cache.get_stats()
         assert stats["rejections"] >= 1
 
-    def test_config_max_bytes_rejects_oversized_entry(self, caplog) -> None:
+    def test_config_max_bytes_rejects_oversized_entry(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
         """GIVEN a cache with max_content_size_bytes=100
         WHEN setting a single value larger than the total capacity
         THEN the value is rejected and not cached
@@ -304,7 +306,9 @@ class TestSecurityPolicies:
         assert stats["rejections"] >= 1
         assert "exceeding configured cache capacity" in caplog.text.lower()
 
-    def test_collision_chain_limit_enforced(self, monkeypatch, caplog) -> None:
+    def test_collision_chain_limit_enforced(
+        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
         """GIVEN a cache with max_collision_chain=1
         WHEN attempting to store 2 items with same hash
         THEN second item is rejected
@@ -394,7 +398,9 @@ class TestCacheStatistics:
 class TestTelemetryIntegration:
     """Test telemetry emission for monitoring."""
 
-    def test_emits_telemetry_on_operations(self, telemetry_events) -> None:
+    def test_emits_telemetry_on_operations(
+        self, telemetry_events: list[tuple[str, Any]]
+    ) -> None:
         """GIVEN a cache with telemetry enabled
         WHEN performing cache operations
         THEN telemetry events are emitted
@@ -410,7 +416,9 @@ class TestTelemetryIntegration:
         event_names = [event[0] for event in telemetry_events]
         assert "cache_metrics" in event_names
 
-    def test_telemetry_includes_cache_stats(self, telemetry_events) -> None:
+    def test_telemetry_includes_cache_stats(
+        self, telemetry_events: list[tuple[str, Any]]
+    ) -> None:
         """GIVEN a cache with telemetry enabled
         WHEN performing operations
         THEN telemetry includes hit/miss statistics
@@ -634,7 +642,7 @@ class TestSizeEstimationEdgeCases:
         cache = LRUCache[str, str]()
 
         # Mock sys.getsizeof to raise TypeError
-        def failing_getsizeof(obj):
+        def failing_getsizeof(obj: object) -> None:
             raise TypeError("Cannot get size")
 
         monkeypatch.setattr(
@@ -658,7 +666,7 @@ class TestSizeEstimationEdgeCases:
         cache = LRUCache[str, str](security_policy=security)
 
         # Mock sys.getsizeof to raise TypeError
-        def failing_getsizeof(obj):
+        def failing_getsizeof(obj: object) -> None:
             raise TypeError("Cannot get size")
 
         monkeypatch.setattr(
@@ -683,7 +691,7 @@ class TestSizeEstimationEdgeCases:
         cache = LRUCache[str, str](config=config)
 
         # Mock sys.getsizeof to raise TypeError
-        def failing_getsizeof(obj):
+        def failing_getsizeof(obj: object) -> None:
             raise TypeError("Cannot get size")
 
         monkeypatch.setattr(
@@ -711,7 +719,7 @@ class TestSizeEstimationEdgeCases:
         cache = LRUCache[str, Any]()
 
         # Mock sys.getsizeof to raise AttributeError
-        def failing_getsizeof(obj):
+        def failing_getsizeof(obj: object) -> None:
             raise AttributeError("No size attribute")
 
         monkeypatch.setattr(

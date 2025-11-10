@@ -7,6 +7,7 @@ Focuses on business use cases: bulk conversion, error handling, enterprise scale
 
 import json
 import time
+from contextlib import suppress
 
 import pytest
 
@@ -303,18 +304,20 @@ class TestJsonToRobotConverterPublicAPI:
         successful_conversions = []
         failed_conversions = []
 
-        for index, test_data in test_cases:
+        def _convert_case(case_index: int, payload: dict[str, object]) -> None:
             try:
-                test_json = json.dumps(test_data)
+                test_json = json.dumps(payload)
                 result = converter.convert_json_string(test_json)
-                successful_conversions.append((index, result))
+                successful_conversions.append((case_index, result))
             except (
                 exceptions.ValidationError,
                 exceptions.ParseError,
                 exceptions.ConversionError,
-            ) as e:
-                # Collect error details for reporting
-                failed_conversions.append((index, str(e)))
+            ) as exc:
+                failed_conversions.append((case_index, str(exc)))
+
+        for index, test_data in test_cases:
+            _convert_case(index, test_data)
 
         # Verify error recovery behavior
         assert len(successful_conversions) == batch_size - len(error_indices), (
@@ -465,15 +468,13 @@ class TestBusinessLogicAlignment:
         # Business requirement: All conversions must succeed
         successful_conversions = 0
         for test_case in zephyr_style_tests:
-            try:
+            with suppress(Exception):
                 test_json = json.dumps(test_case)
                 result = converter.convert_json_string(test_json)
                 tc_in_res = "*** Test Cases ***" in result
                 name_in_res = str(test_case["name"]) in result
                 if tc_in_res and name_in_res:
                     successful_conversions += 1
-            except Exception:
-                pass  # Count only successful conversions
 
         # Business requirement: 100% conversion success rate
         assert successful_conversions == len(zephyr_style_tests)

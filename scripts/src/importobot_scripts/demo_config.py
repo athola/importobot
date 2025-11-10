@@ -119,9 +119,11 @@ class EnterpriseScenario:
             "cost_savings_usd": cost_savings,
             "time_reduction_percent": time_reduction_percent,
             "roi_multiplier": roi,
-            "speed_improvement": manual_time_team / importobot_time
-            if importobot_time > 0
-            else float("inf"),
+            "speed_improvement": (
+                manual_time_team / importobot_time
+                if importobot_time > 0
+                else float("inf")
+            ),
         }
 
 

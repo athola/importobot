@@ -1,7 +1,6 @@
 """String caching utilities to avoid circular imports.
 
-Provides performance optimization for repeated string operations without
-creating circular dependencies between modules.
+Optimizes performance for repeated string operations.
 """
 
 from __future__ import annotations
@@ -32,8 +31,7 @@ def cached_string_lower(data_str: str) -> str:
 def data_to_lower_cached(data: Any) -> str:
     """Convert data to lowercase string with caching.
 
-    This function handles the data-to-string conversion and then
-    applies caching to the string lowercasing operation.
+    Handles data-to-string conversion and applies caching to lowercasing.
 
     Args:
         data: Data to convert to lowercase string
@@ -69,7 +67,7 @@ def get_cache_info() -> dict[str, Any]:
 
 
 class _CacheState:
-    """Holds mutable state for the string cache to avoid module-level globals."""
+    """Holds mutable state for the string cache."""
 
     lock: ClassVar[Lock] = Lock()
     operation_count: ClassVar[int] = 0

@@ -23,7 +23,7 @@ class CategoryEnum(Enum):
 
     @classmethod
     def get_default_weights(cls) -> dict["CategoryEnum", float]:
-        """Get default distribution weights for enterprise testing."""
+        """Get default distribution weights."""
         return {
             cls.REGRESSION: 0.3125,  # 31.25%
             cls.SMOKE: 0.1875,  # 18.75%

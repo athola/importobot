@@ -41,14 +41,14 @@ def parse_robot_file(file_path: str) -> list[dict[str, Any]]:
         """Recursively extract keywords from a test or suite."""
         keywords: list[dict[str, Any]] = []
         if hasattr(test_or_suite, "body"):
-            for item in test_or_suite.body:
-                if hasattr(item, "name") and item.name:
-                    keywords.append(
-                        {
-                            "keyword": item.name,
-                            "args": [str(arg) for arg in item.args],
-                        }
-                    )
+            keywords.extend(
+                {
+                    "keyword": item.name,
+                    "args": [str(arg) for arg in item.args],
+                }
+                for item in test_or_suite.body
+                if hasattr(item, "name") and item.name
+            )
         return keywords
 
     for test in suite.tests:

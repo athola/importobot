@@ -3,8 +3,10 @@
 # pylint: disable=protected-access
 
 import tempfile
+from collections.abc import Callable
 from functools import wraps
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -18,11 +20,11 @@ from importobot.utils.resource_manager import (
 )
 
 
-def reset_resource_manager_singleton(func):
+def reset_resource_manager_singleton(func: Callable[..., Any]) -> Callable[..., Any]:
     """Decorator to reset ResourceManager singleton before test execution."""
 
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         ResourceManager._reset_singleton()
         return func(*args, **kwargs)
 
@@ -95,9 +97,14 @@ class TestResourceManager:
         """Test context manager handles exceptions properly."""
         manager = ResourceManager()
 
-        with pytest.raises(ValueError), manager as _ctx_manager:
-            assert manager._active_operations == 1
-            raise ValueError("Test exception")
+        def _run_operation() -> None:
+            with manager as _ctx_manager:
+                assert manager._active_operations == 1
+                assert _ctx_manager is manager
+                raise ValueError("Test exception")
+
+        with pytest.raises(ValueError, match="Test exception"):
+            _run_operation()
 
         # Even with exception, cleanup should occur
         assert manager._current_operation_id is None
@@ -145,30 +152,34 @@ class TestResourceManager:
         manager.finish_operation(op2)
 
     @patch("psutil.disk_usage")
-    def test_validate_generation_request_disk_space(self, mock_disk_usage) -> None:
+    def test_validate_generation_request_disk_space(
+        self, mock_disk_usage: MagicMock
+    ) -> None:
         """Test validation of generation request for disk space."""
         # Mock disk usage to show limited space
         mock_disk_usage.return_value = MagicMock(free=1024**3)  # 1GB free
 
         manager = ResourceManager()
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # Request that would exceed available space
-            with pytest.raises(ValueError, match="exceeds available space"):
-                manager.validate_generation_request(1000000, temp_dir)
+        with (
+            tempfile.TemporaryDirectory() as temp_dir,
+            pytest.raises(ValueError, match="exceeds available space"),
+        ):
+            manager.validate_generation_request(1000000, temp_dir)
 
     @patch("psutil.virtual_memory")
-    def test_validate_generation_request_memory(self, mock_memory) -> None:
+    def test_validate_generation_request_memory(self, mock_memory: MagicMock) -> None:
         """Test validation of generation request for memory."""
         # Mock memory to show limited available memory
         mock_memory.return_value = MagicMock(available=50 * 1024**2)  # 50MB available
 
         manager = ResourceManager()
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # Request that would exceed available memory
-            with pytest.raises(ValueError, match="exceeds available memory"):
-                manager.validate_generation_request(1000000, temp_dir)
+        with (
+            tempfile.TemporaryDirectory() as temp_dir,
+            pytest.raises(ValueError, match="exceeds available memory"),
+        ):
+            manager.validate_generation_request(1000000, temp_dir)
 
     @reset_resource_manager_singleton
     def test_validate_generation_request_total_tests_limit(self) -> None:
@@ -176,9 +187,11 @@ class TestResourceManager:
         limits = ResourceLimits(max_total_tests=100)
         manager = ResourceManager(limits)
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            with pytest.raises(ValueError, match="exceeds maximum allowed"):
-                manager.validate_generation_request(200, temp_dir)
+        with (
+            tempfile.TemporaryDirectory() as temp_dir,
+            pytest.raises(ValueError, match="exceeds maximum allowed"),
+        ):
+            manager.validate_generation_request(200, temp_dir)
 
     def test_validate_generation_request_invalid_count(self) -> None:
         """Test validation with invalid test count."""
@@ -229,7 +242,9 @@ class TestResourceManager:
 
     @patch("psutil.virtual_memory")
     @patch("psutil.disk_usage")
-    def test_get_resource_stats(self, mock_disk_usage, mock_memory) -> None:
+    def test_get_resource_stats(
+        self, mock_disk_usage: MagicMock, mock_memory: MagicMock
+    ) -> None:
         """Test resource statistics retrieval."""
         mock_memory.return_value = MagicMock(percent=75.5)
         mock_disk_usage.return_value = MagicMock(percent=45.2)
@@ -260,7 +275,7 @@ class TestResourceManager:
 
     @reset_resource_manager_singleton
     @patch("time.time")
-    def test_check_operation_limits_timeout(self, mock_time) -> None:
+    def test_check_operation_limits_timeout(self, mock_time: MagicMock) -> None:
         """Test operation timeout checking."""
         limits = ResourceLimits(max_execution_time_minutes=1)  # 1 minute timeout
         manager = ResourceManager(limits)
@@ -277,7 +292,7 @@ class TestResourceManager:
 
     @reset_resource_manager_singleton
     @patch("psutil.Process")
-    def test_check_operation_limits_memory(self, mock_process_class) -> None:
+    def test_check_operation_limits_memory(self, mock_process_class: MagicMock) -> None:
         """Test operation memory limit checking."""
         limits = ResourceLimits(max_memory_usage_mb=100)
         manager = ResourceManager(limits)
@@ -315,9 +330,14 @@ class TestResourceOperation:
         manager = ResourceManager()
         operation = ResourceOperation(manager, "test_op")
 
-        with pytest.raises(ValueError), operation as _operation_id:
-            assert manager._active_operations == 1
-            raise ValueError("Test exception")
+        def _run_resource_operation() -> None:
+            with operation as _operation_id:
+                assert manager._active_operations == 1
+                assert _operation_id is not None
+                raise ValueError("Test exception")
+
+        with pytest.raises(ValueError, match="Test exception"):
+            _run_resource_operation()
 
         # Should still clean up after exception
         assert manager._active_operations == 0
@@ -361,7 +381,7 @@ class TestResourceManagerIntegration:
             assert manager._total_files_generated == 1
             assert manager._total_disk_usage_mb > 0
 
-    def test_context_manager_with_real_operations(self, tmp_path) -> None:
+    def test_context_manager_with_real_operations(self, tmp_path: Path) -> None:
         """Test context manager with real operations."""
         manager = ResourceManager()
 

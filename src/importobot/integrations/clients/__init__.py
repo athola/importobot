@@ -1,7 +1,7 @@
-"""HTTP clients for ingesting test suites from platform APIs.
+"""HTTP clients for integrating with external test management platform APIs.
 
-This module provides clients for fetching test data directly from test management
-systems via their REST APIs. Each client handles authentication, pagination, and
+This module provides clients for retrieving test data directly from test management
+systems via their REST APIs. Each client manages authentication, pagination, and
 payload parsing specific to its platform.
 
 Example usage:
@@ -37,12 +37,12 @@ Example usage:
         project_name="ENG-QA",
     )
 
-All clients support:
-- Automatic API discovery and authentication strategy selection
-- Configurable pagination with rate limiting
-- Progress callbacks for large fetch operations
-- Error handling with exponential backoff
-- Flexible configuration via environment variables or constructor arguments
+All clients offer the following features:
+- Automatic API discovery and authentication strategy selection.
+- Configurable pagination with rate limiting.
+- Progress callbacks for large fetch operations.
+- Error handling with exponential backoff.
+- Flexible configuration via environment variables or constructor arguments.
 """
 
 from __future__ import annotations
@@ -66,7 +66,7 @@ def get_api_client(
     max_concurrency: int | None,
     verify_ssl: bool,
 ) -> APISource:
-    """Create platform-specific API clients."""
+    """Create a platform-specific API client from format and configuration."""
     mapping = {
         SupportedFormat.JIRA_XRAY: JiraXrayClient,
         SupportedFormat.ZEPHYR: ZephyrClient,

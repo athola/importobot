@@ -1,4 +1,4 @@
-"""Zephyr API client for fetching test cases with adaptive API discovery."""
+"""Zephyr API client for retrieving test cases with adaptive API discovery."""
 
 from __future__ import annotations
 
@@ -17,11 +17,13 @@ from importobot.utils.logging import get_logger
 
 logger = get_logger()
 
+
 class ZephyrClient(BaseAPIClient):
     """
-    Flexible Zephyr client that adapts to different server configurations.
+    Manage interactions with the Zephyr API to retrieve test cases.
 
-    Supports multiple API patterns, authentication methods, and pagination strategies.
+    This client will automatically discover and adapt to different Zephyr API patterns,
+    authentication methods, and pagination strategies.
     """
 
     __test__ = False
@@ -106,7 +108,7 @@ class ZephyrClient(BaseAPIClient):
             self._base_root = self.api_url
 
     def _build_pattern_url(self, path: str) -> str:
-        """Construct a usable URL for a pattern path regardless of provided base."""
+        """Build a URL for a given pattern path, ignoring the client's base URL."""
         if path.startswith("http://") or path.startswith("https://"):
             return path
 
@@ -121,7 +123,7 @@ class ZephyrClient(BaseAPIClient):
 
     @staticmethod
     def _pattern_uses_project_param(pattern: dict[str, Any]) -> bool:
-        """Determine whether the API pattern accepts a separate projectKey param."""
+        """Determine if API pattern accepts separate `projectKey` parameter."""
         path = pattern.get("testcase_search") or pattern.get("keys_search") or ""
         return "rest/atm" in path
 
@@ -133,7 +135,7 @@ class ZephyrClient(BaseAPIClient):
         page_size: int = 1,
         fields: str | None = None,
     ) -> tuple[str, dict[str, Any]]:
-        """Build a test request for discovery and page-size detection."""
+        """Construct a test request for API discovery and page-size detection."""
         if pattern["requires_keys_stage"]:
             if project_ref is None:
                 return self._build_pattern_url(pattern["keys_search"]), {
@@ -161,20 +163,20 @@ class ZephyrClient(BaseAPIClient):
 
     @staticmethod
     def _clean_params(params: dict[str, Any]) -> dict[str, Any]:
-        """Remove None-valued entries to avoid sending ambiguous parameters."""
+        """Remove `None` values from parameters to prevent sending ambiguous values."""
         return {key: value for key, value in params.items() if value is not None}
 
     @staticmethod
     def _extract_results(payload: Any) -> list[dict[str, Any]]:
-        """Normalise payloads into a list of result dictionaries.
+        """Normalize payloads into a list of result dictionaries.
 
-        Supports various Zephyr endpoint response structures:
-        - Standard: {"results": [...]}
-        - Alternative: {"data": [...]}
-        - Direct list: [...]
-        - Nested: {"testCases": [...]} or {"cases": [...]}
-        - Wrapped: {"value": {"results": [...]}}
-        - Legacy: {"items": [...]}
+        Supports various Zephyr endpoint response structures, including:
+        - Standard: `{"results": [...]}`
+        - Alternative: `{"data": [...]}`
+        - Direct list: `[...]`
+        - Nested: `{"testCases": [...]}` or `{"cases": [...]}`
+        - Wrapped: `{"value": {"results": [...]}}`
+        - Legacy: `{"items": [...]}`
         """
         if isinstance(payload, list):
             return payload
@@ -205,7 +207,7 @@ class ZephyrClient(BaseAPIClient):
 
     @staticmethod
     def _get_total_from_dict(payload: dict[str, Any]) -> int | None:
-        """Get total from a dictionary."""
+        """Extract the total count from a dictionary."""
         for key in ["total", "totalCount", "count", "size", "length"]:
             total = payload.get(key)
             if isinstance(total, int):
@@ -216,7 +218,7 @@ class ZephyrClient(BaseAPIClient):
     def _get_total_from_nested_dict(
         payload: dict[str, Any], parent_keys: list[str]
     ) -> int | None:
-        """Get total from a nested dictionary."""
+        """Extract the total count from a nested dictionary."""
         for parent_key in parent_keys:
             nested_dict = payload.get(parent_key)
             if isinstance(nested_dict, dict):
@@ -227,7 +229,7 @@ class ZephyrClient(BaseAPIClient):
 
     @staticmethod
     def _extract_total(payload: Any, default_value: int | None = None) -> int | None:
-        """Retrieve total count from payload where available."""
+        """Retrieve the total count from the payload if available."""
         if not isinstance(payload, dict):
             return default_value
 
@@ -250,11 +252,7 @@ class ZephyrClient(BaseAPIClient):
         return default_value
 
     def fetch_all(self, progress_cb: ProgressCallback) -> Iterator[dict[str, Any]]:
-        """
-        Fetch test cases using discovered API pattern and authentication.
-
-        Automatically adapts to server capabilities and configuration.
-        """
+        """Retrieve test cases using auto-discovered API pattern and authentication."""
         if not self._discover_working_configuration():
             raise RuntimeError("Unable to establish working connection to Zephyr API")
 
@@ -269,10 +267,9 @@ class ZephyrClient(BaseAPIClient):
         yield from self._fetch_direct_search(progress_cb)
 
     def _discover_working_configuration(self) -> bool:
-        """
-        Discover working API pattern and authentication strategy by trying.
+        """Discover working API pattern and authentication strategy.
 
-        Different combinations until one succeeds.
+        Try different combinations iteratively until a successful one is found.
         """
         if self._discovered_pattern and self._working_auth_strategy:
             return True
@@ -304,6 +301,10 @@ class ZephyrClient(BaseAPIClient):
     def _candidate_patterns(
         self, project_ref: str | int | None
     ) -> Iterator[dict[str, Any]]:
+        """Yield candidate API patterns for discovery.
+
+        Logs debug messages for patterns being attempted or skipped.
+        """
         for pattern in self.API_PATTERNS:
             if pattern.get("requires_keys_stage") and not project_ref:
                 logger.debug(
@@ -317,6 +318,10 @@ class ZephyrClient(BaseAPIClient):
     def _try_pattern(
         self, pattern: dict[str, Any], project_ref: str | int | None
     ) -> dict[str, Any] | None:
+        """Attempt to find a working authentication strategy for a given API pattern.
+
+        Logs debug messages for authentication strategies being attempted.
+        """
         fields = "key" if pattern["supports_field_selection"] else None
 
         for auth_strategy in self.AUTH_STRATEGIES:
@@ -338,7 +343,7 @@ class ZephyrClient(BaseAPIClient):
         *,
         fields: str | None,
     ) -> bool:
-        """Test if a specific API pattern + auth strategy combination works."""
+        """Test if an API pattern and auth strategy combination is functional."""
         try:
             headers = self._build_auth_headers(auth_strategy)
             test_url, params = self._build_probe_request(
@@ -415,7 +420,7 @@ class ZephyrClient(BaseAPIClient):
         auth_strategy: dict[str, Any],
         project_ref: str | int | None,
     ) -> None:
-        """Detect optimal page size by trying different values."""
+        """Detect the optimal page size by iteratively testing different values."""
         for page_size in self.DEFAULT_PAGE_SIZES:
             try:
                 headers = self._build_auth_headers(auth_strategy)
@@ -457,7 +462,7 @@ class ZephyrClient(BaseAPIClient):
     def _build_auth_headers(
         self, auth_strategy: dict[str, Any] | None
     ) -> dict[str, str]:
-        """Build authentication headers based on strategy."""
+        """Construct authentication headers based on the specified strategy."""
         self._session.auth = None
         headers: dict[str, str] = {}
 
@@ -495,7 +500,7 @@ class ZephyrClient(BaseAPIClient):
     def _fetch_with_keys_stage(
         self, progress_cb: ProgressCallback
     ) -> Iterator[dict[str, Any]]:
-        """Fetch using two-stage pattern: get keys first, then details."""
+        """Retrieve data using two-stage pattern: first keys, then their details."""
         if not self._discovered_pattern:
             return
 
@@ -532,7 +537,7 @@ class ZephyrClient(BaseAPIClient):
     def _fetch_direct_search(
         self, progress_cb: ProgressCallback
     ) -> Iterator[dict[str, Any]]:
-        """Fetch directly using search endpoint with pagination."""
+        """Retrieve data directly using the search endpoint with pagination."""
         if not self._discovered_pattern:
             return
 
@@ -592,7 +597,7 @@ class ZephyrClient(BaseAPIClient):
                 break
 
     def _fetch_all_keys(self, progress_cb: ProgressCallback) -> Iterator[_KeyBatch]:
-        """Yield key batches for the two-stage approach without buffering everything."""
+        """Yield key batches for two-stage approach without buffering all keys."""
         if not self._discovered_pattern:
             return
 
@@ -646,7 +651,7 @@ class ZephyrClient(BaseAPIClient):
     def _fetch_details_for_keys(
         self, keys: list[str], _progress_cb: ProgressCallback
     ) -> list[dict[str, Any]]:
-        """Fetch detailed information for a specific batch of keys."""
+        """Retrieve detailed information for a specific batch of keys."""
         if not self._discovered_pattern or not keys:
             return []
 
@@ -678,8 +683,6 @@ class ZephyrClient(BaseAPIClient):
         except Exception as e:
             logger.error("Failed to fetch details for keys batch: %s", e)
             return []
-
-
 
 
 __all__ = ["ZephyrClient"]

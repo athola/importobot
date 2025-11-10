@@ -182,7 +182,7 @@ class TestContextCleanup:
         """Cleanup should remove contexts for threads that are no longer alive."""
         contexts_created = []
 
-        def worker():
+        def worker() -> None:
             context = get_context()
             contexts_created.append(context)
 
@@ -242,12 +242,12 @@ class TestContextCleanup:
         """Cleanup should be safe to call from multiple threads."""
         results = []
 
-        def worker():
+        def worker() -> None:
             _ = get_context()
             # Small delay to increase chance of concurrent cleanup
             time.sleep(0.01)
 
-        def cleanup_worker():
+        def cleanup_worker() -> None:
             removed = cleanup_stale_contexts()
             results.append(removed)
 
@@ -286,7 +286,7 @@ class TestContextMemoryManagement:
         initial_stats = get_registry_stats()
         initial_size = cast(int, initial_stats["size"])
 
-        def worker():
+        def worker() -> None:
             _ = get_context()
 
         thread = threading.Thread(target=worker)
@@ -317,7 +317,7 @@ class TestContextMemoryManagement:
         # Create and cleanup multiple times
         for _ in range(10):
 
-            def worker():
+            def worker() -> None:
                 _ = get_context()
 
             thread = threading.Thread(target=worker)
@@ -386,7 +386,7 @@ class TestContextManager:
         """Test that context manager cleanup works even when exceptions occur."""
         context = ApplicationContext()
 
-        with pytest.raises(ValueError):
+        def use_context() -> None:
             with context as ctx:
                 # Use the context normally
                 cache = ctx.performance_cache
@@ -394,6 +394,9 @@ class TestContextManager:
 
                 # Raise an exception
                 raise ValueError("Test exception")
+
+        with pytest.raises(ValueError, match="Test exception"):
+            use_context()
 
         # Context should still be cleaned up despite the exception
         assert context._performance_cache is None
@@ -403,14 +406,8 @@ class TestContextManager:
         """Test that context manager doesn't suppress exceptions."""
         context = ApplicationContext()
 
-        try:
-            with context:
-                raise ValueError("Test exception")
-        except ValueError as e:
-            # Exception should be propagated normally
-            assert str(e) == "Test exception"
-        else:
-            pytest.fail("Exception should have been propagated")
+        with pytest.raises(ValueError, match="Test exception"), context:
+            raise ValueError("Test exception")
 
     def test_nested_context_managers(self) -> None:
         """Test nested context managers work correctly."""
@@ -461,7 +458,7 @@ class TestContextPerformanceMonitoring:
         thread_contexts = []
         for _i in range(3):
 
-            def worker():
+            def worker() -> None:
                 ctx = get_context()
                 thread_contexts.append(ctx)
                 time.sleep(0.01)  # Small work to create measurable timing
@@ -508,7 +505,7 @@ class TestContextPerformanceMonitoring:
         reset_cleanup_performance_stats()
 
         # First batch of threads
-        def worker_batch1():
+        def worker_batch1() -> None:
             get_context()
             time.sleep(0.005)
 
@@ -525,7 +522,7 @@ class TestContextPerformanceMonitoring:
         assert stats_after_first["cleanup_count"] == 1
 
         # Second batch of threads
-        def worker_batch2():
+        def worker_batch2() -> None:
             get_context()
             time.sleep(0.005)
 
@@ -588,11 +585,11 @@ class TestContextPerformanceMonitoring:
         """Test that performance stats collection is thread-safe."""
         reset_cleanup_performance_stats()
 
-        def concurrent_cleanup_worker():
+        def concurrent_cleanup_worker() -> None:
             """Worker that performs concurrent cleanup operations."""
             for _ in range(3):
 
-                def context_worker():
+                def context_worker() -> None:
                     get_context()
                     time.sleep(0.001)
 

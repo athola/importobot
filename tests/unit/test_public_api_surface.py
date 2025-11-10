@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -27,7 +28,7 @@ def test_convert_dict_payload() -> None:
     assert "Sample Test" in output
 
 
-def test_convert_file(tmp_path) -> None:
+def test_convert_file(tmp_path: Path) -> None:
     input_file = tmp_path / "input.json"
     output_file = tmp_path / "output.robot"
     input_file.write_text(json.dumps(_minimal_payload()), encoding="utf-8")
@@ -38,7 +39,7 @@ def test_convert_file(tmp_path) -> None:
     assert result["success"] is True
 
 
-def test_convert_directory(tmp_path) -> None:
+def test_convert_directory(tmp_path: Path) -> None:
     input_dir = tmp_path / "incoming"
     output_dir = tmp_path / "generated"
     input_dir.mkdir()

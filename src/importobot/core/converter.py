@@ -1,7 +1,7 @@
 """Convert JSON test data into Robot Framework format.
 
-Handles conversion from Zephyr exports and similar JSON structures containing
-test cases with steps, expected results, and metadata.
+Handles Zephyr, TestRail, and similar JSON exports containing test cases
+with steps, expected results, and metadata.
 """
 
 import json
@@ -27,31 +27,15 @@ logger = get_logger()
 
 
 class JsonToRobotConverter:
-    """Convert JSON test formats to Robot Framework code.
-
-    Primary interface for converting Zephyr, TestRail, and similar JSON exports
-    to executable Robot Framework test cases.
-    """
+    """Convert JSON test formats into Robot Framework code."""
 
     def __init__(self) -> None:
-        """Initialize converter with conversion and suggestion engines."""
+        """Initialize converter with default engines."""
         self.conversion_engine = GenericConversionEngine()
         self.suggestion_engine = GenericSuggestionEngine()
 
     def convert(self, json_input: dict[str, Any] | str) -> str:
-        """Unified helper accepting either raw JSON strings or dictionaries.
-
-        Examples:
-            >>> from importobot.core.converter import JsonToRobotConverter
-            >>> sample = {
-            ...     "testCases": [
-            ...         {"name": "Sample", "steps": [{"action": "Ping"}]}
-            ...     ]
-            ... }
-            >>> result = JsonToRobotConverter().convert(sample)  # doctest: +SKIP
-            >>> "*** Settings ***" in result
-            True
-        """
+        """Convert JSON strings or dictionaries to Robot Framework format."""
         if isinstance(json_input, str):
             return self.convert_json_string(json_input)
         if isinstance(json_input, dict):
@@ -99,21 +83,12 @@ class JsonToRobotConverter:
         """Convert a JSON file to Robot Framework format.
 
         Args:
-            input_file: Path to input JSON file
-            output_file: Path to output Robot Framework file
+            input_file: Path to the input JSON file
+            output_file: Path to the output Robot Framework file
 
         Returns:
-            dict: Conversion result with success status and metadata
-
-        Examples:
-            >>> from importobot.core.converter import JsonToRobotConverter
-            >>> JsonToRobotConverter().convert_file(  # doctest: +SKIP
-            ...     "in.json",
-            ...     "out.robot",
-            ... )
-            {'success': True, 'input_file': 'in.json', 'output_file': 'out.robot'}
+            Dict with conversion result and metadata.
         """
-        # Delegate to standalone function but return result dict
         convert_file(input_file, output_file)
         return {"success": True, "input_file": input_file, "output_file": output_file}
 
@@ -121,28 +96,18 @@ class JsonToRobotConverter:
         """Convert all JSON files in a directory to Robot Framework format.
 
         Args:
-            input_dir: Path to input directory containing JSON files
-            output_dir: Path to output directory for Robot Framework files
+            input_dir: Path to directory containing JSON files
+            output_dir: Path to directory for Robot Framework files
 
         Returns:
-            dict: Conversion result with success/error counts
-
-        Examples:
-            >>> from importobot.core.converter import JsonToRobotConverter
-            >>> JsonToRobotConverter().convert_directory(  # doctest: +SKIP
-            ...     "json_cases",
-            ...     "robot_output",
-            ... )
-            {'success': True, 'input_dir': 'json_cases', 'output_dir': 'robot_output'}
+            Dict with conversion result and file counts.
         """
-        # Delegate to standalone function but return result dict
         convert_directory(input_dir, output_dir)
         return {"success": True, "input_dir": input_dir, "output_dir": output_dir}
 
 
-# Standalone suggestion functions
 def get_conversion_suggestions(json_data: dict[str, Any]) -> list[str]:
-    """Generate suggestions for improving JSON test data for Robot conversion."""
+    """Generate suggestions to improve JSON test data for Robot conversion."""
     suggestion_engine = GenericSuggestionEngine()
     return suggestion_engine.get_suggestions(json_data)
 
@@ -150,7 +115,7 @@ def get_conversion_suggestions(json_data: dict[str, Any]) -> list[str]:
 def apply_conversion_suggestions(
     json_data: dict[str, Any] | list[Any],
 ) -> tuple[dict[str, Any] | list[Any], list[dict[str, Any]]]:
-    """Apply automatic improvements to JSON test data for Robot Framework conversion."""
+    """Apply automatic improvements to JSON test data for Robot Framework."""
     suggestion_engine = GenericSuggestionEngine()
     try:
         return suggestion_engine.apply_suggestions(json_data)
@@ -162,13 +127,13 @@ def apply_conversion_suggestions(
 def apply_conversion_suggestions_simple(
     json_data: dict[str, Any] | list[Any],
 ) -> dict[str, Any] | list[Any]:
-    """Apply improvements to JSON test data, returning only the improved data."""
+    """Apply improvements to JSON test data, returning only the modified data."""
     improved_data, _ = apply_conversion_suggestions(json_data)
     return improved_data
 
 
 def save_robot_file(content: str, file_path: str) -> None:
-    """Save Robot Framework content to file."""
+    """Save Robot Framework content to a specified file."""
     validate_string_content(content)
 
     validated_path = validate_safe_path(file_path)
@@ -178,12 +143,12 @@ def save_robot_file(content: str, file_path: str) -> None:
 
 
 def convert_file(input_file: str, output_file: str) -> None:
-    """Convert single JSON file to Robot Framework.
+    """Convert a single JSON file to Robot Framework format.
 
     Raises:
-        ValidationError: For invalid input parameters.
-        ConversionError: For conversion failures.
-        FileNotFoundError: If input file doesn't exist.
+        `ValidationError`: If input parameters are invalid.
+        `ConversionError`: If the conversion process fails.
+        `FileNotFoundError`: If the input file does not exist.
     """
     validate_type(input_file, str, "Input file path")
     validate_type(output_file, str, "Output file path")
@@ -215,6 +180,7 @@ def convert_multiple_files(input_files: list[str], output_dir: str) -> None:
 
 
 def _prime_string_cache(payload: Any) -> None:
+    """Recursively primes the string cache with all string values in the payload."""
     if isinstance(payload, dict):
         for value in payload.values():
             if isinstance(value, str):
@@ -227,7 +193,7 @@ def _prime_string_cache(payload: Any) -> None:
 
 
 def convert_directory(input_dir: str, output_dir: str) -> None:
-    """Convert all JSON files in directory to Robot Framework files."""
+    """Convert all JSON files within a directory to Robot Framework files."""
     try:
         _validate_directory_args(input_dir, output_dir)
         json_files = _find_json_files_in_directory(input_dir)
@@ -254,7 +220,7 @@ def convert_directory(input_dir: str, output_dir: str) -> None:
 
 
 def _convert_file_with_error_handling(input_file: str, output_dir: str) -> None:
-    """Convert a single file while providing consistent error handling."""
+    """Convert a single file, incorporating consistent error handling."""
     try:
         output_filename = Path(input_file).stem + ".robot"
         output_path = Path(output_dir) / output_filename
@@ -275,7 +241,7 @@ def _validate_directory_args(input_dir: str, output_dir: str) -> None:
 
 
 def _find_json_files_in_directory(input_dir: str) -> list[str]:
-    """Find all JSON files in a directory recursively."""
+    """Recursively finds all JSON files within a specified directory."""
     all_files = Path(input_dir).rglob("*")
     json_files = [
         str(f) for f in all_files if f.is_file() and f.suffix.lower() == ".json"

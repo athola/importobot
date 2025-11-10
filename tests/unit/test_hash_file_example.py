@@ -18,7 +18,9 @@ from tests.utils import validate_test_script_structure
 
 
 @pytest.fixture
-def hash_test_data() -> list[dict[str, str | list[str] | dict[str, str | list[dict[str, str]]]]]:
+def hash_test_data() -> list[
+    dict[str, str | list[str] | dict[str, str | list[dict[str, str]]]]
+]:
     """Sample test data for hash file tests."""
     return [
         {
@@ -60,15 +62,14 @@ def hash_test_data() -> list[dict[str, str | list[str] | dict[str, str | list[di
 @pytest.fixture
 def steps_test_data() -> dict[str, object]:
     """Sample test data with many steps for ordering tests."""
-    steps = []
-    for i in range(1, 15):  # Creates steps 1-14
-        steps.append(
-            {
-                "description": f"Step {i} description",
-                "testData": f"test data {i}",
-                "expectedResult": f"result {i}",
-            }
-        )
+    steps = [
+        {
+            "description": f"Step {i} description",
+            "testData": f"test data {i}",
+            "expectedResult": f"result {i}",
+        }
+        for i in range(1, 15)
+    ]
 
     return {
         "projectKey": "TEST",
@@ -81,7 +82,7 @@ def steps_test_data() -> dict[str, object]:
 
 
 @pytest.fixture
-def hash_file_fixture(tmp_path) -> Any:
+def hash_file_fixture(tmp_path: Path) -> Any:
     """Create a temporary hash_file.json for testing."""
     test_data = [
         {
@@ -125,7 +126,7 @@ def hash_file_fixture(tmp_path) -> Any:
 
 
 @pytest.fixture
-def steps_file_fixture(tmp_path) -> Any:
+def steps_file_fixture(tmp_path: Path) -> Any:
     """Create a temporary many_steps_test.json for testing."""
     test_data = {
         "summary": "API endpoint verification",
@@ -189,7 +190,7 @@ class TestHashFileExample:
 
     # pylint: disable=redefined-outer-name
     def test_hash_file_json_conversion_generates_valid_robot_content(
-        self, hash_file_fixture: Any, tmp_path
+        self, hash_file_fixture: Any, tmp_path: Path
     ) -> None:
         """Tests that hash_file.json generates valid Robot Framework content."""
 
@@ -239,7 +240,7 @@ class TestHashFileExample:
 
     # pylint: disable=redefined-outer-name
     def test_hash_file_robot_content_executes_without_syntax_errors(
-        self, hash_file_fixture: Any, tmp_path
+        self, hash_file_fixture: Any, tmp_path: Path
     ) -> None:
         """Tests that the generated Robot Framework file executes without syntax
         errors."""
@@ -274,7 +275,7 @@ class TestHashFileExample:
 
     # pylint: disable=redefined-outer-name
     def test_hash_file_robot_content_contains_expected_keywords(
-        self, hash_file_fixture: Any, tmp_path
+        self, hash_file_fixture: Any, tmp_path: Path
     ) -> None:
         """Tests that the generated Robot Framework file contains expected keywords."""
 
@@ -317,7 +318,12 @@ class TestHashFileExample:
         assert "The blake2bsum is shown" in content
 
     # pylint: disable=redefined-outer-name
-    def test_hash_file_conversion_provides_helpful_suggestions(self, hash_test_data) -> None:
+    def test_hash_file_conversion_provides_helpful_suggestions(
+        self,
+        hash_test_data: list[
+            dict[str, str | list[str] | dict[str, str | list[dict[str, str]]]]
+        ],
+    ) -> None:
         """Tests that the converter provides helpful suggestions for improving test
         data."""
 
@@ -380,7 +386,7 @@ class TestHashFileExample:
 
     # pylint: disable=redefined-outer-name
     def test_conversion_suggestions_displayed_in_correct_order(
-        self, steps_file_fixture
+        self, steps_file_fixture: Any
     ) -> None:
         """Tests that conversion suggestions are displayed in the correct
         numerical order, even when there are 10 or more steps."""

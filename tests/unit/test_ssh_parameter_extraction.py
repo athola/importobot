@@ -17,7 +17,7 @@ class TestSSHParameterExtraction:
     """Tests for SSH parameter extraction and pattern matching."""
 
     @pytest.fixture
-    def ssh_generator(self):
+    def ssh_generator(self) -> SSHKeywordGenerator:
         """Return an SSHKeywordGenerator instance."""
         return SSHKeywordGenerator()
 
@@ -100,7 +100,7 @@ class TestSSHParameterExtraction:
         result = extract_pattern("", r"(?:host|server):\s*([^,\s]+)")
         assert result == ""
 
-    def test_ssh_command_parsing(self, ssh_generator) -> None:
+    def test_ssh_command_parsing(self, ssh_generator: SSHKeywordGenerator) -> None:
         """Test SSH command format parsing."""
         test_cases: list[tuple[str, str, str]] = [
             ("ssh user@host.com", "user", "host.com"),

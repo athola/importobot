@@ -150,7 +150,7 @@ def test_parse_project_identifier_handles_unicode_digits(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Explicit regression: Non-ASCII numerals treated as name."""
-    unicode_digits = "１２３４５"
+    unicode_digits = "\uff11\uff12\uff13\uff14\uff15"
 
     name, project_id = _parse_project_identifier(unicode_digits)
 
@@ -210,7 +210,7 @@ def test_parse_project_identifier_handles_whitespace_only() -> None:
 
 def test_parse_project_identifier_handles_mixed_unicode() -> None:
     """Mixed ASCII and non-ASCII should be treated as project name."""
-    mixed = "Project-１２３"
+    mixed = "Project-\uff11\uff12\uff13"
 
     name, project_id = _parse_project_identifier(mixed)
 

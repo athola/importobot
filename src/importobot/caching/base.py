@@ -1,4 +1,4 @@
-"""Base cache abstractions and policies."""
+"""Defines base cache abstractions and policies."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ V = TypeVar("V")
 
 
 class EvictionPolicy(Enum):
-    """Cache eviction strategies."""
+    """Enumerates available cache eviction strategies."""
 
     LRU = "lru"
     FIFO = "fifo"
@@ -21,7 +21,7 @@ class EvictionPolicy(Enum):
 
 @dataclass(frozen=True)
 class CacheConfig:
-    """Unified cache configuration."""
+    """Represents a unified cache configuration."""
 
     max_size: int = 1000
     ttl_seconds: float | None = None
@@ -31,19 +31,19 @@ class CacheConfig:
 
 
 class CacheStrategy(ABC, Generic[K, V]):
-    """Abstract base for all cache implementations."""
+    """Abstract base class for all cache implementations."""
 
     @abstractmethod
     def get(self, key: K) -> V | None:
-        """Retrieve value by key."""
+        """Retrieve a value by its key."""
 
     @abstractmethod
     def set(self, key: K, value: V) -> None:
-        """Store value with key."""
+        """Store a value associated with a key."""
 
     @abstractmethod
     def delete(self, key: K) -> None:
-        """Remove entry from cache."""
+        """Remove an entry from the cache."""
 
     @abstractmethod
     def clear(self) -> None:
@@ -51,10 +51,10 @@ class CacheStrategy(ABC, Generic[K, V]):
 
     @abstractmethod
     def get_stats(self) -> dict[str, Any]:
-        """Get cache statistics."""
+        """Retrieve cache statistics."""
 
     def contains(self, key: K) -> bool:
-        """Check if key exists in cache."""
+        """Check if a key exists in the cache."""
         return self.get(key) is not None
 
 

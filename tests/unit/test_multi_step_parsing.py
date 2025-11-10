@@ -399,9 +399,7 @@ class TestPerformanceAndScalability:
         generator = GenericKeywordGenerator()
 
         # Generate large test data string
-        large_data_parts = []
-        for i in range(50):  # 50 fields
-            large_data_parts.append(f"field_{i}: value_{i}")
+        large_data_parts = [f"field_{i}: value_{i}" for i in range(50)]
 
         large_test_data = ", ".join(large_data_parts)
 

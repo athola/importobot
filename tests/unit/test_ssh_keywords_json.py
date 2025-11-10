@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -17,7 +18,7 @@ from tests.shared_ssh_test_data import (
 
 
 @pytest.fixture
-def ssh_keywords_data():
+def ssh_keywords_data() -> dict[str, Any]:
     """Load SSH keywords JSON data."""
     # Use direct path to ssh.json
     ssh_json_path = (
@@ -29,13 +30,13 @@ def ssh_keywords_data():
         / "ssh.json"
     )
     with open(ssh_json_path, encoding="utf-8") as f:
-        return json.load(f)
+        return json.load(f)  # type: ignore[no-any-return]
 
 
 class TestSSHKeywordsStructure:
     """Tests for SSH keywords JSON basic structure and metadata."""
 
-    def test_ssh_json_structure(self, ssh_keywords_data) -> None:
+    def test_ssh_json_structure(self, ssh_keywords_data: dict[str, Any]) -> None:
         """Test that SSH JSON has correct top-level structure."""
         assert "library_name" in ssh_keywords_data
         assert "description" in ssh_keywords_data
@@ -43,21 +44,24 @@ class TestSSHKeywordsStructure:
         assert ssh_keywords_data["library_name"] == "SSHLibrary"
         assert isinstance(ssh_keywords_data["keywords"], dict)
 
-    def test_ssh_library_description(self, ssh_keywords_data) -> None:
+    def test_ssh_library_description(self, ssh_keywords_data: dict[str, Any]) -> None:
         """Test that SSH library has appropriate description."""
         assert (
             ssh_keywords_data["description"]
             == "SSH operations and remote command execution"
         )
 
-    def test_ssh_keyword_count(self, ssh_keywords_data) -> None:
+    def test_ssh_keyword_count(self, ssh_keywords_data: dict[str, Any]) -> None:
         """Test that SSH keywords JSON contains sufficient keyword coverage."""
         keywords = ssh_keywords_data["keywords"]
         assert (
             len(keywords) >= 40
         )  # Should have at least 40 keywords for adequate coverage
 
-    def test_keyword_descriptions_non_empty(self, ssh_keywords_data) -> None:
+    def test_keyword_descriptions_non_empty(
+        self,
+        ssh_keywords_data: dict[str, Any],
+    ) -> None:
         """Test that all keywords have non-empty descriptions."""
         keywords = ssh_keywords_data["keywords"]
 
@@ -70,7 +74,7 @@ class TestSSHKeywordsStructure:
                 f"Description too short for keyword: {keyword_name}"
             )
 
-    def test_keyword_args_structure(self, ssh_keywords_data) -> None:
+    def test_keyword_args_structure(self, ssh_keywords_data: dict[str, Any]) -> None:
         """Test that keyword arguments follow consistent structure."""
         keywords = ssh_keywords_data["keywords"]
 
@@ -80,22 +84,30 @@ class TestSSHKeywordsStructure:
                 f"Args should be a list for keyword: {keyword_name}"
             )
 
-    def test_all_keywords_have_valid_json_structure(self, ssh_keywords_data) -> None:
+    def test_all_keywords_have_valid_json_structure(
+        self, ssh_keywords_data: dict[str, Any]
+    ) -> None:
         """Test that all keywords have valid JSON structure without syntax errors."""
         keywords = ssh_keywords_data["keywords"]
 
-        for keyword_name, keyword_data in keywords.items():
-            # Test that keyword data can be serialized back to JSON
+        def _assert_serializable(
+            keyword_name: str, keyword_data: dict[str, Any]
+        ) -> None:
             try:
                 json.dumps(keyword_data)
-            except (TypeError, ValueError) as e:
-                pytest.fail(f"Keyword {keyword_name} has invalid JSON structure: {e}")
+            except (TypeError, ValueError) as exc:
+                pytest.fail(f"Keyword {keyword_name} has invalid JSON structure: {exc}")
+
+        for keyword_name, keyword_data in keywords.items():
+            _assert_serializable(keyword_name, keyword_data)
 
 
 class TestSSHKeywordsCoverage:
     """Tests for SSH keyword coverage and presence."""
 
-    def test_connection_management_keywords(self, ssh_keywords_data) -> None:
+    def test_connection_management_keywords(
+        self, ssh_keywords_data: dict[str, Any]
+    ) -> None:
         """Test that all connection management keywords are present."""
         keywords = ssh_keywords_data["keywords"]
 
@@ -106,7 +118,7 @@ class TestSSHKeywordsCoverage:
             assert "description" in keywords[keyword]
             assert "args" in keywords[keyword]
 
-    def test_authentication_keywords(self, ssh_keywords_data) -> None:
+    def test_authentication_keywords(self, ssh_keywords_data: dict[str, Any]) -> None:
         """Test that all authentication keywords are present."""
         keywords = ssh_keywords_data["keywords"]
 
@@ -117,7 +129,9 @@ class TestSSHKeywordsCoverage:
             assert "description" in keywords[keyword]
             assert "args" in keywords[keyword]
 
-    def test_command_execution_keywords(self, ssh_keywords_data) -> None:
+    def test_command_execution_keywords(
+        self, ssh_keywords_data: dict[str, Any]
+    ) -> None:
         """Test that all command execution keywords are present."""
         keywords = ssh_keywords_data["keywords"]
 
@@ -128,7 +142,7 @@ class TestSSHKeywordsCoverage:
             assert "description" in keywords[keyword]
             assert "args" in keywords[keyword]
 
-    def test_file_operation_keywords(self, ssh_keywords_data) -> None:
+    def test_file_operation_keywords(self, ssh_keywords_data: dict[str, Any]) -> None:
         """Test that all file operation keywords are present."""
         keywords = ssh_keywords_data["keywords"]
 
@@ -139,7 +153,9 @@ class TestSSHKeywordsCoverage:
             assert "description" in keywords[keyword]
             assert "args" in keywords[keyword]
 
-    def test_directory_operation_keywords(self, ssh_keywords_data) -> None:
+    def test_directory_operation_keywords(
+        self, ssh_keywords_data: dict[str, Any]
+    ) -> None:
         """Test that all directory operation keywords are present."""
         keywords = ssh_keywords_data["keywords"]
 
@@ -152,7 +168,9 @@ class TestSSHKeywordsCoverage:
             assert "description" in keywords[keyword]
             assert "args" in keywords[keyword]
 
-    def test_file_verification_keywords(self, ssh_keywords_data) -> None:
+    def test_file_verification_keywords(
+        self, ssh_keywords_data: dict[str, Any]
+    ) -> None:
         """Test that all file/directory verification keywords are present."""
         keywords = ssh_keywords_data["keywords"]
 
@@ -168,7 +186,9 @@ class TestSSHKeywordsCoverage:
             assert "description" in keywords[keyword]
             assert "args" in keywords[keyword]
 
-    def test_interactive_shell_keywords(self, ssh_keywords_data) -> None:
+    def test_interactive_shell_keywords(
+        self, ssh_keywords_data: dict[str, Any]
+    ) -> None:
         """Test that all interactive shell keywords are present."""
         keywords = ssh_keywords_data["keywords"]
 
@@ -179,7 +199,7 @@ class TestSSHKeywordsCoverage:
             assert "description" in keywords[keyword]
             assert "args" in keywords[keyword]
 
-    def test_configuration_keywords(self, ssh_keywords_data) -> None:
+    def test_configuration_keywords(self, ssh_keywords_data: dict[str, Any]) -> None:
         """Test that configuration keywords are present."""
         keywords = ssh_keywords_data["keywords"]
 
@@ -190,7 +210,7 @@ class TestSSHKeywordsCoverage:
             assert "description" in keywords[keyword]
             assert "args" in keywords[keyword]
 
-    def test_logging_keywords(self, ssh_keywords_data) -> None:
+    def test_logging_keywords(self, ssh_keywords_data: dict[str, Any]) -> None:
         """Test that logging keywords are present."""
         keywords = ssh_keywords_data["keywords"]
 
@@ -201,7 +221,9 @@ class TestSSHKeywordsCoverage:
             assert "description" in keywords[keyword]
             assert "args" in keywords[keyword]
 
-    def test_keyword_coverage_vs_documentation(self, ssh_keywords_data) -> None:
+    def test_keyword_coverage_vs_documentation(
+        self, ssh_keywords_data: dict[str, Any]
+    ) -> None:
         """Test that we have good coverage of documented SSHLibrary keywords."""
         keywords = ssh_keywords_data["keywords"]
 
@@ -209,10 +231,11 @@ class TestSSHKeywordsCoverage:
         documented_keywords = ALL_SSH_KEYWORDS
 
         # Check that we have coverage for all documented keywords
-        missing_keywords = []
-        for doc_keyword in documented_keywords:
-            if doc_keyword not in keywords:
-                missing_keywords.append(doc_keyword)
+        missing_keywords = [
+            doc_keyword
+            for doc_keyword in documented_keywords
+            if doc_keyword not in keywords
+        ]
 
         assert not missing_keywords, f"Missing documented keywords: {missing_keywords}"
 
@@ -228,7 +251,9 @@ class TestSSHKeywordsCoverage:
 class TestSSHKeywordsValidation:
     """Tests for SSH keyword validation and argument specification."""
 
-    def test_open_connection_argument_list(self, ssh_keywords_data) -> None:
+    def test_open_connection_argument_list(
+        self, ssh_keywords_data: dict[str, Any]
+    ) -> None:
         """Test that Open Connection keyword has a complete argument list."""
         keywords = ssh_keywords_data["keywords"]
         open_connection = keywords["Open Connection"]
@@ -249,7 +274,9 @@ class TestSSHKeywordsValidation:
 
         assert open_connection["args"] == expected_args
 
-    def test_execute_command_comprehensive_args(self, ssh_keywords_data) -> None:
+    def test_execute_command_comprehensive_args(
+        self, ssh_keywords_data: dict[str, Any]
+    ) -> None:
         """Test that Execute Command keyword has comprehensive argument list."""
         keywords = ssh_keywords_data["keywords"]
         execute_command = keywords["Execute Command"]
@@ -278,7 +305,7 @@ class TestSSHKeywordsValidation:
 class TestSSHKeywordsSecurity:
     """Tests for SSH keyword security warnings and notes."""
 
-    def test_security_warnings_present(self, ssh_keywords_data) -> None:
+    def test_security_warnings_present(self, ssh_keywords_data: dict[str, Any]) -> None:
         """Test that security warnings are present for appropriate keywords."""
         keywords = ssh_keywords_data["keywords"]
 
@@ -294,7 +321,7 @@ class TestSSHKeywordsSecurity:
                 f"Security warning should start with warning emoji for: {keyword}"
             )
 
-    def test_security_notes_present(self, ssh_keywords_data) -> None:
+    def test_security_notes_present(self, ssh_keywords_data: dict[str, Any]) -> None:
         """Test that security notes are present for secure keywords."""
         keywords = ssh_keywords_data["keywords"]
 

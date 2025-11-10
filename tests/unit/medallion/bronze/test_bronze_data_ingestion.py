@@ -524,12 +524,11 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
     def test_ingestion_performance_overhead_acceptable(self) -> None:
         """Test that Bronze layer adds <10% performance overhead."""
         # Create baseline data
-        tests_list = []
-        for i in range(50):
-            for j in range(5):
-                tests_list.append(
-                    {"name": f"Test {i}", "steps": [{"action": f"Step {j}"}]}
-                )
+        tests_list = [
+            {"name": f"Test {i}", "steps": [{"action": f"Step {j}"}]}
+            for i in range(50)
+            for j in range(5)
+        ]
         test_data = {"tests": tests_list}
 
         # Measure ingestion time
@@ -548,7 +547,7 @@ class TestBronzeDataIngestionAdvanced(unittest.TestCase):
 
         results = []
 
-        def ingest_data(data, name):
+        def ingest_data(data: dict[str, "Any"], name: str) -> None:
             result = self.ingestion.ingest_data_dict(data, name)
             results.append(result)
 

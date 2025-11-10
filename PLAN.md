@@ -2,6 +2,14 @@
 
 Roadmap of upcoming features, parked items, and ideas requiring proof-of-concept development.
 
+### What we shipped in November 2025
+
+**Test Architecture Improvements**: Added 55 named constants organized into 9 categories to replace magic numbers throughout the test suite. Replaced `tempfile` usage with pytest's `tmp_path` fixture, added type annotations to all test functions, and documented Arrange-Act-Assert patterns. All 1,541 tests pass with enhanced mypy type checking.
+
+**Client Module Restructuring**: Split `importobot.integrations.clients` into separate modules (base.py, jira_xray.py, testlink.py, testrail.py, zephyr.py) while maintaining backward compatibility. Implemented lazy loading for 3x faster imports. Added ADR-0006 documenting architectural changes.
+
+**Legacy Code Removal**: Dropped compatibility shims for Python < 3.8, deprecated `setup_logger()` and `get_cache_stats()` functions. Updated documentation to use factual descriptions instead of marketing language.
+
 ### What we shipped in October 2025
 
 **ASV Performance Benchmarking**: Integrated ASV (Airspeed Velocity) for tracking performance across releases. Three benchmark suites cover conversion performance, memory usage, and bulk operations with ~55ms average detection time. CI workflow automatically generates and publishes benchmark charts to wiki on tagged releases. Configuration in `asv.conf.json`, benchmark suites in `benchmarks/conversion.py`, automated chart generation in `scripts/src/importobot_scripts/benchmarks/generate_asv_charts.py`.

@@ -300,7 +300,7 @@ class TestSchemaParser:
         assert field.required is False
         assert field.field_type == "text"
 
-    def test_parse_file_enforces_size_limit(self, tmp_path) -> None:
+    def test_parse_file_enforces_size_limit(self, tmp_path: Path) -> None:
         large_file = tmp_path / "schema.md"
         large_file.write_text("A" * (1024 * 1024 + 100), encoding="utf-8")
 
@@ -316,7 +316,7 @@ class TestSchemaParser:
         assert "Name" in doc.fields
         assert "\x00" not in doc.fields["Name"].description
 
-    def test_parse_file_rejects_disallowed_extension(self, tmp_path) -> None:
+    def test_parse_file_rejects_disallowed_extension(self, tmp_path: Path) -> None:
         schema_file = tmp_path / "schema.pdf"
         schema_file.write_text("Name\n\nThe name field\n", encoding="utf-8")
 
@@ -328,7 +328,7 @@ class TestSchemaParser:
     @pytest.mark.skipif(
         not hasattr(os, "symlink") or os.name == "nt", reason="Symlinks unavailable"
     )
-    def test_parse_file_rejects_symlink(self, tmp_path) -> None:
+    def test_parse_file_rejects_symlink(self, tmp_path: Path) -> None:
         target = tmp_path / "schema.txt"
         target.write_text("Name\n\nThe name field\n", encoding="utf-8")
         link = tmp_path / "schema_link.txt"
@@ -341,16 +341,16 @@ class TestSchemaParser:
 
     def test_parse_content_enforces_section_limit(self) -> None:
         parser = SchemaParser()
-        sections = []
-        for i in range(MAX_SCHEMA_SECTIONS + 10):
-            sections.append(f"Field{i}\n\nDescription {i}")
+        sections = [
+            f"Field{i}\n\nDescription {i}" for i in range(MAX_SCHEMA_SECTIONS + 10)
+        ]
         content = "\n".join(sections)
 
         doc = parser.parse_content(content)
 
         assert len(doc.fields) == MAX_SCHEMA_SECTIONS
 
-    def test_multiple_schema_files_merged_in_registry(self, tmp_path) -> None:
+    def test_multiple_schema_files_merged_in_registry(self, tmp_path: Path) -> None:
         """Test that multiple schema files are merged correctly."""
         # Create first schema file with test execution fields
         schema1 = tmp_path / "test_fields.md"
@@ -440,7 +440,7 @@ class TestSchemaParserSecurity:
             sp.MAX_SCHEMA_CONTENT_LENGTH = original_limit
 
     def test_file_size_limit_error_suggests_splitting(
-        self, tmp_path, caplog: LogCaptureFixture
+        self, tmp_path: Path, caplog: LogCaptureFixture
     ) -> None:
         """Test that file size errors suggest splitting into multiple files."""
         large_file = tmp_path / "huge_schema.md"

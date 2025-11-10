@@ -4,6 +4,8 @@ Tests the enterprise validation toolkit for CI/CD pipeline integration.
 Verifies validation functions work correctly for automated processing.
 """
 
+from typing import Any
+
 import pytest
 
 from importobot.api import validation
@@ -70,16 +72,12 @@ class TestValidationFunctions:
             "..\\..\\windows\\system32\\config\\sam",
         ]
 
+        def _assert_path_blocked(path: str) -> None:
+            with pytest.raises(validation.ValidationError):
+                validation.validate_safe_path(path)
+
         for path in dangerous_paths:
-            try:
-                result = validation.validate_safe_path(path)
-                pytest.fail(
-                    f"Path {path} should have raised an exception"
-                    f" but returned: {result}"
-                )
-            except Exception:
-                # Expected - path should raise an exception
-                pass
+            _assert_path_blocked(path)
 
     def test_validation_error_inheritance(self) -> None:
         """Test that ValidationError has proper inheritance."""
@@ -120,11 +118,14 @@ class TestCICDIntegrationScenarios:
         ]
 
         # All test cases should validate successfully
-        for i, test_case in enumerate(test_cases):
+        def _validate_case(case: dict[str, Any], index: int) -> None:
             try:
-                validation.validate_json_dict(test_case)
-            except Exception as e:
-                pytest.fail(f"Test case {i + 1} should be valid: {e}")
+                validation.validate_json_dict(case)
+            except Exception as exc:
+                pytest.fail(f"Test case {index + 1} should be valid: {exc}")
+
+        for i, test_case in enumerate(test_cases):
+            _validate_case(test_case, i)  # type: ignore[arg-type]
 
     def test_enterprise_scale_validation(self) -> None:
         """Test validation performance with enterprise-scale data."""
@@ -160,12 +161,15 @@ class TestCICDIntegrationScenarios:
             "/var/tmp/pipeline_output/enterprise_tests.robot",
         ]
 
-        for path in secure_output_paths:
+        def _validate_path(path: str) -> None:
             try:
                 result = validation.validate_safe_path(path)
                 assert isinstance(result, str)
-            except Exception as e:
-                pytest.fail(f"Secure path should be valid: {path}, error: {e}")
+            except Exception as exc:
+                pytest.fail(f"Secure path should be valid: {path}, error: {exc}")
+
+        for path in secure_output_paths:
+            _validate_path(path)
 
     def test_error_reporting_for_automation(self) -> None:
         """Test that validation errors provide useful information for automation."""
@@ -189,11 +193,14 @@ class TestCICDIntegrationScenarios:
         test_data = {"name": "Consistency Test", "steps": [{"step": "test action"}]}
 
         # Multiple validations should behave consistently
-        for _ in range(10):
+        def _validate_consistency() -> None:
             try:
                 validation.validate_json_dict(test_data)
-            except Exception as e:
-                pytest.fail(f"Validation should be consistent: {e}")
+            except Exception as exc:
+                pytest.fail(f"Validation should be consistent: {exc}")
+
+        for _ in range(10):
+            _validate_consistency()
 
         # Path validation should also be consistent
         test_path = "/tmp/consistency_test.robot"

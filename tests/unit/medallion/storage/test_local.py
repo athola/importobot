@@ -108,7 +108,12 @@ class TestLocalStorageInit:
 class TestLocalStorageDataOps:
     """Test basic data operations (store, retrieve, delete)."""
 
-    def test_store_data_success(self, storage_backend: LocalStorageBackend, sample_data: dict[str, Any], sample_metadata: LayerMetadata) -> None:
+    def test_store_data_success(
+        self,
+        storage_backend: LocalStorageBackend,
+        sample_data: dict[str, Any],
+        sample_metadata: LayerMetadata,
+    ) -> None:
         """Test successful data storage."""
         result = storage_backend.store_data(
             layer_name="bronze",
@@ -140,7 +145,11 @@ class TestLocalStorageDataOps:
         assert stored_metadata["data_hash"] == "test_hash_123"
 
     def test_store_data_acquires_lock(
-        self, storage_backend: LocalStorageBackend, sample_data: dict[str, Any], sample_metadata: LayerMetadata, monkeypatch: pytest.MonkeyPatch
+        self,
+        storage_backend: LocalStorageBackend,
+        sample_data: dict[str, Any],
+        sample_metadata: LayerMetadata,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Ensure store_data uses the write lock context manager."""
 
@@ -153,7 +162,12 @@ class TestLocalStorageDataOps:
                 calls.append("enter")
                 return self
 
-            def __exit__(self, exc_type: type[BaseException] | None, exc: BaseException | None, exc_tb: object | None) -> Literal[False]:
+            def __exit__(
+                self,
+                exc_type: type[BaseException] | None,
+                exc: BaseException | None,
+                exc_tb: object | None,
+            ) -> Literal[False]:
                 calls.append("exit")
                 return False
 
@@ -174,7 +188,12 @@ class TestLocalStorageDataOps:
 
         assert calls == ["enter", "exit"]
 
-    def test_store_data_failure(self, storage_backend: LocalStorageBackend, sample_data: dict[str, Any], sample_metadata: LayerMetadata) -> None:
+    def test_store_data_failure(
+        self,
+        storage_backend: LocalStorageBackend,
+        sample_data: dict[str, Any],
+        sample_metadata: LayerMetadata,
+    ) -> None:
         """Test data storage failure handling."""
         # Mock json.dump to raise an exception
         with patch("json.dump", side_effect=OSError("Disk full")):
@@ -187,7 +206,12 @@ class TestLocalStorageDataOps:
 
             assert result is False
 
-    def test_retrieve_data_success(self, storage_backend: LocalStorageBackend, sample_data: dict[str, Any], sample_metadata: LayerMetadata) -> None:
+    def test_retrieve_data_success(
+        self,
+        storage_backend: LocalStorageBackend,
+        sample_data: dict[str, Any],
+        sample_metadata: LayerMetadata,
+    ) -> None:
         """Test successful data retrieval."""
         # First store the data
         storage_backend.store_data(
@@ -209,13 +233,18 @@ class TestLocalStorageDataOps:
         assert metadata.version == "1.0"
         assert metadata.format_type == SupportedFormat.UNKNOWN
 
-    def test_retrieve_data_not_found(self, storage_backend: LocalStorageBackend) -> None:
+    def test_retrieve_data_not_found(
+        self, storage_backend: LocalStorageBackend
+    ) -> None:
         """Test data retrieval when data doesn't exist."""
         result = storage_backend.retrieve_data("bronze", "nonexistent")
         assert result is None
 
     def test_retrieve_data_missing_files(
-        self, storage_backend: LocalStorageBackend, sample_data: dict[str, Any], sample_metadata: LayerMetadata
+        self,
+        storage_backend: LocalStorageBackend,
+        sample_data: dict[str, Any],
+        sample_metadata: LayerMetadata,
     ) -> None:
         """Test data retrieval when files are missing."""
         # Store data first
@@ -234,7 +263,10 @@ class TestLocalStorageDataOps:
         assert result is None
 
     def test_retrieve_data_corrupted_metadata(
-        self, storage_backend: LocalStorageBackend, sample_data: dict[str, Any], sample_metadata: LayerMetadata
+        self,
+        storage_backend: LocalStorageBackend,
+        sample_data: dict[str, Any],
+        sample_metadata: LayerMetadata,
     ) -> None:
         """Test data retrieval with corrupted metadata."""
         # Store data first
@@ -255,7 +287,12 @@ class TestLocalStorageDataOps:
         result = storage_backend.retrieve_data("bronze", "test_001")
         assert result is None
 
-    def test_delete_data_success(self, storage_backend: LocalStorageBackend, sample_data: dict[str, Any], sample_metadata: LayerMetadata) -> None:
+    def test_delete_data_success(
+        self,
+        storage_backend: LocalStorageBackend,
+        sample_data: dict[str, Any],
+        sample_metadata: LayerMetadata,
+    ) -> None:
         """Test successful data deletion."""
         # Store data first
         storage_backend.store_data(
@@ -283,7 +320,12 @@ class TestLocalStorageDataOps:
         result = storage_backend.delete_data("bronze", "nonexistent")
         assert result is False
 
-    def test_delete_data_partial(self, storage_backend: LocalStorageBackend, sample_data: dict[str, Any], sample_metadata: LayerMetadata) -> None:
+    def test_delete_data_partial(
+        self,
+        storage_backend: LocalStorageBackend,
+        sample_data: dict[str, Any],
+        sample_metadata: LayerMetadata,
+    ) -> None:
         """Test deleting data when only one file exists."""
         # Store data first
         storage_backend.store_data(
@@ -340,7 +382,10 @@ class TestLocalStorageQuery:
         assert len(result.metadata) == 0
 
     def test_query_data_with_results(
-        self, storage_backend: LocalStorageBackend, sample_data: dict[str, Any], sample_metadata: LayerMetadata
+        self,
+        storage_backend: LocalStorageBackend,
+        sample_data: dict[str, Any],
+        sample_metadata: LayerMetadata,
     ) -> None:
         """Test querying data with results."""
         # Store multiple data items
@@ -361,7 +406,10 @@ class TestLocalStorageQuery:
         assert len(result.metadata) == 3
 
     def test_query_data_with_limit_offset(
-        self, storage_backend: LocalStorageBackend, sample_data: dict[str, Any], sample_metadata: LayerMetadata
+        self,
+        storage_backend: LocalStorageBackend,
+        sample_data: dict[str, Any],
+        sample_metadata: LayerMetadata,
     ) -> None:
         """Test querying data with limit and offset."""
         # Store multiple data items
@@ -380,7 +428,7 @@ class TestLocalStorageQuery:
         assert result.retrieved_count == 2
         assert len(result.records) == 2
 
-    def test_query_data_failure(self, storage_backend) -> None:
+    def test_query_data_failure(self, storage_backend: LocalStorageBackend) -> None:
         """Test query data failure handling."""
         # Remove the layer directory to trigger failure
         layer_path = storage_backend.base_path / "bronze"
@@ -392,7 +440,12 @@ class TestLocalStorageQuery:
         assert result.total_count == 0
         assert result.retrieved_count == 0
 
-    def test_list_data_ids_success(self, storage_backend: LocalStorageBackend, sample_data: dict[str, Any], sample_metadata: LayerMetadata) -> None:
+    def test_list_data_ids_success(
+        self,
+        storage_backend: LocalStorageBackend,
+        sample_data: dict[str, Any],
+        sample_metadata: LayerMetadata,
+    ) -> None:
         """Test successful data ID listing."""
         # Store multiple data items
         expected_ids = ["test_001", "test_002", "test_003"]
@@ -407,12 +460,16 @@ class TestLocalStorageQuery:
         result = storage_backend.list_data_ids("bronze")
         assert sorted(result) == sorted(expected_ids)
 
-    def test_list_data_ids_empty_layer(self, storage_backend: LocalStorageBackend) -> None:
+    def test_list_data_ids_empty_layer(
+        self, storage_backend: LocalStorageBackend
+    ) -> None:
         """Test listing data IDs from empty layer."""
         result = storage_backend.list_data_ids("bronze")
         assert result == []
 
-    def test_list_data_ids_nonexistent_layer(self, storage_backend: LocalStorageBackend) -> None:
+    def test_list_data_ids_nonexistent_layer(
+        self, storage_backend: LocalStorageBackend
+    ) -> None:
         """Test listing data IDs from nonexistent layer."""
         result = storage_backend.list_data_ids("nonexistent")
         assert result == []
@@ -426,7 +483,12 @@ class TestLocalStorageQuery:
         result = storage_backend.list_data_ids("bronze")
         assert result == []
 
-    def test_get_storage_info(self, storage_backend, sample_data, sample_metadata) -> None:
+    def test_get_storage_info(
+        self,
+        storage_backend: LocalStorageBackend,
+        sample_data: dict[str, Any],
+        sample_metadata: LayerMetadata,
+    ) -> None:
         """Test getting storage information."""
         # Store some data first
         storage_backend.store_data(
@@ -451,7 +513,11 @@ class TestLocalStorageQuery:
 class TestLocalStorageMaintenance:
     """Test maintenance operations (cleanup, backup, restore)."""
 
-    def test_cleanup_old_data(self, storage_backend, sample_data) -> None:
+    def test_cleanup_old_data(
+        self,
+        storage_backend: LocalStorageBackend,
+        sample_data: dict[str, Any],
+    ) -> None:
         """Test cleaning up old data."""
         # Create metadata with different timestamps
         old_metadata = LayerMetadata(
@@ -481,12 +547,18 @@ class TestLocalStorageMaintenance:
         assert storage_backend.retrieve_data("bronze", "old_data") is None
         assert storage_backend.retrieve_data("bronze", "new_data") is not None
 
-    def test_cleanup_old_data_empty_layer(self, storage_backend) -> None:
+    def test_cleanup_old_data_empty_layer(
+        self,
+        storage_backend: LocalStorageBackend,
+    ) -> None:
         """Test cleanup on empty layer."""
         cleaned_count = storage_backend.cleanup_old_data("bronze", retention_days=5)
         assert cleaned_count == 0
 
-    def test_cleanup_old_data_nonexistent_layer(self, storage_backend) -> None:
+    def test_cleanup_old_data_nonexistent_layer(
+        self,
+        storage_backend: LocalStorageBackend,
+    ) -> None:
         """Test cleanup on nonexistent layer."""
         cleaned_count = storage_backend.cleanup_old_data(
             "nonexistent", retention_days=5
@@ -494,7 +566,10 @@ class TestLocalStorageMaintenance:
         assert cleaned_count == 0
 
     def test_cleanup_old_data_corrupted_metadata(
-        self, storage_backend, sample_data, sample_metadata
+        self,
+        storage_backend: LocalStorageBackend,
+        sample_data: dict[str, Any],
+        sample_metadata: LayerMetadata,
     ) -> None:
         """Test cleanup with corrupted metadata file."""
         # Store valid data
@@ -512,7 +587,11 @@ class TestLocalStorageMaintenance:
         assert cleaned_count >= 0  # Should not crash
 
     def test_backup_layer_success(
-        self, storage_backend, sample_data, sample_metadata, temp_dir
+        self,
+        storage_backend: LocalStorageBackend,
+        sample_data: dict[str, Any],
+        sample_metadata: LayerMetadata,
+        temp_dir: Path,
     ) -> None:
         """Test successful layer backup."""
         # Store some data
@@ -526,14 +605,21 @@ class TestLocalStorageMaintenance:
         assert (backup_path / "data" / "test_001.json").exists()
         assert (backup_path / "metadata" / "test_001.json").exists()
 
-    def test_backup_layer_nonexistent(self, storage_backend, temp_dir) -> None:
+    def test_backup_layer_nonexistent(
+        self, storage_backend: LocalStorageBackend, temp_dir: Path
+    ) -> None:
         """Test backing up nonexistent layer."""
         backup_path = temp_dir / "backup" / "nonexistent"
         result = storage_backend.backup_layer("nonexistent", backup_path)
 
         assert result is False
 
-    def test_backup_layer_failure(self, storage_backend, sample_data, sample_metadata) -> None:
+    def test_backup_layer_failure(
+        self,
+        storage_backend: LocalStorageBackend,
+        sample_data: dict[str, Any],
+        sample_metadata: LayerMetadata,
+    ) -> None:
         """Test backup failure handling."""
         # Store some data
         storage_backend.store_data("bronze", "test_001", sample_data, sample_metadata)
@@ -545,7 +631,11 @@ class TestLocalStorageMaintenance:
         assert result is False
 
     def test_restore_layer_success(
-        self, storage_backend, sample_data, sample_metadata, temp_dir
+        self,
+        storage_backend: LocalStorageBackend,
+        sample_data: dict[str, Any],
+        sample_metadata: LayerMetadata,
+        temp_dir: Path,
     ) -> None:
         """Test successful layer restore."""
         # Create backup first
@@ -563,14 +653,16 @@ class TestLocalStorageMaintenance:
         assert result is True
         assert storage_backend.retrieve_data("bronze", "test_001") is not None
 
-    def test_restore_layer_nonexistent_backup(self, storage_backend, temp_dir) -> None:
+    def test_restore_layer_nonexistent_backup(
+        self, storage_backend: LocalStorageBackend, temp_dir: Path
+    ) -> None:
         """Test restoring from nonexistent backup."""
         backup_path = temp_dir / "nonexistent_backup"
         result = storage_backend.restore_layer("bronze", backup_path)
 
         assert result is False
 
-    def test_restore_layer_failure(self, storage_backend) -> None:
+    def test_restore_layer_failure(self, storage_backend: LocalStorageBackend) -> None:
         """Test restore failure handling."""
         # Create a valid backup path but mock shutil.copytree to fail
         backup_path = storage_backend.base_path / "existing_bronze"
@@ -585,7 +677,10 @@ class TestLocalStorageMaintenance:
 class TestLocalStorageInternals:
     """Test internal helper methods."""
 
-    def test_matches_query_with_filters(self, storage_backend) -> None:
+    def test_matches_query_with_filters(
+        self,
+        storage_backend: LocalStorageBackend,
+    ) -> None:
         """Test query matching with filters."""
         metadata = LayerMetadata(
             source_path=Path("/test/source.json"),
@@ -603,7 +698,9 @@ class TestLocalStorageInternals:
         # which should be tested separately
         assert isinstance(result, bool)
 
-    def test_load_metadata_from_file(self, storage_backend, temp_dir) -> None:
+    def test_load_metadata_from_file(
+        self, storage_backend: LocalStorageBackend, temp_dir: Path
+    ) -> None:
         """Test loading metadata from file."""
         # Create a metadata file
         metadata_dict = {
@@ -633,7 +730,9 @@ class TestLocalStorageInternals:
         assert metadata.data_hash == "test_hash"
         assert metadata.format_type == SupportedFormat.UNKNOWN
 
-    def test_load_data_file_success(self, storage_backend, temp_dir) -> None:
+    def test_load_data_file_success(
+        self, storage_backend: LocalStorageBackend, temp_dir: Path
+    ) -> None:
         """Test loading data file successfully."""
         data = {"test": "data", "items": [1, 2, 3]}
         data_file = temp_dir / "data" / "test.json"
@@ -645,12 +744,16 @@ class TestLocalStorageInternals:
         result = storage_backend._load_data_file(temp_dir, "test")
         assert result == data
 
-    def test_load_data_file_not_found(self, storage_backend, temp_dir) -> None:
+    def test_load_data_file_not_found(
+        self, storage_backend: LocalStorageBackend, temp_dir: Path
+    ) -> None:
         """Test loading nonexistent data file."""
         result = storage_backend._load_data_file(temp_dir, "nonexistent")
         assert result is None
 
-    def test_build_layer_data(self, storage_backend, sample_metadata) -> None:
+    def test_build_layer_data(
+        self, storage_backend: LocalStorageBackend, sample_metadata: LayerMetadata
+    ) -> None:
         """Test building LayerData from matching items."""
         matching_items = [
             ({"id": 1}, sample_metadata),
@@ -667,7 +770,12 @@ class TestLocalStorageInternals:
         assert result.records[0]["id"] == 2  # After offset=1
         assert result.records[1]["id"] == 3
 
-    def test_process_metadata_files(self, storage_backend, temp_dir, sample_data) -> None:
+    def test_process_metadata_files(
+        self,
+        storage_backend: LocalStorageBackend,
+        temp_dir: Path,
+        sample_data: dict[str, Any],
+    ) -> None:
         """Test processing metadata files."""
         # Create metadata files
         metadata_files = []
@@ -715,7 +823,7 @@ class TestLocalStorageInternals:
             assert data["id"] == i
             assert metadata.data_hash == f"hash_{i}"
 
-    def test_empty_layer_data(self, storage_backend) -> None:
+    def test_empty_layer_data(self, storage_backend: LocalStorageBackend) -> None:
         """Test creating empty LayerData response."""
         query = LayerQuery(layer_name="bronze", filters={"test": "filter"})
         result = storage_backend._empty_layer_data(query)

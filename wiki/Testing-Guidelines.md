@@ -1,10 +1,10 @@
 # Testing Guidelines
 
-This guide explains how to write effective tests in Importobot with minimal mocking through dependency injection and good architectural patterns.
+This guide outlines the philosophy and practices for writing effective tests in Importobot, emphasizing minimal mocking through dependency injection and sound architectural patterns.
 
 ## Philosophy
 
-Importobot follows Test-Driven Development (TDD) with these principles:
+The Importobot project adheres to Test-Driven Development (TDD) principles, guided by the following:
 
 - **Test behavior, not implementation.** Focus on what the code does, not how it does it.
 - **One assertion per test.** Keep tests focused and readable.
@@ -177,7 +177,7 @@ def test_load_real_file(tmp_path):
 
 ## When to Mock
 
-Mock only when you have no other choice:
+Only use mocks when there is no other practical alternative:
 
 ###  DO Mock
 - **External HTTP/API calls** - Network requests
@@ -246,63 +246,7 @@ strategy = SingleFileStrategy(
 ### Phase 3: Gradual Improvement
 - Refactor when touching modules for features
 - Maintain backward compatibility during transition
-- Don't refactor just for the sake of it
-
-## Test Organization
-
-### Use Existing Fixtures
-
-```python
-# Reuse fixtures from tests/fixtures/ instead of copying setup
-@pytest.fixture
-def sample_zephyr_data():
-    return load_fixture("sample_zephyr_export.json")
-
-def test_conversion_with_sample_data(sample_zephyr_data):
-    converter = JsonToRobotConverter()
-    result = converter.convert(sample_zephyr_data)
-    assert result.success
-```
-
-### One Assertion Per Test
-
-```python
-#  Good - focused, readable
-def test_loads_library_name():
-    result = loader.load_library("BuiltIn")
-    assert result.data["library_name"] == "BuiltIn"
-
-def test_loads_keywords():
-    result = loader.load_library("BuiltIn")
-    assert "Log" in result.data["keywords"]
-
-#  Avoid - multiple assertions hide intent
-def test_load_library_complex():
-    result = loader.load_library("BuiltIn")
-    assert result.success
-    assert result.data["library_name"] == "BuiltIn"
-    assert "Log" in result.data["keywords"]
-    assert result.message is None
-```
-
-## Running Tests
-
-```bash
-# All tests (quiet output)
-make test --quiet
-
-# Unit tests only
-make test-unit --quiet
-
-# Coverage analysis
-make test-coverage --quiet
-
-# Specific test file
-pytest tests/unit/test_keyword_loader.py -v
-
-# Specific test with verbose output
-pytest tests/unit/test_keyword_loader.py::TestKeywordLibraryLoader::test_load_library_success -v
-```
+- Avoid refactoring solely for the sake of it.
 
 ## Quality Standards
 
@@ -316,3 +260,13 @@ Every test must:
 - [ ] Follow project naming conventions
 
 Remember: Tests are documentation. A good test explains how the system should behave to future developers.
+
+## Further Reading
+
+- [Hypothesis Documentation](https://hypothesis.readthedocs.io/)
+- [pytest Documentation](https://docs.pytest.org/)
+- [Property-Based Testing](https://increment.com/testing/in-praise-of-property-based-testing/)
+- [Test-Driven Development](https://martinfowler.com/bliki/TestDrivenDevelopment.html)
+- [Importobot Contributing Guide](Contributing.md)
+- [Importobot Testing Guide](Testing.md)
+- [How to Navigate this Codebase](How-to-Navigate-this-Codebase.md#test-structure)

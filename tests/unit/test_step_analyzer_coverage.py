@@ -74,7 +74,9 @@ class TestStepImprovement:
         assert isinstance(added_field, str)
         assert len(added_field) > 0
 
-    def test_add_default_expected_result_when_missing(self, analyzer: StepAnalyzer) -> None:
+    def test_add_default_expected_result_when_missing(
+        self, analyzer: StepAnalyzer
+    ) -> None:
         """Test adding default expected result when missing."""
         step = {"step": "perform test action", "test_data": "input data"}
         # pylint: disable=protected-access

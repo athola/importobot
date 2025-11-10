@@ -3,6 +3,7 @@
 import json
 import tempfile
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -54,7 +55,7 @@ class TestSingleFileStrategy:
     @patch("importobot.core.conversion_strategies.process_single_file_with_suggestions")
     def test_displays_suggestions_after_conversion(
         self,
-        mock_process_file,  # pylint: disable=unused-argument
+        mock_process_file: MagicMock,  # pylint: disable=unused-argument
     ) -> None:
         """Test that suggestions are displayed after conversion."""
         strategy = SingleFileStrategy()
@@ -72,7 +73,9 @@ class TestSingleFileStrategy:
 
     @patch("importobot.core.conversion_strategies.get_conversion_suggestions")
     @patch("importobot.core.conversion_strategies.load_json_file")
-    def test_display_suggestions(self, mock_load_json, mock_get_suggestions, capsys) -> None:
+    def test_display_suggestions(
+        self, mock_load_json: MagicMock, mock_get_suggestions: MagicMock, capsys: Any
+    ) -> None:
         """Test displaying suggestions for the input file."""
         strategy = SingleFileStrategy()
 
@@ -94,7 +97,7 @@ class TestSingleFileStrategy:
     @patch("importobot.core.conversion_strategies.get_conversion_suggestions")
     @patch("importobot.core.conversion_strategies.load_json_file")
     def test_display_suggestions_respects_no_suggestions_flag(
-        self, mock_load_json, mock_get_suggestions
+        self, mock_load_json: MagicMock, mock_get_suggestions: MagicMock
     ) -> None:
         """Test that suggestions are not displayed when no_suggestions is True."""
         strategy = SingleFileStrategy()
@@ -109,7 +112,7 @@ class TestSingleFileStrategy:
     @patch("importobot.core.conversion_strategies.get_conversion_suggestions")
     @patch("importobot.core.conversion_strategies.load_json_file")
     def test_display_suggestions_handles_empty_suggestions(
-        self, mock_load_json, mock_get_suggestions, capsys
+        self, mock_load_json: MagicMock, mock_get_suggestions: MagicMock, capsys: Any
     ) -> None:
         """Test handling when there are no suggestions."""
         strategy = SingleFileStrategy()
@@ -146,7 +149,9 @@ class TestDirectoryStrategy:
             strategy.validate_args(mock_args)
 
     @patch("importobot.core.conversion_strategies.convert_directory")
-    def test_handles_suggestions_warning(self, mock_convert_directory, capsys) -> None:
+    def test_handles_suggestions_warning(
+        self, mock_convert_directory: MagicMock, capsys: Any
+    ) -> None:
         """Test warning when suggestions are requested for directory."""
         strategy = DirectoryStrategy()
 
@@ -352,9 +357,11 @@ class TestConversionStrategyIntegration:
             strategy = SingleFileStrategy()
 
             # Mock the conversion process to avoid actual file operations
-            with patch("importobot.core.conversion_strategies.convert_file"):
-                with patch.object(strategy, "_display_suggestions"):
-                    strategy.convert(mock_args)
+            with (
+                patch("importobot.core.conversion_strategies.convert_file"),
+                patch.object(strategy, "_display_suggestions"),
+            ):
+                strategy.convert(mock_args)
 
             # Test passes if no exceptions are raised
 
@@ -372,10 +379,12 @@ class TestConversionStrategyIntegration:
         patch_target = (
             "importobot.core.conversion_strategies.process_single_file_with_suggestions"
         )
-        with patch(patch_target, side_effect=Exception("Conversion failed")):
-            with patch.object(strategy, "_display_suggestions"):
-                with pytest.raises(Exception, match="Conversion failed"):
-                    strategy.convert(mock_args)
+        with (
+            patch(patch_target, side_effect=Exception("Conversion failed")),
+            patch.object(strategy, "_display_suggestions"),
+            pytest.raises(Exception, match="Conversion failed"),
+        ):
+            strategy.convert(mock_args)
 
 
 class TestSingleFileStrategyAdditional:
@@ -384,7 +393,7 @@ class TestSingleFileStrategyAdditional:
     @patch("importobot.core.conversion_strategies.get_conversion_suggestions")
     @patch("importobot.core.conversion_strategies.load_json_file")
     def test_display_suggestions_with_importobot_error(
-        self, mock_load_json, mock_get_suggestions
+        self, mock_load_json: MagicMock, mock_get_suggestions: MagicMock
     ) -> None:
         """Test _display_suggestions handles ImportobotError."""
         strategy = SingleFileStrategy()
@@ -401,7 +410,7 @@ class TestSingleFileStrategyAdditional:
     @patch("importobot.core.conversion_strategies.get_conversion_suggestions")
     @patch("importobot.core.conversion_strategies.load_json_file")
     def test_display_suggestions_with_generic_error(
-        self, mock_load_json, mock_get_suggestions
+        self, mock_load_json: MagicMock, mock_get_suggestions: MagicMock
     ) -> None:
         """Test _display_suggestions handles generic exceptions."""
         strategy = SingleFileStrategy()

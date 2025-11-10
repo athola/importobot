@@ -63,7 +63,9 @@ class TestCategoryEnumEnum:
             ("e2e", CategoryEnum.E2E),
         ],
     )
-    def test_from_string_parameterized(self, category_str: str, expected_enum: CategoryEnum) -> None:
+    def test_from_string_parameterized(
+        self, category_str: str, expected_enum: CategoryEnum
+    ) -> None:
         """Test converting various valid strings to enums using parameterization."""
         result = CategoryEnum.from_string(category_str)
         assert result == expected_enum
@@ -374,7 +376,9 @@ class TestSuiteGeneratorCore:
             "api_tests",
         ],
     )
-    def test_generate_random_json_structures_parameterized(self, structure: str) -> None:
+    def test_generate_random_json_structures_parameterized(
+        self, structure: str
+    ) -> None:
         """Test random JSON generation with various structures
         using parameterization."""
         json_data = self.generator.generate_random_json(structure)
@@ -449,7 +453,9 @@ class TestSuiteGeneratorCore:
             ("Authenticate with OAuth", ["authentication"]),
         ],
     )
-    def test_determine_step_type_parameterized(self, description: str, expected_types: list[str]) -> None:
+    def test_determine_step_type_parameterized(
+        self, description: str, expected_types: list[str]
+    ) -> None:
         """Test step type determination with various descriptions."""
         # pylint: disable=protected-access,no-member
         step_type = self.generator._determine_step_type(description)
@@ -605,7 +611,11 @@ class TestConvenienceWrapperFunctions:
             # All specified categories should be present
             for category_key in category_weights:
                 # Handle both CategoryEnum and string keys
-                category_value = category_key.value if isinstance(category_key, CategoryEnum) else category_key
+                category_value = (
+                    category_key.value
+                    if isinstance(category_key, CategoryEnum)
+                    else category_key
+                )
                 assert category_value in counts
                 assert counts[category_value] > 0
 
@@ -619,7 +629,9 @@ class TestConvenienceWrapperFunctions:
             None,  # Test default structure
         ],
     )
-    def test_generate_random_test_json_wrapper_parameterized(self, structure: str | None) -> None:
+    def test_generate_random_test_json_wrapper_parameterized(
+        self, structure: str | None
+    ) -> None:
         """Test the generate_random_test_json wrapper with various structures."""
         if structure is None:
             json_data = generate_random_test_json()
@@ -668,7 +680,9 @@ class TestConvenienceWrapperFunctions:
             [],  # Empty list
         ],
     )
-    def test_get_required_libraries_parameterized(self, keywords_config: list[dict[str, str]]) -> None:
+    def test_get_required_libraries_parameterized(
+        self, keywords_config: list[dict[str, str]]
+    ) -> None:
         """Test library detection with various keyword configurations."""
         libraries = get_required_libraries_for_keywords(keywords_config)
 
@@ -780,7 +794,9 @@ class TestErrorHandlingAndEdgeCases:
             # pylint: disable=protected-access
             generator._get_test_distribution(100, None, {})
 
-    def test_generate_test_case_with_minimal_params(self, generator: TestSuiteGenerator) -> None:
+    def test_generate_test_case_with_minimal_params(
+        self, generator: TestSuiteGenerator
+    ) -> None:
         """Test test case generation with minimal parameters."""
         test_case = generator.generate_enterprise_test_case(
             "web_automation", "user_authentication", 1
@@ -791,7 +807,9 @@ class TestErrorHandlingAndEdgeCases:
         assert "steps" in test_case["testScript"]
         assert len(test_case["testScript"]["steps"]) > 0
 
-    def test_keyword_specific_data_edge_cases(self, generator: TestSuiteGenerator) -> None:
+    def test_keyword_specific_data_edge_cases(
+        self, generator: TestSuiteGenerator
+    ) -> None:
         """Test keyword specific data generation with edge cases."""
         unknown_keyword = {
             "intent": "unknown_intent",
@@ -816,45 +834,45 @@ class TestProgressReporting:
         generator = TestSuiteGenerator()
 
         # Mock the logger to capture progress messages
-        with patch.object(generator.logger, "info") as mock_info:
-            with tempfile.TemporaryDirectory() as temp_dir:
-                # Create category info structure
-                category_info: CategoryInfo = {"dir": Path(temp_dir), "count": 0}
+        with (
+            patch.object(generator.logger, "info") as mock_info,
+            tempfile.TemporaryDirectory() as temp_dir,
+        ):
+            # Create category info structure
+            category_info: CategoryInfo = {"dir": Path(temp_dir), "count": 0}
 
-                # Mock scenarios for testing
-                scenarios = {
-                    "business_workflow": ["scenario1", "scenario2"],
-                    "user_interaction": ["scenario3", "scenario4"],
-                }
+            # Mock scenarios for testing
+            scenarios = {
+                "business_workflow": ["scenario1", "scenario2"],
+                "user_interaction": ["scenario3", "scenario4"],
+            }
 
-                # Create parameter object matching CategoryTestParams structure
+            # Create parameter object matching CategoryTestParams structure
 
-                params = CategoryTestParams(
-                    category="test_category",
-                    count=20,  # Small count to test progress milestones
-                    scenarios=scenarios,
-                    category_info=category_info,
-                    start_test_id=1,
-                )
+            params = CategoryTestParams(
+                category="test_category",
+                count=20,  # Small count to test progress milestones
+                scenarios=scenarios,
+                category_info=category_info,
+                start_test_id=1,
+            )
 
-                # Generate small number of tests to see progress reporting
-                generator._generate_category_tests(params)
+            # Generate small number of tests to see progress reporting
+            generator._generate_category_tests(params)
 
-                # Verify progress reporting calls
-                progress_calls = [
-                    call
-                    for call in mock_info.call_args_list
-                    if "Progress:" in str(call)
-                ]
-                assert len(progress_calls) > 0
+            # Verify progress reporting calls
+            progress_calls = [
+                call for call in mock_info.call_args_list if "Progress:" in str(call)
+            ]
+            assert len(progress_calls) > 0
 
-                # Check that progress messages contain expected elements
-                for call in progress_calls:
-                    message = call[0][0]
-                    assert "Progress:" in message
-                    assert "/" in message  # Should show current/total
-                    assert "%" in message  # Should show percentage
-                    assert "test_category" in message
+            # Check that progress messages contain expected elements
+            for call in progress_calls:
+                message = call[0][0]
+                assert "Progress:" in message
+                assert "/" in message  # Should show current/total
+                assert "%" in message  # Should show percentage
+                assert "test_category" in message
 
     def test_progress_milestone_calculation(self) -> None:
         """Test that progress milestones are calculated correctly."""
@@ -1019,57 +1037,60 @@ class TestProgressReporting:
         """Test that progress reporting works with resource manager context."""
         generator = TestSuiteGenerator()
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            with patch.object(generator.logger, "info") as mock_info:
-                # Use resource manager context
-                with generator.resource_manager.operation("test_generation"):
-                    category_info: CategoryInfo = {"dir": Path(temp_dir), "count": 0}
-                    scenarios = {"test": ["scenario1"]}
+        with (
+            tempfile.TemporaryDirectory() as temp_dir,
+            patch.object(generator.logger, "info") as mock_info,
+            generator.resource_manager.operation("test_generation"),
+        ):
+            category_info: CategoryInfo = {"dir": Path(temp_dir), "count": 0}
+            scenarios = {"test": ["scenario1"]}
 
-                    # Create parameter object
+            # Create parameter object
 
-                    params = CategoryTestParams(
-                        category="integration_test",
-                        count=25,
-                        scenarios=scenarios,
-                        category_info=category_info,
-                        start_test_id=1,
-                    )
-                    generator._generate_category_tests(params)
+            params = CategoryTestParams(
+                category="integration_test",
+                count=25,
+                scenarios=scenarios,
+                category_info=category_info,
+                start_test_id=1,
+            )
+            generator._generate_category_tests(params)
 
-                # Should have both resource manager and progress reporting logs
-                all_messages = [str(call) for call in mock_info.call_args_list]
-                progress_messages = [msg for msg in all_messages if "Progress:" in msg]
-                assert len(progress_messages) > 0
+            # Should have both resource manager and progress reporting logs
+            all_messages = [str(call) for call in mock_info.call_args_list]
+            progress_messages = [msg for msg in all_messages if "Progress:" in msg]
+            assert len(progress_messages) > 0
 
     def test_concurrent_progress_reporting(self) -> None:
         """Test progress reporting behavior with multiple concurrent operations."""
         generator = TestSuiteGenerator()
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            with patch.object(generator.logger, "info") as mock_info:
-                # Simulate multiple category generations
-                for category_num in range(3):
-                    category_info: CategoryInfo = {"dir": Path(temp_dir), "count": 0}
-                    scenarios = {f"test_{category_num}": ["scenario1"]}
+        with (
+            tempfile.TemporaryDirectory() as temp_dir,
+            patch.object(generator.logger, "info") as mock_info,
+        ):
+            # Simulate multiple category generations
+            for category_num in range(3):
+                category_info: CategoryInfo = {"dir": Path(temp_dir), "count": 0}
+                scenarios = {f"test_{category_num}": ["scenario1"]}
 
-                    # Create parameter object
+                # Create parameter object
 
-                    params = CategoryTestParams(
-                        category=f"concurrent_test_{category_num}",
-                        count=15,
-                        scenarios=scenarios,
-                        category_info=category_info,
-                        start_test_id=category_num * 100,
-                    )
-                    generator._generate_category_tests(params)
+                params = CategoryTestParams(
+                    category=f"concurrent_test_{category_num}",
+                    count=15,
+                    scenarios=scenarios,
+                    category_info=category_info,
+                    start_test_id=category_num * 100,
+                )
+                generator._generate_category_tests(params)
 
-                # Should have progress messages for each category
-                all_calls = mock_info.call_args_list
-                for category_num in range(3):
-                    category_messages = [
-                        call
-                        for call in all_calls
-                        if f"concurrent_test_{category_num}" in str(call)
-                    ]
-                    assert len(category_messages) > 0
+            # Should have progress messages for each category
+            all_calls = mock_info.call_args_list
+            for category_num in range(3):
+                category_messages = [
+                    call
+                    for call in all_calls
+                    if f"concurrent_test_{category_num}" in str(call)
+                ]
+                assert len(category_messages) > 0

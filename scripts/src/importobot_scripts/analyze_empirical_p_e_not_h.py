@@ -1,9 +1,5 @@
 #!/usr/bin/env python
-"""Analyze empirical P(E|¬H) from existing test data.
-
-This script collects cross-format evidence from existing test fixtures
-to determine if the hardcoded quadratic decay formula P(E|¬H) = 0.01 + 0.49×(1-L)²
-matches empirical observations.
+"""Analyze empirical P(E|¬H) from test fixtures to validate hardcoded quadratic decay.
 
 Usage:
     uv run python -m importobot_scripts.analyze_empirical_p_e_not_h
@@ -19,10 +15,8 @@ from typing import Any
 
 import numpy as np
 
-# Local/third-party imports (before first-party due to Robot Framework stubbing)
 from importobot_scripts.test_fixtures import TEST_DATA_SAMPLES  # noqa: E402
 
-# Importobot first-party imports
 from importobot.medallion.bronze.evidence_accumulator import (
     EvidenceAccumulator,  # noqa: E402
 )
@@ -34,11 +28,10 @@ def get_test_data_samples() -> list[tuple[dict[str, Any], SupportedFormat]]:
     """Extract labeled test data samples from integration tests.
 
     Returns:
-        List of (test_data, ground_truth_format) pairs
+        List of (test_data, ground_truth_format) pairs.
     """
     samples = []
 
-    # Map test data keys to their true formats
     format_mapping = {
         "zephyr_complete": SupportedFormat.ZEPHYR,
         "xray_with_jira": SupportedFormat.JIRA_XRAY,
@@ -72,16 +65,12 @@ def collect_cross_format_evidence(
         SupportedFormat, list[tuple[float, SupportedFormat]]
     ] = {fmt: [] for fmt in SupportedFormat}
 
-    # Get the bayesian scorer from evidence accumulator
     bayesian_scorer = detector.evidence_accumulator.bayesian_scorer
 
     for test_data, true_format in samples:
-        # For each format, collect evidence from this test sample
         for target_format in SupportedFormat:
-            # Create accumulator for this detection attempt
             accumulator = EvidenceAccumulator()
 
-            # Collect evidence as if we're detecting target_format
             evidence_items, total_weight = detector.evidence_collector.collect_evidence(
                 test_data, target_format
             )
@@ -118,7 +107,7 @@ def analyze_p_e_not_h(
     print("=" * 80)
     print()
     print("Comparing hardcoded quadratic formula vs observed cross-format evidence")
-    print("Formula: P(E|¬H) = 0.01 + 0.49 × (1-L)²")
+    print("Formula: P(E|¬H) = 0.01 + 0.49 * (1-L)^2")
     print()
 
     for target_format, observations in cross_format_evidence.items():

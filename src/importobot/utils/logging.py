@@ -11,6 +11,7 @@ _LOGGER_CACHE: dict[str, logging.Logger] = {}
 
 
 def _configure_logger(name: str, level: int) -> logging.Logger:
+    """Configure and return a logger instance."""
     logger = logging.getLogger(name)
     logger.setLevel(level)
     if not logger.handlers:
@@ -25,6 +26,7 @@ def _configure_logger(name: str, level: int) -> logging.Logger:
 
 @cache
 def _detect_caller_module(depth: int = 2) -> str:
+    """Detect the name of the calling module."""
     frame = inspect.currentframe()
     for _ in range(depth):
         if frame is None:

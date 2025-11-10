@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from argparse import Namespace
+from collections.abc import Iterator
 from typing import Any, ClassVar
 
 import pytest
@@ -80,7 +81,9 @@ class _DummyClient(BaseAPIClient):
 
     __test__ = False
 
-    def fetch_all(self, progress_cb):  # pragma: no cover - not used in tests
+    def fetch_all(
+        self, progress_cb: object
+    ) -> Iterator[object]:  # pragma: no cover - not used in tests
         yield from ()
 
 
@@ -131,7 +134,9 @@ def test_insecure_flag_requires_explicit_opt_in(
 
 def test_request_rejects_http_method_injection(monkeypatch: pytest.MonkeyPatch) -> None:
     """Injected HTTP verbs should be rejected to prevent request smuggling."""
-    monkeypatch.setattr("importobot.integrations.clients.base.RateLimiter", _TrackingLimiter)
+    monkeypatch.setattr(
+        "importobot.integrations.clients.base.RateLimiter", _TrackingLimiter
+    )
     client = _DummyClient(
         api_url="https://api.example",
         tokens=["token"],
@@ -143,7 +148,7 @@ def test_request_rejects_http_method_injection(monkeypatch: pytest.MonkeyPatch) 
     )
     client._session = _FakeSession()  # type: ignore[assignment]
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Unsupported HTTP method"):
         client._request(
             "GET\r\nDELETE",
             "https://api.example/resource",
@@ -155,7 +160,9 @@ def test_request_rejects_http_method_injection(monkeypatch: pytest.MonkeyPatch) 
 
 def test_rate_limiter_blocks_request_bypass(monkeypatch: pytest.MonkeyPatch) -> None:
     """Every outbound request must pass through the rate limiter."""
-    monkeypatch.setattr("importobot.integrations.clients.base.RateLimiter", _TrackingLimiter)
+    monkeypatch.setattr(
+        "importobot.integrations.clients.base.RateLimiter", _TrackingLimiter
+    )
     client = _DummyClient(
         api_url="https://api.example",
         tokens=["token"],

@@ -1,9 +1,11 @@
 """Tests for optimization algorithms and mathematical utilities."""
+
 # Tests internal implementation - protected-access needed
 # pylint: disable=protected-access
 
 import random
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -95,8 +97,8 @@ class TestGradientDescentOptimizer:
     def test_simple_quadratic_optimization(self) -> None:
         """Test optimization of simple quadratic function."""
 
-        def quadratic_function(params):
-            x = params.get("x", 0)
+        def quadratic_function(params: dict[str, Any]) -> float:
+            x = float(params.get("x", 0))
             return x**2
 
         optimizer = GradientDescentOptimizer(
@@ -118,9 +120,9 @@ class TestGradientDescentOptimizer:
     def test_optimization_with_bounds(self) -> None:
         """Test optimization with parameter bounds."""
 
-        def quadratic_function(params):
-            x = params.get("x", 0)
-            return (x - 2) ** 2
+        def quadratic_function(params: dict[str, Any]) -> float:
+            x = float(params.get("x", 0))
+            return (x - 2.0) ** 2
 
         optimizer = GradientDescentOptimizer(
             OptimizerConfig(learning_rate=0.1, max_iterations=100)
@@ -139,12 +141,12 @@ class TestGradientDescentOptimizer:
     def test_optimization_with_custom_gradient(self) -> None:
         """Test optimization with custom gradient function."""
 
-        def quadratic_function(params):
-            x = params.get("x", 0)
+        def quadratic_function(params: dict[str, Any]) -> float:
+            x = float(params.get("x", 0))
             return x**2
 
-        def gradient_function(params):
-            x = params.get("x", 0)
+        def gradient_function(params: dict[str, Any]) -> dict[str, float]:
+            x = float(params.get("x", 0))
             return {"x": 2 * x}
 
         optimizer = GradientDescentOptimizer(
@@ -163,8 +165,8 @@ class TestGradientDescentOptimizer:
     def test_numerical_gradients(self) -> None:
         """Test numerical gradient computation."""
 
-        def quadratic_function(params):
-            x = params.get("x", 0)
+        def quadratic_function(params: dict[str, Any]) -> float:
+            x = float(params.get("x", 0))
             return x**2
 
         optimizer = GradientDescentOptimizer()
@@ -244,10 +246,10 @@ class TestGeneticAlgorithmOptimizer:
     def test_simple_fitness_optimization(self) -> None:
         """Test optimization of simple fitness function."""
 
-        def fitness_function(params):
-            x = params.get("x", 0)
+        def fitness_function(params: dict[str, Any]) -> float:
+            x = float(params.get("x", 0))
             # Maximize -(x-5)^2, so optimal x=5
-            return -((x - 5) ** 2)
+            return -((x - 5.0) ** 2)
 
         optimizer = GeneticAlgorithmOptimizer(population_size=20, max_generations=50)
 
@@ -336,9 +338,9 @@ class TestSimulatedAnnealing:
     def test_simple_optimization(self) -> None:
         """Test simulated annealing on simple function."""
 
-        def objective_function(params):
-            x = params.get("x", 0)
-            return (x - 3) ** 2  # Minimum at x=3
+        def objective_function(params: dict[str, Any]) -> float:
+            x = float(params.get("x", 0))
+            return (x - 3.0) ** 2  # Minimum at x=3
 
         config = AnnealingConfig(
             initial_temperature=10.0, max_iterations=100, min_temperature=0.01
@@ -359,8 +361,8 @@ class TestSimulatedAnnealing:
     def test_default_config(self) -> None:
         """Test simulated annealing with default configuration."""
 
-        def objective_function(params):
-            return params.get("x", 0) ** 2
+        def objective_function(params: dict[str, Any]) -> float:
+            return float(params.get("x", 0) ** 2)
 
         result = simulated_annealing(
             objective_function=objective_function,
@@ -375,8 +377,8 @@ class TestSimulatedAnnealing:
     def test_temperature_cooling(self) -> None:
         """Test that temperature decreases during annealing."""
 
-        def objective_function(params):
-            return params.get("x", 0) ** 2
+        def objective_function(params: dict[str, Any]) -> float:
+            return float(params.get("x", 0) ** 2)
 
         config = AnnealingConfig(
             initial_temperature=100.0,
@@ -398,8 +400,8 @@ class TestSimulatedAnnealing:
     def test_parameter_bounds_enforcement(self) -> None:
         """Test that parameter bounds are enforced."""
 
-        def objective_function(params):
-            return params.get("x", 0) ** 2
+        def objective_function(params: dict[str, Any]) -> float:
+            return float(params.get("x", 0) ** 2)
 
         config = AnnealingConfig(max_iterations=50)
 
@@ -415,13 +417,15 @@ class TestSimulatedAnnealing:
 
     @patch("random.random")
     @patch("random.gauss")
-    def test_acceptance_probability(self, mock_gauss, mock_random) -> None:
+    def test_acceptance_probability(
+        self, mock_gauss: MagicMock, mock_random: MagicMock
+    ) -> None:
         """Test acceptance probability calculation."""
         mock_gauss.return_value = 0.1
         mock_random.return_value = 0.5
 
-        def objective_function(params):
-            return params.get("x", 0) ** 2
+        def objective_function(params: dict[str, Any]) -> float:
+            return float(params.get("x", 0) ** 2)
 
         config = AnnealingConfig(
             initial_temperature=1.0, max_iterations=5, min_temperature=0.1
@@ -444,11 +448,11 @@ class TestIntegrationScenarios:
     def test_multi_parameter_optimization(self) -> None:
         """Test optimization with multiple parameters."""
 
-        def objective_function(params):
-            x = params.get("x", 0)
+        def objective_function(params: dict[str, Any]) -> float:
+            x = float(params.get("x", 0))
             y = params.get("y", 0)
             # Rosenbrock function (a = 1, b = 100)
-            return 100 * (y - x**2) ** 2 + (1 - x) ** 2
+            return float(100 * (y - x**2) ** 2 + (1 - x) ** 2)
 
         optimizer = GradientDescentOptimizer(
             OptimizerConfig(learning_rate=0.001, max_iterations=1000)
@@ -468,12 +472,12 @@ class TestIntegrationScenarios:
     def test_genetic_vs_gradient_comparison(self) -> None:
         """Compare genetic algorithm and gradient descent on same problem."""
 
-        def fitness_function(params):
-            x = params.get("x", 0)
+        def fitness_function(params: dict[str, Any]) -> float:
+            x = float(params.get("x", 0))
             return -((x - 2) ** 2)  # Maximum at x=2
 
-        def objective_function(params):
-            return (params.get("x", 0) - 2) ** 2  # Minimum at x=2
+        def objective_function(params: dict[str, Any]) -> float:
+            return float((params.get("x", 0) - 2) ** 2)  # Minimum at x=2
 
         # Genetic algorithm
         ga_optimizer = GeneticAlgorithmOptimizer(population_size=20, max_generations=50)
@@ -498,8 +502,8 @@ class TestIntegrationScenarios:
     def test_convergence_with_noise(self) -> None:
         """Test optimization with noisy objective function."""
 
-        def noisy_quadratic(params):
-            x = params.get("x", 0)
+        def noisy_quadratic(params: dict[str, Any]) -> float:
+            x = float(params.get("x", 0))
             noise = random.gauss(0, 0.01)
             return x**2 + noise
 
