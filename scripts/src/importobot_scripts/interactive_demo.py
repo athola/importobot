@@ -458,7 +458,7 @@ def _display_business_impact(business_metrics: dict[str, Any]) -> None:
         f"""
 BUSINESS IMPACT:
 - {speed_text} conversion
-  ({business_metrics["manual_time_days"]:.0f} days →
+  ({business_metrics["manual_time_days"]:.0f} days =>
    {business_metrics["importobot_time_days"]:.0f} day)
 - {time_reduction:.1f}% time reduction
 - {chart_factory.format_large_number(cost_savings)} cost savings
@@ -1708,22 +1708,22 @@ def demo_business_benefits() -> bool:
 ========================================================================
 
 FINANCIAL IMPACT:
-• Total savings:      ${chart_factory.format_large_number(total_savings)}
-• Best ROI:           {max(scenario_roi):.0f}x return
-• Payback period:     {(automated_time * 400) / max_savings * 365:.0f} days
+- Total savings:      ${chart_factory.format_large_number(total_savings)}
+- Best ROI:           {max(scenario_roi):.0f}x return
+- Payback period:     {(automated_time * 400) / max_savings * 365:.0f} days
 
 OPERATIONAL BENEFITS:
-• Time savings:       {team_time:.0f} days → {automated_time:.0f} day
+- Time savings:       {team_time:.0f} days => {automated_time:.0f} day
                        ({(team_time - automated_time) / team_time * 100:.0f}% reduction)
-• Success rate:       {metrics.importobot_success_rate:.1f}% vs
+- Success rate:       {metrics.importobot_success_rate:.1f}% vs
                        {metrics.manual_success_rate:.0f}% manual
-• Error reduction:    Near-zero error rate
+- Error reduction:    Near-zero error rate
 
 PERFORMANCE:
-• Speed advantage:    160x faster than manual
-• Scalability:        Linear growth, no bottlenecks
-• Scenarios tested:   {len(scenario_names)} different sizes
-• Average ROI:        {avg_roi:.0f}x across scenarios
+- Speed advantage:    160x faster than manual
+- Scalability:        Linear growth, no bottlenecks
+- Scenarios tested:   {len(scenario_names)} different sizes
+- Average ROI:        {avg_roi:.0f}x across scenarios
 
 ========================================================================
     """
@@ -1750,19 +1750,19 @@ def _show_welcome_screen() -> None:
         ------------------------------------
 
         1. Cost/Time Analysis
-           • Manual vs automated conversion
-           • Time savings calculation
-           • Basic ROI comparison
+           - Manual vs automated conversion
+           - Time savings calculation
+           - Basic ROI comparison
 
         2. Performance Tests
-           • Speed with different data sizes
-           • Conversion benchmarks
-           • Success rate metrics
+           - Speed with different data sizes
+           - Conversion benchmarks
+           - Success rate metrics
 
         3. Feature Examples
-           • Basic test conversion
-           • Complex scenario handling
-           • Suggestion improvements
+           - Basic test conversion
+           - Complex scenario handling
+           - Suggestion improvements
 
         GOAL: Show how Importobot converts test cases
            from various formats to Robot Framework

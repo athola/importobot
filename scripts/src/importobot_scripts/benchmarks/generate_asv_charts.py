@@ -278,7 +278,7 @@ def main() -> None:
     generate_memory_usage_chart(data, output_dir / "asv-memory-usage.png")
     generate_bulk_conversion_chart(data, output_dir / "asv-bulk-conversion.png")
 
-    print(f"\n✓ Charts saved to {output_dir}/")
+    print(f"\n[OK] Charts saved to {output_dir}/")
     print("  - asv-conversion-performance.png")
     print("  - asv-memory-usage.png")
     print("  - asv-bulk-conversion.png")

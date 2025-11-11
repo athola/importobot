@@ -21,7 +21,17 @@ class TestRailClient(BaseAPIClient):
             self._session.auth = (self.user, self.tokens[0])
 
     def _auth_headers(self) -> dict[str, str]:
-        """Override auth headers to use requests' built-in Basic authentication."""
+        """Return empty auth headers for TestRail Basic authentication.
+
+        TestRail uses HTTP Basic authentication with (username, API token) credentials.
+        Instead of setting custom Authorization headers like Bearer tokens, TestRail
+        configures the requests session directly via self._session.auth = (user, token)
+        in the __init__ method. The requests library then automatically handles
+        the Basic authentication headers for all requests made through this session.
+
+        Returns:
+            Empty dict since authentication is handled by session.auth, not headers.
+        """
         return {}
 
     def fetch_all(self, progress_cb: ProgressCallback) -> Iterator[dict[str, Any]]:
