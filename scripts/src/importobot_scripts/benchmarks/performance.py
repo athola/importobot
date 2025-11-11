@@ -622,7 +622,7 @@ class ComprehensivePerformanceBenchmark:
         """Format benchmark results for display."""
         output = []
         output.append("=" * 70)
-        output.append(" IMPORTOBOT COMPREHENSIVE PERFORMANCE BENCHMARK RESULTS")
+        output.append("IMPORTOBOT COMPREHENSIVE PERFORMANCE BENCHMARK RESULTS")
         output.append("=" * 70)
         output.append(f"Timestamp: {results['timestamp']}")
         output.append(f"Types: {', '.join(results['benchmark_types'])}")
@@ -804,7 +804,7 @@ def main() -> None:
         with open(args.output, "w", encoding="utf-8") as f:
             json.dump(results, f, indent=2)
 
-        print(f"\n📁 Detailed results saved to: {args.output}")
+        print(f"\n Detailed results saved to: {args.output}")
         print("=" * 70)
         print(" All benchmarks completed successfully!")
 

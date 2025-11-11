@@ -264,7 +264,6 @@ class TestConcurrentCachePerformance:
 
             end = time.perf_counter()
             return end - start
-            return end - start
 
         # Run concurrent workers
         with ThreadPoolExecutor(max_workers=20) as executor:

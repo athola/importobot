@@ -66,6 +66,9 @@ Custom fields are retained in metadata but do not change the generated steps.
 ### What if my JSON format is slightly different from the standard?
 Importobot can handle minor variations in JSON structure. If your format is significantly different, the conversion may fail. In that case, please open a GitHub issue and provide a small, anonymized sample of your export file.
 
+### I'm getting a MongoDB library error. What should I do?
+If you see `[ WARN ] Imported library 'RobotMongoDBLibrary' contains no keywords.` this is expected behavior. The current MongoDB library provides functions rather than proper Robot Framework keywords. The conversion will still work, but you may want to manually review MongoDB-related steps. We're working on a comprehensive MongoDB library replacement (GitHub issue #82).
+
 ## Development
 
 ### How can I contribute?

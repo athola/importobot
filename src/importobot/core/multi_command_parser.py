@@ -7,6 +7,9 @@ Robot Framework commands, enabling more sophisticated test automation scenarios.
 import re
 import shlex
 
+from importobot.core.keywords.generators.builtin_keywords import BuiltInKeywordGenerator
+from importobot.core.pattern_matcher import LibraryDetector, RobotFrameworkLibrary
+
 
 class MultiCommandParser:
     """Generate multiple Robot Framework commands from a single JSON step.
@@ -101,9 +104,17 @@ class MultiCommandParser:
         """Generate multiple Robot Framework keywords from the parsed data."""
         keywords = []
 
+        # Create full context for library detection
+        full_context = (
+            f"{description} {expected} "
+            f"{' '.join(f'{k}:{v}' for k, v in parsed_data.items())}"
+        )
+
         # Detect the type of operations needed
         if self._is_form_filling_operation(description, parsed_data):
-            keywords.extend(self._generate_form_filling_keywords(parsed_data))
+            keywords.extend(
+                self._generate_form_filling_keywords(parsed_data, full_context)
+            )
         elif self._is_database_operation(description):
             keywords.extend(
                 self._generate_database_keywords(description, parsed_data, expected)
@@ -211,14 +222,37 @@ class MultiCommandParser:
             return f"Run Process    {command}    {arguments}    {stdout_capture}"
         return f"Run Process    {command}    {stdout_capture}"
 
-    def _generate_form_filling_keywords(self, parsed_data: dict[str, str]) -> list[str]:
+    def _generate_form_filling_keywords(
+        self, parsed_data: dict[str, str], full_context: str = ""
+    ) -> list[str]:
         """Generate form-filling keywords from the parsed data."""
+        # Detect which library should be used based on full context
+        libraries = LibraryDetector.detect_libraries_from_text(full_context)
+
+        # Choose library: prefer AppiumLibrary if available, fallback to SeleniumLibrary
+        if RobotFrameworkLibrary.APPIUM_LIBRARY in libraries:
+            prefix = LibraryDetector.get_keyword_prefix_for_library(
+                RobotFrameworkLibrary.APPIUM_LIBRARY
+            )
+        elif RobotFrameworkLibrary.SELENIUM_LIBRARY in libraries:
+            prefix = LibraryDetector.get_keyword_prefix_for_library(
+                RobotFrameworkLibrary.SELENIUM_LIBRARY
+            )
+        else:
+            # Default to SeleniumLibrary
+            prefix = LibraryDetector.get_keyword_prefix_for_library(
+                RobotFrameworkLibrary.SELENIUM_LIBRARY
+            )
+
         keywords = []
 
         for field, value in parsed_data.items():
             field_lower = field.lower()
             if "password" in field_lower or "pass" in field_lower:
-                keywords.append(f"Input Password    id={field}    {value}")
+                keyword_name = (
+                    f"{prefix}.Input Password" if prefix else "Input Password"
+                )
+                keywords.append(f"{keyword_name}    id={field}    {value}")
             elif any(
                 field_type in field_lower
                 for field_type in [
@@ -233,7 +267,8 @@ class MultiCommandParser:
                     "addr",
                 ]
             ):
-                keywords.append(f"Input Text    id={field}    {value}")
+                keyword_name = f"{prefix}.Input Text" if prefix else "Input Text"
+                keywords.append(f"{keyword_name}    id={field}    {value}")
             elif field_lower in ["remember", "active", "agree"]:
                 if value.lower() in ["true", "yes", "1"]:
                     keywords.append(f"Select Checkbox    id={field}")
@@ -241,7 +276,7 @@ class MultiCommandParser:
                     keywords.append(f"Unselect Checkbox    id={field}")
             else:
                 # Default to text input
-                keywords.append(f"Input Text    id={field}    {value}")
+                keywords.append(f"SeleniumLibrary.Input Text    id={field}    {value}")
 
         return keywords
 
@@ -323,12 +358,20 @@ class MultiCommandParser:
 
         file_path = parsed_data.get("file", "")
         if file_path:
-            keywords.append(f"Choose File    id=fileInput    {file_path}")
-            keywords.append("Click Button    id=uploadBtn")
+            keywords.append(
+                f"SeleniumLibrary.Choose File    id=fileInput    {file_path}"
+            )
+            keywords.append("SeleniumLibrary.Click Button    id=uploadBtn")
 
             # Add verification
             if expected and "successfully" in expected.lower():
-                keywords.append(f"Page Should Contain    {expected}")
+                # Use library-aware verification
+                generator = BuiltInKeywordGenerator()
+                verification = generator._generate_library_aware_page_verification(
+                    expected,
+                    "",  # Use empty string since full_context not available
+                )
+                keywords.append(verification)
 
         return keywords
 
@@ -338,7 +381,7 @@ class MultiCommandParser:
 
         for field, value in parsed_data.items():
             # Default behavior - treat as text input
-            keywords.append(f"Input Text    id={field}    {value}")
+            keywords.append(f"SeleniumLibrary.Input Text    id={field}    {value}")
 
         return keywords
 
@@ -372,13 +415,15 @@ class MultiCommandParser:
             field_type = field_types.get(field, "text")
 
             if field_type == "password":
-                commands.append(f"Input Password    id={field}    {value}")
+                commands.append(
+                    f"SeleniumLibrary.Input Password    id={field}    {value}"
+                )
             elif field_type == "checkbox":
                 if value.lower() in ["true", "yes", "1"]:
-                    commands.append(f"Select Checkbox    id={field}")
+                    commands.append(f"SeleniumLibrary.Select Checkbox    id={field}")
                 else:
-                    commands.append(f"Unselect Checkbox    id={field}")
+                    commands.append(f"SeleniumLibrary.Unselect Checkbox    id={field}")
             else:  # text and other types
-                commands.append(f"Input Text    id={field}    {value}")
+                commands.append(f"SeleniumLibrary.Input Text    id={field}    {value}")
 
         return commands

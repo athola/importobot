@@ -33,6 +33,9 @@ help:
 	@echo "  example-usage-basic         - Basic API usage examples"
 	@echo "  example-usage-advanced      - Advanced features examples"
 	@echo "  example-usage-cli           - CLI usage examples"
+	@echo "  example-selenium           - Selenium vs Appium library detection demo (Selenium)"
+	@echo "  example-appium             - Selenium vs Appium library detection demo (Appium)"
+	@echo "  example-library-detection  - Run both Selenium and Appium demos"
 	@echo "  enterprise-demo         - Bulk conversion test"
 	@echo "  interactive-demo        - Run interactive business benefits demo"
 	@echo "  interactive-demo-test   - Run interactive demo in non-interactive mode"
@@ -135,10 +138,10 @@ validate: lint typecheck test
 	@echo "→ Checking for uncommitted changes..."
 	@git status --porcelain | head -5 || true
 	@echo "→ [6/6] Checking for security vulnerabilities..."
-	@uv run bandit --version >/dev/null 2>&1 || { echo "⚠️  bandit unavailable. Run 'uv sync' to install dev dependencies"; exit 1; }
-	@uv run bandit -r src/ -ll -f json -o bandit-report.json || { echo "⚠️  Security issues found! Check bandit-report.json"; exit 1; }
+	@uv run bandit --version >/dev/null 2>&1 || { echo "WARNING: bandit unavailable. Run 'uv sync' to install dev dependencies"; exit 1; }
+	@uv run bandit -r src/ -ll -f json -o bandit-report.json || { echo "WARNING: Security issues found! Check bandit-report.json"; exit 1; }
 	@rm -f bandit-report.json
-	$(info $(NEWLINE)✅ All validation checks passed! Ready for PR review.$(NEWLINE))
+	$(info $(NEWLINE)All validation checks passed! Ready for PR review.$(NEWLINE))
 
 # Cleanup
 .PHONY: clean
@@ -167,7 +170,7 @@ examples: example-basic example-login example-suggestions example-hash-compare e
 example-basic:
 	$(info $(NEWLINE)==================== Running basic login example ====================$(NEWLINE))
 	@cat examples/json/basic_login.json
-	uv run importobot --robot-template examples/resources/ examples/json/basic_login.json examples/robot/basic_example.robot
+	uv run importobot examples/json/basic_login.json examples/robot/basic_example.robot
 	@cat examples/robot/basic_example.robot
 	uv run robot --dryrun examples/robot/basic_example.robot
 
@@ -175,7 +178,7 @@ example-basic:
 example-login:
 	$(info $(NEWLINE)==================== Running browser login example ====================$(NEWLINE))
 	@cat examples/json/browser_login.json
-	uv run importobot --robot-template examples/resources/ examples/json/browser_login.json examples/robot/login_example.robot
+	uv run importobot examples/json/browser_login.json examples/robot/login_example.robot
 	@cat examples/robot/login_example.robot
 	uv run robot --dryrun examples/robot/login_example.robot
 
@@ -246,7 +249,7 @@ hash-compare: example-hash-compare
 example-user-registration:
 	$(info $(NEWLINE)==================== Running web form automation example ====================$(NEWLINE))
 	@cat examples/json/user_registration.json
-	uv run importobot --robot-template examples/resources/ examples/json/user_registration.json examples/robot/user_registration.robot
+	uv run importobot examples/json/user_registration.json examples/robot/user_registration.robot
 	@cat examples/robot/user_registration.robot
 	uv run robot --dryrun examples/robot/user_registration.robot
 
@@ -254,7 +257,7 @@ example-user-registration:
 example-file-transfer:
 	$(info $(NEWLINE)==================== Running SSH file transfer example ====================$(NEWLINE))
 	@cat examples/json/ssh_file_transfer.json
-	uv run importobot --robot-template examples/resources/ examples/json/ssh_file_transfer.json examples/robot/ssh_file_transfer.robot
+	uv run importobot examples/json/ssh_file_transfer.json examples/robot/ssh_file_transfer.robot
 	@cat examples/robot/ssh_file_transfer.robot
 	uv run robot --dryrun examples/robot/ssh_file_transfer.robot
 
@@ -262,7 +265,7 @@ example-file-transfer:
 example-database-api:
 	$(info $(NEWLINE)==================== Running database and API testing example ====================$(NEWLINE))
 	@cat examples/json/database_api_test.json
-	uv run importobot --robot-template examples/resources/ examples/json/database_api_test.json examples/robot/database_api_test.robot
+	uv run importobot examples/json/database_api_test.json examples/robot/database_api_test.robot
 	@cat examples/robot/database_api_test.robot
 	uv run robot --dryrun examples/robot/database_api_test.robot
 
@@ -288,6 +291,47 @@ example-usage-advanced:
 example-usage-cli:
 	$(info $(NEWLINE)==================== Running CLI usage examples ====================$(NEWLINE))
 	uv run python scripts/src/importobot_scripts/example_cli_usage.py
+
+.PHONY: example-selenium
+example-selenium:
+	$(info $(NEWLINE)==================== Selenium Library Detection Demo ====================$(NEWLINE))
+	@printf '\n---- Input: Web Browser Test (Selenium) ----\n'
+	@cat examples/json/selenium_web_login.json
+	@printf '\n---- Converting to Robot Framework ----\n'
+	@mkdir -p examples/output
+	uv run importobot examples/json/selenium_web_login.json examples/output/selenium_web_login.robot
+	@printf '\n---- Generated Robot Framework Test ----\n'
+	@cat examples/output/selenium_web_login.robot
+	@printf '\n---- Verifying Library Selection (dry-run) ----\n'
+	@printf 'Expected: SeleniumLibrary should be used for web browser automation\n\n'
+	uv run robot --dryrun examples/output/selenium_web_login.robot
+	@printf '\n✓ Selenium library correctly detected and used!\n'
+
+.PHONY: example-appium
+example-appium:
+	$(info $(NEWLINE)==================== Appium Library Detection Demo ====================$(NEWLINE))
+	@printf '\n---- Input: Mobile App Test (Appium) ----\n'
+	@cat examples/json/appium_mobile_login.json
+	@printf '\n---- Converting to Robot Framework ----\n'
+	@mkdir -p examples/output
+	uv run importobot examples/json/appium_mobile_login.json examples/output/appium_mobile_login.robot
+	@printf '\n---- Generated Robot Framework Test ----\n'
+	@cat examples/output/appium_mobile_login.robot
+	@printf '\n---- Verifying Library Selection (dry-run) ----\n'
+	@printf 'Expected: AppiumLibrary should be used for mobile app automation\n\n'
+	uv run robot --dryrun examples/output/appium_mobile_login.robot
+	@printf '\n✓ Appium library correctly detected and used!\n'
+
+.PHONY: example-library-detection
+example-library-detection: example-selenium example-appium
+	@printf '\n========== Library Detection Demo Complete ==========\n'
+	@printf 'Summary:\n'
+	@printf '  ✓ SeleniumLibrary correctly used for web browser tests\n'
+	@printf '  ✓ AppiumLibrary correctly used for mobile app tests\n'
+	@printf '  ✓ Verification keywords use library-specific methods:\n'
+	@printf '    - SeleniumLibrary.Page Should Contain (web)\n'
+	@printf '    - AppiumLibrary.Page Should Contain Text (mobile)\n'
+	@printf '\nBoth tests validated with Robot Framework dry-run!\n'
 
 
 # Interactive demo

@@ -351,36 +351,36 @@ class TestGenericKeywordGeneratorVerification:
     def test_verification_element_should_contain_with_id_locator(
         self, generator: GenericKeywordGenerator
     ) -> None:
-        """Test verification uses Element Should Contain for ID locators."""
+        """Test verification uses Page Should Contain for ID locators."""
         description = "Verify username field contains correct value"
         test_data = "verify: element=id=username_field, text=JohnDoe"
         expected = ""
         result = generator._determine_robot_keyword(description, test_data, expected)
-        assert "Element Should Contain" in result
+        assert "Page Should Contain" in result
         assert "id=username_field" in result
         assert "JohnDoe" in result
 
     def test_verification_element_should_contain_with_xpath(
         self, generator: GenericKeywordGenerator
     ) -> None:
-        """Test verification uses Element Should Contain for XPath locators."""
+        """Test verification uses Page Should Contain for XPath locators."""
         description = "Verify element contains text"
         test_data = "verify: element=xpath=//div[@class='message'], text=Success"
         expected = ""
         result = generator._determine_robot_keyword(description, test_data, expected)
-        assert "Element Should Contain" in result
+        assert "Page Should Contain" in result
         assert "xpath=//div[@class='message']" in result
         assert "Success" in result
 
     def test_verification_element_should_contain_with_css(
         self, generator: GenericKeywordGenerator
     ) -> None:
-        """Test verification uses Element Should Contain for CSS locators."""
+        """Test verification uses Page Should Contain for CSS locators."""
         description = "Check element content"
         test_data = "verify: element=css=.status-message, text=Operation complete"
         expected = ""
         result = generator._determine_robot_keyword(description, test_data, expected)
-        assert "Element Should Contain" in result
+        assert "Page Should Contain" in result
         assert "css=.status-message" in result
         assert "Operation complete" in result
 
@@ -427,6 +427,6 @@ class TestGenericKeywordGeneratorVerification:
         test_data = "element: id=submit_btn, expected: Submit Registration"
         expected = ""
         result = generator._determine_robot_keyword(description, test_data, expected)
-        assert "Element Should Contain" in result
+        assert "Page Should Contain" in result
         assert "id=submit_btn" in result
         assert "Submit Registration" in result

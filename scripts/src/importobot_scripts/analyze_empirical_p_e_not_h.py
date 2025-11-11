@@ -190,7 +190,7 @@ def calculate_posterior_with_current_formula(
         # Calculate what P(E|¬H) was used
         p_e_not_h = 0.01 + 0.49 * (1 - likelihood) ** 2
 
-        status = "✓ PASS" if confidence > 0.8 else "✗ FAIL"
+        status = "PASS" if confidence > 0.8 else "FAIL"
         if likelihood > 0.9:
             print(
                 f"{status} {true_format.name:15s} L={likelihood:.3f}"

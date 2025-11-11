@@ -42,8 +42,8 @@ class TestBasicMultiStepParsing:
             "    # Test Data: username: admin, password: secret123",
             "    # WARNING: Hardcoded password detected in test data",
             "    # Expected Result: Credentials entered successfully",
-            "    Input Text    id=username    admin",
-            "    Input Password    id=password    secret123",
+            "    SeleniumLibrary.Input Text    id=username    admin",
+            "    SeleniumLibrary.Input Password    id=password    secret123",
         ]
 
         assert result == expected_keywords
@@ -63,9 +63,9 @@ class TestBasicMultiStepParsing:
             "    # Step: Fill contact information",
             "    # Test Data: name: John Doe, phone: 555-1234, address: 123 Main St",
             "    # Expected Result: Contact information filled",
-            "    Input Text    id=name    John Doe",
-            "    Input Text    id=phone    555-1234",
-            "    Input Text    id=address    123 Main St",
+            "    SeleniumLibrary.Input Text    id=name    John Doe",
+            "    SeleniumLibrary.Input Text    id=phone    555-1234",
+            "    SeleniumLibrary.Input Text    id=address    123 Main St",
         ]
 
         assert result == expected_keywords
@@ -124,7 +124,16 @@ class TestComplexRealWorldScenarios:
         command_lines = [
             line
             for line in result
-            if line.strip().startswith(("Input", "Select", "Unselect"))
+            if line.strip().startswith(
+                (
+                    "Input",
+                    "Select",
+                    "Unselect",
+                    "SeleniumLibrary.Input",
+                    "SeleniumLibrary.Select",
+                    "SeleniumLibrary.Unselect",
+                )
+            )
         ]
         assert len(command_lines) >= 10  # Many form fields
 
@@ -155,7 +164,11 @@ class TestComplexRealWorldScenarios:
 
         # Should handle complex checkout scenario
         command_lines = [
-            line for line in result if line.strip().startswith(("Input", "Select"))
+            line
+            for line in result
+            if line.strip().startswith(
+                ("Input", "Select", "SeleniumLibrary.Input", "SeleniumLibrary.Select")
+            )
         ]
         assert len(command_lines) >= 10  # Many checkout fields
 
@@ -384,8 +397,8 @@ class TestEnhancedStepParser:
         commands = parser.generate_robot_commands(parsed_data, field_types)
 
         expected = [
-            "Input Text    id=username    admin",
-            "Input Password    id=password    secret",
+            "SeleniumLibrary.Input Text    id=username    admin",
+            "SeleniumLibrary.Input Password    id=password    secret",
         ]
 
         assert commands == expected
@@ -477,7 +490,14 @@ class TestCredentialCompositeIntent:
             input_keywords = [
                 line
                 for line in result
-                if line.strip().startswith(("Input Text", "Input Password"))
+                if line.strip().startswith(
+                    (
+                        "Input Text",
+                        "Input Password",
+                        "SeleniumLibrary.Input Text",
+                        "SeleniumLibrary.Input Password",
+                    )
+                )
             ]
             assert len(input_keywords) == 2, (
                 f"'{description}' should generate 2 keywords, got {len(input_keywords)}"
@@ -525,7 +545,14 @@ class TestCredentialCompositeIntent:
         keyword_lines = [
             line
             for line in result
-            if line.strip().startswith(("Input Text", "Input Password"))
+            if line.strip().startswith(
+                (
+                    "Input Text",
+                    "Input Password",
+                    "SeleniumLibrary.Input Text",
+                    "SeleniumLibrary.Input Password",
+                )
+            )
         ]
 
         # Should have exactly 2 keywords

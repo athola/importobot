@@ -1,0 +1,37 @@
+{
+  "name": "Web Application Login Test",
+  "description": "Demonstrates SeleniumLibrary detection for web browser automation",
+  "priority": "High",
+  "testCases": [
+    {
+      "name": "Web Login Flow",
+      "description": "Test user login through web browser",
+      "steps": [
+        {
+          "index": 1,
+          "description": "Open web browser and navigate to login page",
+          "testData": "url: https://example.com/login",
+          "expectedResult": "Login page loads successfully"
+        },
+        {
+          "index": 2,
+          "description": "Enter username and password in web form",
+          "testData": "username: test@example.com, password: Test123!",
+          "expectedResult": "Form fields populated correctly"
+        },
+        {
+          "index": 3,
+          "description": "Click login button to submit form",
+          "testData": "locator: id=login_button",
+          "expectedResult": "Form submitted and user authenticated"
+        },
+        {
+          "index": 4,
+          "description": "Verify dashboard page displays",
+          "testData": "verify: Welcome to dashboard",
+          "expectedResult": "Dashboard page loads successfully"
+        }
+      ]
+    }
+  ]
+}

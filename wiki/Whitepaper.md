@@ -374,15 +374,15 @@ R ≤ 3.0 = log₂(8)
 
 | Input Format | Predicted | Confidence | Correct | Notes |
 |-------------|-----------|-----------|---------|-------|
-| Zephyr Standard | Zephyr | 0.94 | ✓ | Strong `testCase`/`steps` pattern |
-| Zephyr Custom | Zephyr | 0.87 | ✓ | Weak field signatures |
-| TestRail API | TestRail | 0.91 | ✓ | ID-heavy structure |
-| TestRail Custom | TestRail | 0.83 | ✓ | Non-standard field names |
-| JIRA Single | JIRA_Xray | 0.96 | ✓ | Clear issue structure |
-| JIRA Bulk | JIRA_Xray | 0.89 | ✓ | Mixed issue types |
-| TestLink XML | TestLink | 0.79 | ✓ | Suite hierarchy pattern |
-| Generic Valid | Generic | 0.62 | ✓ | Minimal test structure |
-| Generic Invalid | Generic | 0.28 | ✓ | Missing required fields |
+| Zephyr Standard | Zephyr | 0.94 | PASS | Strong `testCase`/`steps` pattern |
+| Zephyr Custom | Zephyr | 0.87 | PASS | Weak field signatures |
+| TestRail API | TestRail | 0.91 | PASS | ID-heavy structure |
+| TestRail Custom | TestRail | 0.83 | PASS | Non-standard field names |
+| JIRA Single | JIRA_Xray | 0.96 | PASS | Clear issue structure |
+| JIRA Bulk | JIRA_Xray | 0.89 | PASS | Mixed issue types |
+| TestLink XML | TestLink | 0.79 | PASS | Suite hierarchy pattern |
+| Generic Valid | Generic | 0.62 | PASS | Minimal test structure |
+| Generic Invalid | Generic | 0.28 | PASS | Missing required fields |
 | ... | ... | ... | ... | 100% overall accuracy |
 
 ### B.2 Confidence Calibration Analysis

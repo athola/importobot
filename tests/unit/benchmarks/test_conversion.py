@@ -7,16 +7,11 @@ conversion pipeline functionality without measuring performance.
 """
 
 import json
-import sys
 from pathlib import Path
 
 import pytest
 
-# Add benchmarks directory to path
-benchmark_dir = Path(__file__).parent.parent.parent.parent / "benchmarks"
-sys.path.insert(0, str(benchmark_dir))
-
-from benchmarks.conversion import (  # noqa: E402
+from benchmarks import (
     DirectoryConversionSuite,
     ValidationSuite,
     ZephyrConversionSuite,

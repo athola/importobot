@@ -243,10 +243,24 @@ class ValidationService:
             validation_data = data_list[start_idx:end_idx]
             train_data = data_list[:start_idx] + data_list[end_idx:]
 
+            # Enrich context with fold-specific information
+            fold_context = (context or {}).copy()
+            fold_context.update(
+                {
+                    "fold_number": fold + 1,
+                    "total_folds": k_folds,
+                    "validation_size": len(validation_data),
+                    "train_size": len(train_data),
+                    "is_cross_validation": True,
+                }
+            )
+
             # Validate using each strategy
             fold_strategy_results = {}
             for strategy in strategies:
-                results = self.validate_multiple(validation_data, [strategy], context)
+                results = self.validate_multiple(
+                    validation_data, [strategy], fold_context
+                )
                 valid_ratio = (
                     sum(1 for r in results if r.is_valid) / len(results)
                     if results

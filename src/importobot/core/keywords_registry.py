@@ -466,31 +466,33 @@ class RobotFrameworkKeywordRegistry:
                 "description": "Delete keys from Redis",
             },
         },
-        # MongoDBLibrary - MongoDB operations
-        "MongoDBLibrary": {
-            "Connect To MongoDB": {
-                "args": ["connection_string", "database"],
-                "description": "Connect to MongoDB",
+        # RobotMongoDBLibrary - MongoDB operations (standalone functions)
+        "RobotMongoDBLibrary": {
+            "InsertOne": {
+                "args": ["connection_config", "data"],
+                "description": "Insert one document into MongoDB collection",
             },
-            "Disconnect From MongoDB": {
-                "args": [],
-                "description": "Disconnect from MongoDB",
+            "FindOneByID": {
+                "args": ["connection_config", "id"],
+                "description": "Find one document by ID from MongoDB collection",
             },
-            "Insert Data": {
-                "args": ["collection", "document"],
-                "description": "Insert document into collection",
+            "Find": {
+                "args": ["connection_config", "filter"],
+                "description": "Find documents in MongoDB collection using filter",
             },
-            "Retrieve Some Data": {
-                "args": ["collection", "query"],
-                "description": "Query MongoDB collection",
+            "Update": {
+                "args": ["connection_config", "id", "data"],
+                "description": "Update document by ID in MongoDB collection",
             },
-            "Update Data": {
-                "args": ["collection", "query", "update"],
-                "description": "Update MongoDB document",
+            "DeleteOne": {
+                "args": ["connection_config", "filter"],
+                "description": (
+                    "Delete one document from MongoDB collection using filter"
+                ),
             },
-            "Delete Data": {
-                "args": ["collection", "query"],
-                "description": "Delete MongoDB document",
+            "DeleteOneByID": {
+                "args": ["connection_config", "id"],
+                "description": "Delete one document by ID from MongoDB collection",
             },
         },
     }
@@ -531,6 +533,8 @@ class RobotFrameworkKeywordRegistry:
         "web_open": ("SeleniumLibrary", "Open Browser"),
         "web_close": ("SeleniumLibrary", "Close Browser"),
         "web_navigate": ("SeleniumLibrary", "Go To"),
+        # Mobile app operations
+        "app_open": ("AppiumLibrary", "Open Application"),
         "web_input": ("SeleniumLibrary", "Input Text"),
         "web_input_password": ("SeleniumLibrary", "Input Password"),
         "web_click": ("SeleniumLibrary", "Click Element"),

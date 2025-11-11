@@ -48,6 +48,8 @@ Roadmap of upcoming features, parked items, and ideas requiring proof-of-concept
 
 **Performance**: Template ingestion takes ~50ms per file, which becomes noticeable with 50+ template directories. We need to optimize the pattern matching algorithm and add better caching.
 
+**MongoDB Library Modernization**: Replace the inadequate `robot-mongodb-library` with a proper Robot Framework-compatible MongoDB library. The current library causes warnings and provides standalone functions instead of proper keywords. GitHub issue #82 tracks this work.
+
 **Specific customer requests**:
 - Company A wants to convert TestRail custom fields that don't follow standard naming
 - Company B needs better handling of TestLink test suite hierarchies
@@ -65,7 +67,7 @@ Roadmap of upcoming features, parked items, and ideas requiring proof-of-concept
 - Plugin architecture research. The goal is to let us snap in new source formats without rewriting the core converter. Need to prove abstraction on a format other than Zephyr.
 - Quality reporting. Lightweight analytics (success/error counts, skipped fields) so operations teams can spot regressions without perusing logs.
 
-- 🔜  Refactor `src/importobot/core/templates/blueprints/cli_builder.py` into smaller helper modules
+- TODO: Refactor `src/importobot/core/templates/blueprints/cli_builder.py` into smaller helper modules
   - Explore table-driven rendering / class-based builders after current release
 
 ### Later — stays on the backlog until we learn more

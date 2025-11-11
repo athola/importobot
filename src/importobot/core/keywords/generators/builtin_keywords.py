@@ -4,6 +4,7 @@ import re
 from typing import Any
 
 from importobot.core.keywords.base_generator import BaseKeywordGenerator
+from importobot.core.pattern_matcher import LibraryDetector, RobotFrameworkLibrary
 from importobot.utils.step_comments import generate_step_comments
 from importobot.utils.step_processing import extract_step_information
 
@@ -561,16 +562,42 @@ class BuiltInKeywordGenerator(
         if ":" in test_data:
             message_part = test_data.split(":", 1)[1].strip()
             if message_part:
-                return f"Page Should Contain    {message_part}"
+                return self._generate_library_aware_page_verification(message_part)
 
         # Fall back to expected result
         if expected and any(
             web_term in expected.lower()
             for web_term in ["message", "text", "display", "show", "welcome", "success"]
         ):
-            return f"Page Should Contain    {expected}"
+            return self._generate_library_aware_page_verification(expected)
 
         return None
+
+    def _generate_library_aware_page_verification(
+        self, content: str, full_test_context: str = ""
+    ) -> str:
+        """
+        Generate library-aware page verification keywords.
+
+        Uses appropriate verification keyword based on detected library context.
+        """
+        # Detect which library should be used - prioritize test context if available
+        context_to_check = (
+            full_test_context if full_test_context else f"verify {content}"
+        )
+        libraries = LibraryDetector.detect_libraries_from_text(context_to_check)
+
+        if RobotFrameworkLibrary.APPIUM_LIBRARY in libraries:
+            # AppiumLibrary uses different verification keywords
+            return (
+                f"AppiumLibrary.Page Should Contain Element    "
+                f"xpath=//*[contains(text(), '{content}')]"
+            )
+        elif RobotFrameworkLibrary.SELENIUM_LIBRARY in libraries:
+            return f"SeleniumLibrary.Page Should Contain    {content}"
+        else:
+            # Default to SeleniumLibrary for backward compatibility
+            return f"SeleniumLibrary.Page Should Contain    {content}"
 
     def _try_pattern_verification(
         self, desc_lower: str, test_data: str, expected: str
@@ -593,7 +620,7 @@ class BuiltInKeywordGenerator(
     def generate_verify_keyword(self, expected: str) -> str:
         """Generate context-aware verification keyword."""
         if not expected:
-            return "Page Should Contain    Expected content"
+            return self._generate_library_aware_page_verification("Expected content")
 
         # For web-related content (message, text, page content), use SeleniumLibrary
         web_indicators = [
@@ -623,8 +650,8 @@ class BuiltInKeywordGenerator(
             ).strip()
 
             if message_text:
-                return f"Page Should Contain    {message_text}"
-            return f"Page Should Contain    {expected}"
+                return self._generate_library_aware_page_verification(message_text)
+            return self._generate_library_aware_page_verification(expected)
 
         # For non-web content, use generic assertion
         return f"Should Be Equal    ${{actual}}    {expected}"
