@@ -12,6 +12,9 @@ import random
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any
+
+import pytest
 
 from importobot.services.performance_cache import PerformanceCache
 from importobot.telemetry import (
@@ -28,11 +31,11 @@ from tests.utils.performance_utils import get_adaptive_thresholds
 class TestTelemetryOverhead:
     """Measure telemetry overhead in hot paths."""
 
-    def test_disabled_telemetry_has_minimal_overhead(self, benchmark):
+    def test_disabled_telemetry_has_minimal_overhead(self, benchmark: Any) -> None:
         """Disabled telemetry should have near-zero overhead."""
         client = TelemetryClient(min_emit_interval=60.0, min_sample_delta=100)
 
-        def record_metrics():
+        def record_metrics() -> None:
             client.record_cache_metrics("cache", hits=100, misses=50)
 
         result = benchmark(record_metrics, iterations=1000)
@@ -41,7 +44,7 @@ class TestTelemetryOverhead:
         assert result["result"] is None
         assert result["elapsed"] < threshold
 
-    def test_enabled_telemetry_overhead_acceptable(self, benchmark):
+    def test_enabled_telemetry_overhead_acceptable(self, benchmark: Any) -> None:
         """Enabled telemetry overhead should be acceptable for production."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -49,7 +52,7 @@ class TestTelemetryOverhead:
         # Use fast no-op exporter
         client.register_exporter(lambda n, p: None)
 
-        def record_metrics():
+        def record_metrics() -> None:
             client.record_cache_metrics("cache", hits=100, misses=50)
 
         result = benchmark(record_metrics, iterations=1000)
@@ -58,7 +61,7 @@ class TestTelemetryOverhead:
         threshold = get_adaptive_thresholds().get_telemetry_threshold(enabled=True) * 20
         assert result["elapsed"] < threshold
 
-    def test_rate_limiting_reduces_overhead(self, benchmark):
+    def test_rate_limiting_reduces_overhead(self, benchmark: Any) -> None:
         """Rate limiting should reduce overhead for high-frequency calls."""
         client = TelemetryClient(min_emit_interval=60.0, min_sample_delta=1000)
         client.clear_exporters()
@@ -70,7 +73,7 @@ class TestTelemetryOverhead:
 
         client.register_exporter(counting_exporter)
 
-        def record_many_metrics():
+        def record_many_metrics() -> None:
             for i in range(100):
                 client.record_cache_metrics("cache", hits=i, misses=i // 2)
 
@@ -80,13 +83,13 @@ class TestTelemetryOverhead:
         # Rate limiting should have prevented most emissions
         assert call_count[0] < 10  # Much less than 100
 
-    def test_performance_cache_overhead_with_telemetry(self, benchmark):
+    def test_performance_cache_overhead_with_telemetry(self, benchmark: Any) -> None:
         """Telemetry should not significantly slow down PerformanceCache."""
         cache = PerformanceCache(max_cache_size=1000, ttl_seconds=0)
 
         test_data = [{"iteration": i} for i in range(100)]
 
-        def cache_operations():
+        def cache_operations() -> None:
             for data in test_data:
                 cache.get_cached_string_lower(data)
 
@@ -98,7 +101,7 @@ class TestTelemetryOverhead:
 class TestConcurrentPerformance:
     """Test performance under concurrent access."""
 
-    def test_concurrent_metric_recording_throughput(self):
+    def test_concurrent_metric_recording_throughput(self) -> None:
         """Measure throughput of concurrent metric recording."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -106,7 +109,7 @@ class TestConcurrentPerformance:
         emitted = []
         lock = threading.Lock()
 
-        def fast_exporter(n, p):
+        def fast_exporter(n: str, p: dict[str, Any]) -> None:
             with lock:
                 emitted.append((n, p))
 
@@ -117,7 +120,7 @@ class TestConcurrentPerformance:
 
         start_time = time.perf_counter()
 
-        def worker():
+        def worker() -> None:
             for i in range(ops_per_thread):
                 client.record_cache_metrics("cache", hits=i, misses=i // 2)
 
@@ -134,7 +137,7 @@ class TestConcurrentPerformance:
         min_throughput = get_adaptive_thresholds().get_throughput_threshold(50_000)
         assert ops_per_sec > min_throughput
 
-    def test_lock_contention_minimal(self):
+    def test_lock_contention_minimal(self) -> None:
         """Lock contention should not significantly degrade performance."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -145,7 +148,7 @@ class TestConcurrentPerformance:
 
         start_time = time.time()
 
-        def worker():
+        def worker() -> None:
             for i in range(ops_per_thread):
                 # Use different cache names to reduce rate limiting effects
                 client.record_cache_metrics(f"cache_{i % 10}", hits=i, misses=i // 2)
@@ -162,7 +165,7 @@ class TestConcurrentPerformance:
         threshold = get_adaptive_thresholds().get_operation_threshold(200.0) * 10
         assert elapsed < threshold
 
-    def test_exporter_processing_parallelization(self):
+    def test_exporter_processing_parallelization(self) -> None:
         """Multiple exporters should not significantly increase overhead."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -187,7 +190,7 @@ class TestConcurrentPerformance:
 class TestMemoryFootprint:
     """Test memory usage of telemetry."""
 
-    def test_last_emit_tracking_bounded(self):
+    def test_last_emit_tracking_bounded(self) -> None:
         """Last emit tracking should not grow unbounded."""
         client = TelemetryClient(min_emit_interval=60.0, min_sample_delta=100)
         client.clear_exporters()
@@ -201,7 +204,7 @@ class TestMemoryFootprint:
         # This is expected behavior, but verifies no memory leak
         assert len(client._last_emit) <= 10_000
 
-    def test_exporter_list_memory_stable(self):
+    def test_exporter_list_memory_stable(self) -> None:
         """Exporter list should not leak memory."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
 
@@ -221,7 +224,7 @@ class TestMemoryFootprint:
 class TestRateLimitingPerformance:
     """Test performance characteristics of rate limiting."""
 
-    def test_sample_delta_early_exit_fast(self, benchmark):
+    def test_sample_delta_early_exit_fast(self, benchmark: Any) -> None:
         """Rate-limited calls should exit early and fast."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=1000)
         client.clear_exporters()
@@ -231,7 +234,7 @@ class TestRateLimitingPerformance:
         client.record_cache_metrics("cache", hits=100, misses=50)
 
         # Now measure rate-limited calls
-        def rate_limited_call():
+        def rate_limited_call() -> None:
             client.record_cache_metrics("cache", hits=101, misses=51)
 
         result = benchmark(rate_limited_call, iterations=1000)
@@ -242,7 +245,9 @@ class TestRateLimitingPerformance:
         )
         assert result["elapsed"] < threshold
 
-    def test_time_interval_check_efficient(self, benchmark, monkeypatch):
+    def test_time_interval_check_efficient(
+        self, benchmark: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Time interval checking should be efficient."""
         client = TelemetryClient(min_emit_interval=60.0, min_sample_delta=0)
         client.clear_exporters()
@@ -255,7 +260,7 @@ class TestRateLimitingPerformance:
             client.record_cache_metrics("cache", hits=10, misses=5)
 
         # Measure rate-limited calls within interval
-        def rate_limited_call():
+        def rate_limited_call() -> None:
             with monkeypatch.context() as m:
                 m.setattr("time.time", lambda: base_time + 30)
                 client.record_cache_metrics("cache", hits=20, misses=10)
@@ -272,7 +277,7 @@ class TestRateLimitingPerformance:
 class TestScalability:
     """Test telemetry scalability with many caches and exporters."""
 
-    def test_many_unique_caches_performance(self):
+    def test_many_unique_caches_performance(self) -> None:
         """Performance should scale reasonably with many unique caches."""
         client = TelemetryClient(min_emit_interval=0.0, min_sample_delta=0)
         client.clear_exporters()
@@ -292,7 +297,7 @@ class TestScalability:
         threshold = get_adaptive_thresholds().get_operation_threshold(50.0)
         assert elapsed < threshold
 
-    def test_many_exporters_linear_scaling(self):
+    def test_many_exporters_linear_scaling(self) -> None:
         """Performance should scale linearly with number of exporters."""
         num_exporters_list = [1, 5, 10, 20]
         timings = []
@@ -323,7 +328,7 @@ class TestScalability:
 class TestRealWorldScenarios:
     """Test performance in realistic usage scenarios."""
 
-    def test_cache_hit_rate_monitoring_overhead(self):
+    def test_cache_hit_rate_monitoring_overhead(self) -> None:
         """Realistic cache monitoring should have acceptable overhead."""
         cache = PerformanceCache(max_cache_size=1000, ttl_seconds=0)
 
@@ -341,10 +346,12 @@ class TestRealWorldScenarios:
         assert elapsed < 0.2
 
         # Verify telemetry was collected
-        stats = cache.get_cache_stats()
+        stats = cache.get_stats()
         assert stats["cache_hits"] + stats["cache_misses"] == 10_000
 
-    def test_high_frequency_logging_throttled(self, monkeypatch):
+    def test_high_frequency_logging_throttled(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """High-frequency logging should be throttled effectively."""
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")
         monkeypatch.setenv("IMPORTOBOT_TELEMETRY_MIN_SAMPLE_DELTA", "100")
@@ -371,7 +378,7 @@ class TestRealWorldScenarios:
         # Should have throttled emissions
         assert len(emitted) < 50  # Much less than 1000
 
-    def test_concurrent_cache_operations_realistic(self):
+    def test_concurrent_cache_operations_realistic(self) -> None:
         """Realistic concurrent cache usage with telemetry."""
         cache = PerformanceCache(max_cache_size=1000, ttl_seconds=0)
 
@@ -379,7 +386,7 @@ class TestRealWorldScenarios:
         num_workers = 8
         ops_per_worker = 1000
 
-        def worker():
+        def worker() -> None:
             for i in range(ops_per_worker):
                 # Mix of unique and repeated data
                 if i % 5 == 0:
@@ -407,7 +414,7 @@ class TestRealWorldScenarios:
 class TestTelemetryDisabledPerformance:
     """Verify disabled telemetry has negligible overhead."""
 
-    def test_disabled_vs_enabled_overhead_comparison(self):
+    def test_disabled_vs_enabled_overhead_comparison(self) -> None:
         """Compare disabled vs enabled telemetry overhead."""
 
         class _NullTelemetry:
@@ -439,7 +446,9 @@ class TestTelemetryDisabledPerformance:
         # Disabled should be at least 10x faster
         assert avg_disabled * 10 < avg_enabled or avg_disabled < 0.000001
 
-    def test_production_config_performance(self, monkeypatch):
+    def test_production_config_performance(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test performance with production-like configuration."""
         # Production config: enabled, moderate rate limiting
         monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")

@@ -6,7 +6,7 @@ from .ssh_base import BaseSSHTestGenerator
 
 
 class SSHFileTestGenerator(BaseSSHTestGenerator):
-    """Generates SSH file test cases."""
+    """Generate SSH file test cases."""
 
     def __init__(self) -> None:
         """Initialize the SSH file test generator."""

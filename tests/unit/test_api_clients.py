@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import warnings
 from collections.abc import Callable
+from http import HTTPStatus
 from typing import Any, cast
 
 import pytest
@@ -45,8 +46,8 @@ class DummyResponse:
         return self._payload
 
     def raise_for_status(self) -> None:
-        """Raise an error if status code indicates an error (except 429)."""
-        if 400 <= self.status_code != 429:
+        """Raise an error if status code indicates an error (except rate limiting)."""
+        if HTTPStatus.BAD_REQUEST <= self.status_code != HTTPStatus.TOO_MANY_REQUESTS:
             raise RuntimeError(f"HTTP {self.status_code}")
 
 
@@ -182,7 +183,7 @@ def test_auth_failure_logs_warning(caplog: pytest.LogCaptureFixture) -> None:
     session = DummySession(
         [
             DummyResponse(
-                status_code=401,
+                status_code=HTTPStatus.UNAUTHORIZED,
                 payload={"error": "Unauthorized"},
             )
         ]
@@ -213,7 +214,7 @@ def test_client_uses_honest_user_agent(monkeypatch: pytest.MonkeyPatch) -> None:
     """Clients should identify themselves with an importobot-specific User-Agent."""
     responses = [
         DummyResponse(
-            status_code=200,
+            status_code=HTTPStatus.OK,
             payload={
                 "issues": [],
                 "total": 0,
@@ -224,11 +225,11 @@ def test_client_uses_honest_user_agent(monkeypatch: pytest.MonkeyPatch) -> None:
     ]
     session = DummySession(responses)
 
-    def mock_session():
+    def mock_session() -> DummySession:
         return session
 
     monkeypatch.setattr(
-        "importobot.integrations.clients.requests.Session", mock_session
+        "importobot.integrations.clients.base.requests.Session", mock_session
     )
 
     JiraXrayClient(
@@ -249,7 +250,7 @@ def test_jira_xray_client_paginates(monkeypatch: pytest.MonkeyPatch) -> None:
     """Jira/Xray client should iterate using startAt/maxResults pagination."""
     responses = [
         DummyResponse(
-            status_code=200,
+            status_code=HTTPStatus.OK,
             payload={
                 "issues": [{"id": "1"}, {"id": "2"}],
                 "total": 3,
@@ -258,7 +259,7 @@ def test_jira_xray_client_paginates(monkeypatch: pytest.MonkeyPatch) -> None:
             },
         ),
         DummyResponse(
-            status_code=200,
+            status_code=HTTPStatus.OK,
             payload={
                 "issues": [{"id": "3"}],
                 "total": 3,
@@ -270,7 +271,7 @@ def test_jira_xray_client_paginates(monkeypatch: pytest.MonkeyPatch) -> None:
 
     session = DummySession(responses)
     monkeypatch.setattr(
-        "importobot.integrations.clients.requests.Session", lambda: session
+        "importobot.integrations.clients.base.requests.Session", lambda: session
     )
 
     client = JiraXrayClient(
@@ -294,14 +295,14 @@ def test_jira_xray_client_accepts_project_id(monkeypatch: pytest.MonkeyPatch) ->
     """Project IDs should be accepted for Jira queries."""
     responses = [
         DummyResponse(
-            status_code=200,
+            status_code=HTTPStatus.OK,
             payload={"issues": [], "total": 0, "maxResults": 50, "startAt": 0},
         )
     ]
 
     session = DummySession(responses)
     monkeypatch.setattr(
-        "importobot.integrations.clients.requests.Session", lambda: session
+        "importobot.integrations.clients.base.requests.Session", lambda: session
     )
 
     client = JiraXrayClient(
@@ -323,9 +324,13 @@ def test_jira_xray_client_accepts_project_id(monkeypatch: pytest.MonkeyPatch) ->
 def test_client_retries_on_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
     """All clients should retry when receiving HTTP 429 with Retry-After."""
     responses = [
-        DummyResponse(status_code=429, payload={}, headers={"Retry-After": "0"}),
         DummyResponse(
-            status_code=200,
+            status_code=HTTPStatus.TOO_MANY_REQUESTS,
+            payload={},
+            headers={"Retry-After": "0"},
+        ),
+        DummyResponse(
+            status_code=HTTPStatus.OK,
             payload={
                 "issues": [],
                 "total": 0,
@@ -336,11 +341,11 @@ def test_client_retries_on_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
     ]
     session = DummySession(responses)
     monkeypatch.setattr(
-        "importobot.integrations.clients.requests.Session", lambda: session
+        "importobot.integrations.clients.base.requests.Session", lambda: session
     )
     sleep_calls: list[float] = []
     monkeypatch.setattr(
-        "importobot.integrations.clients.time.sleep", sleep_calls.append
+        "importobot.integrations.clients.base.time.sleep", sleep_calls.append
     )
 
     client = JiraXrayClient(
@@ -363,15 +368,19 @@ def test_client_raises_after_retry_budget(monkeypatch: pytest.MonkeyPatch) -> No
     """Clients should bubble RuntimeError when retry budget is exhausted."""
     retries = JiraXrayClient._max_retries  # pylint: disable=protected-access
     responses = [
-        DummyResponse(status_code=429, payload={}, headers={"Retry-After": "0"})
+        DummyResponse(
+            status_code=HTTPStatus.TOO_MANY_REQUESTS,
+            payload={},
+            headers={"Retry-After": "0"},
+        )
         for _ in range(retries + 1)
     ]
     session = DummySession(responses)
     monkeypatch.setattr(
-        "importobot.integrations.clients.requests.Session", lambda: session
+        "importobot.integrations.clients.base.requests.Session", lambda: session
     )
     monkeypatch.setattr(
-        "importobot.integrations.clients.time.sleep", lambda seconds: None
+        "importobot.integrations.clients.base.time.sleep", lambda seconds: None
     )
 
     client = JiraXrayClient(
@@ -395,17 +404,17 @@ def test_testrail_client_uses_offset(monkeypatch: pytest.MonkeyPatch) -> None:
     """TestRail pagination should increment offset parameter."""
     responses = [
         DummyResponse(
-            status_code=200,
+            status_code=HTTPStatus.OK,
             payload={"runs": [{"id": 1}], "_links": {"next": "/runs?offset=1"}},
         ),
         DummyResponse(
-            status_code=200,
+            status_code=HTTPStatus.OK,
             payload={"runs": [{"id": 2}], "_links": {"next": None}},
         ),
     ]
     session = DummySession(responses)
     monkeypatch.setattr(
-        "importobot.integrations.clients.requests.Session", lambda: session
+        "importobot.integrations.clients.base.requests.Session", lambda: session
     )
 
     client = TestRailClient(
@@ -429,17 +438,17 @@ def test_testlink_client_posts_commands(monkeypatch: pytest.MonkeyPatch) -> None
     """TestLink client should use XML-RPC style POST calls with tokens."""
     responses = [
         DummyResponse(
-            status_code=200,
+            status_code=HTTPStatus.OK,
             payload={"data": [{"id": 101}], "next": "suite:2"},
         ),
         DummyResponse(
-            status_code=200,
+            status_code=HTTPStatus.OK,
             payload={"data": [{"id": 102}], "next": None},
         ),
     ]
     session = DummySession(responses)
     monkeypatch.setattr(
-        "importobot.integrations.clients.requests.Session", lambda: session
+        "importobot.integrations.clients.base.requests.Session", lambda: session
     )
 
     client = TestLinkClient(
@@ -505,30 +514,52 @@ def test_zephyr_client_supports_multiple_auth_strategies() -> None:
 def test_zephyr_client_extract_results_variants() -> None:
     """Zephyr client should extract results from various payload structures."""
     # Standard structure
-    standard_payload = {"results": [{"key": "TEST-1"}, {"key": "TEST-2"}]}
+    standard_payload = {
+        "results": [
+            {"key": "TEST-1", "name": "🧪 Test Case 1"},
+            {"key": "TEST-2", "name": "✅ Test Case 2"},
+        ]
+    }
     assert ZephyrClient._extract_results(standard_payload) == [
-        {"key": "TEST-1"},
-        {"key": "TEST-2"},
+        {"key": "TEST-1", "name": "🧪 Test Case 1"},
+        {"key": "TEST-2", "name": "✅ Test Case 2"},
     ]
 
     # Alternative data structure
-    data_payload = {"data": [{"id": 1}, {"id": 2}]}
-    assert ZephyrClient._extract_results(data_payload) == [{"id": 1}, {"id": 2}]
+    data_payload = {
+        "data": [
+            {"id": 1, "title": "🔍 Search Test"},
+            {"id": 2, "title": "💾 Save Test"},
+        ]
+    }
+    expected = [
+        {"id": 1, "title": "🔍 Search Test"},
+        {"id": 2, "title": "💾 Save Test"},
+    ]
+    assert ZephyrClient._extract_results(data_payload) == expected
 
     # Direct list
-    list_payload = [{"name": "Test 1"}, {"name": "Test 2"}]
+    list_payload = [{"name": "🎯 Test 1"}, {"name": "🚀 Test 2"}]
     assert ZephyrClient._extract_results(list_payload) == list_payload
 
     # Test cases structure
-    test_cases_payload = {"testCases": [{"key": "TC-1"}]}
-    assert ZephyrClient._extract_results(test_cases_payload) == [{"key": "TC-1"}]
+    test_cases_payload = {
+        "testCases": [{"key": "TC-1", "description": "📝 Documentation test"}]
+    }
+    assert ZephyrClient._extract_results(test_cases_payload) == [
+        {"key": "TC-1", "description": "📝 Documentation test"}
+    ]
 
     # Nested structure
-    nested_payload = {"value": {"results": [{"key": "NESTED-1"}]}}
-    assert ZephyrClient._extract_results(nested_payload) == [{"key": "NESTED-1"}]
+    nested_payload = {
+        "value": {"results": [{"key": "NESTED-1", "label": "🔄 Nested workflow"}]}
+    }
+    assert ZephyrClient._extract_results(nested_payload) == [
+        {"key": "NESTED-1", "label": "🔄 Nested workflow"}
+    ]
 
-    # Single item
-    single_payload = {"key": "SINGLE-1", "name": "Single Test"}
+    # Single item with complex emoji (ZWJ sequences)
+    single_payload = {"key": "SINGLE-1", "name": "👨‍💻 Developer Test 🔧"}
     assert ZephyrClient._extract_results(single_payload) == [single_payload]
 
     # Empty/invalid structures
@@ -658,7 +689,8 @@ def test_zephyr_client_discovers_two_stage_strategy(
     session.add_response(
         match_any_request,
         DummyResponse(
-            status_code=200, payload={"results": [{"key": "ZEP-1"}], "total": 1}
+            status_code=HTTPStatus.OK,
+            payload={"results": [{"key": "ZEP-1"}], "total": 1},
         ),
     )
 
@@ -673,7 +705,8 @@ def test_zephyr_client_discovers_two_stage_strategy(
         session.add_response(
             _page_size_matcher(page_size),
             DummyResponse(
-                status_code=200, payload={"results": [{"key": "ZEP-1"}], "total": 1}
+                status_code=HTTPStatus.OK,
+                payload={"results": [{"key": "ZEP-1"}], "total": 1},
             ),
         )
 
@@ -681,7 +714,7 @@ def test_zephyr_client_discovers_two_stage_strategy(
     session.add_response(
         lambda url, params: url.endswith(two_stage_keys) and params.get("startAt") == 0,
         DummyResponse(
-            status_code=200,
+            status_code=HTTPStatus.OK,
             payload={"results": [{"key": "ZEP-1"}, {"key": "ZEP-2"}], "total": 2},
         ),
     )
@@ -690,16 +723,16 @@ def test_zephyr_client_discovers_two_stage_strategy(
     session.add_response(
         match_details_request,
         DummyResponse(
-            status_code=200,
+            status_code=HTTPStatus.OK,
             payload=[
-                {"key": "ZEP-1", "name": "Login path"},
-                {"key": "ZEP-2", "name": "Logout path"},
+                {"key": "ZEP-1", "name": "🔐 Login path ✅"},
+                {"key": "ZEP-2", "name": "🚪 Logout path 👋"},
             ],
         ),
     )
 
     monkeypatch.setattr(
-        "importobot.integrations.clients.requests.Session", lambda: session
+        "importobot.integrations.clients.base.requests.Session", lambda: session
     )
 
     client = ZephyrClient(
@@ -733,6 +766,62 @@ def test_zephyr_client_discovers_two_stage_strategy(
     # Progress callback should capture both key and detail stages.
     assert len(progress_calls) >= 2
     assert any(call.get("total") == 2 for call in progress_calls)
+
+
+def test_emoji_in_test_case_names(monkeypatch: pytest.MonkeyPatch) -> None:
+    """API clients should handle emoji in test case names and descriptions."""
+    responses = [
+        DummyResponse(
+            status_code=HTTPStatus.OK,
+            payload={
+                "issues": [
+                    {
+                        "id": "1",
+                        "key": "PROJ-1",
+                        "fields": {
+                            "summary": "🔐 Authentication Test 🚀",
+                            "description": "Test login with various emoji: 👤🔑✅❌",
+                        },
+                    },
+                    {
+                        "id": "2",
+                        "key": "PROJ-2",
+                        "fields": {
+                            "summary": "👨‍💻 Developer Workflow Test 🔧",
+                            "description": "Complex emoji with ZWJ: 👨‍👩‍👧‍👦 🏴‍☠️ 🤝🏽",
+                        },
+                    },
+                ],
+                "total": 2,
+                "maxResults": 50,
+                "startAt": 0,
+            },
+        )
+    ]
+
+    session = DummySession(responses)
+    monkeypatch.setattr(
+        "importobot.integrations.clients.base.requests.Session", lambda: session
+    )
+
+    client = JiraXrayClient(
+        api_url="https://jira.example/rest/api/2/search",
+        tokens=["token"],
+        user=None,
+        project_name="PROJ",
+        project_id=None,
+        max_concurrency=None,
+        verify_ssl=True,
+    )
+
+    pages = gather(client)
+
+    assert len(pages) == 1
+    issues = pages[0]["issues"]
+    assert len(issues) == 2
+    assert "🔐" in issues[0]["fields"]["summary"]
+    assert "👨‍💻" in issues[1]["fields"]["summary"]
+    assert "👨‍👩‍👧‍👦" in issues[1]["fields"]["description"]
 
 
 class TestAPIClientSecurityWarnings:
@@ -823,15 +912,18 @@ class TestCircuitBreaker:
         """Circuit breaker should open after threshold failures and reject requests."""
         # Set up client with circuit breaker enabled (5 failures threshold)
         responses = [
-            DummyResponse(status_code=500, payload={"error": "Internal Server Error"})
+            DummyResponse(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                payload={"error": "Internal Server Error"},
+            )
             for _ in range(10)  # More than threshold
         ]
         session = DummySession(responses)
         monkeypatch.setattr(
-            "importobot.integrations.clients.requests.Session", lambda: session
+            "importobot.integrations.clients.base.requests.Session", lambda: session
         )
         monkeypatch.setattr(
-            "importobot.integrations.clients.time.sleep", lambda seconds: None
+            "importobot.integrations.clients.base.time.sleep", lambda seconds: None
         )
 
         client = JiraXrayClient(
@@ -856,26 +948,26 @@ class TestCircuitBreaker:
         """Circuit breaker should allow probe requests in half-open state."""
         # Simulating: failures -> half-open -> success -> closed
         responses = [
-            DummyResponse(status_code=500, payload={})
+            DummyResponse(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, payload={})
             for _ in range(5)  # Open circuit
         ]
         # After timeout, allow a probe
         responses.append(
             DummyResponse(
-                status_code=200,
+                status_code=HTTPStatus.OK,
                 payload={"issues": [], "total": 0, "startAt": 0, "maxResults": 50},
             )
         )
 
         session = DummySession(responses)
         monkeypatch.setattr(
-            "importobot.integrations.clients.requests.Session", lambda: session
+            "importobot.integrations.clients.base.requests.Session", lambda: session
         )
 
         # Track time.sleep calls to simulate circuit breaker timeout
         sleep_times: list[float] = []
         monkeypatch.setattr(
-            "importobot.integrations.clients.time.sleep", sleep_times.append
+            "importobot.integrations.clients.base.time.sleep", sleep_times.append
         )
 
         client = JiraXrayClient(
@@ -898,20 +990,23 @@ class TestCircuitBreaker:
     ) -> None:
         """Circuit breaker should reset failure count on successful request."""
         responses = [
-            DummyResponse(status_code=500, payload={}),  # Failure 1
-            DummyResponse(status_code=500, payload={}),  # Failure 2
+            # Failure 1
+            DummyResponse(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, payload={}),
+            # Failure 2
+            DummyResponse(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, payload={}),
+            # Success - should reset
             DummyResponse(
-                status_code=200,
+                status_code=HTTPStatus.OK,
                 payload={"issues": [], "total": 0, "startAt": 0, "maxResults": 50},
-            ),  # Success - should reset
+            ),
         ]
 
         session = DummySession(responses)
         monkeypatch.setattr(
-            "importobot.integrations.clients.requests.Session", lambda: session
+            "importobot.integrations.clients.base.requests.Session", lambda: session
         )
         monkeypatch.setattr(
-            "importobot.integrations.clients.time.sleep", lambda seconds: None
+            "importobot.integrations.clients.base.time.sleep", lambda seconds: None
         )
 
         client = JiraXrayClient(
@@ -938,12 +1033,15 @@ class TestCustomErrorHandlers:
         """Custom error handler should be called when API request fails."""
         # Provide enough responses for retries (max_retries + 1 = 4 attempts)
         responses = [
-            DummyResponse(status_code=500, payload={"error": "Service unavailable"})
+            DummyResponse(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                payload={"error": "Service unavailable"},
+            )
             for _ in range(10)  # More than enough for retries + circuit breaker
         ]
         session = DummySession(responses)
         monkeypatch.setattr(
-            "importobot.integrations.clients.requests.Session", lambda: session
+            "importobot.integrations.clients.base.requests.Session", lambda: session
         )
 
         errors_captured: list[dict[str, Any]] = []
@@ -983,7 +1081,7 @@ class TestCustomErrorHandlers:
         ]
         session = DummySession(responses)
         monkeypatch.setattr(
-            "importobot.integrations.clients.requests.Session", lambda: session
+            "importobot.integrations.clients.base.requests.Session", lambda: session
         )
 
         errors_captured: list[dict[str, Any]] = []
@@ -1022,7 +1120,7 @@ class TestCustomErrorHandlers:
         ]
         session = DummySession(responses)
         monkeypatch.setattr(
-            "importobot.integrations.clients.requests.Session", lambda: session
+            "importobot.integrations.clients.base.requests.Session", lambda: session
         )
 
         def suppressing_handler(error_info: dict[str, Any]) -> bool:

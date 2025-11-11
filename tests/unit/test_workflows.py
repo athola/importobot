@@ -10,7 +10,7 @@ class TestGitHubWorkflows:
     """Test GitHub Actions workflows for validity and best practices."""
 
     @pytest.fixture
-    def workflows_dir(self):
+    def workflows_dir(self) -> Path:
         """Get the workflows directory path."""
         workflows_dir = Path(__file__).parent.parent.parent / ".github" / "workflows"
         if not workflows_dir.exists():
@@ -20,16 +20,16 @@ class TestGitHubWorkflows:
         return workflows_dir
 
     @pytest.fixture
-    def workflow_files(self, workflows_dir):
+    def workflow_files(self, workflows_dir: Path) -> list[Path]:
         """Get all workflow YAML files."""
         return list(workflows_dir.glob("*.yml")) + list(workflows_dir.glob("*.yaml"))
 
-    def test_workflows_directory_exists(self, workflows_dir):
+    def test_workflows_directory_exists(self, workflows_dir: Path) -> None:
         """Test that the workflows directory exists."""
         assert workflows_dir.exists(), "GitHub Actions workflows directory should exist"
         assert workflows_dir.is_dir(), "Workflows path should be a directory"
 
-    def test_workflow_files_exist(self, workflow_files):
+    def test_workflow_files_exist(self, workflow_files: list[Path]) -> None:
         """Test that workflow files exist."""
         assert len(workflow_files) > 0, "At least one workflow file should exist"
 
@@ -40,7 +40,7 @@ class TestGitHubWorkflows:
             for f in ["test.yml", "lint.yml", "claude.yml", "claude-code-review.yml"]
         ],
     )
-    def test_workflow_file_exists(self, workflow_file):
+    def test_workflow_file_exists(self, workflow_file: Path) -> None:
         """Test that expected workflow files exist."""
         if not workflow_file.exists():
             pytest.skip(
@@ -50,7 +50,7 @@ class TestGitHubWorkflows:
             f"Workflow file {workflow_file.name} should exist"
         )
 
-    def test_workflow_yaml_syntax(self, workflow_files):
+    def test_workflow_yaml_syntax(self, workflow_files: list[Path]) -> None:
         """Test that all workflow files have valid YAML syntax."""
         for workflow_file in workflow_files:
             with open(workflow_file, encoding="utf-8") as f:
@@ -59,7 +59,7 @@ class TestGitHubWorkflows:
                 except yaml.YAMLError as e:
                     pytest.fail(f"Invalid YAML syntax in {workflow_file.name}: {e}")
 
-    def test_workflow_structure(self, workflow_files):
+    def test_workflow_structure(self, workflow_files: list[Path]) -> None:
         """Test that workflows have required structure."""
         for workflow_file in workflow_files:
             with open(workflow_file, encoding="utf-8") as f:
@@ -82,7 +82,7 @@ class TestGitHubWorkflows:
                     f"Workflow {workflow_file.name} should have at least one job"
                 )
 
-    def test_test_workflow_specifics(self, workflows_dir):
+    def test_test_workflow_specifics(self, workflows_dir: Path) -> None:
         """Test specific requirements for the test workflow."""
         test_workflow_file = workflows_dir / "test.yml"
         if not test_workflow_file.exists():
@@ -110,7 +110,7 @@ class TestGitHubWorkflows:
         assert len(python_versions) >= 2, "Should test multiple Python versions"
         assert "3.10" in python_versions, "Should test Python 3.10"
 
-    def test_cache_keys_include_python_version(self, workflows_dir):
+    def test_cache_keys_include_python_version(self, workflows_dir: Path) -> None:
         """Test that cache keys include Python version to avoid pollution."""
         for workflow_file in workflows_dir.glob("*.yml"):
             with open(workflow_file, encoding="utf-8") as f:
@@ -124,7 +124,7 @@ class TestGitHubWorkflows:
                 )
                 assert "python-${{ matrix.python-version }}" in content, work_assert
 
-    def test_codecov_conditional_upload(self, workflows_dir):
+    def test_codecov_conditional_upload(self, workflows_dir: Path) -> None:
         """Test that Codecov upload is conditional on token availability."""
         test_workflow_file = workflows_dir / "test.yml"
         if not test_workflow_file.exists():
@@ -139,7 +139,7 @@ class TestGitHubWorkflows:
                 "steps.codecov-check.outputs.codecov_available == 'true'" in content
             ), "Codecov upload should be conditional on token availability"
 
-    def test_workflow_triggers(self, workflow_files):
+    def test_workflow_triggers(self, workflow_files: list[Path]) -> None:
         """Test that workflows have appropriate triggers."""
         for workflow_file in workflow_files:
             with open(workflow_file, encoding="utf-8") as f:
@@ -165,7 +165,7 @@ class TestGitHubWorkflows:
                 f"Workflow {workflow_file.name} should have appropriate triggers"
             )
 
-    def test_ubuntu_latest_runner(self, workflow_files):
+    def test_ubuntu_latest_runner(self, workflow_files: list[Path]) -> None:
         """Test that workflows use ubuntu-latest runner for consistency."""
         for workflow_file in workflow_files:
             with open(workflow_file, encoding="utf-8") as f:
@@ -180,7 +180,7 @@ class TestGitHubWorkflows:
                     )
                     assert runner == "ubuntu-latest", job_assert
 
-    def test_action_versions_pinned(self, workflow_files):
+    def test_action_versions_pinned(self, workflow_files: list[Path]) -> None:
         """Test that GitHub Actions use pinned versions."""
         for workflow_file in workflow_files:
             with open(workflow_file, encoding="utf-8") as f:

@@ -1,4 +1,4 @@
-"""Business domain templates and enterprise scenarios for test generation."""
+"""Provides business domain templates and enterprise scenarios for test generation."""
 
 import random
 from typing import Any, ClassVar
@@ -7,16 +7,16 @@ from importobot.utils.lazy_loader import LazyDataLoader
 
 
 class BusinessDomainTemplates:
-    """Business domain templates for test scenarios."""
+    """Manages business domain templates for test scenarios."""
 
     @property
     def enterprise_scenarios(self) -> dict[str, Any]:
-        """Enterprise scenario templates for various testing domains."""
+        """Retrieve enterprise scenario templates across various testing domains."""
         return LazyDataLoader.load_templates("enterprise_scenarios")
 
     @property
     def enterprise_data_pools(self) -> dict[str, Any]:
-        """Data pools for test parameterization."""
+        """Retrieve data pools used for test parameterization."""
         return LazyDataLoader.load_templates("enterprise_data_pools")
 
     ENVIRONMENT_REQUIREMENTS: ClassVar[dict[str, list[str]]] = {
@@ -97,47 +97,47 @@ class BusinessDomainTemplates:
 
     @classmethod
     def get_scenario(cls, category: str, scenario: str) -> dict[str, Any]:
-        """Get specific scenario from category."""
+        """Retrieve a specific scenario from a given category."""
         scenarios = cls().enterprise_scenarios.get(category, {})
         result = scenarios.get(scenario, {})
         return result if isinstance(result, dict) else {}
 
     @classmethod
     def get_all_scenarios(cls, category: str) -> dict[str, Any]:
-        """Get all scenarios for category."""
+        """Retrieve all scenarios for a given category."""
         result = cls().enterprise_scenarios.get(category, {})
         return result if isinstance(result, dict) else {}
 
     @classmethod
     def get_data_pool(cls, pool_name: str) -> list[str]:
-        """Get data pool by name."""
+        """Retrieve a data pool by its name."""
         data_pools = cls().enterprise_data_pools
         result = data_pools.get(pool_name, [])
         return result if isinstance(result, list) else []
 
     @classmethod
     def get_environment_requirements(cls, category: str) -> list[str]:
-        """Get environment requirements for category."""
+        """Retrieve environment requirements for a given category."""
         return cls.ENVIRONMENT_REQUIREMENTS.get(category, ["Standard Test Environment"])
 
     @classmethod
     def get_compliance_requirements(cls, category: str) -> list[str]:
-        """Get compliance requirements for category."""
+        """Retrieve compliance requirements for a given category."""
         return cls.COMPLIANCE_REQUIREMENTS.get(category, ["Standard Compliance"])
 
     @classmethod
     def get_setup_instructions(cls, category: str) -> list[str]:
-        """Get setup instructions for category."""
+        """Retrieve setup instructions for a given category."""
         return cls.SETUP_INSTRUCTIONS.get(category, ["Initialize test environment"])
 
     @classmethod
     def get_teardown_instructions(cls, category: str) -> list[str]:
-        """Get teardown instructions for category."""
+        """Retrieve teardown instructions for a given category."""
         return cls.TEARDOWN_INSTRUCTIONS.get(category, ["Clean up test environment"])
 
 
 class TestCaseTemplates:
-    """Template structures for test case generation."""
+    """Provides template structures for test case generation."""
 
     JSON_STRUCTURES: ClassVar[list[str]] = [
         "zephyr",
@@ -213,12 +213,12 @@ class TestCaseTemplates:
 
     @classmethod
     def get_available_structures(cls) -> list[str]:
-        """Get available JSON structures."""
+        """Retrieve a list of available JSON structures."""
         return cls.JSON_STRUCTURES.copy()
 
     @classmethod
     def get_enterprise_labels(cls, count: int | None = None) -> list[str]:
-        """Get enterprise labels, optionally limited to count."""
+        """Retrieve enterprise labels, optionally limited by a specified count."""
         if count:
             return random.sample(
                 cls.ENTERPRISE_LABELS, min(count, len(cls.ENTERPRISE_LABELS))
@@ -227,7 +227,7 @@ class TestCaseTemplates:
 
     @classmethod
     def get_automation_readiness(cls, category: str, complexity: str) -> str:
-        """Get automation readiness assessment."""
+        """Retrieve an automation readiness assessment."""
         if complexity == "very_high":
             return cls.AUTOMATION_READINESS_LEVELS["very_high"]
         if category in ["web_automation", "api_testing"]:
@@ -236,5 +236,5 @@ class TestCaseTemplates:
 
     @classmethod
     def get_security_classification(cls, category: str) -> str:
-        """Get security classification for category."""
+        """Retrieve the security classification for a given category."""
         return cls.SECURITY_CLASSIFICATIONS.get(category, "Internal")

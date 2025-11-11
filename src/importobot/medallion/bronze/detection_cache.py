@@ -23,9 +23,9 @@ from importobot.config import (
 from importobot.config import MAX_CACHE_CONTENT_SIZE_BYTES
 from importobot.medallion.interfaces.enums import SupportedFormat
 from importobot.telemetry import TelemetryClient, get_telemetry_client
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 
-logger = setup_logger(__name__)
+logger = get_logger(__name__)
 
 
 DETECTION_CACHE_MAX_SIZE = CONFIG_MAX_SIZE
@@ -354,7 +354,7 @@ class DetectionCache:
             return False
         return (time.time() - timestamp) > self._ttl_seconds
 
-    def get_cache_stats(self) -> dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get cache statistics including security metrics."""
         total_requests = self._cache_hits + self._cache_misses
         hit_rate = self._cache_hits / max(total_requests, 1)

@@ -1,42 +1,45 @@
 """Parse customer documentation to extract test data schema information.
 
-This module allows users to provide documentation (SOPs, READMEs, etc.) that
-describe their test data format, which helps improve parsing quality and suggestions.
+This module enables users to provide documentation (e.g., SOPs, READMEs) that
+describes their test data format, thereby enhancing parsing quality and suggestions.
 
 Security Considerations
 -----------------------
-Schema files are untrusted user input and must be validated before processing:
+Schema files are considered untrusted user input and must undergo rigorous validation
+before processing:
 
-1. **File Size Limits**: Individual files are limited to MAX_SCHEMA_FILE_SIZE_BYTES
-   (default: 1MB, configurable via IMPORTOBOT_MAX_SCHEMA_BYTES). For large
-   documentation, split into multiple files and register each one - the
-   SchemaRegistry automatically merges fields from all registered schemas.
+1.  **File Size Limits**: Files restricted to `MAX_SCHEMA_FILE_SIZE_BYTES`
+    (default: 1MB, configurable via `IMPORTOBOT_MAX_SCHEMA_BYTES`). For extensive
+    documentation, split into multiple files and register
+    each one; the `SchemaRegistry` merges fields from all registered schemas.
 
-2. **Content Length Validation**: Content is validated and truncated before
-   parsing to prevent memory exhaustion attacks
+2.  **Content Length Validation**: Content is validated and truncated prior to parsing
+    to prevent memory exhaustion attacks.
 
-3. **File Type Restrictions**: Only text-based formats are accepted
-   (.md, .txt, .json, .yaml, etc.)
+3.  **File Type Restrictions**: Only text-based formats are accepted
+    (e.g., `.md`, `.markdown`, `.rst`, `.txt`, `.json`, `.yaml`, `.yml`).
 
-4. **Symlink Protection**: Symlinks are rejected to prevent path traversal
+4.  **Symlink Protection**: Symlinks rejected to prevent path traversal vulnerabilities.
 
-5. **Character Sanitization**: Control characters (except newline/tab) are
-   stripped to prevent injection attacks
+5.  **Character Sanitization**: Control characters (excluding newline and tab) are
+    stripped to prevent injection attacks.
 
-6. **Section Limits**: Maximum MAX_SCHEMA_SECTIONS (256) sections to prevent
-   algorithmic complexity attacks
+6.  **Section Limits**: A maximum of `MAX_SCHEMA_SECTIONS` (256) sections is enforced
+    to prevent algorithmic complexity attacks.
 
 Multiple File Support
 ---------------------
-Large schemas should be split into multiple files for better organization
-and to stay within size limits:
+Large schemas should be organized into multiple files for improved structure
+and to adhere to size limitations:
 
+    ```python
     from importobot.core.schema_parser import register_schema_file
 
-    # Register multiple schema files - fields are merged automatically
+    # Register multiple schema files; fields are merged automatically.
     register_schema_file("schemas/test_fields.md")
     register_schema_file("schemas/metadata_fields.md")
     register_schema_file("schemas/execution_fields.md")
+    ```
 """
 
 from __future__ import annotations
@@ -55,7 +58,7 @@ logger = get_logger()
 
 @dataclass
 class FieldSchema:
-    """Schema information for a specific field."""
+    """Represents schema information for a specific field."""
 
     name: str
     aliases: list[str] = field(default_factory=list)
@@ -67,14 +70,14 @@ class FieldSchema:
 
 @dataclass
 class SchemaDocument:
-    """Represents parsed schema documentation."""
+    """Represents a parsed schema document."""
 
     fields: dict[str, FieldSchema] = field(default_factory=dict)
     source_file: str = ""
     metadata: dict[str, str] = field(default_factory=dict)
 
     def get_field_aliases(self, field_name: str) -> list[str]:
-        """Get all known aliases for a field."""
+        """Retrieve all known aliases for a given field."""
         field_lower = field_name.lower()
         for schema_field in self.fields.values():
             if schema_field.name.lower() == field_lower or field_lower in [
@@ -84,7 +87,7 @@ class SchemaDocument:
         return []
 
     def find_field_by_name(self, field_name: str) -> FieldSchema | None:
-        """Find a field schema by name or alias."""
+        """Find a field schema by its name or alias."""
         field_lower = field_name.lower()
         for schema_field in self.fields.values():
             if schema_field.name.lower() == field_lower:
@@ -189,22 +192,22 @@ class SchemaParser:
             return SchemaDocument(source_file=str(file_path))
 
     def parse_content(self, content: str, source_file: str = "") -> SchemaDocument:
-        """Parse documentation content to extract schema.
+        """Parse documentation content to extract schema information.
 
         Args:
-            content: Documentation content to parse
-            source_file: Optional source file path for tracking
+            content: The documentation content to parse.
+            source_file: An optional source file path for tracking.
 
         Returns:
-            Parsed schema document
+            The parsed schema document.
 
         Raises:
-            ValidationError: If content exceeds reasonable limits for security
+            `ValidationError`: If the content exceeds reasonable security limits.
 
         Note:
-            Content is automatically sanitized and truncated if needed, but
-            extremely large inputs (>10x limit) are rejected outright to
-            prevent memory exhaustion attacks.
+            Content is automatically sanitized and truncated if necessary. However,
+            extremely large inputs (exceeding 10 times the limit) are rejected
+            outright to prevent memory exhaustion attacks.
         """
         # Reject pathologically large inputs before any processing
         if len(content) > MAX_SCHEMA_FILE_SIZE_BYTES * 10:
@@ -232,7 +235,7 @@ class SchemaParser:
         return doc
 
     def _sanitize_content(self, content: str) -> str:
-        """Sanitize raw content to mitigate malicious inputs."""
+        """Sanitizes raw content to mitigate malicious inputs."""
         if len(content) > MAX_SCHEMA_CONTENT_LENGTH:
             logger.warning(
                 "Schema content exceeds max length (%d bytes); truncating",
@@ -249,6 +252,7 @@ class SchemaParser:
         )
 
     def _is_allowed_schema_file(self, path: Path) -> bool:
+        """Check if the file has an allowed schema extension or appears text-like."""
         suffix = path.suffix.lower()
         if suffix in ALLOWED_SCHEMA_SUFFIXES:
             return True
@@ -264,13 +268,14 @@ class SchemaParser:
 
     @staticmethod
     def _looks_textual(sample: bytes) -> bool:
+        """Determine if a byte sample appears to be text."""
         if not sample:
             return True
         control_bytes = sum(1 for b in sample if b < 32 and b not in (9, 10, 13))
         return control_bytes / len(sample) < 0.05
 
     def _split_into_sections(self, content: str) -> dict[str, str]:
-        """Split content into sections based on headers."""
+        """Split content into sections based on identified headers."""
         sections: dict[str, str] = {}
         current_section = "Overview"
         current_content: list[str] = []
@@ -300,7 +305,7 @@ class SchemaParser:
         return sections
 
     def _is_likely_header(self, text: str) -> bool:
-        """Check if text is likely a section header."""
+        """Check if the provided text is likely a section header."""
         # Skip common non-header patterns
         if text.startswith(("Ex:", "Example:", "e.g.", "For example")):
             return False
@@ -326,7 +331,7 @@ class SchemaParser:
     def _parse_section(
         self, section_title: str, section_content: str
     ) -> FieldSchema | None:
-        """Parse a section to extract field schema."""
+        """Parse a section to extract field schema information."""
         # Clean section title
         field_name = section_title.strip().rstrip(":")
 
@@ -365,7 +370,7 @@ class SchemaParser:
         return field_schema
 
     def _extract_description(self, content: str) -> str:
-        """Extract field description from content."""
+        """Extract the field description from the provided content."""
         for pattern in self.DESCRIPTION_PATTERNS:
             match = pattern.search(content)
             if match:
@@ -390,7 +395,7 @@ class SchemaParser:
         return ""
 
     def _extract_examples(self, content: str) -> list[str]:
-        """Extract examples from content."""
+        """Extract examples from the provided content."""
         examples: list[str] = []
 
         # Look for "Ex:" or "Example:" patterns
@@ -421,7 +426,7 @@ class SchemaParser:
         return examples[:5]  # Limit to 5 examples
 
     def _extract_aliases(self, field_name: str, content: str) -> list[str]:
-        """Extract field name aliases from content."""
+        """Extract field name aliases from the provided content."""
         aliases: list[str] = []
 
         # Common alias patterns
@@ -445,7 +450,7 @@ class SchemaParser:
 
 
 class SchemaRegistry:
-    """Registry for storing and retrieving schema information."""
+    """A registry for storing and retrieving schema information."""
 
     def __init__(self) -> None:
         """Initialize a new schema registry."""

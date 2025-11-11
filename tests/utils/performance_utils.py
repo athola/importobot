@@ -6,6 +6,7 @@ more reliable across different CI environments and machine configurations.
 
 import os
 import time
+from functools import lru_cache
 
 
 class SystemResources:
@@ -158,16 +159,10 @@ class AdaptiveThresholds:
         return base_ops_per_sec * max(0.05, reduction_factor)
 
 
-# Global instance for reuse
-_global_thresholds: AdaptiveThresholds | None = None
-
-
+@lru_cache(maxsize=1)
 def get_adaptive_thresholds() -> AdaptiveThresholds:
     """Get the global adaptive thresholds instance."""
-    global _global_thresholds  # pylint: disable=global-statement
-    if _global_thresholds is None:
-        _global_thresholds = AdaptiveThresholds()
-    return _global_thresholds
+    return AdaptiveThresholds()
 
 
 def adaptive_threshold(base_threshold: float, complexity_factor: float = 1.0) -> float:

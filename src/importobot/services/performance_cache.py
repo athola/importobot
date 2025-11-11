@@ -19,10 +19,12 @@ from weakref import WeakKeyDictionary
 
 from importobot.config import _int_from_env
 from importobot.telemetry import TelemetryClient, get_telemetry_client
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 
 
 class _NullTelemetry:
+    """A no-op telemetry client for when telemetry is disabled."""
+
     def record_cache_metrics(  # pylint: disable=unused-argument
         self,
         cache_name: str,
@@ -34,7 +36,7 @@ class _NullTelemetry:
         return None
 
 
-logger = setup_logger(__name__)
+logger = get_logger(__name__)
 
 
 DEFAULT_MAX_SIZE = _int_from_env(
@@ -242,7 +244,7 @@ class PerformanceCache:
         self._emit_cache_metrics()
         logger.info("Performance caches cleared")
 
-    def get_cache_stats(self) -> dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get cache performance statistics."""
         total_requests = self._cache_hits + self._cache_misses
         hit_rate = (
@@ -262,6 +264,7 @@ class PerformanceCache:
         }
 
     def _emit_cache_metrics(self) -> None:
+        """Emit cache performance metrics to telemetry."""
         if self._telemetry is not None:
             self._telemetry.record_cache_metrics(
                 "performance_cache",
@@ -296,16 +299,19 @@ class PerformanceCache:
             self._evict_json_entry(oldest_key)
 
     def _evict_string_entry(self, cache_key: _CacheKey) -> None:
+        """Evict a specific entry from the string cache."""
         self._string_cache.pop(cache_key, None)
         self._string_cache_expiry.pop(cache_key, None)
         self._string_identity_refs.pop(cache_key, None)
 
     def _evict_json_entry(self, cache_key: _CacheKey) -> None:
+        """Evict a specific entry from the JSON cache."""
         self._json_cache.pop(cache_key, None)
         self._json_cache_expiry.pop(cache_key, None)
         self._json_identity_refs.pop(cache_key, None)
 
     def _is_expired(self, timestamp: float | None, *, now: float | None = None) -> bool:
+        """Check if a cache entry has expired."""
         if self._ttl_seconds is None or timestamp is None:
             return False
         current = now if now is not None else time.time()

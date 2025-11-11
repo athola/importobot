@@ -267,6 +267,7 @@ def merge_validation_results(
 
 
 def _severity_rank(severity: ValidationSeverity | QualitySeverity) -> int:
+    """Get the numerical rank of a validation severity."""
     order = {
         "info": 0,
         "low": 1,

@@ -1,8 +1,6 @@
 """Optimization algorithms and mathematical utilities for Importobot.
 
-This module provides advanced optimization algorithms including gradient descent,
-genetic algorithms, and other mathematical optimization techniques for improving
-test framework conversion processes.
+Provide advanced optimization algorithms for improving test conversion processes.
 """
 
 from __future__ import annotations

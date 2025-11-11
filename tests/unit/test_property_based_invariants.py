@@ -8,6 +8,7 @@ preserved in output in appropriate Robot Framework format.
 """
 
 import json
+from typing import Any
 
 import pytest
 from hypothesis import given, settings
@@ -18,7 +19,7 @@ from importobot import JsonToRobotConverter
 
 # Hypothesis strategies for generating test data
 @st.composite
-def valid_test_step_strategy(draw):
+def valid_test_step_strategy(draw: Any) -> dict[str, str]:
     """Generate a valid test step."""
     # Use printable ASCII characters for reliability
     step = draw(
@@ -57,7 +58,7 @@ def valid_test_step_strategy(draw):
 
 
 @st.composite
-def valid_test_case_strategy(draw):
+def valid_test_case_strategy(draw: Any) -> dict[str, Any]:
     """Generate a valid test case with realistic fields."""
     # Use alphanumeric and common symbols for test names and descriptions
     name = draw(
@@ -102,7 +103,9 @@ class TestConversionDataCompletenessInvariants:
 
     @given(test_case=valid_test_case_strategy())
     @settings(max_examples=50, deadline=5000)
-    def test_property_all_input_data_preserved_in_output(self, test_case):
+    def test_property_all_input_data_preserved_in_output(
+        self, test_case: dict[str, Any]
+    ) -> None:
         """Property: All input data must be preserved in output.
 
         Business Requirement: No data loss during conversion.
@@ -156,7 +159,9 @@ class TestConversionDataCompletenessInvariants:
 
     @given(test_case=valid_test_case_strategy())
     @settings(max_examples=50, deadline=5000)
-    def test_property_conversion_is_idempotent_for_same_input(self, test_case):
+    def test_property_conversion_is_idempotent_for_same_input(
+        self, test_case: dict[str, Any]
+    ) -> None:
         """Property: Converting same input twice produces identical output.
 
         Business Requirement: Consistent, deterministic conversions.
@@ -181,7 +186,9 @@ class TestConversionDataCompletenessInvariants:
 
     @given(test_case=valid_test_case_strategy())
     @settings(max_examples=50, deadline=5000)
-    def test_property_output_length_bounded_by_input(self, test_case):
+    def test_property_output_length_bounded_by_input(
+        self, test_case: dict[str, Any]
+    ) -> None:
         """Property: Output size is reasonably bounded by input size.
 
         Business Requirement: No memory explosion during conversion.
@@ -214,7 +221,9 @@ class TestConversionDataCompletenessInvariants:
 
     @given(test_case=valid_test_case_strategy())
     @settings(max_examples=50, deadline=5000)
-    def test_property_metadata_fields_preserved(self, test_case):
+    def test_property_metadata_fields_preserved(
+        self, test_case: dict[str, Any]
+    ) -> None:
         """Property: All metadata fields are preserved in output.
 
         Business Requirement: Audit trail and traceability.
@@ -252,7 +261,9 @@ class TestConversionStructuralInvariants:
 
     @given(test_case=valid_test_case_strategy())
     @settings(max_examples=50, deadline=5000)
-    def test_property_output_is_valid_robot_framework_structure(self, test_case):
+    def test_property_output_is_valid_robot_framework_structure(
+        self, test_case: dict[str, Any]
+    ) -> None:
         """Property: Output always has valid Robot Framework structure.
 
         Business Requirement: Production-ready output.
@@ -284,19 +295,20 @@ class TestConversionStructuralInvariants:
             # Property: No syntax errors (basic check)
             # Robot Framework doesn't allow tabs in indentation
             for line in lines:
-                # Skip empty lines and section headers
-                if line.strip() and not line.strip().startswith("***"):
-                    # Lines after test case name should be indented with spaces
-                    if line.startswith("\t"):
-                        # This is acceptable in some contexts, skip check
-                        pass
+                if (
+                    line.strip()
+                    and not line.strip().startswith("***")
+                    and line.startswith("\t")
+                ):
+                    # Tabs are acceptable in some generated contexts
+                    pass
 
         except Exception as e:
             pytest.fail(f"Conversion crashed with {type(e).__name__}: {e}")
 
     @given(test_case=valid_test_case_strategy())
     @settings(max_examples=50, deadline=5000)
-    def test_property_step_count_preserved(self, test_case):
+    def test_property_step_count_preserved(self, test_case: dict[str, Any]) -> None:
         """Property: Number of steps in output matches input.
 
         Business Requirement: Complete test coverage.

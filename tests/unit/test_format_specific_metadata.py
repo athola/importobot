@@ -18,7 +18,7 @@ class TestZephyrMetadataPreservation:
     Zephyr metadata includes: cycles, sprints, versions, test execution history.
     """
 
-    def test_zephyr_cycle_metadata_preserved(self):
+    def test_zephyr_cycle_metadata_preserved(self) -> None:
         """Test that Zephyr test cycle metadata is preserved.
 
         Business Context: Zephyr organizes tests into cycles (e.g., Sprint 1, UAT).
@@ -57,7 +57,7 @@ class TestZephyrMetadataPreservation:
         )
         assert has_tags_or_docs, "Metadata must be in [Tags] or [Documentation]"
 
-    def test_zephyr_sprint_metadata_in_tags(self):
+    def test_zephyr_sprint_metadata_in_tags(self) -> None:
         """Test that Zephyr sprint metadata appears in Robot Framework tags.
 
         Business Context: Teams use tags for filtering test execution by sprint.
@@ -88,7 +88,7 @@ class TestTestLinkMetadataPreservation:
     TestLink metadata includes: test suite hierarchy, requirements traceability.
     """
 
-    def test_testlink_suite_hierarchy_preserved(self):
+    def test_testlink_suite_hierarchy_preserved(self) -> None:
         """Test that TestLink suite hierarchy is preserved.
 
         Business Context: TestLink organizes tests in nested suites.
@@ -117,7 +117,7 @@ class TestTestLinkMetadataPreservation:
         assert "*** Test Cases ***" in result
         assert "[Documentation]" in result or "[Tags]" in result
 
-    def test_testlink_requirement_traceability(self):
+    def test_testlink_requirement_traceability(self) -> None:
         """Test that TestLink requirement links are preserved.
 
         Business Context: Requirement traceability is mandatory for FDA/SOX compliance.
@@ -151,7 +151,7 @@ class TestJiraXrayMetadataPreservation:
     Xray metadata includes: test sets, test execution links, issue links.
     """
 
-    def test_xray_test_set_metadata_preserved(self):
+    def test_xray_test_set_metadata_preserved(self) -> None:
         """Test that Xray test set metadata is preserved.
 
         Business Context: Xray organizes tests into Test Sets for execution.
@@ -180,7 +180,7 @@ class TestJiraXrayMetadataPreservation:
         assert "STORY-123" in result
         assert "BUG-456" in result
 
-    def test_xray_evidence_links_preserved(self):
+    def test_xray_evidence_links_preserved(self) -> None:
         """Test that Xray evidence attachments are referenced.
 
         Business Context: Xray allows attaching evidence (screenshots, logs).
@@ -214,7 +214,7 @@ class TestTestRailMetadataPreservation:
     TestRail metadata includes: milestones, test runs, case IDs, priorities.
     """
 
-    def test_testrail_milestone_metadata_preserved(self):
+    def test_testrail_milestone_metadata_preserved(self) -> None:
         """Test that TestRail milestone metadata is preserved.
 
         Business Context: TestRail tracks tests against project milestones.
@@ -241,7 +241,7 @@ class TestTestRailMetadataPreservation:
         assert "Regression Run" in result or "Regression_Run" in result
         assert "C12345" in result
 
-    def test_testrail_custom_fields_preserved(self):
+    def test_testrail_custom_fields_preserved(self) -> None:
         """Test that TestRail custom fields are preserved.
 
         Business Context: Organizations add custom fields (e.g., test_owner,

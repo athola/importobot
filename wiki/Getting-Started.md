@@ -1,6 +1,6 @@
 # Getting Started
 
-This guide covers the installation of Importobot and the conversion of a test export.
+This guide walks through installing Importobot and converting your first test export.
 
 > If you are new to the codebase, read [How to Navigate this Codebase](How-to-Navigate-this-Codebase.md) to understand the architecture and code organization.
 
@@ -11,7 +11,7 @@ This guide covers the installation of Importobot and the conversion of a test ex
 
 ## Installing uv
 
-Importobot uses [uv](https://github.com/astral-sh/uv) for package management.
+Importobot uses [uv](https://github.com/astral-sh/uv) for package and project management. The official documentation recommends the following installation methods.
 
 ### macOS/Linux:
 ```bash
@@ -23,105 +23,76 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-### Other options
-- `pip install uv`
-- `brew install uv`
-- `pipx install uv`
-
-Verify the installation:
+Verify the installation by checking the version:
 ```bash
 uv --version
 ```
 
 ## Project Setup
 
-Once uv is installed, set up the project:
+Once uv is installed, you can set up the project.
 
 ```bash
 # Clone the repository
 git clone https://github.com/athola/importobot.git
 cd importobot
 
-# Install project dependencies
+# Create the virtual environment and install dependencies
 uv sync --dev
 
-# Run the test suite to verify the installation
+# Run the test suite to confirm the setup
 uv run pytest
 ```
 
 ## Basic Usage
 
-### Convert a single file
+To convert a single file, provide the input and output paths:
 ```bash
 uv run importobot zephyr_export.json converted_tests.robot
 ```
 
-### Convert multiple files
+To convert all files in a directory, use the `--batch` flag:
 ```bash
 uv run importobot --batch input_dir/ output_dir/
 ```
 
 ## Example Workflow
 
-1. Export test suite from Zephyr/Xray/etc.
-2. Convert it with a single Importobot command.
-3. Dry-run and execute the generated Robot tests.
-4. Integrate the command into a CI job.
+A common workflow is to export a test suite, convert it, and then run the generated Robot tests:
 
 ```bash
-# 1. Export from source system
-# → Results in: legacy_tests.json (500+ test cases)
-
-# 2. Convert with Importobot
+# Convert the export
 uv run importobot legacy_tests.json automated_suite.robot
 
-# 3. Validate the conversion
-robot --dryrun automated_suite.robot  # Syntax validation
-robot automated_suite.robot          # Execute tests
-
-# 4. Integrate into CI/CD
-# The tests are ready for an existing Robot Framework infrastructure.
+# Validate and run the tests
+robot --dryrun automated_suite.robot
+robot automated_suite.robot
 ```
 
 ## Configuration
 
-Importobot can be configured with environment variables for advanced use cases, such as overriding server settings for API-based formats or running browser tests in headless mode.
-
-The most useful environment variables:
+Importobot can be configured with environment variables. For example:
 
 ```bash
-# Server settings for API-based formats
+# Override server settings for API-based formats
 export IMPORTOBOT_TEST_SERVER_URL="https://test.example.com"
 export IMPORTOBOT_TEST_SERVER_PORT="8080"
 
 # Run browser tests in headless mode
 export IMPORTOBOT_HEADLESS_BROWSER="True"
-
-# Cache limits for large test suites
-export IMPORTOBOT_FILE_CACHE_MAX_MB="200"
 ```
 
 Run `uv run importobot --help` to see all available options.
 
-## Sample Files
+## Examples
 
-Example Zephyr JSON files are provided in `examples/json/`:
-- `examples/json/basic_login.json`
-- `examples/json/browser_login.json`
-- `examples/json/get_file.json`
-
-## Running Examples
-
-The project includes several examples that demonstrate various conversion scenarios:
+Example Zephyr JSON files are in `examples/json/`. You can run them with `make`:
 
 ```bash
 # Run all examples
 make examples
 
-# Individual examples
+# Run individual examples
 make example-user-registration
 make example-file-transfer
-make example-database-api
-make example-login
-make example-suggestions
 ```

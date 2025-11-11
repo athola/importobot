@@ -4,10 +4,18 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 from importobot.medallion.base_layers import BaseMedallionLayer
+from importobot.medallion.interfaces.data_models import (
+    DataLineage,
+    LayerMetadata,
+    ProcessingResult,
+)
+from importobot.medallion.interfaces.records import BronzeRecord, RecordMetadata
+from importobot.utils.validation_models import ValidationResult
 
 
 class _DummyLayer(BaseMedallionLayer):
@@ -17,25 +25,37 @@ class _DummyLayer(BaseMedallionLayer):
         super().__init__("dummy")
 
     # Minimal implementations to satisfy abstract interface; not exercised in tests
-    def ingest(self, data, metadata):
+    def ingest(
+        self, data: object, metadata: LayerMetadata
+    ) -> ProcessingResult:  # pragma: no cover
         raise NotImplementedError
 
-    def ingest_with_detection(self, data, source_info):
+    def ingest_with_detection(
+        self, data: dict[str, Any], source_info: dict[str, Any]
+    ) -> BronzeRecord:  # pragma: no cover
         raise NotImplementedError
 
-    def validate(self, data):
+    def validate(self, data: object) -> ValidationResult:  # pragma: no cover
         raise NotImplementedError
 
-    def get_record_metadata(self, record_id):
+    def get_record_metadata(
+        self, record_id: str
+    ) -> RecordMetadata | None:  # pragma: no cover
         raise NotImplementedError
 
-    def get_record_lineage(self, record_id):
+    def get_record_lineage(
+        self, record_id: str
+    ) -> DataLineage | None:  # pragma: no cover
         raise NotImplementedError
 
-    def validate_bronze_data(self, data):
+    def validate_bronze_data(
+        self, data: dict[str, Any]
+    ) -> dict[str, Any]:  # pragma: no cover
         raise NotImplementedError
 
-    def get_bronze_records(self, filter_criteria=None, limit=None):
+    def get_bronze_records(
+        self, filter_criteria: dict[str, Any] | None = None, limit: int | None = None
+    ) -> list[BronzeRecord]:  # pragma: no cover
         raise NotImplementedError
 
 

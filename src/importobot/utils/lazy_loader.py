@@ -1,4 +1,4 @@
-"""Enhanced lazy loading utilities for efficient data management."""
+"""Lazy loading utilities for efficient data management."""
 
 from __future__ import annotations
 
@@ -121,7 +121,7 @@ class OptionalDependency:
         self._checked = True
 
     def _raise_missing_dependency(self) -> None:
-        """Raise informative error about missing dependency."""
+        """Raise an error about a missing dependency."""
         if self.default_message:
             message = self.default_message
         else:
@@ -196,9 +196,11 @@ class LazyDataLoader:
                 raw_data = json.load(f)
                 if isinstance(raw_data, dict):
                     normalized = {
-                        key.lower(): [item.lower() for item in value]
-                        if isinstance(value, list)
-                        else value
+                        key.lower(): (
+                            [item.lower() for item in value]
+                            if isinstance(value, list)
+                            else value
+                        )
                         for key, value in raw_data.items()
                     }
                     normalized["__reverse_index__"] = {

@@ -1,4 +1,4 @@
-"""Test generation package for enterprise-scale Robot Framework test suites."""
+"""Test generation package for Robot Framework test suites."""
 
 from .generators import TestSuiteGenerator
 from .ssh_authentication_tests import SSHAuthenticationTestGenerator

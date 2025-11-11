@@ -74,7 +74,7 @@ def _validate_sql_query(sql: str) -> str:
 
 
 class DatabaseKeywordGenerator(BaseKeywordGenerator):
-    """Generates database-related Robot Framework keywords."""
+    """Generate database-related Robot Framework keywords."""
 
     def generate_connect_keyword(self, test_data: str) -> str:
         """Generate database connection keyword."""

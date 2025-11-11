@@ -1,22 +1,25 @@
-"""Multi-command parsing module for Robot Framework conversion.
+"""Provides multi-command parsing for Robot Framework conversion.
 
-This module handles the conversion of single JSON test steps into multiple
+This module facilitates the conversion of single JSON test steps into multiple
 Robot Framework commands, enabling more sophisticated test automation scenarios.
 """
 
 import re
 import shlex
 
+from importobot.core.keywords.generators.builtin_keywords import BuiltInKeywordGenerator
+from importobot.core.pattern_matcher import LibraryDetector, RobotFrameworkLibrary
+
 
 class MultiCommandParser:
-    """Parser generating multiple Robot Framework commands from a single JSON step.
+    """Generate multiple Robot Framework commands from a single JSON step.
 
-    This parser handles the conversion of single JSON test steps into multiple
-    Robot Framework commands, enabling more sophisticated test automation scenarios.
+    This parser converts single JSON test steps into multiple Robot Framework commands,
+    thereby enabling more sophisticated test automation scenarios.
     """
 
     def parse_test_data(self, test_data: str) -> dict[str, str]:
-        """Parse test data string into key-value pairs."""
+        """Parse a test data string into key-value pairs."""
         if not test_data:
             return {}
 
@@ -48,7 +51,7 @@ class MultiCommandParser:
     def should_generate_multiple_commands(
         self, description: str, parsed_data: dict[str, str]
     ) -> bool:
-        """Determine if multiple commands should be generated from parsed data."""
+        """Determine if multiple commands should be generated from the parsed data."""
         # Check for form filling scenarios
         form_indicators = ["fill", "enter", "input", "form", "details", "credentials"]
         if any(indicator in description.lower() for indicator in form_indicators):
@@ -98,12 +101,20 @@ class MultiCommandParser:
     def generate_multiple_robot_keywords(
         self, description: str, parsed_data: dict[str, str], expected: str
     ) -> list[str]:
-        """Generate multiple Robot Framework keywords from parsed data."""
+        """Generate multiple Robot Framework keywords from the parsed data."""
         keywords = []
+
+        # Create full context for library detection
+        full_context = (
+            f"{description} {expected} "
+            f"{' '.join(f'{k}:{v}' for k, v in parsed_data.items())}"
+        )
 
         # Detect the type of operations needed
         if self._is_form_filling_operation(description, parsed_data):
-            keywords.extend(self._generate_form_filling_keywords(parsed_data))
+            keywords.extend(
+                self._generate_form_filling_keywords(parsed_data, full_context)
+            )
         elif self._is_database_operation(description):
             keywords.extend(
                 self._generate_database_keywords(description, parsed_data, expected)
@@ -125,7 +136,7 @@ class MultiCommandParser:
     def _is_form_filling_operation(
         self, description: str, parsed_data: dict[str, str]
     ) -> bool:
-        """Check if this is a form filling operation."""
+        """Check if the operation is a form-filling action."""
         # parsed_data parameter is kept for interface consistency
         # but not used in this implementation
         _ = parsed_data  # Mark as intentionally unused
@@ -133,17 +144,17 @@ class MultiCommandParser:
         return any(indicator in description.lower() for indicator in form_indicators)
 
     def _is_database_operation(self, description: str) -> bool:
-        """Check if this is a database operation."""
+        """Check if the operation is a database interaction."""
         return "query" in description.lower() and "verify" in description.lower()
 
     def _is_api_operation(self, description: str) -> bool:
-        """Check if this is an API operation."""
+        """Check if the operation is an API call."""
         return "api" in description.lower() or (
             "request" in description.lower() and "validate" in description.lower()
         )
 
     def _is_file_upload_operation(self, description: str) -> bool:
-        """Check if this is a file upload operation."""
+        """Check if the operation is a file upload."""
         return "upload" in description.lower() and "verify" in description.lower()
 
     def _is_hash_comparison_operation(
@@ -164,7 +175,7 @@ class MultiCommandParser:
     def _generate_command_comparison_keywords(
         self, parsed_data: dict[str, str]
     ) -> list[str]:
-        """Generate commands to compare outputs of two hash commands."""
+        """Generate commands to compare the outputs of two hash commands."""
         source_command = (
             parsed_data.get("command_1")
             or parsed_data.get("source_command")
@@ -193,7 +204,7 @@ class MultiCommandParser:
         return commands
 
     def _split_command(self, command: str) -> list[str]:
-        """Split a shell command into Robot Framework arguments."""
+        """Split a shell command into arguments suitable for Robot Framework."""
         try:
             tokens = shlex.split(command)
         except ValueError:
@@ -201,7 +212,7 @@ class MultiCommandParser:
         return [token for token in tokens if token]
 
     def _format_run_process_command(self, tokens: list[str], var_name: str) -> str:
-        """Format a Run Process command capturing stdout into a variable."""
+        """Format a `Run Process` command to capture stdout into a variable."""
         if not tokens:
             return "Run Process"
         command = tokens[0]
@@ -211,14 +222,37 @@ class MultiCommandParser:
             return f"Run Process    {command}    {arguments}    {stdout_capture}"
         return f"Run Process    {command}    {stdout_capture}"
 
-    def _generate_form_filling_keywords(self, parsed_data: dict[str, str]) -> list[str]:
-        """Generate form filling keywords from parsed data."""
+    def _generate_form_filling_keywords(
+        self, parsed_data: dict[str, str], full_context: str = ""
+    ) -> list[str]:
+        """Generate form-filling keywords from the parsed data."""
+        # Detect which library should be used based on full context
+        libraries = LibraryDetector.detect_libraries_from_text(full_context)
+
+        # Choose library: prefer AppiumLibrary if available, fallback to SeleniumLibrary
+        if RobotFrameworkLibrary.APPIUM_LIBRARY in libraries:
+            prefix = LibraryDetector.get_keyword_prefix_for_library(
+                RobotFrameworkLibrary.APPIUM_LIBRARY
+            )
+        elif RobotFrameworkLibrary.SELENIUM_LIBRARY in libraries:
+            prefix = LibraryDetector.get_keyword_prefix_for_library(
+                RobotFrameworkLibrary.SELENIUM_LIBRARY
+            )
+        else:
+            # Default to SeleniumLibrary
+            prefix = LibraryDetector.get_keyword_prefix_for_library(
+                RobotFrameworkLibrary.SELENIUM_LIBRARY
+            )
+
         keywords = []
 
         for field, value in parsed_data.items():
             field_lower = field.lower()
             if "password" in field_lower or "pass" in field_lower:
-                keywords.append(f"Input Password    id={field}    {value}")
+                keyword_name = (
+                    f"{prefix}.Input Password" if prefix else "Input Password"
+                )
+                keywords.append(f"{keyword_name}    id={field}    {value}")
             elif any(
                 field_type in field_lower
                 for field_type in [
@@ -233,7 +267,8 @@ class MultiCommandParser:
                     "addr",
                 ]
             ):
-                keywords.append(f"Input Text    id={field}    {value}")
+                keyword_name = f"{prefix}.Input Text" if prefix else "Input Text"
+                keywords.append(f"{keyword_name}    id={field}    {value}")
             elif field_lower in ["remember", "active", "agree"]:
                 if value.lower() in ["true", "yes", "1"]:
                     keywords.append(f"Select Checkbox    id={field}")
@@ -241,7 +276,7 @@ class MultiCommandParser:
                     keywords.append(f"Unselect Checkbox    id={field}")
             else:
                 # Default to text input
-                keywords.append(f"Input Text    id={field}    {value}")
+                keywords.append(f"SeleniumLibrary.Input Text    id={field}    {value}")
 
         return keywords
 
@@ -323,12 +358,20 @@ class MultiCommandParser:
 
         file_path = parsed_data.get("file", "")
         if file_path:
-            keywords.append(f"Choose File    id=fileInput    {file_path}")
-            keywords.append("Click Button    id=uploadBtn")
+            keywords.append(
+                f"SeleniumLibrary.Choose File    id=fileInput    {file_path}"
+            )
+            keywords.append("SeleniumLibrary.Click Button    id=uploadBtn")
 
             # Add verification
             if expected and "successfully" in expected.lower():
-                keywords.append(f"Page Should Contain    {expected}")
+                # Use library-aware verification
+                generator = BuiltInKeywordGenerator()
+                verification = generator._generate_library_aware_page_verification(
+                    expected,
+                    "",  # Use empty string since full_context not available
+                )
+                keywords.append(verification)
 
         return keywords
 
@@ -338,12 +381,12 @@ class MultiCommandParser:
 
         for field, value in parsed_data.items():
             # Default behavior - treat as text input
-            keywords.append(f"Input Text    id={field}    {value}")
+            keywords.append(f"SeleniumLibrary.Input Text    id={field}    {value}")
 
         return keywords
 
     def detect_field_types(self, parsed_data: dict[str, str]) -> dict[str, str]:
-        """Detect input field types from parsed data."""
+        """Detect input field types from the parsed data."""
         field_types = {}
 
         for field in parsed_data:
@@ -372,13 +415,15 @@ class MultiCommandParser:
             field_type = field_types.get(field, "text")
 
             if field_type == "password":
-                commands.append(f"Input Password    id={field}    {value}")
+                commands.append(
+                    f"SeleniumLibrary.Input Password    id={field}    {value}"
+                )
             elif field_type == "checkbox":
                 if value.lower() in ["true", "yes", "1"]:
-                    commands.append(f"Select Checkbox    id={field}")
+                    commands.append(f"SeleniumLibrary.Select Checkbox    id={field}")
                 else:
-                    commands.append(f"Unselect Checkbox    id={field}")
+                    commands.append(f"SeleniumLibrary.Unselect Checkbox    id={field}")
             else:  # text and other types
-                commands.append(f"Input Text    id={field}    {value}")
+                commands.append(f"SeleniumLibrary.Input Text    id={field}    {value}")
 
         return commands

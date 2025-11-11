@@ -220,7 +220,9 @@ class TestSaveImprovedJsonAndConvert:
     """Tests for save_improved_json_and_convert function."""
 
     @patch("importobot.utils.file_operations.convert_with_temp_file")
-    def test_saves_json_and_converts(self, mock_convert_with_temp_file: Mock) -> None:
+    def test_saves_json_and_converts(
+        self, mock_convert_with_temp_file: Mock, tmp_path: Path
+    ) -> None:
         """Test saving improved JSON and converting to Robot Framework."""
         improved_data = {"name": "Test", "steps": []}
 
@@ -228,31 +230,30 @@ class TestSaveImprovedJsonAndConvert:
         mock_args.output_file = None
         mock_convert_file = Mock()
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            base_path = os.path.join(temp_dir, "test")
+        base_path = str(tmp_path / "test")
 
-            context = ConversionContext(args=mock_args)
-            save_improved_json_and_convert(
-                improved_data=improved_data,
-                base_name=base_path,
-                convert_file_func=mock_convert_file,
-                context=context,
-            )
+        context = ConversionContext(args=mock_args)
+        save_improved_json_and_convert(
+            improved_data=improved_data,
+            base_name=base_path,
+            convert_file_func=mock_convert_file,
+            context=context,
+        )
 
-            # Check that JSON file was created
-            json_file = f"{base_path}_improved.json"
-            assert os.path.exists(json_file)
+        # Check that JSON file was created
+        json_file = f"{base_path}_improved.json"
+        assert os.path.exists(json_file)
 
-            # Verify JSON content
-            with open(json_file, encoding="utf-8") as f:
-                saved_data = json.load(f)
-            assert saved_data == improved_data
+        # Verify JSON content
+        with open(json_file, encoding="utf-8") as f:
+            saved_data = json.load(f)
+        assert saved_data == improved_data
 
-            # Verify convert_with_temp_file was called correctly
-            mock_convert_with_temp_file.assert_called_once()
-            call_args = mock_convert_with_temp_file.call_args
-            assert call_args[1]["conversion_data"] == improved_data
-            assert call_args[1]["robot_filename"] == f"{base_path}_improved.robot"
+        # Verify convert_with_temp_file was called correctly
+        mock_convert_with_temp_file.assert_called_once()
+        call_args = mock_convert_with_temp_file.call_args
+        assert call_args[1]["conversion_data"] == improved_data
+        assert call_args[1]["robot_filename"] == f"{base_path}_improved.robot"
 
     @patch("importobot.utils.file_operations.convert_with_temp_file")
     def test_uses_custom_output_file(
@@ -266,19 +267,18 @@ class TestSaveImprovedJsonAndConvert:
         mock_args.output_file = custom_output
         mock_convert_file = Mock()
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            base_path = os.path.join(temp_dir, "test")
-            context = ConversionContext(args=mock_args)
-            save_improved_json_and_convert(
-                improved_data=improved_data,
-                base_name=base_path,
-                convert_file_func=mock_convert_file,
-                context=context,
-            )
+        base_path = str(tmp_path / "test")
+        context = ConversionContext(args=mock_args)
+        save_improved_json_and_convert(
+            improved_data=improved_data,
+            base_name=base_path,
+            convert_file_func=mock_convert_file,
+            context=context,
+        )
 
-            # Verify custom output file name was used
-            call_args = mock_convert_with_temp_file.call_args
-            assert call_args[1]["robot_filename"] == custom_output
+        # Verify custom output file name was used
+        call_args = mock_convert_with_temp_file.call_args
+        assert call_args[1]["robot_filename"] == custom_output
 
 
 class TestDisplaySuggestionChanges:
@@ -436,8 +436,11 @@ class TestProcessSingleFileWithSuggestions:
     @patch("importobot.core.converter.apply_conversion_suggestions")
     @patch("importobot.utils.file_operations.load_json_file")
     def test_handles_empty_json_data(
-        self, mock_load_json, mock_apply_suggestions, mock_save_convert
-    ):
+        self,
+        mock_load_json: Mock,
+        mock_apply_suggestions: Mock,
+        mock_save_convert: Mock,
+    ) -> None:
         """Test handling of empty JSON data."""
         mock_load_json.return_value = {}
         mock_apply_suggestions.return_value = ({}, [])

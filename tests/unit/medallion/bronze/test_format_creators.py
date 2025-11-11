@@ -28,17 +28,17 @@ from importobot.medallion.interfaces.enums import SupportedFormat
 class TestZephyrFormatCreator(unittest.TestCase):
     """Unit tests for Zephyr format definition creator."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test fixtures."""
         self.format_def = create_zephyr_format()
 
-    def test_zephyr_format_basic_properties(self):
+    def test_zephyr_format_basic_properties(self) -> None:
         """Test basic properties of Zephyr format definition."""
         assert self.format_def.format_type == SupportedFormat.ZEPHYR
         assert "Zephyr" in self.format_def.name
         assert "zephyr" in self.format_def.description.lower()
 
-    def test_zephyr_unique_indicators(self):
+    def test_zephyr_unique_indicators(self) -> None:
         """Test Zephyr unique indicators are properly defined."""
         unique_indicators = self.format_def.unique_indicators
 
@@ -54,7 +54,7 @@ class TestZephyrFormatCreator(unittest.TestCase):
         for indicator in unique_indicators:
             assert indicator.evidence_weight == EvidenceWeight.UNIQUE
 
-    def test_zephyr_strong_indicators(self):
+    def test_zephyr_strong_indicators(self) -> None:
         """Test Zephyr strong indicators."""
         strong_indicators = self.format_def.strong_indicators
 
@@ -62,12 +62,12 @@ class TestZephyrFormatCreator(unittest.TestCase):
         for indicator in strong_indicators:
             assert indicator.evidence_weight == EvidenceWeight.STRONG
 
-    def test_zephyr_validation_passes(self):
+    def test_zephyr_validation_passes(self) -> None:
         """Test that Zephyr format definition passes validation."""
         validation_issues = self.format_def.validate()
         assert validation_issues == [], f"Validation issues found: {validation_issues}"
 
-    def test_zephyr_max_score_calculation(self):
+    def test_zephyr_max_score_calculation(self) -> None:
         """Test Zephyr format max score calculation."""
         max_score = self.format_def.get_max_possible_score()
 
@@ -77,7 +77,7 @@ class TestZephyrFormatCreator(unittest.TestCase):
         # Zephyr should have high max score due to unique indicators
         assert max_score >= 15  # 3 unique indicators * 5 = 15 minimum
 
-    def test_zephyr_field_descriptions(self):
+    def test_zephyr_field_descriptions(self) -> None:
         """Test that Zephyr fields have meaningful descriptions."""
         all_fields = self.format_def.get_all_fields()
 
@@ -94,11 +94,11 @@ class TestZephyrFormatCreator(unittest.TestCase):
 class TestXrayFormatCreator(unittest.TestCase):
     """Unit tests for Xray format definition creator."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test fixtures."""
         self.format_def = create_xray_format()
 
-    def test_xray_format_basic_properties(self):
+    def test_xray_format_basic_properties(self) -> None:
         """Test basic properties of Xray format definition."""
         assert self.format_def.format_type == SupportedFormat.JIRA_XRAY
         assert "Xray" in self.format_def.name
@@ -107,7 +107,7 @@ class TestXrayFormatCreator(unittest.TestCase):
             for keyword in ["xray", "jira"]
         )
 
-    def test_xray_unique_indicators(self):
+    def test_xray_unique_indicators(self) -> None:
         """Test Xray unique indicators reflect JIRA integration."""
         unique_indicators = self.format_def.unique_indicators
         unique_names = {field.name for field in unique_indicators}
@@ -119,7 +119,7 @@ class TestXrayFormatCreator(unittest.TestCase):
             "Should have at least one Xray-specific indicator"
         )
 
-    def test_xray_jira_integration_indicators(self):
+    def test_xray_jira_integration_indicators(self) -> None:
         """Test Xray format includes JIRA integration indicators."""
         all_fields = self.format_def.get_all_fields()
         field_names = {field.name for field in all_fields}
@@ -129,12 +129,12 @@ class TestXrayFormatCreator(unittest.TestCase):
         found_jira = jira_indicators.intersection(field_names)
         assert len(found_jira) > 0, "Should have JIRA integration indicators"
 
-    def test_xray_validation_passes(self):
+    def test_xray_validation_passes(self) -> None:
         """Test that Xray format definition passes validation."""
         validation_issues = self.format_def.validate()
         assert validation_issues == [], f"Validation issues found: {validation_issues}"
 
-    def test_xray_field_patterns(self):
+    def test_xray_field_patterns(self) -> None:
         """Test Xray fields have appropriate validation patterns where needed."""
         all_fields = self.format_def.get_all_fields()
 
@@ -148,17 +148,17 @@ class TestXrayFormatCreator(unittest.TestCase):
 class TestTestRailFormatCreator(unittest.TestCase):
     """Unit tests for TestRail format definition creator."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test fixtures."""
         self.format_def = create_testrail_format()
 
-    def test_testrail_format_basic_properties(self):
+    def test_testrail_format_basic_properties(self) -> None:
         """Test basic properties of TestRail format definition."""
         assert self.format_def.format_type == SupportedFormat.TESTRAIL
         assert "TestRail" in self.format_def.name
         assert "testrail" in self.format_def.description.lower()
 
-    def test_testrail_unique_indicators(self):
+    def test_testrail_unique_indicators(self) -> None:
         """Test TestRail unique indicators reflect API structure."""
         unique_indicators = self.format_def.unique_indicators
         unique_names = {field.name for field in unique_indicators}
@@ -168,7 +168,7 @@ class TestTestRailFormatCreator(unittest.TestCase):
         found_indicators = expected_indicators.intersection(unique_names)
         assert len(found_indicators) > 0, "Should have TestRail API indicators"
 
-    def test_testrail_api_structure_indicators(self):
+    def test_testrail_api_structure_indicators(self) -> None:
         """Test TestRail format includes API structure indicators."""
         all_fields = self.format_def.get_all_fields()
         field_names = {field.name for field in all_fields}
@@ -178,7 +178,7 @@ class TestTestRailFormatCreator(unittest.TestCase):
         found_api = api_indicators.intersection(field_names)
         assert len(found_api) > 0, "Should have TestRail API structure indicators"
 
-    def test_testrail_validation_passes(self):
+    def test_testrail_validation_passes(self) -> None:
         """Test that TestRail format definition passes validation."""
         validation_issues = self.format_def.validate()
         assert validation_issues == [], f"Validation issues found: {validation_issues}"
@@ -187,17 +187,17 @@ class TestTestRailFormatCreator(unittest.TestCase):
 class TestTestLinkFormatCreator(unittest.TestCase):
     """Unit tests for TestLink format definition creator."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test fixtures."""
         self.format_def = create_testlink_format()
 
-    def test_testlink_format_basic_properties(self):
+    def test_testlink_format_basic_properties(self) -> None:
         """Test basic properties of TestLink format definition."""
         assert self.format_def.format_type == SupportedFormat.TESTLINK
         assert "TestLink" in self.format_def.name
         assert "testlink" in self.format_def.description.lower()
 
-    def test_testlink_unique_indicators(self):
+    def test_testlink_unique_indicators(self) -> None:
         """Test TestLink unique indicators reflect XML structure."""
         unique_indicators = self.format_def.unique_indicators
         unique_names = {field.name for field in unique_indicators}
@@ -209,7 +209,7 @@ class TestTestLinkFormatCreator(unittest.TestCase):
             "Should have TestLink XML structure indicators"
         )
 
-    def test_testlink_xml_structure_indicators(self):
+    def test_testlink_xml_structure_indicators(self) -> None:
         """Test TestLink format includes XML structure indicators."""
         all_fields = self.format_def.get_all_fields()
         field_names = {field.name for field in all_fields}
@@ -219,7 +219,7 @@ class TestTestLinkFormatCreator(unittest.TestCase):
         found_xml = xml_indicators.intersection(field_names)
         assert len(found_xml) > 0, "Should have XML structure indicators"
 
-    def test_testlink_validation_passes(self):
+    def test_testlink_validation_passes(self) -> None:
         """Test that TestLink format definition passes validation."""
         validation_issues = self.format_def.validate()
         assert validation_issues == [], f"Validation issues found: {validation_issues}"
@@ -228,11 +228,11 @@ class TestTestLinkFormatCreator(unittest.TestCase):
 class TestGenericFormatCreator(unittest.TestCase):
     """Unit tests for Generic format definition creator."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test fixtures."""
         self.format_def = create_generic_format()
 
-    def test_generic_format_basic_properties(self):
+    def test_generic_format_basic_properties(self) -> None:
         """Test basic properties of Generic format definition."""
         assert self.format_def.format_type == SupportedFormat.GENERIC
         assert "Generic" in self.format_def.name
@@ -241,7 +241,7 @@ class TestGenericFormatCreator(unittest.TestCase):
         description_lower = self.format_def.description.lower()
         assert any(keyword in description_lower for keyword in keywords)
 
-    def test_generic_moderate_indicators(self):
+    def test_generic_moderate_indicators(self) -> None:
         """Test Generic format focuses on moderate/weak indicators."""
         # Generic relies more on moderate/weak indicators as it's a default option
         moderate_indicators = self.format_def.moderate_indicators
@@ -251,7 +251,7 @@ class TestGenericFormatCreator(unittest.TestCase):
         total_indicators = len(moderate_indicators) + len(weak_indicators)
         assert total_indicators > 0, "Should have common test pattern indicators"
 
-    def test_generic_common_test_patterns(self):
+    def test_generic_common_test_patterns(self) -> None:
         """Test Generic format includes common test patterns."""
         all_fields = self.format_def.get_all_fields()
         field_names = {field.name for field in all_fields}
@@ -261,12 +261,12 @@ class TestGenericFormatCreator(unittest.TestCase):
         found_patterns = common_patterns.intersection(field_names)
         assert len(found_patterns) > 0, "Should include common test patterns"
 
-    def test_generic_validation_passes(self):
+    def test_generic_validation_passes(self) -> None:
         """Test that Generic format definition passes validation."""
         validation_issues = self.format_def.validate()
         assert validation_issues == [], f"Validation issues found: {validation_issues}"
 
-    def test_generic_reasonable_threshold(self):
+    def test_generic_reasonable_threshold(self) -> None:
         """Test Generic format has reasonable detection threshold."""
         # Generic format threshold should be reasonable (may be higher than expected)
         assert self.format_def.min_score_threshold >= 1
@@ -276,11 +276,11 @@ class TestGenericFormatCreator(unittest.TestCase):
 class TestUnknownFormatCreator(unittest.TestCase):
     """Unit tests for Unknown format definition creator."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test fixtures."""
         self.format_def = create_unknown_format()
 
-    def test_unknown_format_basic_properties(self):
+    def test_unknown_format_basic_properties(self) -> None:
         """Test basic properties of Unknown format definition."""
         assert self.format_def.format_type == SupportedFormat.UNKNOWN
         assert "Unknown" in self.format_def.name
@@ -294,21 +294,21 @@ class TestUnknownFormatCreator(unittest.TestCase):
         description_lower = self.format_def.description.lower()
         assert any(keyword in description_lower for keyword in keywords)
 
-    def test_unknown_minimal_indicators(self):
+    def test_unknown_minimal_indicators(self) -> None:
         """Test Unknown format has minimal or no indicators."""
         all_fields = self.format_def.get_all_fields()
 
         # Unknown format should have minimal indicators (catch-all)
         assert len(all_fields) <= 5, "Unknown format should have minimal indicators"
 
-    def test_unknown_validation_behavior(self):
+    def test_unknown_validation_behavior(self) -> None:
         """Test Unknown format validation behavior."""
         validation_issues = self.format_def.validate()
         # Unknown format may not pass standard validation as it's a special case
         # This is acceptable for a catch-all format
         assert isinstance(validation_issues, list)
 
-    def test_unknown_special_threshold(self):
+    def test_unknown_special_threshold(self) -> None:
         """Test Unknown format has special threshold configuration."""
         # Unknown format may have a special high threshold to prevent
         # false positives. This is acceptable as it's a catch-all that
@@ -319,7 +319,7 @@ class TestUnknownFormatCreator(unittest.TestCase):
 class TestFormatCreatorIntegration(unittest.TestCase):
     """Integration tests across all format creators."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up all format definitions."""
         self.formats = {
             "zephyr": create_zephyr_format(),
@@ -330,7 +330,7 @@ class TestFormatCreatorIntegration(unittest.TestCase):
             "unknown": create_unknown_format(),
         }
 
-    def test_all_formats_have_unique_types(self):
+    def test_all_formats_have_unique_types(self) -> None:
         """Test that all formats have unique format types."""
         format_types = [fmt.format_type for fmt in self.formats.values()]
         unique_types = set(format_types)
@@ -339,7 +339,7 @@ class TestFormatCreatorIntegration(unittest.TestCase):
             "All formats should have unique format types"
         )
 
-    def test_most_formats_pass_validation(self):
+    def test_most_formats_pass_validation(self) -> None:
         """Test that production formats pass validation."""
         for name, format_def in self.formats.items():
             with self.subTest(format_name=name):
@@ -353,7 +353,7 @@ class TestFormatCreatorIntegration(unittest.TestCase):
                         f"{name} format validation failed: {validation_issues}"
                     )
 
-    def test_format_score_distribution(self):
+    def test_format_score_distribution(self) -> None:
         """Test that formats have reasonable max score distribution."""
         scores = {
             name: fmt.get_max_possible_score() for name, fmt in self.formats.items()
@@ -373,7 +373,7 @@ class TestFormatCreatorIntegration(unittest.TestCase):
                 # Only compare if both have meaningful scores
                 continue  # Skip comparison as unknown may have special scoring
 
-    def test_unique_indicator_distribution(self):
+    def test_unique_indicator_distribution(self) -> None:
         """Test that unique indicators are appropriately distributed."""
         for name, format_def in self.formats.items():
             with self.subTest(format_name=name):
@@ -389,7 +389,7 @@ class TestFormatCreatorIntegration(unittest.TestCase):
                     # Unknown should have minimal unique indicators
                     assert unique_count <= 2
 
-    def test_field_name_uniqueness_across_formats(self):
+    def test_field_name_uniqueness_across_formats(self) -> None:
         """Test that formats have distinct field patterns."""
         # Collect unique field names by format
         format_fields = {}
@@ -414,7 +414,7 @@ class TestFormatCreatorIntegration(unittest.TestCase):
                     f"{name} should have fields unique from other formats"
                 )
 
-    def test_format_descriptions_are_informative(self):
+    def test_format_descriptions_are_informative(self) -> None:
         """Test that all formats have informative descriptions."""
         for name, format_def in self.formats.items():
             with self.subTest(format_name=name):

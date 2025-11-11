@@ -29,7 +29,7 @@ class TestPerformanceCacheTTL:
         second = cache.get_cached_string_lower(payload)
         assert second == str(payload).lower()
         # TTL expiration should force a cache miss then reinsert, so hit count resets
-        assert cache.get_cache_stats()["cache_hits"] == 0
+        assert cache.get_stats()["cache_hits"] == 0
 
 
 class TestFileContentCacheTTL:

@@ -8,6 +8,13 @@
 - Verify that any new assets you reference here are committed and versioned with the matching release tag.
 - Trim or archive bullets once their supporting docs become obsolete to keep this page focused.
 
+## 0.1.4 (2025-11-09)
+- Comprehensive test suite quality improvements with 55 named constants organized into 9 logical categories
+- Modern pytest patterns with `tmp_path` fixtures and comprehensive type annotations
+- Enhanced module architecture with focused client integration modules while maintaining backward compatibility
+- Legacy code cleanup removing backwards compatibility shims and deprecated APIs
+- Updated Migration Guide with breaking change documentation for 0.1.4
+
 ## 0.1.3 (2025-10-23)
 - Expanded remote retrieval with the new `--fetch-format` pipeline for Zephyr, TestRail, Jira/Xray, and TestLink, including shared credential flags and adaptive pagination.
 - Hardened security by adding regression suites for token masking, configurable rate-limiter env vars, and documenting the new toggles alongside existing security guidance.

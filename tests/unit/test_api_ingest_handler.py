@@ -112,7 +112,7 @@ def test_handler_provides_progress_feedback(
     class TrackingClient(DummyClient):
         """A client that tracks API calls for testing purposes."""
 
-        def fetch_all(self, progress_cb):
+        def fetch_all(self, progress_cb: Any) -> Iterable[dict[str, object]]:
             for payload in super().fetch_all(progress_cb):
                 calls.append(payload)
                 yield payload

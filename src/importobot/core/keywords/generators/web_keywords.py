@@ -6,6 +6,7 @@ from typing import Any
 from importobot import config
 from importobot.core.keywords.base_generator import BaseKeywordGenerator
 from importobot.core.keywords_registry import RobotFrameworkKeywordRegistry
+from importobot.core.pattern_matcher import LibraryDetector, RobotFrameworkLibrary
 from importobot.utils.step_processing import extract_step_information
 
 # Compiled regex patterns for performance optimization
@@ -15,21 +16,40 @@ _QUOTED_PATTERN = re.compile(r'"([^"]*)"')
 
 
 class WebKeywordGenerator(BaseKeywordGenerator):
-    """Generates web and browser-related Robot Framework keywords."""
+    """Generate web and browser-related Robot Framework keywords."""
 
     def generate_browser_keyword(self, test_data: str) -> str:
-        """Generate browser opening keyword with Chrome options for CI/headless."""
-        # Get keyword name from registry
-        _, keyword_name = RobotFrameworkKeywordRegistry.get_intent_keyword("web_open")
-
-        url_match = _URL_PATTERN.search(test_data)
-        url = url_match.group(0) if url_match else config.TEST_LOGIN_URL
-        # Add Chrome options to prevent session conflicts in CI/testing environments
-        # Using the correct format for SeleniumLibrary Chrome options
-        chrome_options = "; ".join(
-            f"add_argument('{option}')" for option in config.CHROME_OPTIONS
+        """Generate browser or mobile app opening keyword with appropriate options."""
+        # Detect if this is a mobile app context
+        mobile_indicators = [
+            "platformname",
+            "devicename",
+            "apppackage",
+            "appactivity",
+            "bundleid",
+        ]
+        is_mobile = any(
+            indicator in test_data.lower() for indicator in mobile_indicators
         )
-        return f"{keyword_name}    {url}    chrome    options={chrome_options}"
+
+        if is_mobile:
+            # Use AppiumLibrary Open Application for mobile apps
+            _, keyword_name = RobotFrameworkKeywordRegistry.get_intent_keyword(
+                "app_open"
+            )
+            return f"{keyword_name}    {test_data}"
+        else:
+            # Use SeleniumLibrary Open Browser for web
+            _, keyword_name = RobotFrameworkKeywordRegistry.get_intent_keyword(
+                "web_open"
+            )
+            url_match = _URL_PATTERN.search(test_data)
+            url = url_match.group(0) if url_match else config.TEST_LOGIN_URL
+            # Add Chrome options to prevent session conflicts in CI/testing environments
+            chrome_options = "; ".join(
+                f"add_argument('{option}')" for option in config.CHROME_OPTIONS
+            )
+            return f"{keyword_name}    {url}    chrome    options={chrome_options}"
 
     def generate_url_keyword(self, test_data: str) -> str:
         """Generate URL navigation keyword."""
@@ -44,21 +64,69 @@ class WebKeywordGenerator(BaseKeywordGenerator):
         return self.generate_url_keyword(test_data)
 
     def generate_input_keyword(self, field_type: str, test_data: str) -> str:
-        """Generate input keyword."""
+        """Generate input keyword with intelligent library selection."""
+        # Detect which library should be used
+        libraries = LibraryDetector.detect_libraries_from_text(
+            f"input {field_type} {test_data}"
+        )
+
+        # Choose library: prefer AppiumLibrary if available, fallback to SeleniumLibrary
+        if RobotFrameworkLibrary.APPIUM_LIBRARY in libraries:
+            prefix = LibraryDetector.get_keyword_prefix_for_library(
+                RobotFrameworkLibrary.APPIUM_LIBRARY
+            )
+        elif RobotFrameworkLibrary.SELENIUM_LIBRARY in libraries:
+            # For simple username: format, keep backward compatibility
+            if ":" in test_data and field_type in test_data:
+                # This looks like test data (e.g., "username: testuser"), use simple
+                prefix = ""
+            else:
+                # More complex case, use conflict detection
+                prefix = LibraryDetector.get_keyword_prefix_for_library(
+                    RobotFrameworkLibrary.SELENIUM_LIBRARY
+                )
+        else:
+            # Default to no prefix (let Robot Framework resolve)
+            prefix = ""
+
         value = self._extract_value_from_data(test_data)
+        keyword_name = f"{prefix}.Input Text" if prefix else "Input Text"
         return (
-            f"Input Text    id={field_type}    {value}"
+            f"{keyword_name}    id={field_type}    {value}"
             if value
-            else f"Input Text    id={field_type}    test_value"
+            else f"{keyword_name}    id={field_type}    test_value"
         )
 
     def generate_password_keyword(self, test_data: str) -> str:
-        """Generate password input keyword."""
+        """Generate password input keyword with intelligent library selection."""
+        # Detect which library should be used
+        libraries = LibraryDetector.detect_libraries_from_text(f"password {test_data}")
+
+        # Choose library: prefer AppiumLibrary if available, fallback to SeleniumLibrary
+        if RobotFrameworkLibrary.APPIUM_LIBRARY in libraries:
+            prefix = LibraryDetector.get_keyword_prefix_for_library(
+                RobotFrameworkLibrary.APPIUM_LIBRARY
+            )
+        elif RobotFrameworkLibrary.SELENIUM_LIBRARY in libraries:
+            # For simple password: format, keep backward compatibility
+            if ":" in test_data:
+                # This looks like test data (e.g., "password: testpass"), use simple
+                prefix = ""
+            else:
+                # More complex case, use conflict detection
+                prefix = LibraryDetector.get_keyword_prefix_for_library(
+                    RobotFrameworkLibrary.SELENIUM_LIBRARY
+                )
+        else:
+            # Default to no prefix (let Robot Framework resolve)
+            prefix = ""
+
         value = self._extract_value_from_data(test_data)
+        keyword_name = f"{prefix}.Input Password" if prefix else "Input Password"
         return (
-            f"Input Password    id=password    {value}"
+            f"{keyword_name}    id=password    {value}"
             if value
-            else "Input Password    id=password    test_password"
+            else f"{keyword_name}    id=password    test_password"
         )
 
     def generate_click_keyword(self, description: str, test_data: str = "") -> str:
@@ -85,20 +153,56 @@ class WebKeywordGenerator(BaseKeywordGenerator):
             return "Click Button    id=submit_button"
         return "Click Element    id=clickable_element"
 
-    def generate_page_verification_keyword(self, test_data: str, expected: str) -> str:
-        """Generate page verification keyword."""
-        # Extract text to verify from test_data
-        text_to_verify = ""
-        if ":" in test_data:
-            text_to_verify = test_data.split(":", 1)[1].strip()
-        elif expected:
-            text_to_verify = expected
-        else:
-            # Try to extract from common patterns
-            value_match = re.search(r"(?:text|message)[:\s=]+([^,\s]+)", test_data)
-            text_to_verify = value_match.group(1) if value_match else "expected content"
+    def _extract_verification_text(self, test_data: str, expected: str) -> str:
+        """Extract text to verify from test_data or expected result.
 
-        return f"Page Should Contain    {text_to_verify}"
+        This is a helper method used by verification keyword generators to extract
+        the actual text that needs to be verified from various input formats.
+
+        Args:
+            test_data: Test data string which may contain the text to verify
+            expected: Expected result string as fallback
+
+        Returns:
+            The extracted text to verify, or "expected content" as default
+        """
+        if ":" in test_data:
+            return test_data.split(":", 1)[1].strip()
+        if expected:
+            return expected
+        # Try to extract from common patterns
+        value_match = re.search(r"(?:text|message)[:\s=]+([^,\s]+)", test_data)
+        return value_match.group(1) if value_match else "expected content"
+
+    def generate_library_aware_page_verification_keyword(
+        self, test_data: str, expected: str, library_context: set[Any]
+    ) -> str:
+        """Generate page verification keyword with library-aware selection.
+
+        This method correctly chooses between SeleniumLibrary and AppiumLibrary
+        based on the detected library context, ensuring the right verification
+        keyword is used for web vs mobile testing.
+
+        Args:
+            test_data: Test data string containing text to verify
+            expected: Expected result as fallback
+            library_context: Set of RobotFrameworkLibrary enums detected from test
+
+        Returns:
+            Library-prefixed verification keyword appropriate for the context:
+            - AppiumLibrary.Page Should Contain Text (for mobile)
+            - SeleniumLibrary.Page Should Contain (for web)
+            - Default to SeleniumLibrary if no proper match can be determined
+        """
+        text_to_verify = self._extract_verification_text(test_data, expected)
+
+        # Use library context to determine verification method
+        if RobotFrameworkLibrary.APPIUM_LIBRARY in library_context:
+            return f"AppiumLibrary.Page Should Contain Text    {text_to_verify}"
+        if RobotFrameworkLibrary.SELENIUM_LIBRARY in library_context:
+            return f"SeleniumLibrary.Page Should Contain    {text_to_verify}"
+        # Default to SeleniumLibrary if no proper match can be determined
+        return f"SeleniumLibrary.Page Should Contain    {text_to_verify}"
 
     def generate_step_keywords(self, step: dict[str, Any]) -> list[str]:
         """Generate Robot Framework keywords for a web-related step."""

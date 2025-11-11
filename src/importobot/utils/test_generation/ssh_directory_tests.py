@@ -6,7 +6,7 @@ from .ssh_base import BaseSSHTestGenerator
 
 
 class SSHDirectoryTestGenerator(BaseSSHTestGenerator):
-    """Generates SSH directory test cases."""
+    """Generate SSH directory test cases."""
 
     def __init__(self) -> None:
         """Initialize the SSH directory test generator."""

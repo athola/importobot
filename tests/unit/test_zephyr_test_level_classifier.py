@@ -6,11 +6,11 @@ from importobot.core.zephyr_parsers import ZephyrTestLevelClassifier
 class TestZephyrTestLevelClassifier:
     """Test ZephyrTestLevelClassifier class."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.classifier = ZephyrTestLevelClassifier()
 
-    def test_test_levels_structure(self):
+    def test_test_levels_structure(self) -> None:
         """Test TEST_LEVELS contains expected industry-standard structure."""
         expected_levels = ["Smoke", "Sanity", "Edge Case", "Regression"]
 
@@ -24,7 +24,7 @@ class TestZephyrTestLevelClassifier:
         assert self.classifier.TEST_LEVELS["Edge Case"] == 2
         assert self.classifier.TEST_LEVELS["Regression"] == 3
 
-    def test_classify_test_sanity(self):
+    def test_classify_test_sanity(self) -> None:
         """Test classification of Sanity tests (requirement-linked)."""
         test_cases = [
             {
@@ -49,7 +49,7 @@ class TestZephyrTestLevelClassifier:
             level_name, _level_value = self.classifier.classify_test(test_data)
             assert level_name == "Sanity"
 
-    def test_classify_test_smoke(self):
+    def test_classify_test_smoke(self) -> None:
         """Test classification of Smoke tests."""
         test_cases = [
             {
@@ -80,7 +80,7 @@ class TestZephyrTestLevelClassifier:
             level_name, _level_value = self.classifier.classify_test(test_data)
             assert level_name == "Smoke"
 
-    def test_classify_test_edge_case(self):
+    def test_classify_test_edge_case(self) -> None:
         """Test classification of Edge Case tests."""
         test_cases = [
             {
@@ -109,7 +109,7 @@ class TestZephyrTestLevelClassifier:
             level_name, _level_value = self.classifier.classify_test(test_data)
             assert level_name == "Edge Case"
 
-    def test_classify_test_regression(self):
+    def test_classify_test_regression(self) -> None:
         """Test classification of Regression tests (default)."""
         test_cases = [
             {
@@ -134,7 +134,7 @@ class TestZephyrTestLevelClassifier:
             level_name, _level_value = self.classifier.classify_test(test_data)
             assert level_name == "Regression"
 
-    def test_classify_test_priority_order(self):
+    def test_classify_test_priority_order(self) -> None:
         """Test that requirement links take priority over smoke test indicators."""
         # Test with both requirement links and smoke indicators - classify as Sanity
         test_data = {
@@ -147,7 +147,7 @@ class TestZephyrTestLevelClassifier:
         level_name, _level_value = self.classifier.classify_test(test_data)
         assert level_name == "Sanity"
 
-    def test_classify_test_case_insensitive(self):
+    def test_classify_test_case_insensitive(self) -> None:
         """Test classification with case variations."""
         test_cases = [
             {"name": "SMOKE TEST", "objective": "basic startup verification"},
@@ -160,7 +160,7 @@ class TestZephyrTestLevelClassifier:
             # Should still classify correctly despite case variations
             assert level_name in ["Smoke", "Edge Case"]
 
-    def test_classify_test_empty_data(self):
+    def test_classify_test_empty_data(self) -> None:
         """Test classification with minimal test data."""
         test_cases = [{}, {"name": ""}, {"description": ""}, {"objective": ""}]
 
@@ -169,7 +169,7 @@ class TestZephyrTestLevelClassifier:
             # Should default to Regression for empty/unclear cases
             assert level_name == "Regression"
 
-    def test_classify_test_complex_scenarios(self):
+    def test_classify_test_complex_scenarios(self) -> None:
         """Test classification with complex test scenarios."""
         # Complex test with multiple indicators
         complex_test = {
@@ -195,7 +195,7 @@ class TestZephyrTestLevelClassifier:
         level_name, _level_value = self.classifier.classify_test(edge_case_test)
         assert level_name == "Edge Case"
 
-    def test_has_requirement_links_with_various_formats(self):
+    def test_has_requirement_links_with_various_formats(self) -> None:
         """Test generic requirement link detection with various formats."""
         test_cases = [
             {"linkedRequirements": ["REQ-AUTH-001", "STORY-002"]},  # Requirement keys
@@ -229,7 +229,7 @@ class TestZephyrTestLevelClassifier:
             result = self.classifier._has_requirement_links(test_data)
             assert result == expected, f"Failed for test data: {test_data}"
 
-    def test_is_smoke_test_detection(self):
+    def test_is_smoke_test_detection(self) -> None:
         """Test smoke test detection logic."""
         test_cases = [
             ({"name": "Basic startup test"}, True),
@@ -246,7 +246,7 @@ class TestZephyrTestLevelClassifier:
             result = self.classifier._is_smoke_test(test_data)
             assert result == expected, f"Failed for test data: {test_data}"
 
-    def test_is_edge_case_detection(self):
+    def test_is_edge_case_detection(self) -> None:
         """Test edge case detection logic."""
         test_cases = [
             ({"name": "Boundary condition test"}, True),
@@ -263,7 +263,7 @@ class TestZephyrTestLevelClassifier:
             result = self.classifier._is_edge_case(test_data)
             assert result == expected, f"Failed for test data: {test_data}"
 
-    def test_classify_test_with_unicode(self):
+    def test_classify_test_with_unicode(self) -> None:
         """Test classification with unicode characters."""
         test_cases = [
             {
@@ -281,7 +281,7 @@ class TestZephyrTestLevelClassifier:
             # Should handle unicode correctly and classify based on content
             assert level_name in ["Smoke", "Edge Case", "Regression"]
 
-    def test_classify_test_performance_considerations(self):
+    def test_classify_test_performance_considerations(self) -> None:
         """Test that classification is efficient for large datasets."""
         # Create a large test case
         large_test = {
@@ -294,7 +294,7 @@ class TestZephyrTestLevelClassifier:
         level_name, _level_value = self.classifier.classify_test(large_test)
         assert level_name == "Smoke"  # Due to "Basic" indicator
 
-    def test_classify_test_return_format(self):
+    def test_classify_test_return_format(self) -> None:
         """Test that classify_test returns expected format."""
         test_data = {"name": "Test Case"}
 

@@ -20,7 +20,7 @@ def _safe_file_path(name: str) -> str:
 
 
 class FileKeywordGenerator(BaseKeywordGenerator):
-    """Generates file operation-related Robot Framework keywords."""
+    """Generate file operation-related Robot Framework keywords."""
 
     def generate_transfer_keyword(self, test_data: str) -> str:
         """Generate file transfer keyword."""

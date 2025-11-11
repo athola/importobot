@@ -185,7 +185,7 @@ def test_zephyr_discovery_cached_between_runs(monkeypatch: pytest.MonkeyPatch) -
     )
 
     monkeypatch.setattr(
-        "importobot.integrations.clients.requests.Session", lambda: session
+        "importobot.integrations.clients.base.requests.Session", lambda: session
     )
 
     client = ZephyrClient(

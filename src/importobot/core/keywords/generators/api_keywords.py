@@ -17,7 +17,7 @@ _STATUS_PATTERN = re.compile(r"(?:status|code):\s*(\d+)", re.IGNORECASE)
 
 
 class APIKeywordGenerator(BaseKeywordGenerator):
-    """Generates API/HTTP-related Robot Framework keywords."""
+    """Generate API/HTTP-related Robot Framework keywords."""
 
     def generate_request_keyword(self, test_data: str) -> str:
         """Generate API request keyword."""

@@ -7,6 +7,8 @@ Tests verify caching behavior in actual conversion scenarios:
 """
 
 import json
+from collections.abc import Generator
+from pathlib import Path
 from typing import Any, cast
 
 import pytest
@@ -23,13 +25,13 @@ class TestCachingInConversionWorkflow:
     """Test caching behavior during actual test conversion."""
 
     @pytest.fixture(autouse=True)
-    def _clean_context(self):
+    def _clean_context(self) -> Generator[None, None, None]:
         """Ensure clean context for each test."""
         clear_context()
         yield
         clear_context()
 
-    def test_format_detection_caches_results(self):
+    def test_format_detection_caches_results(self) -> None:
         """GIVEN a format detector processing the same data twice
         WHEN detecting format on repeated calls
         THEN second call uses cached result
@@ -48,11 +50,11 @@ class TestCachingInConversionWorkflow:
 
         # First detection (cache miss)
         result1 = detector.detect_format(test_data)
-        stats1 = cache.get_cache_stats()
+        stats1 = cache.get_stats()
 
         # Second detection (cache hit)
         result2 = detector.detect_format(test_data)
-        stats2 = cache.get_cache_stats()
+        stats2 = cache.get_stats()
 
         # Results should be identical
         assert result1 == result2
@@ -60,7 +62,7 @@ class TestCachingInConversionWorkflow:
         # Cache hits should increase
         assert stats2["cache_hits"] > stats1["cache_hits"]
 
-    def test_string_operations_cached_during_conversion(self):
+    def test_string_operations_cached_during_conversion(self) -> None:
         """GIVEN a converter processing test data
         WHEN converting multiple tests with repeated strings
         THEN string operations are cached
@@ -100,12 +102,12 @@ class TestCachingInConversionWorkflow:
 
         # Verify cache was used
         perf_cache = get_performance_cache()
-        stats = perf_cache.get_cache_stats()
+        stats = perf_cache.get_stats()
 
         # Should have some cache hits from repeated strings
         assert stats["cache_hits"] > 0
 
-    def test_batch_conversion_cache_accumulation(self):
+    def test_batch_conversion_cache_accumulation(self) -> None:
         """GIVEN a batch of test files to convert
         WHEN converting files sequentially
         THEN cache accumulates useful data
@@ -137,7 +139,7 @@ class TestCachingInConversionWorkflow:
             assert f"Test {i}" in result
 
             # Track stats after each file
-            stats = perf_cache.get_cache_stats()
+            stats = perf_cache.get_stats()
             stats_per_file.append(stats)
 
         # Later files should have higher hit rates (benefiting from cache)
@@ -147,7 +149,7 @@ class TestCachingInConversionWorkflow:
         # Last file should have more cache hits
         assert last_file_hits >= first_file_hits
 
-    def test_cache_survives_conversion_errors(self):
+    def test_cache_survives_conversion_errors(self) -> None:
         """GIVEN a conversion workflow that encounters an error
         WHEN continuing to process valid data
         THEN cache remains functional
@@ -180,7 +182,7 @@ class TestCachingInConversionWorkflow:
         assert "Valid Test" in result2
 
         # Cache should have recorded hits
-        stats = perf_cache.get_cache_stats()
+        stats = perf_cache.get_stats()
         assert stats["cache_hits"] > 0
 
 
@@ -188,13 +190,13 @@ class TestCachingWithRealFiles:
     """Test caching with actual JSON test files."""
 
     @pytest.fixture(autouse=True)
-    def _clean_context(self):
+    def _clean_context(self) -> Generator[None, None, None]:
         """Ensure clean context for each test."""
         clear_context()
         yield
         clear_context()
 
-    def test_caching_with_example_files(self, tmp_path):
+    def test_caching_with_example_files(self, tmp_path: Path) -> None:
         """GIVEN real JSON test files
         WHEN converting them with caching enabled
         THEN conversions complete and cache is utilized
@@ -235,7 +237,7 @@ class TestCachingWithRealFiles:
 
         # Verify cache was utilized
         perf_cache = get_performance_cache()
-        stats = perf_cache.get_cache_stats()
+        stats = perf_cache.get_stats()
 
         # Should have processed multiple operations
         total_operations = stats["cache_hits"] + stats["cache_misses"]
@@ -248,7 +250,7 @@ class TestCachingWithRealFiles:
             # (due to repeated strings like "Setup", "Cleanup")
             assert hit_rate > 0
 
-    def test_large_file_conversion_uses_cache_effectively(self, tmp_path):
+    def test_large_file_conversion_uses_cache_effectively(self, tmp_path: Path) -> None:
         """GIVEN a large test file with many test cases
         WHEN converting it
         THEN cache provides performance benefit
@@ -285,7 +287,7 @@ class TestCachingWithRealFiles:
 
         # Verify cache was effective
         perf_cache = get_performance_cache()
-        stats = perf_cache.get_cache_stats()
+        stats = perf_cache.get_stats()
 
         # With 50 test cases and repeated strings, should have good hit rate
         total_ops = stats["cache_hits"] + stats["cache_misses"]
@@ -301,13 +303,13 @@ class TestCacheInvalidation:
     """Test cache invalidation scenarios."""
 
     @pytest.fixture(autouse=True)
-    def _clean_context(self):
+    def _clean_context(self) -> Generator[None, None, None]:
         """Ensure clean context for each test."""
         clear_context()
         yield
         clear_context()
 
-    def test_modified_data_invalidates_cache(self):
+    def test_modified_data_invalidates_cache(self) -> None:
         """GIVEN data that has been cached
         WHEN the data is modified
         THEN new conversion uses fresh data, not stale cache
@@ -342,7 +344,7 @@ class TestCacheInvalidation:
         # Results should be different
         assert result1 != result2
 
-    def test_cache_cleared_between_independent_jobs(self):
+    def test_cache_cleared_between_independent_jobs(self) -> None:
         """GIVEN multiple independent conversion jobs
         WHEN each job should have isolated cache
         THEN clearing cache between jobs prevents interference
@@ -364,7 +366,7 @@ class TestCacheInvalidation:
 
             # Get cache stats for this job
             perf_cache = get_performance_cache()
-            stats = perf_cache.get_cache_stats()
+            stats = perf_cache.get_stats()
 
             return (result, stats["cache_size"])
 

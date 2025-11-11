@@ -104,7 +104,7 @@ def generate_conversion_performance_chart(
         if times and commit_dates:
             # Convert datetime objects to matplotlib date format
             mdates = matplotlib.dates
-            date_nums = mdates.date2num(commit_dates)
+            date_nums = mdates.date2num(commit_dates)  # type: ignore[no-untyped-call]
             ax.plot(date_nums, times, marker="o", label=labels[idx], color=colors[idx])
 
     ax.set_xlabel("Commit Date", fontsize=12)
@@ -116,7 +116,7 @@ def generate_conversion_performance_chart(
     ax.grid(True, alpha=0.3)
 
     # Format x-axis dates
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))  # type: ignore[no-untyped-call]
     plt.xticks(rotation=45)
 
     plt.tight_layout()
@@ -157,7 +157,7 @@ def generate_memory_usage_chart(data: dict[str, Any], output_path: Path) -> None
 
     if memory_values and commit_dates:
         # Convert datetime objects to matplotlib date format
-        date_nums = mdates.date2num(commit_dates)
+        date_nums = mdates.date2num(commit_dates)  # type: ignore[no-untyped-call]
         ax.plot(date_nums, memory_values, marker="s", color="#9b59b6", linewidth=2)
         ax.fill_between(date_nums, memory_values, alpha=0.3, color="#9b59b6")
 
@@ -169,7 +169,7 @@ def generate_memory_usage_chart(data: dict[str, Any], output_path: Path) -> None
     ax.grid(True, alpha=0.3)
 
     # Format x-axis dates
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))  # type: ignore[no-untyped-call]
     plt.xticks(rotation=45)
 
     plt.tight_layout()
@@ -219,7 +219,7 @@ def generate_bulk_conversion_chart(data: dict[str, Any], output_path: Path) -> N
 
         if times and commit_dates:
             # Convert datetime objects to matplotlib date format
-            date_nums = mdates.date2num(commit_dates)
+            date_nums = mdates.date2num(commit_dates)  # type: ignore[no-untyped-call]
             ax.plot(
                 date_nums,
                 times,
@@ -237,7 +237,7 @@ def generate_bulk_conversion_chart(data: dict[str, Any], output_path: Path) -> N
     ax.grid(True, alpha=0.3)
 
     # Format x-axis dates
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))  # type: ignore[no-untyped-call]
     plt.xticks(rotation=45)
 
     plt.tight_layout()
@@ -278,7 +278,7 @@ def main() -> None:
     generate_memory_usage_chart(data, output_dir / "asv-memory-usage.png")
     generate_bulk_conversion_chart(data, output_dir / "asv-bulk-conversion.png")
 
-    print(f"\n✓ Charts saved to {output_dir}/")
+    print(f"\n[OK] Charts saved to {output_dir}/")
     print("  - asv-conversion-performance.png")
     print("  - asv-memory-usage.png")
     print("  - asv-bulk-conversion.png")

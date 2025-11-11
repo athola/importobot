@@ -1,4 +1,4 @@
-"""Keyword library loader for external configuration files."""
+"""Load keyword libraries from external JSON configuration files."""
 
 import json
 from pathlib import Path
@@ -12,7 +12,7 @@ logger = get_logger()
 
 
 class KeywordLibraryLoader:
-    """Loads keyword libraries from external JSON configuration files."""
+    """Manages loading keyword libraries from external JSON configuration files."""
 
     def __init__(self) -> None:
         """Initialize the loader with the keywords data directory."""
@@ -132,20 +132,20 @@ class KeywordLibraryLoader:
         return config if isinstance(config, dict) else None
 
     def get_keywords_for_library(self, library_name: str) -> dict[str, dict[str, Any]]:
-        """Get all keywords for a specific library."""
+        """Retrieve all keywords for a specific library."""
         config = self.load_library(library_name)
         keywords_raw = config.get("keywords", {})
         return keywords_raw if isinstance(keywords_raw, dict) else {}
 
     def get_available_libraries(self) -> list[str]:
-        """Get list of available library names."""
+        """Retrieve a list of available library names."""
         libraries = self.load_all_libraries()
         return list(libraries.keys())
 
     def get_security_warnings_for_keyword(
         self, library: str, keyword: str
     ) -> list[str]:
-        """Get security warnings for a specific keyword."""
+        """Retrieve security warnings for a specific keyword."""
         warnings = []
         keywords = self.get_keywords_for_library(library)
 
@@ -156,7 +156,7 @@ class KeywordLibraryLoader:
         return warnings
 
     def refresh_cache(self) -> None:
-        """Clear the cache to force reload of configurations."""
+        """Clear the cache to force a reload of configurations."""
         self._cache.clear()
         self.logger.info("Keyword library cache cleared")
 
@@ -203,7 +203,7 @@ class KeywordLibraryLoader:
         return errors
 
     def _validate_keywords_structure(self, config: dict[str, Any]) -> list[str]:
-        """Validate the structure of keywords in the configuration."""
+        """Validate the structure of keywords within the configuration."""
         errors = []
         for keyword_name, keyword_info in config.get("keywords", {}).items():
             if not isinstance(keyword_info, dict):

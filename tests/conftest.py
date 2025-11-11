@@ -8,7 +8,7 @@ practices for organizing test utilities and fixtures.
 import shutil
 import tempfile
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from pathlib import Path
 from typing import Any
 
@@ -83,14 +83,14 @@ except ImportError:
 
 
 @pytest.fixture
-def temp_dir():
+def temp_dir() -> Generator[Path, None, None]:
     """Create a temporary directory for test files."""
     with tempfile.TemporaryDirectory() as tmpdir:
         yield Path(tmpdir)
 
 
 @pytest.fixture
-def sample_zephyr_json():
+def sample_zephyr_json() -> dict[str, Any]:
     """Sample Zephyr JSON data for testing."""
     return {
         "tests": [
@@ -109,7 +109,9 @@ def sample_zephyr_json():
 
 
 @pytest.fixture(autouse=True)
-def cleanup_test_files(tmp_path):
+def cleanup_test_files(
+    tmp_path: pytest.TempPathFactory,
+) -> Generator[Callable[[str], None], None, None]:
     """Automatically clean up any test-generated files after each test.
 
     This fixture uses isolated temporary directories and proper cleanup tracking
@@ -118,7 +120,7 @@ def cleanup_test_files(tmp_path):
     _ = tmp_path  # Mark as used to avoid linting warning
     cleanup_files = []
 
-    def register_file_for_cleanup(file_path):
+    def register_file_for_cleanup(file_path: str) -> None:
         """Register a file to be cleaned up after the test."""
         cleanup_files.append(Path(file_path))
 
@@ -136,7 +138,9 @@ def cleanup_test_files(tmp_path):
 
 
 @pytest.fixture
-def telemetry_events(monkeypatch):
+def telemetry_events(
+    monkeypatch: pytest.MonkeyPatch,
+) -> Generator[list[tuple[str, Any]], None, None]:
     """Capture telemetry events emitted during a test."""
     monkeypatch.setenv("IMPORTOBOT_ENABLE_TELEMETRY", "1")
     monkeypatch.setenv("IMPORTOBOT_TELEMETRY_MIN_SAMPLE_DELTA", "0")
@@ -144,7 +148,7 @@ def telemetry_events(monkeypatch):
     telemetry.reset_telemetry_client()
     events = []
 
-    def _exporter(event_name, payload):
+    def _exporter(event_name: str, payload: Any) -> None:
         events.append((event_name, payload))
 
     telemetry.clear_telemetry_exporters()
@@ -156,7 +160,7 @@ def telemetry_events(monkeypatch):
 
 
 @pytest.fixture
-def benchmark():
+def benchmark() -> Callable[..., dict[str, Any]]:
     """Provide simple benchmark fixture for performance tests."""
 
     def _benchmark(func: Callable[[], Any], *, iterations: int = 1) -> dict[str, Any]:
@@ -173,7 +177,7 @@ def benchmark():
 
 # Additional fixtures and configuration for testing
 @pytest.fixture(scope="session")
-def test_config():
+def test_config() -> dict[str, int | float]:
     """Provide test configuration values."""
     return {
         "timeout": 30,  # Default timeout for tests in seconds
@@ -183,7 +187,9 @@ def test_config():
 
 
 @pytest.fixture(autouse=True)
-def configure_timeout(request, test_config):
+def configure_timeout(
+    request: pytest.FixtureRequest, test_config: dict[str, Any]
+) -> None:
     """Automatically apply timeout to all tests."""
     # Set timeout based on test configuration
     timeout = test_config["timeout"]
@@ -194,7 +200,7 @@ def configure_timeout(request, test_config):
 
 
 @pytest.fixture(scope="session")
-def business_requirements():
+def business_requirements() -> dict[str, Any]:
     """Load business requirements for testing."""
     br = BusinessRequirements()
     return {
