@@ -7,7 +7,9 @@ import pytest
 pytestmark = pytest.mark.slow
 
 
-def pytest_collection_modifyitems(session, config, items):
+def pytest_collection_modifyitems(
+    session: object, config: pytest.Config, items: list[pytest.Item]
+) -> None:
     """Mark script unit tests as slow so they can be deselected easily."""
     base_dir = Path(__file__).parent.resolve()
     for item in items:

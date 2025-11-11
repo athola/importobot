@@ -11,7 +11,7 @@ from importobot.medallion.silver_layer import SilverLayer
 
 
 @pytest.mark.parametrize("layer_cls", [SilverLayer, GoldLayer])
-def test_placeholder_layers_emit_warning(layer_cls):
+def test_placeholder_layers_emit_warning(layer_cls: type) -> None:
     """Ensure placeholder layer implementations emit a runtime warning."""
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")

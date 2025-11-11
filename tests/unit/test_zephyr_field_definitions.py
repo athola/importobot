@@ -20,7 +20,7 @@ from importobot.core.field_definitions import (
 class TestZephyrFieldGroups:
     """Test Zephyr-specific field group definitions."""
 
-    def test_zephyr_details_fields_definition(self):
+    def test_zephyr_details_fields_definition(self) -> None:
         """Test ZEPHYR_DETAILS_FIELDS contains expected metadata fields."""
         expected_fields = [
             "status",
@@ -39,7 +39,7 @@ class TestZephyrFieldGroups:
         )
         assert isinstance(ZEPHYR_DETAILS_FIELDS, FieldGroup)
 
-    def test_zephyr_precondition_fields_definition(self):
+    def test_zephyr_precondition_fields_definition(self) -> None:
         """Test ZEPHYR_PRECONDITION_FIELDS contains setup-related fields."""
         expected_fields = ["precondition", "preconditions", "setup", "requirements"]
 
@@ -52,7 +52,7 @@ class TestZephyrFieldGroups:
         )
         assert isinstance(ZEPHYR_PRECONDITION_FIELDS, FieldGroup)
 
-    def test_zephyr_traceability_fields_definition(self):
+    def test_zephyr_traceability_fields_definition(self) -> None:
         """Test ZEPHYR_TRACEABILITY_FIELDS contains requirement tracking fields."""
         expected_fields = [
             "issues",
@@ -71,7 +71,7 @@ class TestZephyrFieldGroups:
         )
         assert isinstance(ZEPHYR_TRACEABILITY_FIELDS, FieldGroup)
 
-    def test_zephyr_level_fields_definition(self):
+    def test_zephyr_level_fields_definition(self) -> None:
         """Test ZEPHYR_LEVEL_FIELDS contains test classification fields."""
         expected_fields = ["testLevel", "level", "importance", "criticality"]
 
@@ -84,7 +84,7 @@ class TestZephyrFieldGroups:
         )
         assert isinstance(ZEPHYR_LEVEL_FIELDS, FieldGroup)
 
-    def test_zephyr_platform_fields_definition(self):
+    def test_zephyr_platform_fields_definition(self) -> None:
         """Test ZEPHYR_PLATFORM_FIELDS contains platform support fields."""
         expected_fields = ["supportedPlatforms", "platforms", "targets"]
 
@@ -97,7 +97,7 @@ class TestZephyrFieldGroups:
         )
         assert isinstance(ZEPHYR_PLATFORM_FIELDS, FieldGroup)
 
-    def test_zephyr_step_structure_fields_definition(self):
+    def test_zephyr_step_structure_fields_definition(self) -> None:
         """Test ZEPHYR_STEP_STRUCTURE_FIELDS contains three-segment step fields."""
         expected_fields = [
             "step",
@@ -116,7 +116,7 @@ class TestZephyrFieldGroups:
         )
         assert isinstance(ZEPHYR_STEP_STRUCTURE_FIELDS, FieldGroup)
 
-    def test_zephyr_field_groups_case_insensitive(self):
+    def test_zephyr_field_groups_case_insensitive(self) -> None:
         """Test Zephyr field groups are case insensitive."""
         assert "status" in ZEPHYR_DETAILS_FIELDS
         assert "STATUS" in ZEPHYR_DETAILS_FIELDS
@@ -126,7 +126,7 @@ class TestZephyrFieldGroups:
         assert "PRECONDITION" in ZEPHYR_PRECONDITION_FIELDS
         assert "Precondition" in ZEPHYR_PRECONDITION_FIELDS
 
-    def test_zephyr_field_groups_find_first(self):
+    def test_zephyr_field_groups_find_first(self) -> None:
         """Test Zephyr field groups find_first method."""
         data = {
             "STATUS": "In Progress",
@@ -139,7 +139,7 @@ class TestZephyrFieldGroups:
         assert field in ["status", "priority", "component"]
         assert value in ["In Progress", "High", "Authentication"]
 
-    def test_zephyr_field_groups_no_matches(self):
+    def test_zephyr_field_groups_no_matches(self) -> None:
         """Test Zephyr field groups with no matching fields."""
         data = {"other": "value", "unknown": "field"}
 
@@ -151,7 +151,7 @@ class TestZephyrFieldGroups:
 class TestZephyrTestIndicators:
     """Test Zephyr-specific test indicators."""
 
-    def test_zephyr_test_indicators_content(self):
+    def test_zephyr_test_indicators_content(self) -> None:
         """Test ZEPHYR_TEST_INDICATORS contains Zephyr-specific fields."""
         expected_indicators = [
             "testscript",
@@ -166,14 +166,14 @@ class TestZephyrTestIndicators:
 
         assert isinstance(ZEPHYR_TEST_INDICATORS, frozenset)
 
-    def test_zephyr_test_indicators_is_frozenset(self):
+    def test_zephyr_test_indicators_is_frozenset(self) -> None:
         """Test ZEPHYR_TEST_INDICATORS is a frozenset."""
         assert isinstance(ZEPHYR_TEST_INDICATORS, frozenset)
 
         # Verify it's immutable - frozenset doesn't have add method
         assert not hasattr(ZEPHYR_TEST_INDICATORS, "add")
 
-    def test_zephyr_test_indicators_case_sensitivity(self):
+    def test_zephyr_test_indicators_case_sensitivity(self) -> None:
         """Test ZEPHYR_TEST_INDICATORS are lowercase."""
         # Should contain lowercase versions
         assert "testscript" in ZEPHYR_TEST_INDICATORS
@@ -187,25 +187,25 @@ class TestZephyrTestIndicators:
 class TestIsZephyrTestCase:
     """Test is_zephyr_test_case function."""
 
-    def test_is_zephyr_test_case_non_dict(self):
+    def test_is_zephyr_test_case_non_dict(self) -> None:
         """Test is_zephyr_test_case with non-dict input."""
         assert not is_zephyr_test_case("string")
         assert not is_zephyr_test_case([])
         assert not is_zephyr_test_case(42)
         assert not is_zephyr_test_case(None)
 
-    def test_is_zephyr_test_case_empty_dict(self):
+    def test_is_zephyr_test_case_empty_dict(self) -> None:
         """Test is_zephyr_test_case with empty dict."""
         assert not is_zephyr_test_case({})
 
-    def test_is_zephyr_test_case_no_zephyr_indicators(self):
+    def test_is_zephyr_test_case_no_zephyr_indicators(self) -> None:
         """Test is_zephyr_test_case with dict containing no Zephyr indicators."""
         data = {"name": "Test Case", "description": "Description"}
         assert not is_zephyr_test_case(data)
         # But should still be recognized as a regular test case
         assert is_test_case(data)
 
-    def test_is_zephyr_test_case_with_single_indicator(self):
+    def test_is_zephyr_test_case_with_single_indicator(self) -> None:
         """Test is_zephyr_test_case with single Zephyr indicator."""
         test_cases = [
             {"testscript": "script content"},
@@ -220,7 +220,7 @@ class TestIsZephyrTestCase:
                 f"Failed to recognize Zephyr test case: {data}"
             )
 
-    def test_is_zephyr_test_case_case_insensitive(self):
+    def test_is_zephyr_test_case_case_insensitive(self) -> None:
         """Test is_zephyr_test_case with case variations of indicators."""
         test_cases = [
             {"testScript": "script content"},
@@ -235,7 +235,7 @@ class TestIsZephyrTestCase:
                 f"Failed to recognize case-insensitive Zephyr test case: {data}"
             )
 
-    def test_is_zephyr_test_case_multiple_indicators(self):
+    def test_is_zephyr_test_case_multiple_indicators(self) -> None:
         """Test is_zephyr_test_case with multiple Zephyr indicators."""
         data = {
             "testscript": "script content",
@@ -245,7 +245,7 @@ class TestIsZephyrTestCase:
         }
         assert is_zephyr_test_case(data)
 
-    def test_is_zephyr_test_case_mixed_with_regular_indicators(self):
+    def test_is_zephyr_test_case_mixed_with_regular_indicators(self) -> None:
         """Test is_zephyr_test_case with mixed Zephyr and regular indicators."""
         data = {
             "name": "Regular Test Name",
@@ -255,12 +255,12 @@ class TestIsZephyrTestCase:
         assert is_zephyr_test_case(data)
         assert is_test_case(data)  # Should also be recognized as regular test case
 
-    def test_is_zephyr_test_case_with_empty_values(self):
+    def test_is_zephyr_test_case_with_empty_values(self) -> None:
         """Test is_zephyr_test_case considers indicators regardless of value."""
         data = {"testscript": "", "precondition": None}
         assert is_zephyr_test_case(data)
 
-    def test_is_zephyr_test_case_complex_structure(self):
+    def test_is_zephyr_test_case_complex_structure(self) -> None:
         """Test is_zephyr_test_case with complex Zephyr structure."""
         data = {
             "name": "Authentication Test",
@@ -276,7 +276,7 @@ class TestIsZephyrTestCase:
         }
         assert is_zephyr_test_case(data)
 
-    def test_is_zephyr_test_case_distinguishes_from_regular(self):
+    def test_is_zephyr_test_case_distinguishes_from_regular(self) -> None:
         """Test that is_zephyr_test_case distinguishes from regular test cases."""
         regular_test = {
             "name": "Regular Test",
@@ -299,7 +299,7 @@ class TestIsZephyrTestCase:
 class TestZephyrFieldIntegration:
     """Test integration of Zephyr field groups with utility functions."""
 
-    def test_get_field_value_with_zephyr_groups(self):
+    def test_get_field_value_with_zephyr_groups(self) -> None:
         """Test get_field_value works with Zephyr field groups."""
         data = {"status": "In Progress", "priority": "High", "testLevel": "Smoke"}
 
@@ -311,7 +311,7 @@ class TestZephyrFieldIntegration:
         level_value = get_field_value(data, ZEPHYR_LEVEL_FIELDS)
         assert level_value == "Smoke"
 
-    def test_has_field_with_zephyr_groups(self):
+    def test_has_field_with_zephyr_groups(self) -> None:
         """Test has_field works with Zephyr field groups."""
         data = {"precondition": "Setup requirements", "issues": ["PROJ-123"]}
 
@@ -319,7 +319,7 @@ class TestZephyrFieldIntegration:
         assert has_field(data, ZEPHYR_TRACEABILITY_FIELDS)
         assert not has_field(data, ZEPHYR_PLATFORM_FIELDS)
 
-    def test_zephyr_field_groups_with_complex_data(self):
+    def test_zephyr_field_groups_with_complex_data(self) -> None:
         """Test Zephyr field groups with complex nested data."""
         data = {
             "status": "Ready",
@@ -356,7 +356,7 @@ class TestZephyrFieldIntegration:
 class TestZephyrFieldGroupEdgeCases:
     """Test edge cases and boundary conditions for Zephyr field groups."""
 
-    def test_zephyr_field_groups_with_none_values(self):
+    def test_zephyr_field_groups_with_none_values(self) -> None:
         """Test Zephyr field groups handle None values correctly."""
         data = {"status": None, "priority": "", "component": False, "owner": 0}
 
@@ -365,7 +365,7 @@ class TestZephyrFieldGroupEdgeCases:
         assert field is None
         assert value is None
 
-    def test_zephyr_field_groups_with_mixed_types(self):
+    def test_zephyr_field_groups_with_mixed_types(self) -> None:
         """Test Zephyr field groups with mixed value types."""
         data = {
             "status": "Active",
@@ -380,7 +380,7 @@ class TestZephyrFieldGroupEdgeCases:
         assert field == "status"
         assert value == "Active"
 
-    def test_zephyr_test_indicators_with_unicode(self):
+    def test_zephyr_test_indicators_with_unicode(self) -> None:
         """Test Zephyr test indicators with unicode characters."""
         data = {
             "testscript": "Test with ñiño and café",
@@ -388,7 +388,7 @@ class TestZephyrFieldGroupEdgeCases:
         }
         assert is_zephyr_test_case(data)
 
-    def test_zephyr_field_groups_large_values(self):
+    def test_zephyr_field_groups_large_values(self) -> None:
         """Test Zephyr field groups with large values."""
         large_text = "x" * 10000
         large_list = list(range(1000))

@@ -26,11 +26,13 @@ class ConversionContext:
 def process_single_file_with_suggestions(
     args: Any,
     convert_file_func: Callable[[str, str], None] | None = None,
-    apply_suggestions_func: Callable[
-        [dict[str, Any] | list[Any]],
-        tuple[dict[str, Any] | list[Any], list[dict[str, Any]]],
-    ]
-    | None = None,
+    apply_suggestions_func: (
+        Callable[
+            [dict[str, Any] | list[Any]],
+            tuple[dict[str, Any] | list[Any], list[dict[str, Any]]],
+        ]
+        | None
+    ) = None,
     display_changes_func: Callable[[list[dict[str, Any]], Any], None] | None = None,
     use_stem_for_basename: bool = False,
 ) -> None:
@@ -151,7 +153,6 @@ def convert_with_temp_file(
         conversion_data: Data to convert
         robot_filename: Output Robot Framework filename
         convert_file_func: Function to convert file (avoids circular import)
-            context.display_changes_func(context.changes_made, context.args)
     """
     if context is None:
         context = ConversionContext()
@@ -266,7 +267,7 @@ def restore_file(backup_path: str | Path, original_path: str | Path) -> None:
 
 
 def load_json_with_default(file_path: str | Path) -> dict[str, Any] | list[Any]:
-    """Load JSON file with default error handling.
+    """Load JSON file.
 
     Args:
         file_path: Path to the JSON file

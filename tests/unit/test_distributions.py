@@ -13,34 +13,50 @@ from importobot.utils.test_generation.distributions import (
     WeightsDict,
     print_test_distribution,
 )
+from tests.test_constants import (
+    DISTRIBUTION_CATEGORY1_LARGE,
+    DISTRIBUTION_CATEGORY1_SMALL,
+    DISTRIBUTION_CATEGORY2_LARGE,
+    DISTRIBUTION_CATEGORY2_SMALL,
+    DISTRIBUTION_CATEGORY3_LARGE,
+    DISTRIBUTION_CATEGORY3_SMALL,
+    DISTRIBUTION_LARGE_TOTAL,
+    DISTRIBUTION_SMALL_TOTAL,
+)
 
 
 class TestDistributionManagerBasicUsage:
     """Test basic DistributionManager usage and get_test_distribution method."""
 
-    def test_get_test_distribution_with_distribution(self):
+    def test_get_test_distribution_with_distribution(self) -> None:
         """Test get_test_distribution with explicit distribution."""
-        distribution = {"category1": 10, "category2": 20, "category3": 30}
+        distribution = {
+            "category1": DISTRIBUTION_CATEGORY1_SMALL,
+            "category2": DISTRIBUTION_CATEGORY2_SMALL,
+            "category3": DISTRIBUTION_CATEGORY3_SMALL,
+        }
 
         result = DistributionManager.get_test_distribution(
-            60, distribution=distribution
+            DISTRIBUTION_SMALL_TOTAL, distribution=distribution
         )
 
         assert result == distribution
 
-    def test_get_test_distribution_with_weights(self):
+    def test_get_test_distribution_with_weights(self) -> None:
         """Test get_test_distribution with weights."""
         weights = {"category1": 1.0, "category2": 2.0, "category3": 3.0}
 
-        result = DistributionManager.get_test_distribution(60, weights=weights)
+        result = DistributionManager.get_test_distribution(
+            DISTRIBUTION_SMALL_TOTAL, weights=weights
+        )
 
         # Should be normalized and distributed
-        assert sum(result.values()) == 60
-        assert result["category1"] == 10  # 1/6 * 60
-        assert result["category2"] == 20  # 2/6 * 60
-        assert result["category3"] == 30  # 3/6 * 60
+        assert sum(result.values()) == DISTRIBUTION_SMALL_TOTAL
+        assert result["category1"] == DISTRIBUTION_CATEGORY1_SMALL  # 1/6 * 60
+        assert result["category2"] == DISTRIBUTION_CATEGORY2_SMALL  # 2/6 * 60
+        assert result["category3"] == DISTRIBUTION_CATEGORY3_SMALL  # 3/6 * 60
 
-    def test_get_test_distribution_with_enum_weights(self):
+    def test_get_test_distribution_with_enum_weights(self) -> None:
         """Test get_test_distribution with CategoryEnum weights."""
         weights = {CategoryEnum.REGRESSION: 1.0, CategoryEnum.SMOKE: 2.0}
 
@@ -50,14 +66,14 @@ class TestDistributionManagerBasicUsage:
         assert result["regression"] == 10  # 1/3 * 30
         assert result["smoke"] == 20  # 2/3 * 30
 
-    def test_get_test_distribution_default_weights(self):
+    def test_get_test_distribution_default_weights(self) -> None:
         """Test get_test_distribution with default weights."""
         result = DistributionManager.get_test_distribution(100)
 
         assert sum(result.values()) == 100
         assert all(count > 0 for count in result.values())
 
-    def test_get_test_distribution_no_params(self):
+    def test_get_test_distribution_no_params(self) -> None:
         """Test get_test_distribution with no distribution or weights."""
         result = DistributionManager.get_test_distribution(50)
 
@@ -68,39 +84,39 @@ class TestDistributionManagerBasicUsage:
 class TestDistributionManagerAbsoluteDistribution:
     """Test DistributionManager absolute distribution processing."""
 
-    def test_process_absolute_distribution_empty(self):
+    def test_process_absolute_distribution_empty(self) -> None:
         """Test _process_absolute_distribution with empty distribution."""
         with pytest.raises(ValueError, match="Distribution dictionary cannot be empty"):
             DistributionManager.process_absolute_distribution(10, {})
 
-    def test_process_absolute_distribution_zero_values(self):
+    def test_process_absolute_distribution_zero_values(self) -> None:
         """Test _process_absolute_distribution with zero values."""
         with pytest.raises(ValueError, match="non-positive values"):
             DistributionManager.process_absolute_distribution(
                 10, {"cat1": 0, "cat2": 5}
             )
 
-    def test_process_absolute_distribution_negative_values(self):
+    def test_process_absolute_distribution_negative_values(self) -> None:
         """Test _process_absolute_distribution with negative values."""
         with pytest.raises(ValueError, match="non-positive values"):
             DistributionManager.process_absolute_distribution(
                 10, {"cat1": -1, "cat2": 5}
             )
 
-    def test_process_absolute_distribution_all_zero(self):
+    def test_process_absolute_distribution_all_zero(self) -> None:
         """Test _process_absolute_distribution with all zero values."""
         with pytest.raises(ValueError, match="non-positive values"):
             DistributionManager.process_absolute_distribution(
                 10, {"cat1": 0, "cat2": 0}
             )
 
-    def test_process_absolute_distribution_matches_total(self):
+    def test_process_absolute_distribution_matches_total(self) -> None:
         """Test _process_absolute_distribution when distribution matches total."""
         distribution = {"cat1": 3, "cat2": 7}
         result = DistributionManager.process_absolute_distribution(10, distribution)
         assert result == distribution
 
-    def test_process_absolute_distribution_needs_scaling_up(self):
+    def test_process_absolute_distribution_needs_scaling_up(self) -> None:
         """Test _process_absolute_distribution when scaling up."""
         distribution = {"cat1": 1, "cat2": 2}
         result = DistributionManager.process_absolute_distribution(10, distribution)
@@ -108,7 +124,7 @@ class TestDistributionManagerAbsoluteDistribution:
         assert result["cat1"] == 3  # 1/3 * 10, rounded up
         assert result["cat2"] == 7  # 2/3 * 10, rounded up
 
-    def test_process_absolute_distribution_needs_scaling_down(self):
+    def test_process_absolute_distribution_needs_scaling_down(self) -> None:
         """Test _process_absolute_distribution when scaling down."""
         distribution = {"cat1": 10, "cat2": 20}
         result = DistributionManager.process_absolute_distribution(10, distribution)
@@ -116,7 +132,7 @@ class TestDistributionManagerAbsoluteDistribution:
         assert result["cat1"] == 3  # 10/30 * 10, rounded
         assert result["cat2"] == 7  # 20/30 * 10, rounded
 
-    def test_process_absolute_distribution_rounding_adjustment(self):
+    def test_process_absolute_distribution_rounding_adjustment(self) -> None:
         """Test _process_absolute_distribution rounding adjustment."""
         # This should result in rounding errors that need adjustment
         distribution = {"cat1": 1, "cat2": 1, "cat3": 1}
@@ -128,33 +144,33 @@ class TestDistributionManagerAbsoluteDistribution:
 class TestDistributionManagerWeightedDistribution:
     """Test DistributionManager weighted distribution processing."""
 
-    def test_process_weighted_distribution_empty_weights(self):
+    def test_process_weighted_distribution_empty_weights(self) -> None:
         """Test _process_weighted_distribution with empty weights."""
         with pytest.raises(ValueError, match="Weights dictionary cannot be empty"):
             DistributionManager.process_weighted_distribution(10, {})
 
-    def test_process_weighted_distribution_zero_weights(self):
+    def test_process_weighted_distribution_zero_weights(self) -> None:
         """Test _process_weighted_distribution with zero weights."""
         with pytest.raises(ValueError, match="non-positive values"):
             DistributionManager.process_weighted_distribution(
                 10, {"cat1": 0.0, "cat2": 1.0}
             )
 
-    def test_process_weighted_distribution_negative_weights(self):
+    def test_process_weighted_distribution_negative_weights(self) -> None:
         """Test _process_weighted_distribution with negative weights."""
         with pytest.raises(ValueError, match="non-positive values"):
             DistributionManager.process_weighted_distribution(
                 10, {"cat1": -1.0, "cat2": 1.0}
             )
 
-    def test_process_weighted_distribution_all_zero_weights(self):
+    def test_process_weighted_distribution_all_zero_weights(self) -> None:
         """Test _process_weighted_distribution with all zero weights."""
         with pytest.raises(ValueError, match="non-positive values"):
             DistributionManager.process_weighted_distribution(
                 10, {"cat1": 0.0, "cat2": 0.0}
             )
 
-    def test_process_weighted_distribution_enum_keys(self):
+    def test_process_weighted_distribution_enum_keys(self) -> None:
         """Test _process_weighted_distribution with CategoryEnum keys."""
         weights = {CategoryEnum.REGRESSION: 1.0, CategoryEnum.SMOKE: 2.0}
         result = DistributionManager.process_weighted_distribution(30, weights)
@@ -163,7 +179,7 @@ class TestDistributionManagerWeightedDistribution:
         assert result["regression"] == 10  # 1/3 * 30
         assert result["smoke"] == 20  # 2/3 * 30
 
-    def test_process_weighted_distribution_string_keys(self):
+    def test_process_weighted_distribution_string_keys(self) -> None:
         """Test _process_weighted_distribution with string keys."""
         weights = {"regression": 1.0, "smoke": 2.0}
         result = DistributionManager.process_weighted_distribution(30, weights)
@@ -172,7 +188,7 @@ class TestDistributionManagerWeightedDistribution:
         assert result["regression"] == 10  # 1/3 * 30
         assert result["smoke"] == 20  # 2/3 * 30
 
-    def test_process_weighted_distribution_mixed_keys(self):
+    def test_process_weighted_distribution_mixed_keys(self) -> None:
         """Test _process_weighted_distribution with mixed key types."""
         weights: dict[Any, float] = {CategoryEnum.REGRESSION: 1.0, "smoke": 2.0}
         result = DistributionManager.process_weighted_distribution(30, weights)
@@ -181,7 +197,7 @@ class TestDistributionManagerWeightedDistribution:
         assert result["regression"] == 10  # 1/3 * 30
         assert result["smoke"] == 20  # 2/3 * 30
 
-    def test_process_weighted_distribution_remainder_distribution(self):
+    def test_process_weighted_distribution_remainder_distribution(self) -> None:
         """Test _process_weighted_distribution with remainder distribution."""
         # 7 tests with weights that don't divide evenly
         weights = {"cat1": 1.0, "cat2": 1.0, "cat3": 1.0}
@@ -193,15 +209,17 @@ class TestDistributionManagerWeightedDistribution:
             count >= 2 for count in result.values()
         )  # Each should get at least 2 (7/3 ≈ 2.33)
 
-    def test_process_weighted_distribution_large_total(self):
+    def test_process_weighted_distribution_large_total(self) -> None:
         """Test _process_weighted_distribution with large total."""
         weights = {"cat1": 1.0, "cat2": 2.0, "cat3": 3.0}
-        result = DistributionManager.process_weighted_distribution(1000, weights)
+        result = DistributionManager.process_weighted_distribution(
+            DISTRIBUTION_LARGE_TOTAL, weights
+        )
 
-        assert sum(result.values()) == 1000
-        assert result["cat1"] == 167  # 1/6 * 1000
-        assert result["cat2"] == 333  # 2/6 * 1000
-        assert result["cat3"] == 500  # 3/6 * 1000
+        assert sum(result.values()) == DISTRIBUTION_LARGE_TOTAL
+        assert result["cat1"] == DISTRIBUTION_CATEGORY1_LARGE  # 1/6 * 1000
+        assert result["cat2"] == DISTRIBUTION_CATEGORY2_LARGE  # 2/6 * 1000
+        assert result["cat3"] == DISTRIBUTION_CATEGORY3_LARGE  # 3/6 * 1000
 
     @settings(max_examples=200, deadline=None)
     @given(
@@ -242,14 +260,14 @@ class TestDistributionManagerWeightedDistribution:
 class TestPrintTestDistribution:
     """Test print_test_distribution function."""
 
-    def test_print_test_distribution_empty(self, capsys):
+    def test_print_test_distribution_empty(self, capsys: Any) -> None:
         """Test print_test_distribution with empty distribution."""
         print_test_distribution({})
 
         captured = capsys.readouterr()
         assert "Test Distribution Summary (Total: 0 tests)" in captured.out
 
-    def test_print_test_distribution_single_category(self, capsys):
+    def test_print_test_distribution_single_category(self, capsys: Any) -> None:
         """Test print_test_distribution with single category."""
         distribution = {"web_testing": 10}
 
@@ -259,7 +277,7 @@ class TestPrintTestDistribution:
         assert "Test Distribution Summary (Total: 10 tests)" in captured.out
         assert "Web_Testing:   10 tests (100.0%)" in captured.out
 
-    def test_print_test_distribution_multiple_categories(self, capsys):
+    def test_print_test_distribution_multiple_categories(self, capsys: Any) -> None:
         """Test print_test_distribution with multiple categories."""
         distribution = {"web_testing": 6, "api_testing": 3, "database_testing": 1}
 
@@ -274,7 +292,7 @@ class TestPrintTestDistribution:
         assert "3 tests ( 30.0%)" in captured.out
         assert "1 tests ( 10.0%)" in captured.out
 
-    def test_print_test_distribution_sorted_categories(self, capsys):
+    def test_print_test_distribution_sorted_categories(self, capsys: Any) -> None:
         """Test print_test_distribution sorts categories alphabetically."""
         distribution = {"zebra": 1, "alpha": 2, "beta": 3}
 
@@ -289,7 +307,7 @@ class TestPrintTestDistribution:
         assert "Beta:" in category_lines[1]
         assert "Zebra:" in category_lines[2]
 
-    def test_print_test_distribution_percentage_formatting(self, capsys):
+    def test_print_test_distribution_percentage_formatting(self, capsys: Any) -> None:
         """Test print_test_distribution percentage formatting."""
         distribution = {"cat1": 1, "cat2": 1, "cat3": 1}  # 33.3% each
 
@@ -298,7 +316,7 @@ class TestPrintTestDistribution:
         captured = capsys.readouterr()
         assert "33.3%" in captured.out
 
-    def test_print_test_distribution_zero_total(self, capsys):
+    def test_print_test_distribution_zero_total(self, capsys: Any) -> None:
         """Test print_test_distribution with zero total (edge case)."""
         distribution = {"cat1": 0, "cat2": 0}
 
@@ -312,17 +330,17 @@ class TestPrintTestDistribution:
 class TestTypeAliases:
     """Test type aliases are properly defined."""
 
-    def test_weights_dict_type_alias(self):
+    def test_weights_dict_type_alias(self) -> None:
         """Test WeightsDict type alias can be used."""
         weights: WeightsDict = {"cat1": 1.0, "cat2": 2.0}
         assert isinstance(weights, dict)
 
-    def test_distribution_dict_type_alias(self):
+    def test_distribution_dict_type_alias(self) -> None:
         """Test DistributionDict type alias can be used."""
         distribution: DistributionDict = {"cat1": 10, "cat2": 20}
         assert isinstance(distribution, dict)
 
-    def test_weights_dict_with_enum(self):
+    def test_weights_dict_with_enum(self) -> None:
         """Test WeightsDict with CategoryEnum keys."""
         weights: WeightsDict = {CategoryEnum.REGRESSION: 1.0}
         assert isinstance(weights, dict)

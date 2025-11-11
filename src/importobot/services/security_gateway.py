@@ -94,6 +94,15 @@ class _SecurityRateLimiter:
         backoff_base: float = 2.0,
         max_backoff_multiplier: float = 8.0,
     ) -> None:
+        """Initialize the rate limiter.
+
+        Args:
+            max_calls: Maximum number of calls allowed within the interval.
+            interval: Time window in seconds for rate limiting.
+            max_queue_size: Maximum size of the event queue.
+            backoff_base: Base for exponential backoff calculation.
+            max_backoff_multiplier: Maximum multiplier for backoff.
+        """
         self._max_calls = max_calls
         self._interval = interval
         self._max_queue_size = max_queue_size or max_calls
@@ -307,6 +316,11 @@ class SecurityGateway:
         ]
 
     def _enforce_rate_limit(self, operation: str) -> None:
+        """Enforce rate limiting for a given security operation.
+
+        Raises:
+            SecurityError: If the operation is rate-limited.
+        """
         if not self._rate_limiter:
             return
         allowed, retry_after = self._rate_limiter.try_acquire(operation)

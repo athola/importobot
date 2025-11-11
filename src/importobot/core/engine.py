@@ -78,13 +78,16 @@ class GenericConversionEngine(ConversionEngine):
                 f"Found top-level keys: {available_keys}"
             )
 
+        # Detect libraries from original steps before generating content
+        detected_libraries = self.keyword_generator.detect_libraries(all_steps)
+
+        # Pass library context to keyword generator for library-aware verification
+        self.keyword_generator.set_library_context(detected_libraries)
+
         if tests:
             for test in tests:
                 test_case_lines = self.keyword_generator.generate_test_case(test)
                 test_cases_content.extend(test_case_lines)
-
-        # Detect libraries from both original steps and generated content
-        detected_libraries = self.keyword_generator.detect_libraries(all_steps)
 
         # Also detect from generated Robot Framework content
         generated_content = "\n".join(test_cases_content)
@@ -95,8 +98,11 @@ class GenericConversionEngine(ConversionEngine):
         # Combine all detected libraries
         all_libraries = detected_libraries.union(additional_libraries)
 
-        # Libraries
-        output_lines.extend(f"Library    {lib}" for lib in sorted(all_libraries))
+        # Libraries - convert enum values to strings for Robot Framework
+        output_lines.extend(
+            f"Library    {lib.value}"
+            for lib in sorted(all_libraries, key=lambda x: x.value)
+        )
 
         output_lines.extend(["", "*** Test Cases ***", ""])
         output_lines.extend(test_cases_content)

@@ -6,7 +6,7 @@ from .ssh_base import BaseSSHTestGenerator
 
 
 class SSHInteractiveTestGenerator(BaseSSHTestGenerator):
-    """Generates SSH interactive test cases."""
+    """Generate SSH interactive test cases."""
 
     def __init__(self) -> None:
         """Initialize the SSH interactive test generator."""

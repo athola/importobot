@@ -9,7 +9,7 @@ to ensure proper functionality and TDD compliance.
 # pylint: disable=C0411
 
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -28,7 +28,7 @@ class TestBusinessCaseHelpers:
     """Test business case helper functions."""
 
     @patch("builtins.print")
-    def test_display_business_challenge(self, mock_print):
+    def test_display_business_challenge(self, mock_print: Mock) -> None:
         """Test business challenge display function."""
         metrics = SimpleNamespace(
             test_cases=500, manual_time_per_test_days=1.5, daily_cost_usd=300
@@ -49,7 +49,7 @@ class TestBusinessCaseHelpers:
         assert "THE CHALLENGE:" in printed_content
 
     @patch("builtins.print")
-    def test_display_business_impact(self, mock_print):
+    def test_display_business_impact(self, mock_print: Mock) -> None:
         """Test business impact display function."""
         business_metrics = {
             "speed_improvement": 50.0,
@@ -76,7 +76,7 @@ class TestBusinessCaseHelpers:
         assert "BUSINESS IMPACT:" in printed_content
 
     @patch("builtins.print")
-    def test_display_business_impact_infinite_values(self, mock_print):
+    def test_display_business_impact_infinite_values(self, mock_print: Mock) -> None:
         """Test business impact display with infinite values."""
         business_metrics = {
             "speed_improvement": float("inf"),
@@ -100,7 +100,7 @@ class TestBusinessCaseHelpers:
 class TestUtilityHelpers:
     """Test utility helper functions."""
 
-    def test_format_large_number(self):
+    def test_format_large_number(self) -> None:
         """Test large number formatting."""
         # Create a ChartFactory instance to access _format_large_number
 
@@ -127,7 +127,9 @@ class TestUtilityHelpers:
 
     @patch("pathlib.Path.unlink")
     @patch("pathlib.Path.exists")
-    def test_safe_remove_file_success(self, mock_exists, mock_unlink):
+    def test_safe_remove_file_success(
+        self, mock_exists: Mock, mock_unlink: Mock
+    ) -> None:
         """Test successful file removal."""
         mock_exists.return_value = True
 
@@ -138,7 +140,9 @@ class TestUtilityHelpers:
 
     @patch("pathlib.Path.unlink")
     @patch("pathlib.Path.exists")
-    def test_safe_remove_file_not_exists(self, mock_exists, mock_unlink):
+    def test_safe_remove_file_not_exists(
+        self, mock_exists: Mock, mock_unlink: Mock
+    ) -> None:
         """Test file removal when file doesn't exist."""
         mock_exists.return_value = False
 
@@ -148,7 +152,7 @@ class TestUtilityHelpers:
         mock_unlink.assert_not_called()
 
     @patch("pathlib.Path.exists")
-    def test_safe_remove_file_empty_path(self, mock_exists):
+    def test_safe_remove_file_empty_path(self, mock_exists: Mock) -> None:
         """Test file removal with empty path."""
         safe_remove_file("")
 
@@ -156,7 +160,9 @@ class TestUtilityHelpers:
 
     @patch("pathlib.Path.unlink")
     @patch("pathlib.Path.exists")
-    def test_safe_remove_file_permission_error(self, mock_exists, mock_unlink):
+    def test_safe_remove_file_permission_error(
+        self, mock_exists: Mock, mock_unlink: Mock
+    ) -> None:
         """Test file removal with permission error."""
         mock_exists.return_value = True
         mock_unlink.side_effect = PermissionError("Permission denied")
@@ -171,7 +177,7 @@ class TestUtilityHelpers:
 class TestNewHelperFunctions:
     """Test the new helper functions we created during refactoring."""
 
-    def test_command_keyword_decision_logic(self):
+    def test_command_keyword_decision_logic(self) -> None:
         """Test that our refactored command keyword logic works correctly."""
         # This is an integration test to verify our intent recognition improvements
         try:

@@ -1,10 +1,8 @@
 # Usage Examples
 
-This page provides a collection of common usage examples for Importobot.
+This page presents common usage examples for Importobot, demonstrating how to perform various conversion tasks.
 
 ## Command-Line Interface (CLI)
-
-The CLI is the easiest way to get started with Importobot. It provides a simple and intuitive interface for converting test exports.
 
 ### Convert a single file
 
@@ -20,77 +18,51 @@ uv run importobot --batch ./exports ./robot-output
 
 ## Python API
 
-The Python API provides more flexibility for integrating Importobot into your own scripts and workflows.
+For programmatic use, Importobot provides a Python API.
 
 ```python
 from importobot.api import converters
 
-# Create a converter instance
 converter = converters.JsonToRobotConverter()
 
-# Convert a single file
-summary = converter.convert_file("input.json", "output.robot")
-print(summary)
+# Convert a single JSON file to a Robot Framework file
+converter.convert_file("input.json", "output.robot")
 
-# Convert a directory of files
-summary = converter.convert_directory("inputs", "outputs")
-print(summary)
+# Convert all JSON files in an input directory to a specified output directory
+converter.convert_directory("inputs", "outputs")
 ```
 
-## Schema-Driven Parsing
+## Schema Mapping
 
-For test exports with custom field names, you can provide a schema file to map the custom names to the standard ones expected by Importobot.
+If your test exports use custom field names, you can provide a schema file to map them to the standard names that Importobot expects. For a detailed explanation, see the [User Guide on Schema Mapping](User-Guide.md#mapping-custom-field-names).
 
 ### Example Schema File (`docs/field_guide.md`)
 
 ```markdown
 # Field Guide
 
-This document outlines the custom fields used in our Zephyr exports.
-
-## Test Case Fields
-
--   **Title**: The main title of the test case. This should be mapped to the `name` field.
--   **Description**: A detailed description of the test case. This should be mapped to the `description` field.
--   **Steps**: The steps to be executed in the test case. This should be mapped to the `steps` field.
+- **Title**: Maps to `name`
+- **Description**: Maps to `description`
+- **Steps**: Maps to `steps`
 ```
 
 ### CLI Usage
 
 ```bash
-# Provide the schema file to the --input-schema argument
 uv run importobot \
   --input-schema docs/field_guide.md \
   custom_export.json \
   converted.robot
 ```
 
-### Programmatic Usage
-
-```python
-from importobot.core.schema_parser import SchemaParser
-from importobot.api import converters
-
-# Parse the schema file
-schema_parser = SchemaParser()
-schema = schema_parser.parse_markdown("docs/field_guide.md")
-
-# Create a converter with the custom schema
-converter = converters.JsonToRobotConverter(field_schema=schema)
-
-# Convert the file
-result = converter.convert_file("custom_export.json", "converted.robot")
-```
-
 ## API Integration
 
-Importobot can fetch test data directly from test management systems like Zephyr, TestRail, and JIRA/Xray.
+Importobot can fetch test data directly from test management systems. For more details on configuring API integration, refer to the [User Guide on Fetching Data from an API](User-Guide.md#fetching-data-from-an-api).
 
 ```python
 import os
 from importobot.integrations.clients import get_api_client, SupportedFormat
 
-# Get the appropriate API client
 client = get_api_client(
     SupportedFormat.ZEPHYR,
     api_url="https://zephyr.example.com",
@@ -98,8 +70,6 @@ client = get_api_client(
     project_name="ENG-QA",
 )
 
-# Fetch the test data
 for page in client.fetch_all():
-    # Process each page of test data
     process_page(page)
 ```

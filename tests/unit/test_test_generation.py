@@ -29,27 +29,27 @@ from importobot.utils.test_generation.helpers import (
 class TestCategoryEnumEnum:
     """Test the CategoryEnum enum functionality."""
 
-    def test_enum_values(self):
+    def test_enum_values(self) -> None:
         """Test that enum has correct values."""
         assert CategoryEnum.REGRESSION.value == "regression"
         assert CategoryEnum.SMOKE.value == "smoke"
         assert CategoryEnum.INTEGRATION.value == "integration"
         assert CategoryEnum.E2E.value == "e2e"
 
-    def test_get_all_values(self):
+    def test_get_all_values(self) -> None:
         """Test getting all enum values as strings."""
         values = CategoryEnum.get_all_values()
         expected = ["regression", "smoke", "integration", "e2e"]
         assert values == expected
 
-    def test_from_string_valid(self):
+    def test_from_string_valid(self) -> None:
         """Test converting valid strings to enum."""
         assert CategoryEnum.from_string("regression") == CategoryEnum.REGRESSION
         assert CategoryEnum.from_string("smoke") == CategoryEnum.SMOKE
         assert CategoryEnum.from_string("integration") == CategoryEnum.INTEGRATION
         assert CategoryEnum.from_string("e2e") == CategoryEnum.E2E
 
-    def test_from_string_invalid(self):
+    def test_from_string_invalid(self) -> None:
         """Test that invalid strings raise ValueError."""
         with pytest.raises(ValueError, match="Unknown category: invalid"):
             CategoryEnum.from_string("invalid")
@@ -63,7 +63,9 @@ class TestCategoryEnumEnum:
             ("e2e", CategoryEnum.E2E),
         ],
     )
-    def test_from_string_parameterized(self, category_str, expected_enum):
+    def test_from_string_parameterized(
+        self, category_str: str, expected_enum: CategoryEnum
+    ) -> None:
         """Test converting various valid strings to enums using parameterization."""
         result = CategoryEnum.from_string(category_str)
         assert result == expected_enum
@@ -73,12 +75,12 @@ class TestCategoryEnumEnum:
         "invalid_category",
         ["invalid", "unknown", "test", "", "REGRESSION", "Smoke", "integration_test"],
     )
-    def test_from_string_invalid_parameterized(self, invalid_category):
+    def test_from_string_invalid_parameterized(self, invalid_category: str) -> None:
         """Test that various invalid strings raise ValueError."""
         with pytest.raises(ValueError, match=f"Unknown category: {invalid_category}"):
             CategoryEnum.from_string(invalid_category)
 
-    def test_get_default_weights(self):
+    def test_get_default_weights(self) -> None:
         """Test default weights structure and values."""
         weights = CategoryEnum.get_default_weights()
 
@@ -100,11 +102,11 @@ class TestCategoryEnumEnum:
 class TestSuiteGeneratorWeights:
     """Test the weight distribution functionality in TestSuiteGenerator."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Initialize test fixtures."""
         self.generator = TestSuiteGenerator()
 
-    def test_enum_based_weights(self):
+    def test_enum_based_weights(self) -> None:
         """Test distribution calculation with enum-based weights."""
         weights = {
             CategoryEnum.REGRESSION: 0.6,
@@ -120,7 +122,7 @@ class TestSuiteGeneratorWeights:
         assert distribution["integration"] == 20
         assert sum(distribution.values()) == 100
 
-    def test_string_based_weights(self):
+    def test_string_based_weights(self) -> None:
         """Test distribution calculation with string-based weights."""
         weights = {"regression": 0.5, "smoke": 0.3, "integration": 0.1, "e2e": 0.1}
 
@@ -147,8 +149,8 @@ class TestSuiteGeneratorWeights:
         ],
     )
     def test_distribution_calculation_parameterized(
-        self, total_tests, weights, expected
-    ):
+        self, total_tests: int, weights: WeightsDict, expected: DistributionDict
+    ) -> None:
         """Test distribution calculation with various total counts and weights."""
         generator = TestSuiteGenerator()
 
@@ -158,7 +160,7 @@ class TestSuiteGeneratorWeights:
         assert distribution == expected
         assert sum(distribution.values()) == total_tests
 
-    def test_weights_normalization(self):
+    def test_weights_normalization(self) -> None:
         """Test that weights are properly normalized."""
         # Weights that don't sum to 1.0
         weights = {"regression": 3.0, "smoke": 1.0, "integration": 1.0}
@@ -172,7 +174,7 @@ class TestSuiteGeneratorWeights:
         assert distribution["integration"] == 20
         assert sum(distribution.values()) == 100
 
-    def test_invalid_string_category(self):
+    def test_invalid_string_category(self) -> None:
         """Test that invalid string categories raise ValueError."""
         weights = {"invalid_category": 0.5, "regression": 0.5}
 
@@ -180,7 +182,7 @@ class TestSuiteGeneratorWeights:
         with pytest.raises(ValueError, match="Invalid test category: invalid_category"):
             self.generator._get_test_distribution(100, None, weights)
 
-    def test_zero_total_weight_error(self):
+    def test_zero_total_weight_error(self) -> None:
         """Test that zero total weight raises ValueError."""
         weights = {"regression": 0.0, "smoke": 0.0}
 
@@ -188,7 +190,7 @@ class TestSuiteGeneratorWeights:
         with pytest.raises(ValueError, match="non-positive values"):
             self.generator._get_test_distribution(100, None, weights)
 
-    def test_default_weights_when_none_provided(self):
+    def test_default_weights_when_none_provided(self) -> None:
         """Test that default weights are used when no weights/distribution provided."""
         # pylint: disable=protected-access,no-member
         distribution = self.generator._get_test_distribution(100)
@@ -200,7 +202,7 @@ class TestSuiteGeneratorWeights:
         assert "integration" in distribution
         assert "e2e" in distribution
 
-    def test_distribution_takes_precedence(self):
+    def test_distribution_takes_precedence(self) -> None:
         """Test that distribution parameter takes precedence over weights."""
         weights = {"regression": 1.0}  # This should be ignored
         distribution_input = {
@@ -218,7 +220,7 @@ class TestSuiteGeneratorWeights:
         assert distribution["smoke"] == 50
         assert sum(distribution.values()) == 100
 
-    def test_rounding_adjustment(self):
+    def test_rounding_adjustment(self) -> None:
         """Test that rounding errors are properly adjusted."""
         # Use weights that will cause rounding issues
         weights = {"regression": 1.0, "smoke": 1.0, "integration": 1.0}
@@ -238,7 +240,7 @@ class TestSuiteGeneratorWeights:
 class TestTypeAliases:
     """Test the type aliases work correctly."""
 
-    def test_weights_dict_type_annotation(self):
+    def test_weights_dict_type_annotation(self) -> None:
         """Test that WeightsDict type alias accepts both enum and string keys."""
         # This test mainly checks that the type annotations are correct
         # The actual functionality is tested in the methods above
@@ -250,7 +252,7 @@ class TestTypeAliases:
         assert isinstance(enum_weights, dict)
         assert isinstance(string_weights, dict)
 
-    def test_distribution_dict_type_annotation(self):
+    def test_distribution_dict_type_annotation(self) -> None:
         """Test that DistributionDict type alias works correctly."""
         distribution: DistributionDict = {"regression": 100, "smoke": 50}
         assert isinstance(distribution, dict)
@@ -259,11 +261,11 @@ class TestTypeAliases:
 class TestSuiteGeneratorCore:
     """Test core TestSuiteGenerator functionality."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Initialize test fixtures."""
         self.generator = TestSuiteGenerator()
 
-    def test_generate_realistic_test_data(self):
+    def test_generate_realistic_test_data(self) -> None:
         """Test realistic test data generation."""
         data = self.generator.generate_realistic_test_data()
 
@@ -291,7 +293,7 @@ class TestSuiteGeneratorCore:
         assert len(data["user_role"]) > 0
         assert len(data["business_unit"]) > 0
 
-    def test_generate_enterprise_test_step(self):
+    def test_generate_enterprise_test_step(self) -> None:
         """Test enterprise test step generation."""
         test_data = {"base_url": "https://example.com", "username": "test"}
 
@@ -309,7 +311,7 @@ class TestSuiteGeneratorCore:
         assert "criticalityLevel" in step
         assert "dependencies" in step
 
-    def test_generate_enterprise_test_case(self):
+    def test_generate_enterprise_test_case(self) -> None:
         """Test enterprise test case generation."""
         test_case = self.generator.generate_enterprise_test_case(
             "web_automation", "user_authentication", 1, "high"
@@ -323,7 +325,7 @@ class TestSuiteGeneratorCore:
         assert "steps" in test_case["testScript"]
         assert len(test_case["testScript"]["steps"]) > 0
 
-    def test_generate_test_suite_creates_requested_number_of_files(self):
+    def test_generate_test_suite_creates_requested_number_of_files(self) -> None:
         """User gets exactly the number of test files they requested."""
         with tempfile.TemporaryDirectory() as temp_dir:
             requested_test_count = 20  # User's request
@@ -353,7 +355,7 @@ class TestSuiteGeneratorCore:
                 f"exactly that many"
             )
 
-    def test_generate_random_json_structures(self):
+    def test_generate_random_json_structures(self) -> None:
         """Test random JSON generation with different structures."""
         structures = ["zephyr_basic", "zephyr_nested", "simple_tests_array"]
 
@@ -374,7 +376,9 @@ class TestSuiteGeneratorCore:
             "api_tests",
         ],
     )
-    def test_generate_random_json_structures_parameterized(self, structure):
+    def test_generate_random_json_structures_parameterized(
+        self, structure: str
+    ) -> None:
         """Test random JSON generation with various structures
         using parameterization."""
         json_data = self.generator.generate_random_json(structure)
@@ -389,14 +393,14 @@ class TestSuiteGeneratorCore:
         elif structure == "simple_tests_array":
             assert isinstance(json_data.get("tests", []), list)
 
-    def test_generate_random_json_no_structure(self):
+    def test_generate_random_json_no_structure(self) -> None:
         """Test random JSON generation with no structure specified."""
         json_data = self.generator.generate_random_json()
 
         assert isinstance(json_data, dict)
         json.dumps(json_data)  # Should be valid JSON
 
-    def test_generate_keyword_specific_data(self):
+    def test_generate_keyword_specific_data(self) -> None:
         """Test keyword-specific data generation."""
         web_keyword = {
             "intent": "web_navigation",
@@ -411,7 +415,7 @@ class TestSuiteGeneratorCore:
         assert isinstance(data, str)
         assert "Browser: Chrome" in data or "https://example.com" in data
 
-    def test_private_helper_methods(self):
+    def test_private_helper_methods(self) -> None:
         """Test various private helper methods."""
         # Test step type determination
         # pylint: disable=protected-access,no-member
@@ -449,7 +453,9 @@ class TestSuiteGeneratorCore:
             ("Authenticate with OAuth", ["authentication"]),
         ],
     )
-    def test_determine_step_type_parameterized(self, description, expected_types):
+    def test_determine_step_type_parameterized(
+        self, description: str, expected_types: list[str]
+    ) -> None:
         """Test step type determination with various descriptions."""
         # pylint: disable=protected-access,no-member
         step_type = self.generator._determine_step_type(description)
@@ -468,8 +474,8 @@ class TestSuiteGeneratorCore:
         ],
     )
     def test_determine_criticality_parameterized(
-        self, description, expected_criticality_options
-    ):
+        self, description: str, expected_criticality_options: list[str]
+    ) -> None:
         """Test criticality determination with various descriptions."""
         # pylint: disable=protected-access,no-member
         criticality = self.generator._determine_criticality(description)
@@ -487,7 +493,7 @@ class TestSuiteGeneratorCore:
             "Authenticate user",
         ],
     )
-    def test_estimate_step_duration_parameterized(self, description):
+    def test_estimate_step_duration_parameterized(self, description: str) -> None:
         """Test duration estimation with various step descriptions."""
         # pylint: disable=protected-access,no-member
         duration = self.generator._estimate_step_duration(description)
@@ -496,7 +502,7 @@ class TestSuiteGeneratorCore:
         # Duration should contain a number
         assert any(char.isdigit() for char in duration)
 
-    def test_category_scenarios_mapping(self):
+    def test_category_scenarios_mapping(self) -> None:
         """Test category scenarios mapping."""
         # pylint: disable=protected-access,no-member
         scenarios = self.generator._get_category_scenarios()
@@ -510,7 +516,7 @@ class TestSuiteGeneratorCore:
 class TestConvenienceWrapperFunctions:
     """Test the convenience wrapper functions."""
 
-    def test_generate_test_suite_wrapper(self):
+    def test_generate_test_suite_wrapper(self) -> None:
         """Test the generate_test_suite convenience wrapper."""
         with tempfile.TemporaryDirectory() as temp_dir:
             # Test with enum weights
@@ -522,7 +528,7 @@ class TestConvenienceWrapperFunctions:
             assert "smoke" in counts
             assert counts["smoke"] == 10
 
-    def test_generate_test_suite_wrapper_with_distribution(self):
+    def test_generate_test_suite_wrapper_with_distribution(self) -> None:
         """Test wrapper with distribution parameter."""
         with tempfile.TemporaryDirectory() as temp_dir:
             counts = generate_test_suite(
@@ -532,20 +538,20 @@ class TestConvenienceWrapperFunctions:
             assert counts["regression"] == 6
             assert counts["smoke"] == 4
 
-    def test_generate_random_test_json_wrapper(self):
+    def test_generate_random_test_json_wrapper(self) -> None:
         """Test the generate_random_test_json convenience wrapper."""
         json_data = generate_random_test_json("zephyr_basic")
 
         assert isinstance(json_data, dict)
         json.dumps(json_data)  # Should be valid JSON
 
-    def test_generate_random_test_json_wrapper_no_params(self):
+    def test_generate_random_test_json_wrapper_no_params(self) -> None:
         """Test wrapper with no parameters."""
         json_data = generate_random_test_json()
 
         assert isinstance(json_data, dict)
 
-    def test_get_available_structures_wrapper(self):
+    def test_get_available_structures_wrapper(self) -> None:
         """Test get_available_structures wrapper."""
         structures = get_available_structures()
 
@@ -553,7 +559,7 @@ class TestConvenienceWrapperFunctions:
         assert len(structures) > 0
         assert all(isinstance(s, str) for s in structures)
 
-    def test_get_required_libraries_for_keywords_wrapper(self):
+    def test_get_required_libraries_for_keywords_wrapper(self) -> None:
         """Test get_required_libraries_for_keywords wrapper."""
         keywords = [
             {
@@ -591,8 +597,8 @@ class TestConvenienceWrapperFunctions:
         ],
     )
     def test_generate_test_suite_wrapper_parameterized(
-        self, total_tests, category_weights
-    ):
+        self, total_tests: int, category_weights: WeightsDict
+    ) -> None:
         """Test the generate_test_suite wrapper with various configurations."""
         with tempfile.TemporaryDirectory() as temp_dir:
             counts = generate_test_suite(
@@ -603,9 +609,15 @@ class TestConvenienceWrapperFunctions:
             assert sum(counts.values()) == total_tests
 
             # All specified categories should be present
-            for category_enum in category_weights:
-                assert category_enum.value in counts
-                assert counts[category_enum.value] > 0
+            for category_key in category_weights:
+                # Handle both CategoryEnum and string keys
+                category_value = (
+                    category_key.value
+                    if isinstance(category_key, CategoryEnum)
+                    else category_key
+                )
+                assert category_value in counts
+                assert counts[category_value] > 0
 
     @pytest.mark.parametrize(
         "structure",
@@ -617,7 +629,9 @@ class TestConvenienceWrapperFunctions:
             None,  # Test default structure
         ],
     )
-    def test_generate_random_test_json_wrapper_parameterized(self, structure):
+    def test_generate_random_test_json_wrapper_parameterized(
+        self, structure: str | None
+    ) -> None:
         """Test the generate_random_test_json wrapper with various structures."""
         if structure is None:
             json_data = generate_random_test_json()
@@ -666,7 +680,9 @@ class TestConvenienceWrapperFunctions:
             [],  # Empty list
         ],
     )
-    def test_get_required_libraries_parameterized(self, keywords_config):
+    def test_get_required_libraries_parameterized(
+        self, keywords_config: list[dict[str, str]]
+    ) -> None:
         """Test library detection with various keyword configurations."""
         libraries = get_required_libraries_for_keywords(keywords_config)
 
@@ -691,11 +707,11 @@ class TestErrorHandlingAndEdgeCases:
     """Test error handling and edge cases."""
 
     @pytest.fixture
-    def generator(self):
+    def generator(self) -> TestSuiteGenerator:
         """Get test generator instance."""
         return TestSuiteGenerator()
 
-    def test_invalid_category_in_generate_test_suite(self):
+    def test_invalid_category_in_generate_test_suite(self) -> None:
         """Ensure invalid categories are rejected and valid ones succeed."""
 
         def assert_message_contains(exc: BaseException, terms: list[str]) -> None:
@@ -772,13 +788,15 @@ class TestErrorHandlingAndEdgeCases:
                 with open(sample, encoding="utf-8") as handle:
                     json.load(handle)
 
-    def test_empty_weights_dict(self, generator):
+    def test_empty_weights_dict(self, generator: TestSuiteGenerator) -> None:
         """Test handling of empty weights dictionary."""
         with pytest.raises(ValueError, match="Total weight cannot be zero"):
             # pylint: disable=protected-access
             generator._get_test_distribution(100, None, {})
 
-    def test_generate_test_case_with_minimal_params(self, generator):
+    def test_generate_test_case_with_minimal_params(
+        self, generator: TestSuiteGenerator
+    ) -> None:
         """Test test case generation with minimal parameters."""
         test_case = generator.generate_enterprise_test_case(
             "web_automation", "user_authentication", 1
@@ -789,7 +807,9 @@ class TestErrorHandlingAndEdgeCases:
         assert "steps" in test_case["testScript"]
         assert len(test_case["testScript"]["steps"]) > 0
 
-    def test_keyword_specific_data_edge_cases(self, generator):
+    def test_keyword_specific_data_edge_cases(
+        self, generator: TestSuiteGenerator
+    ) -> None:
         """Test keyword specific data generation with edge cases."""
         unknown_keyword = {
             "intent": "unknown_intent",
@@ -805,56 +825,56 @@ class TestProgressReporting:
     """Test progress reporting functionality in test generation."""
 
     @property
-    def generator(self):
+    def generator(self) -> TestSuiteGenerator:
         """Get test generator instance."""
         return TestSuiteGenerator()
 
-    def test_progress_reporting_in_category_generation(self):
+    def test_progress_reporting_in_category_generation(self) -> None:
         """Test that progress reporting works during category test generation."""
         generator = TestSuiteGenerator()
 
         # Mock the logger to capture progress messages
-        with patch.object(generator.logger, "info") as mock_info:
-            with tempfile.TemporaryDirectory() as temp_dir:
-                # Create category info structure
-                category_info: CategoryInfo = {"dir": Path(temp_dir), "count": 0}
+        with (
+            patch.object(generator.logger, "info") as mock_info,
+            tempfile.TemporaryDirectory() as temp_dir,
+        ):
+            # Create category info structure
+            category_info: CategoryInfo = {"dir": Path(temp_dir), "count": 0}
 
-                # Mock scenarios for testing
-                scenarios = {
-                    "business_workflow": ["scenario1", "scenario2"],
-                    "user_interaction": ["scenario3", "scenario4"],
-                }
+            # Mock scenarios for testing
+            scenarios = {
+                "business_workflow": ["scenario1", "scenario2"],
+                "user_interaction": ["scenario3", "scenario4"],
+            }
 
-                # Create parameter object matching CategoryTestParams structure
+            # Create parameter object matching CategoryTestParams structure
 
-                params = CategoryTestParams(
-                    category="test_category",
-                    count=20,  # Small count to test progress milestones
-                    scenarios=scenarios,
-                    category_info=category_info,
-                    start_test_id=1,
-                )
+            params = CategoryTestParams(
+                category="test_category",
+                count=20,  # Small count to test progress milestones
+                scenarios=scenarios,
+                category_info=category_info,
+                start_test_id=1,
+            )
 
-                # Generate small number of tests to see progress reporting
-                generator._generate_category_tests(params)
+            # Generate small number of tests to see progress reporting
+            generator._generate_category_tests(params)
 
-                # Verify progress reporting calls
-                progress_calls = [
-                    call
-                    for call in mock_info.call_args_list
-                    if "Progress:" in str(call)
-                ]
-                assert len(progress_calls) > 0
+            # Verify progress reporting calls
+            progress_calls = [
+                call for call in mock_info.call_args_list if "Progress:" in str(call)
+            ]
+            assert len(progress_calls) > 0
 
-                # Check that progress messages contain expected elements
-                for call in progress_calls:
-                    message = call[0][0]
-                    assert "Progress:" in message
-                    assert "/" in message  # Should show current/total
-                    assert "%" in message  # Should show percentage
-                    assert "test_category" in message
+            # Check that progress messages contain expected elements
+            for call in progress_calls:
+                message = call[0][0]
+                assert "Progress:" in message
+                assert "/" in message  # Should show current/total
+                assert "%" in message  # Should show percentage
+                assert "test_category" in message
 
-    def test_progress_milestone_calculation(self):
+    def test_progress_milestone_calculation(self) -> None:
         """Test that progress milestones are calculated correctly."""
         generator = TestSuiteGenerator()
 
@@ -883,7 +903,7 @@ class TestProgressReporting:
                 ]
                 assert len(progress_messages) >= 5  # At least several progress reports
 
-    def test_progress_reporting_for_small_counts(self):
+    def test_progress_reporting_for_small_counts(self) -> None:
         """Test progress reporting behavior with small test counts."""
         generator = TestSuiteGenerator()
 
@@ -920,7 +940,7 @@ class TestProgressReporting:
                 ]
                 assert len(final_progress) > 0
 
-    def test_file_write_progress_reporting(self):
+    def test_file_write_progress_reporting(self) -> None:
         """Test progress reporting during file write operations."""
         generator = TestSuiteGenerator()
 
@@ -952,7 +972,7 @@ class TestProgressReporting:
                 assert "/" in message  # Should show current/total
                 assert "%" in message  # Should show percentage
 
-    def test_no_progress_reporting_for_small_batches(self):
+    def test_no_progress_reporting_for_small_batches(self) -> None:
         """Test that small file batches don't trigger progress reporting."""
         generator = TestSuiteGenerator()
 
@@ -971,7 +991,7 @@ class TestProgressReporting:
             ]
             assert len(progress_calls) == 0
 
-    def test_progress_reporting_accuracy(self):
+    def test_progress_reporting_accuracy(self) -> None:
         """Test that progress percentages are calculated accurately."""
         generator = TestSuiteGenerator()
 
@@ -1013,61 +1033,64 @@ class TestProgressReporting:
                 final_calls = [call for call in progress_calls if "100.0%" in str(call)]
                 assert len(final_calls) > 0
 
-    def test_progress_reporting_integration_with_resource_manager(self):
+    def test_progress_reporting_integration_with_resource_manager(self) -> None:
         """Test that progress reporting works with resource manager context."""
         generator = TestSuiteGenerator()
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            with patch.object(generator.logger, "info") as mock_info:
-                # Use resource manager context
-                with generator.resource_manager.operation("test_generation"):
-                    category_info: CategoryInfo = {"dir": Path(temp_dir), "count": 0}
-                    scenarios = {"test": ["scenario1"]}
+        with (
+            tempfile.TemporaryDirectory() as temp_dir,
+            patch.object(generator.logger, "info") as mock_info,
+            generator.resource_manager.operation("test_generation"),
+        ):
+            category_info: CategoryInfo = {"dir": Path(temp_dir), "count": 0}
+            scenarios = {"test": ["scenario1"]}
 
-                    # Create parameter object
+            # Create parameter object
 
-                    params = CategoryTestParams(
-                        category="integration_test",
-                        count=25,
-                        scenarios=scenarios,
-                        category_info=category_info,
-                        start_test_id=1,
-                    )
-                    generator._generate_category_tests(params)
+            params = CategoryTestParams(
+                category="integration_test",
+                count=25,
+                scenarios=scenarios,
+                category_info=category_info,
+                start_test_id=1,
+            )
+            generator._generate_category_tests(params)
 
-                # Should have both resource manager and progress reporting logs
-                all_messages = [str(call) for call in mock_info.call_args_list]
-                progress_messages = [msg for msg in all_messages if "Progress:" in msg]
-                assert len(progress_messages) > 0
+            # Should have both resource manager and progress reporting logs
+            all_messages = [str(call) for call in mock_info.call_args_list]
+            progress_messages = [msg for msg in all_messages if "Progress:" in msg]
+            assert len(progress_messages) > 0
 
-    def test_concurrent_progress_reporting(self):
+    def test_concurrent_progress_reporting(self) -> None:
         """Test progress reporting behavior with multiple concurrent operations."""
         generator = TestSuiteGenerator()
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            with patch.object(generator.logger, "info") as mock_info:
-                # Simulate multiple category generations
-                for category_num in range(3):
-                    category_info: CategoryInfo = {"dir": Path(temp_dir), "count": 0}
-                    scenarios = {f"test_{category_num}": ["scenario1"]}
+        with (
+            tempfile.TemporaryDirectory() as temp_dir,
+            patch.object(generator.logger, "info") as mock_info,
+        ):
+            # Simulate multiple category generations
+            for category_num in range(3):
+                category_info: CategoryInfo = {"dir": Path(temp_dir), "count": 0}
+                scenarios = {f"test_{category_num}": ["scenario1"]}
 
-                    # Create parameter object
+                # Create parameter object
 
-                    params = CategoryTestParams(
-                        category=f"concurrent_test_{category_num}",
-                        count=15,
-                        scenarios=scenarios,
-                        category_info=category_info,
-                        start_test_id=category_num * 100,
-                    )
-                    generator._generate_category_tests(params)
+                params = CategoryTestParams(
+                    category=f"concurrent_test_{category_num}",
+                    count=15,
+                    scenarios=scenarios,
+                    category_info=category_info,
+                    start_test_id=category_num * 100,
+                )
+                generator._generate_category_tests(params)
 
-                # Should have progress messages for each category
-                all_calls = mock_info.call_args_list
-                for category_num in range(3):
-                    category_messages = [
-                        call
-                        for call in all_calls
-                        if f"concurrent_test_{category_num}" in str(call)
-                    ]
-                    assert len(category_messages) > 0
+            # Should have progress messages for each category
+            all_calls = mock_info.call_args_list
+            for category_num in range(3):
+                category_messages = [
+                    call
+                    for call in all_calls
+                    if f"concurrent_test_{category_num}" in str(call)
+                ]
+                assert len(category_messages) > 0

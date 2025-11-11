@@ -9,11 +9,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
-import matplotlib  # type: ignore[import-untyped]
-import matplotlib.pyplot as plt  # type: ignore[import-untyped]
-from matplotlib import gridspec  # type: ignore[import-untyped]
-from matplotlib.axes import Axes  # type: ignore[import-untyped]
-from matplotlib.patches import FancyBboxPatch  # type: ignore[import-untyped]
+import matplotlib
+import matplotlib.pyplot as plt
+from matplotlib import gridspec
+from matplotlib.axes import Axes
+from matplotlib.patches import FancyBboxPatch
 
 
 @dataclass
@@ -52,7 +52,7 @@ class LineChartConfig:
     ylabel: str
     marker: str = "o"
     show_confidence: bool = False
-    confidence_bands: tuple | None = None
+    confidence_bands: tuple[float, float] | None = None
 
 
 def add_data_point_annotations(
@@ -79,7 +79,7 @@ def add_data_point_annotations(
 
 
 def remove_chart_spines(ax: Axes) -> None:
-    """Remove top and right spines from chart for cleaner look.
+    """Remove top and right spines from chart.
 
     Args:
         ax: Matplotlib axes object
@@ -123,7 +123,7 @@ class VisualizationTheme:
 
 
 class ChartFactory:
-    """Factory for creating different types of charts with consistent styling."""
+    """Factory for creating different types of charts."""
 
     def __init__(self, theme: VisualizationTheme):
         """Initialize the ChartFactory with a theme."""
@@ -332,7 +332,7 @@ class ChartFactory:
 
 
 class DashboardBuilder:
-    """Builds consistent dashboard layouts."""
+    """Builds dashboard layouts."""
 
     def __init__(self, theme: VisualizationTheme):
         """Initialize the DashboardBuilder with a theme."""

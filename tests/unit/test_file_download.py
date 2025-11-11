@@ -6,7 +6,7 @@ from importobot.core.keyword_generator import GenericKeywordGenerator
 class TestFileDownloadFunctionality:
     """Tests for file download functionality."""
 
-    def test_curl_command_conversion(self):
+    def test_curl_command_conversion(self) -> None:
         """Test conversion of curl commands to Run Process keywords."""
         generator = GenericKeywordGenerator()
 
@@ -24,7 +24,7 @@ class TestFileDownloadFunctionality:
         assert any("curl" in line and "-o" in line for line in result)
         assert any("/tmp/downloaded_file.txt" in line for line in result)
 
-    def test_wget_command_conversion(self):
+    def test_wget_command_conversion(self) -> None:
         """Test conversion of wget commands to Run Process keywords."""
         generator = GenericKeywordGenerator()
 
@@ -41,7 +41,7 @@ class TestFileDownloadFunctionality:
         assert any("wget" in line and "-O" in line for line in result)
         assert any("/tmp/file.txt" in line for line in result)
 
-    def test_generic_command_execution(self):
+    def test_generic_command_execution(self) -> None:
         """Test conversion of generic commands to Run keywords."""
         generator = GenericKeywordGenerator()
 
@@ -57,7 +57,7 @@ class TestFileDownloadFunctionality:
         assert any("Run" in line and "echo" in line for line in result)
         assert any("Hello World" in line for line in result)
 
-    def test_file_transfer_keyword(self):
+    def test_file_transfer_keyword(self) -> None:
         """Test generation of file transfer keywords."""
         generator = GenericKeywordGenerator()
 
@@ -79,7 +79,7 @@ class TestFileDownloadFunctionality:
         assert any("/remote/file.txt" in line for line in result)
         assert any("/local/file.txt" in line for line in result)
 
-    def test_file_exists_verification(self):
+    def test_file_exists_verification(self) -> None:
         """Test generation of file existence verification keywords."""
         generator = GenericKeywordGenerator()
 
@@ -95,7 +95,7 @@ class TestFileDownloadFunctionality:
         assert any("File Should Exist" in line for line in result)
         assert any("/tmp/downloaded_file.txt" in line for line in result)
 
-    def test_file_removal(self):
+    def test_file_removal(self) -> None:
         """Test generation of file removal keywords."""
         generator = GenericKeywordGenerator()
 

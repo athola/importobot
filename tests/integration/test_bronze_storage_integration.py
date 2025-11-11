@@ -30,7 +30,7 @@ from importobot.medallion.storage.local import LocalStorageBackend
 class TestBronzeStorageIntegration(unittest.TestCase):
     """Integration tests for Bronze layer with persistent storage."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test environment with real storage backend."""
         self.temp_dir = Path(tempfile.mkdtemp())
         storage_config = {"base_path": str(self.temp_dir / "storage")}
@@ -77,11 +77,11 @@ class TestBronzeStorageIntegration(unittest.TestCase):
             }
         }
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         """Clean up test environment."""
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def test_end_to_end_ingest_and_retrieve_workflow(self):
+    def test_end_to_end_ingest_and_retrieve_workflow(self) -> None:
         """Test complete workflow: ingest data, retrieve it from storage.
 
         Business Case: QA team ingests test cases, later retrieves them for analysis.
@@ -109,7 +109,7 @@ class TestBronzeStorageIntegration(unittest.TestCase):
         assert records[0].format_detection is not None
         assert records[0].lineage is not None
 
-    def test_data_survives_bronze_layer_restart(self):
+    def test_data_survives_bronze_layer_restart(self) -> None:
         """Test that ingested data persists across BronzeLayer instances.
 
         Business Case: System crashes, data must be recoverable after restart.
@@ -135,7 +135,7 @@ class TestBronzeStorageIntegration(unittest.TestCase):
         assert len(records) == 1
         assert records[0].data["testCase"]["name"] == "Authentication Test"
 
-    def test_multiple_ingestion_sessions_accumulate_data(self):
+    def test_multiple_ingestion_sessions_accumulate_data(self) -> None:
         """Test that multiple ingestion sessions accumulate records in storage.
 
         Business Case: Daily test runs accumulate over time for trend analysis.
@@ -172,7 +172,7 @@ class TestBronzeStorageIntegration(unittest.TestCase):
 
         assert len(record_types) == 2
 
-    def test_storage_defaults_respect_filter_dispatch(self):
+    def test_storage_defaults_respect_filter_dispatch(self) -> None:
         """Ensure storage defaults honor filter criteria via dispatch map.
 
         Business Case: After a restart, API queries by format type still return
@@ -213,7 +213,7 @@ class TestBronzeStorageIntegration(unittest.TestCase):
     @unittest.skipUnless(
         RawDataProcessor is not None, "RawDataProcessor requires optional dependencies"
     )
-    def test_raw_data_processor_integration_with_storage(self):
+    def test_raw_data_processor_integration_with_storage(self) -> None:
         """Test RawDataProcessor properly integrates with storage backend.
 
         Business Case: High-level API must work seamlessly with storage.
@@ -232,7 +232,7 @@ class TestBronzeStorageIntegration(unittest.TestCase):
         assert len(records) == 1
         assert records[0].data["testCase"]["name"] == "Authentication Test"
 
-    def test_pagination_across_large_dataset(self):
+    def test_pagination_across_large_dataset(self) -> None:
         """Test pagination works correctly for large result sets.
 
         Business Case: UI displays paginated results, need consistent data.
@@ -268,7 +268,7 @@ class TestBronzeStorageIntegration(unittest.TestCase):
         all_records = self.bronze_layer.get_bronze_records(limit=100)
         assert len(all_records) == 25
 
-    def test_storage_backend_isolation_between_layers(self):
+    def test_storage_backend_isolation_between_layers(self) -> None:
         """Test that bronze layer storage is isolated from other layers.
 
         Business Case: Bronze, Silver, Gold layers have separate storage spaces.
@@ -295,7 +295,7 @@ class TestBronzeStorageIntegration(unittest.TestCase):
             silver_files = list(silver_storage_path.glob("*.json"))
             assert len(silver_files) == 0
 
-    def test_concurrent_ingestion_and_retrieval(self):
+    def test_concurrent_ingestion_and_retrieval(self) -> None:
         """Test that ingestion and retrieval can happen concurrently.
 
         Business Case: System ingests new data while users query existing data.
@@ -303,7 +303,7 @@ class TestBronzeStorageIntegration(unittest.TestCase):
 
         results = {"ingested": 0, "retrieved": 0}
 
-        def ingest_data():
+        def ingest_data() -> None:
             for i in range(5):
                 test_data = {"testCase": {"name": f"Concurrent Test {i}"}}
                 metadata = LayerMetadata(
@@ -314,7 +314,7 @@ class TestBronzeStorageIntegration(unittest.TestCase):
                 self.bronze_layer.ingest(test_data, metadata)
                 results["ingested"] += 1
 
-        def retrieve_data():
+        def retrieve_data() -> None:
             for _ in range(5):
                 records = self.bronze_layer.get_bronze_records()
                 results["retrieved"] = len(records)
@@ -336,7 +336,7 @@ class TestBronzeStorageIntegration(unittest.TestCase):
         final_records = self.bronze_layer.get_bronze_records()
         assert len(final_records) == 5
 
-    def test_storage_backend_error_recovery(self):
+    def test_storage_backend_error_recovery(self) -> None:
         """Test graceful handling when storage backend encounters errors.
 
         Business Case: Storage write errors shouldn't crash ingestion process.
@@ -372,15 +372,15 @@ class TestBronzeStorageBackendSwitching(unittest.TestCase):
     Business Case: Migrate from local storage to cloud storage.
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test environment."""
         self.temp_dir = Path(tempfile.mkdtemp())
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         """Clean up test environment."""
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def test_migrate_between_storage_backends(self):
+    def test_migrate_between_storage_backends(self) -> None:
         """Test data migration between different storage backends.
 
         Business Case: Company migrates from local to cloud storage.

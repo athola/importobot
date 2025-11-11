@@ -179,6 +179,7 @@ class OptimizationService:
     def _cache_result(
         self, name: str, outcome: OptimizationOutcome
     ) -> OptimizationOutcome:
+        """Cache an optimization outcome."""
         if name in self._results:
             self._results.move_to_end(name)
         self._results[name] = outcome
@@ -194,6 +195,7 @@ class OptimizationService:
         scenario: OptimizationScenario,
         gradient_config: OptimizerConfig | None,
     ) -> OptimizationOutcome:
+        """Run gradient descent optimization for a scenario."""
         optimizer = GradientDescentOptimizer(gradient_config)
         parameters, value, metadata = optimizer.optimize(
             scenario.objective_function,
@@ -214,6 +216,7 @@ class OptimizationService:
         scenario: OptimizationScenario,
         annealing_config: AnnealingConfig | None,
     ) -> OptimizationOutcome:
+        """Run simulated annealing optimization for a scenario."""
         parameters, value, metadata = simulated_annealing(
             scenario.objective_function,
             scenario.initial_parameters,
@@ -234,6 +237,7 @@ class OptimizationService:
         scenario: OptimizationScenario,
         genetic_optimizer: GeneticAlgorithmOptimizer | None,
     ) -> OptimizationOutcome:
+        """Run genetic algorithm optimization for a scenario."""
         optimizer = genetic_optimizer or GeneticAlgorithmOptimizer()
         parameter_ranges = self._ensure_parameter_ranges(
             scenario.initial_parameters,
@@ -265,16 +269,19 @@ class OptimizationService:
         return time.time()
 
     def _touch_scenario(self, name: str) -> None:
+        """Update the last access time for a scenario."""
         if self._ttl_seconds is None:
             return
         self._scenario_expiry[name] = self._current_time()
 
     def _touch_result(self, name: str) -> None:
+        """Update the last access time for a result."""
         if self._ttl_seconds is None:
             return
         self._result_expiry[name] = self._current_time()
 
     def _purge_expired_entries(self) -> None:
+        """Remove expired scenarios and results from the cache."""
         if self._ttl_seconds is None:
             return
 
@@ -305,6 +312,7 @@ class OptimizationService:
         initial_parameters: dict[str, float],
         parameter_bounds: dict[str, tuple[float, float]] | None,
     ) -> dict[str, tuple[float, float]]:
+        """Ensure parameter ranges are defined for optimization."""
         if parameter_bounds:
             return parameter_bounds
 

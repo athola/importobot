@@ -2,13 +2,49 @@
 
 # International characters test data used by multiple test modules
 INTERNATIONAL_CHARACTERS_TEST_DATA = {
-    "name": "Test Internacionalização (çãé)",
-    "description": "Test with special characters: åäöüß",
+    "name": "Test Internacionalização (çãé) 🌍",
+    "description": "Test with special characters: åäöüß and emoji 🎉✨",
     "steps": [
         {
-            "step": "Enter special data: éñü",
-            "testData": "data with ñ and ç characters",
-            "expectedResult": "Special characters handled correctly",
+            "step": "Enter special data: éñü 📝",
+            "testData": "data with ñ and ç characters 🔤",
+            "expectedResult": "Special characters handled correctly ✅",
+        }
+    ],
+}
+
+# Emoji-focused test data for Unicode edge cases
+EMOJI_TEST_DATA = {
+    "name": "🔐 Security Login Test 🚀",
+    "description": "Test with various emoji types: 👤👥🔑🎯",
+    "steps": [
+        {
+            "step": "Navigate to login page 🌐",
+            "testData": "https://example.com/login 🔗",
+            "expectedResult": "Login page displayed ✅",
+        },
+        {
+            "step": "Enter credentials 🔑",
+            "testData": "admin@test.com 📧",
+            "expectedResult": "Credentials accepted 👍",
+        },
+        {
+            "step": "Click submit button ➡️",
+            "testData": "",
+            "expectedResult": "User authenticated successfully ✨",
+        },
+    ],
+}
+
+# Mixed Unicode test data with emoji sequences and ZWJ
+COMPLEX_UNICODE_TEST_DATA = {
+    "name": "👨‍💻 Developer Workflow 🔧",
+    "description": "Test complex emoji: 👨‍👩‍👧‍👦 family, 🏴‍☠️ flags, 🤝🏽 skin tones",
+    "steps": [
+        {
+            "step": "Deploy application 🚀",
+            "testData": "git push origin main 📤",
+            "expectedResult": "Deployment successful 🎉",
         }
     ],
 }

@@ -38,7 +38,7 @@ class MetadataService:
             data: The data being processed
 
         Returns:
-            LayerMetadata with comprehensive information about the data
+            LayerMetadata with information about the data
         """
         return LayerMetadata(
             source_path=source_path,

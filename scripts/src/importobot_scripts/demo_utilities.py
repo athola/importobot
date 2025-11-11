@@ -29,18 +29,20 @@ class FileOperations:
                 file_path, must_exist=True, allowed_extensions=[".json"]
             )
 
-            with self.loader.demo_logger.operation_timer(
-                f"read_json_{Path(file_path).name}"
+            with (
+                self.loader.demo_logger.operation_timer(
+                    f"read_json_{Path(file_path).name}"
+                ),
+                open(file_path, encoding="utf-8") as f,
             ):
-                with open(file_path, encoding="utf-8") as f:
-                    data = json.load(f)
-                    self.loader.demo_logger.info(
-                        f"Successfully read JSON file: {file_path}"
-                    )
-                    # Ensure we return the expected type
-                    if isinstance(data, dict):
-                        return data
-                    return None
+                data = json.load(f)
+                self.loader.demo_logger.info(
+                    f"Successfully read JSON file: {file_path}"
+                )
+                # Ensure we return the expected type
+                if isinstance(data, dict):
+                    return data
+                return None
 
         except (self.loader.validation_error, self.loader.security_error) as e:
             self.loader.demo_logger.error(
@@ -65,12 +67,14 @@ class FileOperations:
         print(f"\n{title}:")
 
         try:
-            with self.loader.demo_logger.operation_timer(
-                f"display_{Path(file_path).name}"
+            with (
+                self.loader.demo_logger.operation_timer(
+                    f"display_{Path(file_path).name}"
+                ),
+                open(file_path, encoding="utf-8") as f,
             ):
-                with open(file_path, encoding="utf-8") as f:
-                    content = f.read()
-                    print(content)
+                content = f.read()
+                print(content)
             self.loader.demo_logger.info(f"Successfully displayed file: {file_path}")
         except (OSError, UnicodeDecodeError) as e:
             if self.loader.error_handler and self.loader.error_handler.handle_error(
@@ -84,7 +88,7 @@ class FileOperations:
                 self._safe_remove_file(file_path)
 
     def _safe_remove_file(self, file_path: str) -> None:
-        """Safely remove a file with logging and proper error handling."""
+        """Safely remove a file."""
         if not file_path or not os.path.exists(file_path):
             return
 
@@ -146,7 +150,7 @@ class CommandRunner:
             return error_msg
 
     def run_command(self, command: str, cwd: str | None = None) -> str:
-        """Run a shell command and return the result with proper error handling."""
+        """Run a shell command and return the result."""
         try:
             result = subprocess.run(
                 command,

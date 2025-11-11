@@ -41,8 +41,8 @@ def get_test_count() -> int:
             f"stderr: {result.stderr}"
         )
 
-    # Parse the output to find the test count
-    # Expected format: "======================== N tests collected in X.XXs ========================="
+    # Parse the output to find the test count.
+    # Format resembles: "===== N tests collected in X.XXs =====".
     output = result.stdout + result.stderr
     match = re.search(r"(\d+) tests? collected", output)
 
@@ -63,11 +63,12 @@ def main() -> int:
     try:
         test_count = get_test_count()
 
-        print(f"✓ Collected {test_count} tests")
+        print(f"PASS: Collected {test_count} tests")
 
         if test_count < MIN_TEST_COUNT:
             print(
-                f"✗ ERROR: Test count ({test_count}) is below minimum baseline ({MIN_TEST_COUNT})",
+                "ERROR: Test count ("
+                f"{test_count}) is below minimum baseline ({MIN_TEST_COUNT})",
                 file=sys.stderr,
             )
             print(
@@ -82,16 +83,17 @@ def main() -> int:
 
         if test_count < EXPECTED_TEST_COUNT * 0.95:
             print(
-                f"⚠ WARNING: Test count ({test_count}) is below expected count ({EXPECTED_TEST_COUNT})"
+                "WARNING: Test count ("
+                f"{test_count}) is below expected count ({EXPECTED_TEST_COUNT})"
             )
             print("  This may indicate some tests are not being collected.")
             # Don't fail on warning, just alert
 
-        print(f"✓ Test count verification passed (baseline: {MIN_TEST_COUNT})")
+        print(f"PASS: Test count verification passed (baseline: {MIN_TEST_COUNT})")
         return 0
 
     except Exception as e:
-        print(f"✗ ERROR: {e}", file=sys.stderr)
+        print(f"ERROR: {e}", file=sys.stderr)
         return 1
 
 

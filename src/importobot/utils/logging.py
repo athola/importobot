@@ -11,6 +11,7 @@ _LOGGER_CACHE: dict[str, logging.Logger] = {}
 
 
 def _configure_logger(name: str, level: int) -> logging.Logger:
+    """Configure and return a logger instance."""
     logger = logging.getLogger(name)
     logger.setLevel(level)
     if not logger.handlers:
@@ -25,6 +26,7 @@ def _configure_logger(name: str, level: int) -> logging.Logger:
 
 @cache
 def _detect_caller_module(depth: int = 2) -> str:
+    """Detect the name of the calling module."""
     frame = inspect.currentframe()
     for _ in range(depth):
         if frame is None:
@@ -48,13 +50,6 @@ def get_logger(name: str | None = None, level: int = logging.INFO) -> logging.Lo
     return logger
 
 
-def setup_logger(
-    name: str | None = "importobot", level: int = logging.INFO
-) -> logging.Logger:
-    """Backwards-compatible logger factory."""
-    return get_logger(name=name, level=level)
-
-
 def log_exception(
     logger: logging.Logger, exception: Exception, context: str = ""
 ) -> None:
@@ -72,4 +67,4 @@ def log_exception(
 
 
 # Exported helpers
-__all__ = ["get_logger", "log_exception", "setup_logger"]
+__all__ = ["get_logger", "log_exception"]

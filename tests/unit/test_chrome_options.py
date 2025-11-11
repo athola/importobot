@@ -1,5 +1,6 @@
 """Unit tests for Chrome options functionality."""
 
+from collections.abc import Generator
 from unittest.mock import patch
 
 import pytest
@@ -16,7 +17,7 @@ from importobot.core.templates.blueprints.registry import (
 
 
 @pytest.fixture(autouse=True)
-def clean_template_state():
+def clean_template_state() -> Generator[None, None, None]:
     """Ensure template registry is clean before each test."""
     # Clear global registries before test
     TEMPLATE_REGISTRY.clear()
@@ -43,7 +44,7 @@ class TestChromeOptions:
     """Tests for Chrome options functionality."""
 
     @pytest.mark.web_tests
-    def test_chrome_options_in_browser_keyword(self):
+    def test_chrome_options_in_browser_keyword(self) -> None:
         """Test that Chrome options are properly added to browser keywords."""
         converter = JsonToRobotConverter()
 
@@ -70,7 +71,7 @@ class TestChromeOptions:
         assert "--disable-web-security" in result
         assert "--allow-running-insecure-content" in result
 
-    def test_chrome_options_with_default_url(self):
+    def test_chrome_options_with_default_url(self) -> None:
         """Test that Chrome options work with default URL."""
         converter = JsonToRobotConverter()
 
@@ -98,7 +99,7 @@ class TestChromeOptions:
         assert "--headless" in result
 
     @pytest.mark.web_tests
-    def test_chrome_options_format(self):
+    def test_chrome_options_format(self) -> None:
         """Test that Chrome options are formatted correctly."""
         converter = JsonToRobotConverter()
 

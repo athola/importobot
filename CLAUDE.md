@@ -79,7 +79,10 @@ Removed 200+ lines of compatibility code that were no longer needed, added `data
 **September 2025: Demo script**
 Added `scripts/interactive_demo.py` for customer demonstrations. It shares code with the CLI so we don't duplicate the conversion logic. The same cycle produced utilities for pattern extraction/step comments and tightened SSH validation so the interactive demo and the CLI share logic instead of diverging.
 
-**Test status**: All 2,105 tests pass with 0 skips.
+**November 2025: MongoDB Library Integration**
+Replaced broken `robotframework-mongodblibrary` with modern `robot-mongodb-library`. Fixed import errors and updated generation mechanism across codebase to use `RobotMongoDBLibrary` instead of legacy `MongoDBLibrary`. Updated pattern matcher and keyword registry with correct function mappings. Created comprehensive TODO and GitHub issue (#82) for building proper Robot Framework-compatible MongoDB library. Fixed all linting issues including line length violations.
+
+**Test status**: All 2,105+ tests pass with 0 skips.
 **Code quality**: Removed pylint from the project (now using ruff/mypy only) and improved test isolation.
 
 ## API Integration Enhancements

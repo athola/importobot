@@ -2,6 +2,14 @@
 
 Roadmap of upcoming features, parked items, and ideas requiring proof-of-concept development.
 
+### What we shipped in November 2025
+
+**Test Architecture Improvements**: Added 55 named constants organized into 9 categories to replace magic numbers throughout the test suite. Replaced `tempfile` usage with pytest's `tmp_path` fixture, added type annotations to all test functions, and documented Arrange-Act-Assert patterns. All 1,541 tests pass with enhanced mypy type checking.
+
+**Client Module Restructuring**: Split `importobot.integrations.clients` into separate modules (base.py, jira_xray.py, testlink.py, testrail.py, zephyr.py) while maintaining backward compatibility. Implemented lazy loading for 3x faster imports. Added ADR-0006 documenting architectural changes.
+
+**Legacy Code Removal**: Dropped compatibility shims for Python < 3.8, deprecated `setup_logger()` and `get_cache_stats()` functions. Updated documentation to use factual descriptions instead of marketing language.
+
 ### What we shipped in October 2025
 
 **ASV Performance Benchmarking**: Integrated ASV (Airspeed Velocity) for tracking performance across releases. Three benchmark suites cover conversion performance, memory usage, and bulk operations with ~55ms average detection time. CI workflow automatically generates and publishes benchmark charts to wiki on tagged releases. Configuration in `asv.conf.json`, benchmark suites in `benchmarks/conversion.py`, automated chart generation in `scripts/src/importobot_scripts/benchmarks/generate_asv_charts.py`.
@@ -40,24 +48,26 @@ Roadmap of upcoming features, parked items, and ideas requiring proof-of-concept
 
 **Performance**: Template ingestion takes ~50ms per file, which becomes noticeable with 50+ template directories. We need to optimize the pattern matching algorithm and add better caching.
 
+**MongoDB Library Modernization**: Replace the inadequate `robot-mongodb-library` with a proper Robot Framework-compatible MongoDB library. The current library causes warnings and provides standalone functions instead of proper keywords. GitHub issue #82 tracks this work.
+
 **Specific customer requests**:
 - Company A wants to convert TestRail custom fields that don't follow standard naming
 - Company B needs better handling of TestLink test suite hierarchies
 - Company C has Zephyr exports with embedded HTML that needs sanitization
 
 ### Q3 2025 — completed work
-- **✅ JSON template system**: Implemented blueprint-driven rendering with pattern learning capabilities.
-- **✅ Schema parser**: Created documentation-driven field mapping system.
-- **✅ File examples**: JSON test data covering scenarios like user login, file manipulation, and network configuration.
-- **✅ Bulk conversion polish**: Improved recursive directory handling and step mapping for large Zephyr exports.
-- **✅ Performance visibility**: Added timing metrics and I/O profiling for bottleneck identification.
+- **[DONE] JSON template system**: Implemented blueprint-driven rendering with pattern learning capabilities.
+- **[DONE] Schema parser**: Created documentation-driven field mapping system.
+- **[DONE] File examples**: JSON test data covering scenarios like user login, file manipulation, and network configuration.
+- **[DONE] Bulk conversion polish**: Improved recursive directory handling and step mapping for large Zephyr exports.
+- **[DONE] Performance visibility**: Added timing metrics and I/O profiling for bottleneck identification.
 
 ### Q4 2025 – Q1 2026 — queued next
 - REST surface for CI/CD. Request for a service wrapper instead of shell access, so prototype it once parsers are integrated.
 - Plugin architecture research. The goal is to let us snap in new source formats without rewriting the core converter. Need to prove abstraction on a format other than Zephyr.
 - Quality reporting. Lightweight analytics (success/error counts, skipped fields) so operations teams can spot regressions without perusing logs.
 
-- 🔜  Refactor `src/importobot/core/templates/blueprints/cli_builder.py` into smaller helper modules
+- TODO: Refactor `src/importobot/core/templates/blueprints/cli_builder.py` into smaller helper modules
   - Explore table-driven rendering / class-based builders after current release
 
 ### Later — stays on the backlog until we learn more
@@ -108,7 +118,7 @@ Decision was made to layer Databricks-style Bronze → Silver → Gold design on
 
 ### Implementation Roadmap
 
-#### MR 1: Foundation & Bronze Layer (Core Infrastructure) ✅ COMPLETED
+#### MR 1: Foundation & Bronze Layer (Core Infrastructure) [COMPLETED]
 **Scope**: Establish Medallion foundation and implement Bronze layer for raw data ingestion
 
 **Completed Tasks:**
@@ -349,8 +359,8 @@ Review of 90 test files identified opportunities to improve maintainability and 
 ### Implementation Phases
 
 **Phase 1 (Week 1)**
-- ✅ Create `test_constants.py`
-- ✅ Enhance `shared_test_data.py`
+- [DONE] Create `test_constants.py`
+- [DONE] Enhance `shared_test_data.py`
 - Convert 5 key test files to use constants
 - Convert temp directory creation to fixtures (13 files)
 

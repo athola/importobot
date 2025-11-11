@@ -167,61 +167,58 @@ class FormatTestDataGenerator:
         cases_count: int = 3,
     ) -> dict[str, Any]:
         """Create TestRail data with configurable parameters."""
-        runs = []
-        for i in range(runs_count):
-            runs.append(
-                {
-                    "id": 100 + i,
-                    "suite_id": 1,
-                    "name": f"Test Run {i + 1}",
-                    "description": f"Test run {i + 1} description",
-                    "milestone_id": 1,
-                    "assignedto_id": 1,
-                    "include_all": True,
-                    "is_completed": False,
-                    "created_on": 1640995200 + i * 3600,
-                    "created_by": 1,
-                }
-            )
+        runs = [
+            {
+                "id": 100 + i,
+                "suite_id": 1,
+                "name": f"Test Run {i + 1}",
+                "description": f"Test run {i + 1} description",
+                "milestone_id": 1,
+                "assignedto_id": 1,
+                "include_all": True,
+                "is_completed": False,
+                "created_on": 1640995200 + i * 3600,
+                "created_by": 1,
+            }
+            for i in range(runs_count)
+        ]
 
-        tests = []
-        for i in range(tests_count):
-            tests.append(
-                {
-                    "id": 200 + i,
-                    "case_id": 300 + (i % cases_count),
-                    "status_id": 1 if i % 5 != 0 else 5,
-                    "title": f"Test Execution {i + 1}",
-                    "run_id": runs[0]["id"],
-                    "assignedto_id": 1,
-                    "created_on": 1640995200 + i * 60,
-                    "comment": f"Execution comments for test {i + 1}",
-                    "estimate": f"{30 + i * 5}m",
-                }
-            )
+        tests = [
+            {
+                "id": 200 + i,
+                "case_id": 300 + (i % cases_count),
+                "status_id": 1 if i % 5 != 0 else 5,
+                "title": f"Test Execution {i + 1}",
+                "run_id": runs[0]["id"],
+                "assignedto_id": 1,
+                "created_on": 1640995200 + i * 60,
+                "comment": f"Execution comments for test {i + 1}",
+                "estimate": f"{30 + i * 5}m",
+            }
+            for i in range(tests_count)
+        ]
 
-        cases = []
-        for i in range(cases_count):
-            cases.append(
-                {
-                    "id": 300 + i,
-                    "title": f"Test Case {i + 1}",
-                    "section_id": 1,
-                    "template_id": 1,
-                    "type_id": 3,
-                    "priority_id": i % 4 + 1,
-                    "milestone_id": 1,
-                    "refs": f"REQ-{i + 100}",
-                    "custom_steps_separated": [
-                        {
-                            "content": f"Test step {j + 1} for case {i + 1}",
-                            "expected": f"Expected result {j + 1}",
-                        }
-                        for j in range(i % 3 + 2)
-                    ],
-                    "estimate": f"{30 + i * 10}m",
-                }
-            )
+        cases = [
+            {
+                "id": 300 + i,
+                "title": f"Test Case {i + 1}",
+                "section_id": 1,
+                "template_id": 1,
+                "type_id": 3,
+                "priority_id": i % 4 + 1,
+                "milestone_id": 1,
+                "refs": f"REQ-{i + 100}",
+                "custom_steps_separated": [
+                    {
+                        "content": f"Test step {j + 1} for case {i + 1}",
+                        "expected": f"Expected result {j + 1}",
+                    }
+                    for j in range(i % 3 + 2)
+                ],
+                "estimate": f"{30 + i * 10}m",
+            }
+            for i in range(cases_count)
+        ]
 
         return {
             "runs": runs,
@@ -465,19 +462,19 @@ class ConfidenceTestScenarios:
 
 # Pytest fixtures
 @pytest.fixture
-def format_test_generator():
+def format_test_generator() -> FormatTestDataGenerator:
     """Fixture providing access to FormatTestDataGenerator."""
     return FormatTestDataGenerator()
 
 
 @pytest.fixture
-def format_test_scenarios():
+def format_test_scenarios() -> FormatTestScenarios:
     """Fixture providing access to FormatTestScenarios."""
     return FormatTestScenarios()
 
 
 @pytest.fixture
-def confidence_test_scenarios():
+def confidence_test_scenarios() -> ConfidenceTestScenarios:
     """Fixture providing access to ConfidenceTestScenarios."""
     return ConfidenceTestScenarios()
 
@@ -491,68 +488,68 @@ def confidence_test_scenarios():
         SupportedFormat.GENERIC,
     ]
 )
-def all_supported_formats(request):
+def all_supported_formats(request: pytest.FixtureRequest) -> Any:
     """Parametrized fixture providing all supported formats."""
     return request.param
 
 
 @pytest.fixture(params=["minimal", "standard", "complex"])
-def format_complexity_levels(request):
+def format_complexity_levels(request: pytest.FixtureRequest) -> Any:
     """Parametrized fixture providing different complexity levels."""
     return request.param
 
 
 @pytest.fixture
-def minimal_format_examples(format_test_scenarios):
+def minimal_format_examples(format_test_scenarios: Any) -> Any:
     """Fixture providing minimal examples for all formats."""
     return format_test_scenarios.get_minimal_format_examples()
 
 
 @pytest.fixture
-def standard_format_examples(format_test_scenarios):
+def standard_format_examples(format_test_scenarios: Any) -> Any:
     """Fixture providing standard examples for all formats."""
     return format_test_scenarios.get_standard_format_examples()
 
 
 @pytest.fixture
-def complex_format_examples(format_test_scenarios):
+def complex_format_examples(format_test_scenarios: Any) -> Any:
     """Fixture providing complex examples for all formats."""
     return format_test_scenarios.get_complex_format_examples()
 
 
 @pytest.fixture
-def ambiguous_examples(format_test_scenarios):
+def ambiguous_examples(format_test_scenarios: Any) -> Any:
     """Fixture providing ambiguous test data examples."""
     return format_test_scenarios.get_ambiguous_examples()
 
 
 @pytest.fixture
-def malformed_examples(format_test_scenarios):
+def malformed_examples(format_test_scenarios: Any) -> Any:
     """Fixture providing malformed test data examples."""
     return format_test_scenarios.get_malformed_examples()
 
 
 @pytest.fixture
-def perfect_evidence_scenarios(confidence_test_scenarios):
+def perfect_evidence_scenarios(confidence_test_scenarios: Any) -> Any:
     """Fixture providing perfect evidence scenarios."""
     return confidence_test_scenarios.get_perfect_evidence_scenarios()
 
 
 @pytest.fixture
-def zero_evidence_scenarios(confidence_test_scenarios):
+def zero_evidence_scenarios(confidence_test_scenarios: Any) -> Any:
     """Fixture providing zero evidence scenarios."""
     return confidence_test_scenarios.get_zero_evidence_scenarios()
 
 
 @pytest.fixture
-def weak_evidence_scenarios(confidence_test_scenarios):
+def weak_evidence_scenarios(confidence_test_scenarios: Any) -> Any:
     """Fixture providing weak evidence scenarios."""
     return confidence_test_scenarios.get_weak_evidence_scenarios()
 
 
 # Performance test fixtures
 @pytest.fixture
-def performance_dataset_sizes():
+def performance_dataset_sizes() -> dict[str, dict[str, int]]:
     """Fixture providing different dataset sizes for performance testing."""
     return {
         "small": {"test_cases": 1, "steps": 5},
@@ -563,7 +560,7 @@ def performance_dataset_sizes():
 
 
 @pytest.fixture
-def confidence_thresholds():
+def confidence_thresholds() -> dict[str, float]:
     """Fixture providing confidence thresholds for testing."""
     return {
         "standard": MIN_FORMAT_CONFIDENCE_STANDARD,
@@ -612,11 +609,14 @@ def validate_performance_metrics(
             f"exceeds limit {max_allowed_time:.3f}s"
         )
 
-    if memory_usage is not None and max_allowed_memory is not None:
-        if memory_usage > max_allowed_memory:
-            errors.append(
-                f"Memory usage {memory_usage:.1f}MB "
-                f"exceeds limit {max_allowed_memory:.1f}MB"
-            )
+    if (
+        memory_usage is not None
+        and max_allowed_memory is not None
+        and memory_usage > max_allowed_memory
+    ):
+        errors.append(
+            f"Memory usage {memory_usage:.1f}MB "
+            f"exceeds limit {max_allowed_memory:.1f}MB"
+        )
 
     return len(errors) == 0, errors

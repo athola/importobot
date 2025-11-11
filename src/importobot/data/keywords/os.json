@@ -5,7 +5,7 @@
     "Create File": {
       "args": ["path", "content"],
       "description": "Create file with content",
-      "security_warning": "⚠️  Validate file paths to prevent directory traversal"
+      "security_warning": "WARNING:  Validate file paths to prevent directory traversal"
     },
     "File Should Exist": {
       "args": ["path"],
@@ -14,12 +14,12 @@
     "Remove File": {
       "args": ["path"],
       "description": "Delete file",
-      "security_warning": "⚠️  Destructive operation - ensure proper safeguards"
+      "security_warning": "WARNING:  Destructive operation - ensure proper safeguards"
     },
     "Copy File": {
       "args": ["source", "destination"],
       "description": "Copy file",
-      "security_warning": "⚠️  Validate source and destination paths"
+      "security_warning": "WARNING:  Validate source and destination paths"
     },
     "Create Directory": {
       "args": ["path"],
@@ -32,7 +32,7 @@
     "Run": {
       "args": ["command"],
       "description": "Execute system command",
-      "security_warning": "⚠️  Sanitize commands to prevent injection attacks"
+      "security_warning": "WARNING:  Sanitize commands to prevent injection attacks"
     }
   }
 }

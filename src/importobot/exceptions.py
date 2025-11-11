@@ -2,36 +2,36 @@
 
 
 class ImportobotError(Exception):
-    """Base exception class for all Importobot-related errors."""
+    """Base exception for all errors raised by Importobot."""
 
 
 class ConfigurationError(ImportobotError):
-    """Raised when there are configuration-related issues."""
+    """Indicate an error in the application's configuration."""
 
 
 class ValidationError(ImportobotError):
-    """Raised when input validation fails."""
+    """Indicate that input data failed a validation check."""
 
 
 class ConversionError(ImportobotError):
-    """Raised when conversion process encounters an error."""
+    """Indicate an error during the conversion process."""
 
 
 class FileNotFound(ImportobotError):
-    """Raised when a required file is not found."""
+    """Indicate that a required file could not be found."""
 
 
 class FileAccessError(ImportobotError):
-    """Raised when there are issues accessing a file."""
+    """Indicate an error accessing a file, such as a permissions issue."""
 
 
 class ParseError(ImportobotError):
-    """Raised when parsing JSON or other data fails."""
+    """Indicate an error parsing a file, such as a malformed JSON document."""
 
 
 class SuggestionError(ImportobotError):
-    """Raised when suggestion generation or application fails."""
+    """Indicate an error generating or applying a code suggestion."""
 
 
 class SecurityError(ImportobotError):
-    """Raised when security validation fails."""
+    """Indicate a security validation failure, such as an invalid credential."""

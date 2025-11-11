@@ -11,13 +11,13 @@ import json
 import sys
 
 from importobot.utils.test_generation.categories import (
-    CategoryEnum,  # type: ignore[misc]
+    CategoryEnum,
 )
 from importobot.utils.test_generation.distributions import (
-    print_test_distribution,  # type: ignore[misc]
+    print_test_distribution,
 )
 from importobot.utils.test_generation.helpers import (
-    generate_test_suite,  # type: ignore[misc]
+    generate_test_suite,
 )
 
 
@@ -89,7 +89,7 @@ def _parse_arguments() -> argparse.Namespace:
 
 def _parse_custom_parameters(
     args: argparse.Namespace,
-) -> tuple:
+) -> tuple[dict[str, int] | None, dict[str, float] | None]:
     """Parse custom distribution or weights parameters."""
     # Parse custom distribution if provided
     distribution: dict[str, int] = {}
@@ -142,11 +142,11 @@ def _print_results(args: argparse.Namespace, counts: dict[str, int]) -> None:
         print_test_distribution(counts)
         print("")
         print("Test categories include:")
-        print("  • Web automation with enterprise authentication workflows")
-        print("  • API testing with microservices integration")
-        print("  • Database testing with enterprise data operations")
-        print("  • Infrastructure testing with cloud-native operations")
-        print("  • Security testing with thorough validation")
+        print("  - Web automation with enterprise authentication workflows")
+        print("  - API testing with microservices integration")
+        print("  - Database testing with enterprise data operations")
+        print("  - Infrastructure testing with cloud-native operations")
+        print("  - Security testing with thorough validation")
         print("")
 
     total_generated = sum(counts.values())

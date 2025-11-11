@@ -15,7 +15,7 @@ from importobot.medallion.bronze.p_e_not_h_learner import (
 class TestPENotHParameters:
     """Test suite for P(E|¬H) parameters."""
 
-    def test_default_parameters_validate(self):
+    def test_default_parameters_validate(self) -> None:
         """Default hardcoded parameters should validate."""
         params = PENotHParameters()
         assert params.validate() is True
@@ -23,43 +23,43 @@ class TestPENotHParameters:
         assert params.b == 0.49
         assert params.c == 2.0
 
-    def test_call_with_zero_likelihood(self):
+    def test_call_with_zero_likelihood(self) -> None:
         """P(E|¬H) at L=0 should be a + b."""
         params = PENotHParameters()
         result = params(0.0)
         # 0.01 + 0.49 * (1-0)^2 = 0.01 + 0.49 = 0.50
         assert result == pytest.approx(0.50, abs=1e-6)
 
-    def test_call_with_perfect_likelihood(self):
+    def test_call_with_perfect_likelihood(self) -> None:
         """P(E|¬H) at L=1 should be a."""
         params = PENotHParameters()
         result = params(1.0)
         # 0.01 + 0.49 * (1-1)^2 = 0.01
         assert result == pytest.approx(0.01, abs=1e-6)
 
-    def test_call_with_mid_likelihood(self):
+    def test_call_with_mid_likelihood(self) -> None:
         """P(E|¬H) at L=0.5."""
         params = PENotHParameters()
         result = params(0.5)
         # 0.01 + 0.49 * 0.5^2 = 0.01 + 0.1225 = 0.1325
         assert result == pytest.approx(0.1325, abs=1e-4)
 
-    def test_invalid_a_too_large(self):
+    def test_invalid_a_too_large(self) -> None:
         """'a' must be < 0.1."""
         params = PENotHParameters(a=0.5, b=0.3, c=2.0)
         assert params.validate() is False
 
-    def test_invalid_b_negative(self):
+    def test_invalid_b_negative(self) -> None:
         """'b' must be positive."""
         params = PENotHParameters(a=0.01, b=-0.1, c=2.0)
         assert params.validate() is False
 
-    def test_invalid_sum_exceeds_one(self):
+    def test_invalid_sum_exceeds_one(self) -> None:
         """a + b must be <= 1.0."""
         params = PENotHParameters(a=0.6, b=0.5, c=2.0)
         assert params.validate() is False
 
-    def test_invalid_c_too_small(self):
+    def test_invalid_c_too_small(self) -> None:
         """c must be >= 0.5."""
         params = PENotHParameters(a=0.01, b=0.49, c=0.1)
         assert params.validate() is False
@@ -68,7 +68,7 @@ class TestPENotHParameters:
 class TestPENotHLearner:
     """Test suite for P(E|¬H) learner."""
 
-    def test_initialization(self):
+    def test_initialization(self) -> None:
         """Learner initializes with hardcoded parameters."""
         learner = PENotHLearner()
         assert learner.parameters.a == 0.01
@@ -76,7 +76,7 @@ class TestPENotHLearner:
         assert learner.parameters.c == 2.0
         assert len(learner.training_data) == 0
 
-    def test_learn_from_empty_data(self):
+    def test_learn_from_empty_data(self) -> None:
         """Learning from empty data returns hardcoded params."""
         learner = PENotHLearner()
         learned = learner.learn_from_cross_format_data([])
@@ -84,7 +84,7 @@ class TestPENotHLearner:
         assert learned.b == 0.49
         assert learned.c == 2.0
 
-    def test_learn_from_perfect_quadratic_data(self):
+    def test_learn_from_perfect_quadratic_data(self) -> None:
         """If data exactly matches quadratic formula, should learn same params."""
         learner = PENotHLearner()
 
@@ -102,7 +102,7 @@ class TestPENotHLearner:
         assert learned.b == pytest.approx(hardcoded.b, abs=0.01)
         assert learned.c == pytest.approx(hardcoded.c, abs=0.1)
 
-    def test_learn_from_linear_decay_data(self):
+    def test_learn_from_linear_decay_data(self) -> None:
         """If data is linear, should learn c ≈ 1.0."""
         learner = PENotHLearner()
 
@@ -119,7 +119,7 @@ class TestPENotHLearner:
         assert learned.validate() is True
         assert learned.c < 1.5  # Closer to linear than quadratic
 
-    def test_compare_with_hardcoded(self):
+    def test_compare_with_hardcoded(self) -> None:
         """Comparison metrics should be computed correctly."""
         learner = PENotHLearner()
 
@@ -139,7 +139,9 @@ class TestPENotHLearner:
         assert comparison["mse_hardcoded"] < 1e-6
         assert comparison["mse_learned"] < 1e-6
 
-    def test_heuristic_default_when_scipy_unavailable(self, monkeypatch):
+    def test_heuristic_default_when_scipy_unavailable(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Should use heuristics when scipy is not available."""
         monkeypatch.setattr(learner_module, "_SCIPY_AVAILABLE", False)
         monkeypatch.setattr(learner_module, "optimize", None)
@@ -160,7 +162,7 @@ class TestPENotHLearner:
         # Heuristic keeps quadratic decay
         assert learned.c == 2.0
 
-    def test_learned_parameters_maintain_monotonicity(self):
+    def test_learned_parameters_maintain_monotonicity(self) -> None:
         """Learned P(E|¬H) should be monotonically decreasing in likelihood."""
         learner = PENotHLearner()
 
@@ -185,7 +187,7 @@ class TestPENotHLearner:
 class TestPENotHIntegration:
     """Integration tests for P(E|¬H) learning."""
 
-    def test_improvement_detection(self):
+    def test_improvement_detection(self) -> None:
         """Should detect when learned params improve over hardcoded."""
         learner = PENotHLearner()
 
@@ -202,7 +204,7 @@ class TestPENotHIntegration:
         assert comparison["mse_learned"] < comparison["mse_hardcoded"]
         assert comparison["improvement_percent"] > 0
 
-    def test_no_degradation_on_perfect_match(self):
+    def test_no_degradation_on_perfect_match(self) -> None:
         """Learned params should not degrade on data matching hardcoded."""
         learner = PENotHLearner()
 

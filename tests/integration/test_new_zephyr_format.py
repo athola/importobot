@@ -1,6 +1,7 @@
 """Integration tests for new Zephyr format conversion with Robot Framework execution."""
 
 import json
+from pathlib import Path
 
 from robot.api import get_model
 
@@ -8,7 +9,7 @@ from importobot.core.converter import convert_file
 from tests.utils import parse_robot_file
 
 
-def test_zephyr_integration_keyword_types(tmp_path):
+def test_zephyr_integration_keyword_types(tmp_path: Path) -> None:
     """Tests that the generated robot file contains expected keywords."""
     zephyr_json_content = {
         "name": "Sample Zephyr Test",
@@ -73,7 +74,7 @@ def test_zephyr_integration_keyword_types(tmp_path):
     assert "Click Button" in keyword_names or "Click Element" in keyword_names
 
 
-def test_robot_execution_against_mock_server(tmp_path):
+def test_robot_execution_against_mock_server(tmp_path: Path) -> None:
     """
     Generates a .robot file and executes it against the mock web server
     to verify its functionality.

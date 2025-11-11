@@ -7,7 +7,7 @@ from .ssh_base import BaseSSHTestGenerator
 
 
 class SSHAuthenticationTestGenerator(BaseSSHTestGenerator):
-    """Generates SSH authentication test cases."""
+    """Generate SSH authentication test cases."""
 
     def __init__(self) -> None:
         """Initialize the SSH authentication test generator."""

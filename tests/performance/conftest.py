@@ -1,13 +1,14 @@
 """Mark performance tests as slow for default test runs."""
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 pytestmark = pytest.mark.slow
 
 
-def pytest_collection_modifyitems(session, config, items):
+def pytest_collection_modifyitems(session: Any, config: Any, items: Any) -> None:
     """Ensure all performance tests carry the slow marker."""
     base_dir = Path(__file__).parent.resolve()
     for item in items:

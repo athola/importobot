@@ -12,7 +12,7 @@ from tests.shared_test_data import SSH_SECURITY_TOPICS
 class TestSSHParameterValidation:
     """Test SecurityValidator SSH parameter validation methods."""
 
-    def test_validate_ssh_parameters_no_warnings(self):
+    def test_validate_ssh_parameters_no_warnings(self) -> None:
         """Test SSH parameter validation with no warnings."""
         validator = SecurityValidator()
         params = {"host": "example.com", "port": 22, "username": "user"}
@@ -21,7 +21,7 @@ class TestSSHParameterValidation:
 
         assert not warnings
 
-    def test_validate_ssh_parameters_with_password(self):
+    def test_validate_ssh_parameters_with_password(self) -> None:
         """Test SSH parameter validation with password warning."""
         validator = SecurityValidator()
         params = {"password": "secret123"}
@@ -29,12 +29,12 @@ class TestSSHParameterValidation:
         warnings = validator.validate_ssh_parameters(params)
 
         assert len(warnings) >= 2  # SSH password + hardcoded credential warnings
-        assert any("⚠️  SSH password found" in w for w in warnings)
+        assert any("WARNING: SSH password found" in w for w in warnings)
         assert any("consider using key-based authentication" in w for w in warnings)
-        assert any("⚠️  Hardcoded credential detected" in w for w in warnings)
+        assert any("WARNING: Hardcoded credential detected" in w for w in warnings)
         assert any("Password encrypted" in w for w in warnings)
 
-    def test_validate_ssh_parameters_dangerous_command(self):
+    def test_validate_ssh_parameters_dangerous_command(self) -> None:
         """Test SSH parameter validation with dangerous command."""
         validator = SecurityValidator()
         params = {"command": "rm -rf /"}
@@ -43,11 +43,10 @@ class TestSSHParameterValidation:
 
         assert len(warnings) == 1
         assert (
-            "⚠️  Potentially dangerous command pattern detected: rm\\s+-rf"
-            in warnings[0]
+            "Potentially dangerous command pattern detected: rm\\s+-rf" in warnings[0]
         )
 
-    def test_validate_ssh_parameters_multiple_patterns(self):
+    def test_validate_ssh_parameters_multiple_patterns(self) -> None:
         """Test SSH parameter validation with multiple dangerous patterns."""
         validator = SecurityValidator()
         params = {"command": "sudo rm -rf / && echo done"}
@@ -58,7 +57,7 @@ class TestSSHParameterValidation:
         assert any("sudo" in w for w in warnings)
         assert any("rm\\s+-rf" in w for w in warnings)
 
-    def test_validate_ssh_parameters_sensitive_path(self):
+    def test_validate_ssh_parameters_sensitive_path(self) -> None:
         """Test SSH parameter validation with sensitive paths."""
         validator = SecurityValidator()
         params = {"path": "/etc/passwd"}
@@ -68,10 +67,10 @@ class TestSSHParameterValidation:
         assert (
             len(warnings) == 2
         )  # Both sensitive file access and sensitive path warnings
-        assert any("⚠️  Sensitive" in w for w in warnings)
+        assert any("WARNING: Sensitive" in w for w in warnings)
         assert any("/etc/passwd" in w for w in warnings)
 
-    def test_validate_ssh_parameters_production_env(self):
+    def test_validate_ssh_parameters_production_env(self) -> None:
         """Test SSH parameter validation with production environment."""
         validator = SecurityValidator()
         params = {"env": "production", "command": "deploy"}
@@ -79,13 +78,13 @@ class TestSSHParameterValidation:
         warnings = validator.validate_ssh_parameters(params)
 
         assert len(warnings) == 1
-        assert "⚠️  Production environment detected" in warnings[0]
+        assert "WARNING: Production environment detected" in warnings[0]
 
 
 class TestCommandSanitization:
     """Test SecurityValidator command sanitization methods."""
 
-    def test_sanitize_command_parameters_string_input(self):
+    def test_sanitize_command_parameters_string_input(self) -> None:
         """Test command parameter sanitization with string input."""
         validator = SecurityValidator()
 
@@ -93,7 +92,7 @@ class TestCommandSanitization:
 
         assert result == "safe command"
 
-    def test_sanitize_command_parameters_non_string_input(self):
+    def test_sanitize_command_parameters_non_string_input(self) -> None:
         """Test command parameter sanitization with non-string input."""
         validator = SecurityValidator()
 
@@ -101,7 +100,7 @@ class TestCommandSanitization:
 
         assert result == "123"
 
-    def test_sanitize_command_parameters_with_dangerous_chars(self):
+    def test_sanitize_command_parameters_with_dangerous_chars(self) -> None:
         """Test command parameter sanitization with dangerous characters."""
         validator = SecurityValidator()
         command = "command | pipe ; semicolon `backtick` $(subshell)"
@@ -118,7 +117,7 @@ class TestCommandSanitization:
 class TestFileOperationsValidation:
     """Test SecurityValidator file operations validation methods."""
 
-    def test_validate_file_operations_no_warnings(self):
+    def test_validate_file_operations_no_warnings(self) -> None:
         """Test file operations validation with no warnings."""
         validator = SecurityValidator()
 
@@ -126,44 +125,44 @@ class TestFileOperationsValidation:
 
         assert not warnings
 
-    def test_validate_file_operations_path_traversal(self):
+    def test_validate_file_operations_path_traversal(self) -> None:
         """Test file operations validation with path traversal."""
         validator = SecurityValidator()
 
         warnings = validator.validate_file_operations("../../../etc/passwd", "read")
 
         assert len(warnings) == 2  # Both path traversal and sensitive path
-        assert "⚠️  Potential path traversal detected" in warnings[0]
-        assert "⚠️  Sensitive file access detected" in warnings[1]
+        assert "WARNING: Potential path traversal detected" in warnings[0]
+        assert "WARNING: Sensitive file access detected" in warnings[1]
 
-    def test_validate_file_operations_double_slash(self):
+    def test_validate_file_operations_double_slash(self) -> None:
         """Test file operations validation with double slash."""
         validator = SecurityValidator()
 
         warnings = validator.validate_file_operations("path//to//file", "read")
 
         assert len(warnings) == 1
-        assert "⚠️  Potential path traversal detected" in warnings[0]
+        assert "WARNING: Potential path traversal detected" in warnings[0]
 
-    def test_validate_file_operations_sensitive_path(self):
+    def test_validate_file_operations_sensitive_path(self) -> None:
         """Test file operations validation with sensitive path."""
         validator = SecurityValidator()
 
         warnings = validator.validate_file_operations("/etc/shadow", "write")
 
         assert len(warnings) == 1
-        assert "⚠️  Sensitive file access detected" in warnings[0]
+        assert "WARNING: Sensitive file access detected" in warnings[0]
 
-    def test_validate_file_operations_destructive_operation(self):
+    def test_validate_file_operations_destructive_operation(self) -> None:
         """Test file operations validation with destructive operation."""
         validator = SecurityValidator()
 
         warnings = validator.validate_file_operations("file.txt", "delete")
 
         assert len(warnings) == 1
-        assert "⚠️  Destructive operation 'delete'" in warnings[0]
+        assert "Destructive operation 'delete'" in warnings[0]
 
-    def test_validate_file_operations_multiple_warnings(self):
+    def test_validate_file_operations_multiple_warnings(self) -> None:
         """Test file operations validation with multiple warnings."""
         validator = SecurityValidator()
 
@@ -177,7 +176,7 @@ class TestFileOperationsValidation:
 class TestErrorMessageSanitization:
     """Test SecurityValidator error message sanitization methods."""
 
-    def test_sanitize_error_message_string_input(self):
+    def test_sanitize_error_message_string_input(self) -> None:
         """Test error message sanitization with string input."""
         validator = SecurityValidator()
 
@@ -185,7 +184,7 @@ class TestErrorMessageSanitization:
 
         assert result == "Normal error message"
 
-    def test_sanitize_error_message_non_string_input(self):
+    def test_sanitize_error_message_non_string_input(self) -> None:
         """Test error message sanitization with non-string input."""
         validator = SecurityValidator()
 
@@ -193,7 +192,7 @@ class TestErrorMessageSanitization:
 
         assert result == "42"
 
-    def test_sanitize_error_message_path_sanitization(self):
+    def test_sanitize_error_message_path_sanitization(self) -> None:
         """Test error message sanitization with path information."""
         validator = SecurityValidator()
         error_msg = "Error in /home/user/secret/file.txt on line 10"
@@ -203,7 +202,7 @@ class TestErrorMessageSanitization:
         assert "[PATH]" in result  # Long paths get fully sanitized
         assert "secret/file.txt" not in result
 
-    def test_sanitize_error_message_windows_path(self):
+    def test_sanitize_error_message_windows_path(self) -> None:
         """Test error message sanitization with Windows path."""
         validator = SecurityValidator()
         error_msg = "Error in C:\\Users\\Admin\\Documents\\file.txt"
@@ -212,7 +211,7 @@ class TestErrorMessageSanitization:
 
         assert "C:/Users/[USER]" in result
 
-    def test_sanitize_error_message_long_path(self):
+    def test_sanitize_error_message_long_path(self) -> None:
         """Test error message sanitization with long absolute path."""
         validator = SecurityValidator()
         error_msg = "Error in /very/long/path/to/some/deeply/nested/file.txt"
@@ -225,7 +224,7 @@ class TestErrorMessageSanitization:
 class TestSecurityRecommendations:
     """Test SecurityValidator security recommendations generation methods."""
 
-    def test_generate_security_recommendations_ssh_usage(self):
+    def test_generate_security_recommendations_ssh_usage(self) -> None:
         """Test security recommendations generation for SSH usage."""
         validator = SecurityValidator()
         test_data = {"command": "ssh user@host 'ls -la'"}
@@ -238,7 +237,7 @@ class TestSecurityRecommendations:
         assert any("dedicated test environments" in r for r in recommendations)
         assert any("host key fingerprints" in r for r in recommendations)
 
-    def test_generate_security_recommendations_database_usage(self):
+    def test_generate_security_recommendations_database_usage(self) -> None:
         """Test security recommendations generation for database usage."""
         validator = SecurityValidator()
         test_data = {"query": "SELECT * FROM users", "database": "test_db"}
@@ -252,7 +251,7 @@ class TestSecurityRecommendations:
             "Sanitize all user inputs in database tests" in r for r in recommendations
         )
 
-    def test_generate_security_recommendations_web_usage(self):
+    def test_generate_security_recommendations_web_usage(self) -> None:
         """Test security recommendations generation for web usage."""
         validator = SecurityValidator()
         test_data = {"browser": "chrome", "url": "https://example.com"}
@@ -264,7 +263,7 @@ class TestSecurityRecommendations:
         assert any("authentication and authorization" in r for r in recommendations)
         assert any("secure test data" in r for r in recommendations)
 
-    def test_generate_security_recommendations_no_matches(self):
+    def test_generate_security_recommendations_no_matches(self) -> None:
         """Test security recommendations generation with no matching patterns."""
         validator = SecurityValidator()
         test_data = {"simple": "test", "value": 42}
@@ -277,7 +276,7 @@ class TestSecurityRecommendations:
 class TestValidateTestSecurity:
     """Test validate_test_security function."""
 
-    def test_validate_test_security_clean_test(self):
+    def test_validate_test_security_clean_test(self) -> None:
         """Test security validation for clean test case."""
         test_case = {"name": "Clean test", "steps": []}
 
@@ -287,7 +286,7 @@ class TestValidateTestSecurity:
         assert len(results["recommendations"]) == 0
         assert not results["sanitized_errors"]
 
-    def test_validate_test_security_with_ssh_warnings(self):
+    def test_validate_test_security_with_ssh_warnings(self) -> None:
         """Test security validation for test case with SSH warnings."""
         test_case = {
             "name": "SSH test",
@@ -304,7 +303,7 @@ class TestValidateTestSecurity:
         assert len(results["warnings"]) >= 3
         assert len(results["recommendations"]) >= 4  # SSH recommendations
 
-    def test_validate_test_security_logging(self):
+    def test_validate_test_security_logging(self) -> None:
         """Test that security validation logs warnings."""
         test_case = {
             "name": "SSH test",
@@ -320,7 +319,7 @@ class TestValidateTestSecurity:
 class TestGetSSHSecurityGuidelines:
     """Test get_ssh_security_guidelines function."""
 
-    def test_get_ssh_security_guidelines_content(self):
+    def test_get_ssh_security_guidelines_content(self) -> None:
         """Test SSH security guidelines content."""
         guidelines = get_ssh_security_guidelines()
 
@@ -331,7 +330,7 @@ class TestGetSSHSecurityGuidelines:
         assert any("connection timeouts" in g for g in guidelines)
         assert any("host key fingerprints" in g for g in guidelines)
 
-    def test_get_ssh_security_guidelines_coverage(self):
+    def test_get_ssh_security_guidelines_coverage(self) -> None:
         """Test that SSH guidelines cover all important aspects."""
         guidelines = get_ssh_security_guidelines()
 
@@ -345,7 +344,7 @@ class TestGetSSHSecurityGuidelines:
 class TestExtractSecurityWarnings:
     """Test extract_security_warnings function."""
 
-    def test_extract_security_warnings_no_warnings(self):
+    def test_extract_security_warnings_no_warnings(self) -> None:
         """Test extracting security warnings when none exist."""
         keyword_info = {"name": "test", "type": "action"}
 
@@ -353,7 +352,7 @@ class TestExtractSecurityWarnings:
 
         assert not warnings
 
-    def test_extract_security_warnings_with_security_warning(self):
+    def test_extract_security_warnings_with_security_warning(self) -> None:
         """Test extracting security warning from keyword info."""
         keyword_info = {"name": "test", "security_warning": "This action is dangerous"}
 
@@ -361,7 +360,7 @@ class TestExtractSecurityWarnings:
 
         assert warnings == ["This action is dangerous"]
 
-    def test_extract_security_warnings_with_security_note(self):
+    def test_extract_security_warnings_with_security_note(self) -> None:
         """Test extracting security note from keyword info."""
         keyword_info = {"name": "test", "security_note": "Use with caution"}
 
@@ -369,7 +368,7 @@ class TestExtractSecurityWarnings:
 
         assert warnings == ["Use with caution"]
 
-    def test_extract_security_warnings_both_fields(self):
+    def test_extract_security_warnings_both_fields(self) -> None:
         """Test extracting both security warning and note."""
         keyword_info = {
             "name": "test",

@@ -25,12 +25,12 @@ test-cov:  ## Run tests with coverage
 lint:  ## Run linting checks
 	@echo "==================== Running scripts linting ===================="
 	uv run ruff check .
-	@echo "Linting complete ✓"
+	@echo "Linting complete"
 
 format:  ## Format code
 	@echo "==================== Formatting scripts code ===================="
 	uv run ruff format .
-	@echo "Formatting complete ✓"
+	@echo "Formatting complete"
 
 clean:  ## Clean temporary files
 	@echo "==================== Cleaning scripts temporary files ===================="
@@ -43,7 +43,7 @@ clean:  ## Clean temporary files
 	rm -rf build/
 	rm -rf visualizations/*.png
 	rm -rf logs/*.log
-	@echo "Clean complete ✓"
+	@echo "Clean complete"
 
 demo:  ## Run the interactive demo
 	@echo "==================== Running interactive demo ===================="

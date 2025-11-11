@@ -1,6 +1,6 @@
-"""Robot Framework keyword registry and library mappings.
+"""Manages Robot Framework keyword registry and library mappings.
 
-Provides centralized keyword definitions, library patterns, and intent recognition
+This module centralizes keyword definitions, library patterns, and intent recognition
 for Robot Framework conversion operations.
 """
 
@@ -12,7 +12,7 @@ from importobot.utils.security import SSH_SECURITY_GUIDELINES, extract_security_
 
 
 class RobotFrameworkKeywordRegistry:
-    """Centralized registry of Robot Framework keywords across major libraries."""
+    """A centralized registry of Robot Framework keywords across major libraries."""
 
     # Comprehensive Robot Framework library coverage
     KEYWORD_LIBRARIES: ClassVar[dict[str, Any]] = {
@@ -126,23 +126,23 @@ class RobotFrameworkKeywordRegistry:
             "Open Connection": {
                 "args": ["host", "username", "password"],
                 "description": "Open SSH connection",
-                "security_warning": "⚠️  Use key-based auth instead of passwords",
+                "security_warning": "WARNING: Use key-based auth instead of passwords",
             },
             "Close Connection": {"args": [], "description": "Close SSH connection"},
             "Get File": {
                 "args": ["source", "destination"],
                 "description": "Download file via SSH",
-                "security_warning": "⚠️  Validate file paths to prevent dir traversal",
+                "security_warning": "Validate file paths to prevent dir traversal",
             },
             "Put File": {
                 "args": ["source", "destination"],
                 "description": "Upload file via SSH",
-                "security_warning": "⚠️  Validate destination paths and permissions",
+                "security_warning": "Validate destination paths and permissions",
             },
             "Execute Command": {
                 "args": ["command"],
                 "description": "Execute command via SSH",
-                "security_warning": "⚠️  Sanitize commands to prevent injection",
+                "security_warning": "WARNING: Sanitize commands to prevent injection",
             },
             "Login": {"args": ["username", "password"], "description": "Login to SSH"},
             "Login With Public Key": {
@@ -466,31 +466,33 @@ class RobotFrameworkKeywordRegistry:
                 "description": "Delete keys from Redis",
             },
         },
-        # MongoDBLibrary - MongoDB operations
-        "MongoDBLibrary": {
-            "Connect To MongoDB": {
-                "args": ["connection_string", "database"],
-                "description": "Connect to MongoDB",
+        # RobotMongoDBLibrary - MongoDB operations (standalone functions)
+        "RobotMongoDBLibrary": {
+            "InsertOne": {
+                "args": ["connection_config", "data"],
+                "description": "Insert one document into MongoDB collection",
             },
-            "Disconnect From MongoDB": {
-                "args": [],
-                "description": "Disconnect from MongoDB",
+            "FindOneByID": {
+                "args": ["connection_config", "id"],
+                "description": "Find one document by ID from MongoDB collection",
             },
-            "Insert Data": {
-                "args": ["collection", "document"],
-                "description": "Insert document into collection",
+            "Find": {
+                "args": ["connection_config", "filter"],
+                "description": "Find documents in MongoDB collection using filter",
             },
-            "Retrieve Some Data": {
-                "args": ["collection", "query"],
-                "description": "Query MongoDB collection",
+            "Update": {
+                "args": ["connection_config", "id", "data"],
+                "description": "Update document by ID in MongoDB collection",
             },
-            "Update Data": {
-                "args": ["collection", "query", "update"],
-                "description": "Update MongoDB document",
+            "DeleteOne": {
+                "args": ["connection_config", "filter"],
+                "description": (
+                    "Delete one document from MongoDB collection using filter"
+                ),
             },
-            "Delete Data": {
-                "args": ["collection", "query"],
-                "description": "Delete MongoDB document",
+            "DeleteOneByID": {
+                "args": ["connection_config", "id"],
+                "description": "Delete one document by ID from MongoDB collection",
             },
         },
     }
@@ -531,6 +533,8 @@ class RobotFrameworkKeywordRegistry:
         "web_open": ("SeleniumLibrary", "Open Browser"),
         "web_close": ("SeleniumLibrary", "Close Browser"),
         "web_navigate": ("SeleniumLibrary", "Go To"),
+        # Mobile app operations
+        "app_open": ("AppiumLibrary", "Open Application"),
         "web_input": ("SeleniumLibrary", "Input Text"),
         "web_input_password": ("SeleniumLibrary", "Input Password"),
         "web_click": ("SeleniumLibrary", "Click Element"),
@@ -602,14 +606,14 @@ class RobotFrameworkKeywordRegistry:
 
     @classmethod
     def get_keyword_info(cls, library: str, keyword: str) -> dict[str, Any]:
-        """Get information about a specific keyword."""
+        """Retrieve information about a specific keyword."""
         if library in cls.KEYWORD_LIBRARIES:
             return cast(dict[str, Any], cls.KEYWORD_LIBRARIES[library].get(keyword, {}))
         return {}
 
     @classmethod
     def get_required_libraries(cls, keywords: list[dict[str, Any]]) -> list[str]:
-        """Get required libraries for keyword set."""
+        """Retrieve the required libraries for a given set of keywords."""
         libraries = set()
         for kw in keywords:
             if kw.get("library") and kw["library"] != "builtin":
@@ -618,7 +622,7 @@ class RobotFrameworkKeywordRegistry:
 
     @classmethod
     def get_intent_keyword(cls, intent: str) -> tuple[str, str]:
-        """Get library and keyword for an intent."""
+        """Retrieve the library and keyword associated with a specific intent."""
         return cls.INTENT_TO_LIBRARY_KEYWORDS.get(intent, ("builtin", "No Operation"))
 
     @classmethod
@@ -626,7 +630,7 @@ class RobotFrameworkKeywordRegistry:
         """Validate that all intent mappings reference valid keywords.
 
         Returns:
-            List of validation errors found in the registry
+            A list of validation errors found in the registry.
         """
         errors = []
 
@@ -649,10 +653,10 @@ class RobotFrameworkKeywordRegistry:
 
     @classmethod
     def get_registry_metrics(cls) -> dict[str, Any]:
-        """Get metrics about the registry usage and coverage.
+        """Retrieve metrics regarding registry usage and coverage.
 
         Returns:
-            Dictionary containing registry metrics
+            A dictionary containing registry metrics.
         """
         total_libraries = len(cls.KEYWORD_LIBRARIES)
         total_keywords = sum(
@@ -692,16 +696,16 @@ class RobotFrameworkKeywordRegistry:
 
 
 class IntentRecognitionEngine:
-    """Centralized intent recognition using PatternMatcher."""
+    """Provides centralized intent recognition capabilities using `PatternMatcher`."""
 
     _pattern_matcher: ClassVar[PatternMatcher] = PatternMatcher()
 
     @classmethod
     def recognize_intent(cls, text: str) -> IntentType | None:
-        """Recognize intent from text description using PatternMatcher.
+        """Recognizes the intent from a text description using `PatternMatcher`.
 
         Returns:
-            IntentType enum if intent detected, None otherwise
+            An `IntentType` enum if an intent is detected, otherwise `None`.
         """
         if not text:
             return None
@@ -711,17 +715,17 @@ class IntentRecognitionEngine:
 
     @classmethod
     def detect_all_intents(cls, text: str) -> list[IntentType]:
-        """Detect all matching intents from text using PatternMatcher.
+        """Detect all matching intents from a text description using `PatternMatcher`.
 
         Returns:
-            List of IntentType enums for all detected intents
+            A list of `IntentType` enums for all detected intents.
         """
         detected_intents = cls._pattern_matcher.detect_all_intents(text)
         return detected_intents  # Return enums directly, not .value
 
     @classmethod
     def get_security_warnings_for_keyword(cls, library: str, keyword: str) -> list[str]:
-        """Get security warnings for a specific keyword."""
+        """Retrieve security warnings for a specific keyword."""
         warnings = []
         if library in RobotFrameworkKeywordRegistry.KEYWORD_LIBRARIES:
             keyword_info = RobotFrameworkKeywordRegistry.KEYWORD_LIBRARIES[library].get(
@@ -732,12 +736,12 @@ class IntentRecognitionEngine:
 
     @classmethod
     def get_ssh_security_guidelines(cls) -> list[str]:
-        """Get comprehensive SSH security guidelines."""
+        """Retrieve comprehensive SSH security guidelines."""
         return SSH_SECURITY_GUIDELINES
 
     @classmethod
     def validate_command_security(cls, command: str) -> dict[str, Any]:
-        """Validate command for security issues."""
+        """Validate a command for potential security issues."""
         dangerous_patterns = [
             (r"rm\s+-rf", "Dangerous recursive delete command"),
             (r"sudo\s+", "Elevated privileges command"),

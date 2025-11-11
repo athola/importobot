@@ -19,7 +19,7 @@ from importobot.telemetry import TelemetryClient, TelemetryPayload
 class TestLRUCacheBasicOperations:
     """Test fundamental cache operations (get, set, delete)."""
 
-    def test_get_returns_none_for_missing_key(self):
+    def test_get_returns_none_for_missing_key(self) -> None:
         """GIVEN an empty cache
         WHEN getting a key that doesn't exist
         THEN None is returned
@@ -30,7 +30,7 @@ class TestLRUCacheBasicOperations:
 
         assert result is None
 
-    def test_set_and_get_stores_and_retrieves_value(self):
+    def test_set_and_get_stores_and_retrieves_value(self) -> None:
         """GIVEN a cache
         WHEN setting a key-value pair and then getting that key
         THEN the original value is returned
@@ -42,7 +42,7 @@ class TestLRUCacheBasicOperations:
 
         assert result == 42
 
-    def test_set_overwrites_existing_key(self):
+    def test_set_overwrites_existing_key(self) -> None:
         """GIVEN a cache with an existing key
         WHEN setting the same key with a new value
         THEN the new value replaces the old one
@@ -55,7 +55,7 @@ class TestLRUCacheBasicOperations:
 
         assert result == "new_value"
 
-    def test_delete_removes_key(self):
+    def test_delete_removes_key(self) -> None:
         """GIVEN a cache with a stored key
         WHEN deleting that key
         THEN subsequent get returns None
@@ -68,7 +68,7 @@ class TestLRUCacheBasicOperations:
 
         assert result is None
 
-    def test_delete_nonexistent_key_does_not_raise(self):
+    def test_delete_nonexistent_key_does_not_raise(self) -> None:
         """GIVEN an empty cache
         WHEN deleting a key that doesn't exist
         THEN no exception is raised
@@ -77,7 +77,7 @@ class TestLRUCacheBasicOperations:
 
         cache.delete("nonexistent")  # Should not raise
 
-    def test_clear_removes_all_entries(self):
+    def test_clear_removes_all_entries(self) -> None:
         """GIVEN a cache with multiple entries
         WHEN clearing the cache
         THEN all entries are removed
@@ -97,7 +97,7 @@ class TestLRUCacheBasicOperations:
 class TestLRUEvictionPolicy:
     """Test LRU eviction behavior (least recently used gets evicted)."""
 
-    def test_cache_respects_max_size(self):
+    def test_cache_respects_max_size(self) -> None:
         """GIVEN a cache with max_size=2
         WHEN adding 3 items
         THEN cache only contains 2 items
@@ -112,7 +112,7 @@ class TestLRUEvictionPolicy:
         stats = cache.get_stats()
         assert stats["cache_size"] == 2
 
-    def test_oldest_entry_is_evicted(self):
+    def test_oldest_entry_is_evicted(self) -> None:
         """GIVEN a cache with max_size=2 containing key1, key2
         WHEN adding key3
         THEN key1 (oldest) is evicted, key2 and key3 remain
@@ -128,7 +128,7 @@ class TestLRUEvictionPolicy:
         assert cache.get("key2") == 2
         assert cache.get("key3") == 3
 
-    def test_get_updates_recency(self):
+    def test_get_updates_recency(self) -> None:
         """GIVEN a cache with max_size=2 containing key1, key2
         WHEN accessing key1 (making it recently used) then adding key3
         THEN key2 (now oldest) is evicted, not key1
@@ -148,7 +148,7 @@ class TestLRUEvictionPolicy:
         assert cache.get("key2") is None  # Evicted
         assert cache.get("key3") == 3
 
-    def test_eviction_increments_counter(self):
+    def test_eviction_increments_counter(self) -> None:
         """GIVEN a cache with max_size=2
         WHEN adding 3 items
         THEN eviction counter is incremented
@@ -167,7 +167,7 @@ class TestLRUEvictionPolicy:
 class TestTTLExpiration:
     """Test time-to-live expiration behavior."""
 
-    def test_entries_expire_after_ttl(self):
+    def test_entries_expire_after_ttl(self) -> None:
         """GIVEN a cache with TTL=1 second
         WHEN setting a value and waiting >1 second
         THEN the value expires and get returns None
@@ -185,7 +185,7 @@ class TestTTLExpiration:
         # Should be expired now
         assert cache.get("key") is None
 
-    def test_entries_without_ttl_do_not_expire(self):
+    def test_entries_without_ttl_do_not_expire(self) -> None:
         """GIVEN a cache with no TTL (ttl_seconds=None)
         WHEN setting a value and waiting
         THEN the value never expires
@@ -200,7 +200,7 @@ class TestTTLExpiration:
         # Should still be there
         assert cache.get("key") == "value"
 
-    def test_get_refreshes_ttl(self):
+    def test_get_refreshes_ttl(self) -> None:
         """GIVEN a cache with TTL=1 second containing an entry
         WHEN accessing the entry before expiration
         THEN the TTL is refreshed (timestamp updated)
@@ -255,7 +255,7 @@ class TestTTLExpiration:
 class TestSecurityPolicies:
     """Test security constraints (content size, collision chains)."""
 
-    def test_rejects_oversized_content(self, caplog):
+    def test_rejects_oversized_content(self, caplog: pytest.LogCaptureFixture) -> None:
         """GIVEN a cache with max_content_size=100 bytes
         WHEN setting a value larger than 100 bytes
         THEN the value is rejected and warning is logged
@@ -272,7 +272,7 @@ class TestSecurityPolicies:
         assert cache.get("key") is None
         assert "oversized content" in caplog.text.lower()
 
-    def test_rejection_increments_counter(self):
+    def test_rejection_increments_counter(self) -> None:
         """GIVEN a cache with max_content_size=100 bytes
         WHEN attempting to set oversized content
         THEN rejection counter is incremented
@@ -287,7 +287,9 @@ class TestSecurityPolicies:
         stats = cache.get_stats()
         assert stats["rejections"] >= 1
 
-    def test_config_max_bytes_rejects_oversized_entry(self, caplog):
+    def test_config_max_bytes_rejects_oversized_entry(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
         """GIVEN a cache with max_content_size_bytes=100
         WHEN setting a single value larger than the total capacity
         THEN the value is rejected and not cached
@@ -304,7 +306,9 @@ class TestSecurityPolicies:
         assert stats["rejections"] >= 1
         assert "exceeding configured cache capacity" in caplog.text.lower()
 
-    def test_collision_chain_limit_enforced(self, monkeypatch, caplog):
+    def test_collision_chain_limit_enforced(
+        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
         """GIVEN a cache with max_collision_chain=1
         WHEN attempting to store 2 items with same hash
         THEN second item is rejected
@@ -330,7 +334,7 @@ class TestSecurityPolicies:
 class TestCacheStatistics:
     """Test cache hit/miss tracking and statistics."""
 
-    def test_cache_miss_increments_counter(self):
+    def test_cache_miss_increments_counter(self) -> None:
         """GIVEN an empty cache
         WHEN getting a non-existent key
         THEN miss counter is incremented
@@ -342,7 +346,7 @@ class TestCacheStatistics:
         stats = cache.get_stats()
         assert stats["cache_misses"] == 1
 
-    def test_cache_hit_increments_counter(self):
+    def test_cache_hit_increments_counter(self) -> None:
         """GIVEN a cache with a stored key
         WHEN getting that key
         THEN hit counter is incremented
@@ -355,7 +359,7 @@ class TestCacheStatistics:
         stats = cache.get_stats()
         assert stats["cache_hits"] == 1
 
-    def test_hit_rate_calculated_correctly(self):
+    def test_hit_rate_calculated_correctly(self) -> None:
         """GIVEN a cache with 2 hits and 1 miss
         WHEN getting stats
         THEN hit_rate is 2/3 (0.666...)
@@ -373,7 +377,7 @@ class TestCacheStatistics:
         expected_rate = 2 / 3
         assert abs(stats["hit_rate"] - expected_rate) < 0.01
 
-    def test_clear_resets_statistics(self):
+    def test_clear_resets_statistics(self) -> None:
         """GIVEN a cache with tracked hits/misses
         WHEN clearing the cache
         THEN all statistics are reset to zero
@@ -394,7 +398,9 @@ class TestCacheStatistics:
 class TestTelemetryIntegration:
     """Test telemetry emission for monitoring."""
 
-    def test_emits_telemetry_on_operations(self, telemetry_events):
+    def test_emits_telemetry_on_operations(
+        self, telemetry_events: list[tuple[str, Any]]
+    ) -> None:
         """GIVEN a cache with telemetry enabled
         WHEN performing cache operations
         THEN telemetry events are emitted
@@ -410,7 +416,9 @@ class TestTelemetryIntegration:
         event_names = [event[0] for event in telemetry_events]
         assert "cache_metrics" in event_names
 
-    def test_telemetry_includes_cache_stats(self, telemetry_events):
+    def test_telemetry_includes_cache_stats(
+        self, telemetry_events: list[tuple[str, Any]]
+    ) -> None:
         """GIVEN a cache with telemetry enabled
         WHEN performing operations
         THEN telemetry includes hit/miss statistics
@@ -430,7 +438,7 @@ class TestTelemetryIntegration:
         assert "hits" in payload
         assert "misses" in payload
 
-    def test_telemetry_can_be_disabled(self):
+    def test_telemetry_can_be_disabled(self) -> None:
         """GIVEN a cache with telemetry disabled
         WHEN performing operations
         THEN no telemetry events are emitted
@@ -468,7 +476,7 @@ class TestTelemetryIntegration:
 class TestCacheContains:
     """Test the contains() helper method."""
 
-    def test_contains_returns_true_for_existing_key(self):
+    def test_contains_returns_true_for_existing_key(self) -> None:
         """GIVEN a cache with a stored key
         WHEN checking if key is in cache
         THEN contains returns True
@@ -478,7 +486,7 @@ class TestCacheContains:
 
         assert cache.contains("key") is True
 
-    def test_contains_returns_false_for_missing_key(self):
+    def test_contains_returns_false_for_missing_key(self) -> None:
         """GIVEN an empty cache
         WHEN checking if key is in cache
         THEN contains returns False
@@ -487,7 +495,7 @@ class TestCacheContains:
 
         assert cache.contains("nonexistent") is False
 
-    def test_contains_returns_false_for_expired_key(self):
+    def test_contains_returns_false_for_expired_key(self) -> None:
         """GIVEN a cache with an expired entry
         WHEN checking if key is in cache
         THEN contains returns False
@@ -504,7 +512,7 @@ class TestCacheContains:
 class TestCleanupIntervalCalculation:
     """Test cleanup interval logic for different TTL configurations."""
 
-    def test_no_cleanup_when_ttl_is_none(self):
+    def test_no_cleanup_when_ttl_is_none(self) -> None:
         """GIVEN a cache with TTL=None
         WHEN checking cleanup interval
         THEN cleanup interval is None (no periodic cleanup)
@@ -514,7 +522,7 @@ class TestCleanupIntervalCalculation:
 
         assert cache._cleanup_interval is None
 
-    def test_no_cleanup_when_ttl_is_zero(self):
+    def test_no_cleanup_when_ttl_is_zero(self) -> None:
         """GIVEN a cache with TTL=0
         WHEN checking cleanup interval
         THEN cleanup interval is None (no periodic cleanup)
@@ -524,7 +532,7 @@ class TestCleanupIntervalCalculation:
 
         assert cache._cleanup_interval is None
 
-    def test_short_ttl_uses_minimum_interval(self):
+    def test_short_ttl_uses_minimum_interval(self) -> None:
         """GIVEN a cache with very short TTL (0.1 seconds)
         WHEN checking cleanup interval
         THEN interval is capped at minimum (0.1s) to prevent CPU thrashing
@@ -535,7 +543,7 @@ class TestCleanupIntervalCalculation:
         # ttl/2 = 0.05, but should be capped at 0.1
         assert cache._cleanup_interval == 0.1
 
-    def test_short_ttl_uses_half_interval(self):
+    def test_short_ttl_uses_half_interval(self) -> None:
         """GIVEN a cache with short TTL (2 seconds)
         WHEN checking cleanup interval
         THEN interval is ttl/2 (1 second)
@@ -545,7 +553,7 @@ class TestCleanupIntervalCalculation:
 
         assert cache._cleanup_interval == 1.0
 
-    def test_medium_ttl_uses_default_interval(self):
+    def test_medium_ttl_uses_default_interval(self) -> None:
         """GIVEN a cache with medium TTL (6 seconds)
         WHEN checking cleanup interval
         THEN interval uses default minimum (5 seconds)
@@ -556,7 +564,7 @@ class TestCleanupIntervalCalculation:
         # ttl/2 = 3.0, but capped at 5.0 minimum for longer TTLs
         assert cache._cleanup_interval == 5.0
 
-    def test_long_ttl_scales_with_ttl(self):
+    def test_long_ttl_scales_with_ttl(self) -> None:
         """GIVEN a cache with long TTL (100 seconds)
         WHEN checking cleanup interval
         THEN interval is ttl/2 (50 seconds)
@@ -566,7 +574,7 @@ class TestCleanupIntervalCalculation:
 
         assert cache._cleanup_interval == 50.0
 
-    def test_very_long_ttl_uses_maximum_interval(self):
+    def test_very_long_ttl_uses_maximum_interval(self) -> None:
         """GIVEN a cache with very long TTL (1 hour)
         WHEN checking cleanup interval
         THEN interval is capped at maximum (300 seconds = 5 minutes)
@@ -581,7 +589,7 @@ class TestCleanupIntervalCalculation:
 class TestCacheWithDifferentTypes:
     """Test cache with various key and value types."""
 
-    def test_cache_with_complex_objects(self):
+    def test_cache_with_complex_objects(self) -> None:
         """GIVEN a cache for complex objects
         WHEN storing and retrieving objects
         THEN objects are cached correctly
@@ -594,7 +602,7 @@ class TestCacheWithDifferentTypes:
 
         assert result == complex_obj
 
-    def test_cache_with_integer_keys(self):
+    def test_cache_with_integer_keys(self) -> None:
         """GIVEN a cache with integer keys
         WHEN storing and retrieving with int keys
         THEN cache works correctly
@@ -607,7 +615,7 @@ class TestCacheWithDifferentTypes:
         assert cache.get(1) == "one"
         assert cache.get(2) == "two"
 
-    def test_cache_with_tuple_keys(self):
+    def test_cache_with_tuple_keys(self) -> None:
         """GIVEN a cache with tuple keys
         WHEN storing and retrieving with tuple keys
         THEN cache works correctly
@@ -634,7 +642,7 @@ class TestSizeEstimationEdgeCases:
         cache = LRUCache[str, str]()
 
         # Mock sys.getsizeof to raise TypeError
-        def failing_getsizeof(obj):
+        def failing_getsizeof(obj: object) -> None:
             raise TypeError("Cannot get size")
 
         monkeypatch.setattr(
@@ -658,7 +666,7 @@ class TestSizeEstimationEdgeCases:
         cache = LRUCache[str, str](security_policy=security)
 
         # Mock sys.getsizeof to raise TypeError
-        def failing_getsizeof(obj):
+        def failing_getsizeof(obj: object) -> None:
             raise TypeError("Cannot get size")
 
         monkeypatch.setattr(
@@ -683,7 +691,7 @@ class TestSizeEstimationEdgeCases:
         cache = LRUCache[str, str](config=config)
 
         # Mock sys.getsizeof to raise TypeError
-        def failing_getsizeof(obj):
+        def failing_getsizeof(obj: object) -> None:
             raise TypeError("Cannot get size")
 
         monkeypatch.setattr(
@@ -711,7 +719,7 @@ class TestSizeEstimationEdgeCases:
         cache = LRUCache[str, Any]()
 
         # Mock sys.getsizeof to raise AttributeError
-        def failing_getsizeof(obj):
+        def failing_getsizeof(obj: object) -> None:
             raise AttributeError("No size attribute")
 
         monkeypatch.setattr(
@@ -729,7 +737,7 @@ class TestSizeEstimationEdgeCases:
 class TestHeapBasedCleanupOptimizations:
     """Test heap-based cleanup performance optimizations."""
 
-    def test_cleanup_uses_heap_for_efficiency(self):
+    def test_cleanup_uses_heap_for_efficiency(self) -> None:
         """Test that cleanup uses heap for efficient O(log n) operations."""
         config = CacheConfig(max_size=1000, ttl_seconds=1)
         cache = LRUCache[str, str](config=config)
@@ -754,7 +762,7 @@ class TestHeapBasedCleanupOptimizations:
         # All entries should be removed
         assert len(cache) == 0
 
-    def test_heap_cleanup_handles_large_caches_efficiently(self):
+    def test_heap_cleanup_handles_large_caches_efficiently(self) -> None:
         """Test that heap cleanup scales well with large cache sizes."""
         config = CacheConfig(max_size=5000, ttl_seconds=1)
         cache = LRUCache[str, str](config=config)
@@ -777,7 +785,7 @@ class TestHeapBasedCleanupOptimizations:
         )
         assert len(cache) == 0
 
-    def test_heap_cleanup_handles_partial_expiration(self):
+    def test_heap_cleanup_handles_partial_expiration(self) -> None:
         """Test that heap cleanup correctly handles partially expired entries."""
         config = CacheConfig(max_size=100, ttl_seconds=2)
         cache = LRUCache[str, str](config=config)
@@ -802,7 +810,7 @@ class TestHeapBasedCleanupOptimizations:
             assert cache.get(f"new_key_{i}") == f"new_value_{i}"
             assert cache.get(f"old_key_{i}") is None
 
-    def test_heap_cleanup_handles_fresh_entries_after_update(self):
+    def test_heap_cleanup_handles_fresh_entries_after_update(self) -> None:
         """Test that heap cleanup handles updated entries correctly."""
         config = CacheConfig(max_size=50, ttl_seconds=1)
         cache = LRUCache[str, str](config=config)
@@ -829,7 +837,7 @@ class TestHeapBasedCleanupOptimizations:
         for i in range(5, 10):
             assert cache.get(f"key_{i}") is None
 
-    def test_heap_cleanup_handles_get_refresh(self):
+    def test_heap_cleanup_handles_get_refresh(self) -> None:
         """Test that heap cleanup handles TTL refresh on get operations."""
         config = CacheConfig(max_size=20, ttl_seconds=1)
         cache = LRUCache[str, str](config=config)
@@ -855,7 +863,7 @@ class TestHeapBasedCleanupOptimizations:
         for i in range(5, 10):
             assert cache.get(f"key_{i}") is None
 
-    def test_heap_cleanup_handles_mixed_key_types(self):
+    def test_heap_cleanup_handles_mixed_key_types(self) -> None:
         """Test that heap cleanup works with different key types."""
         config = CacheConfig(max_size=50, ttl_seconds=1)
         cache = LRUCache[object, str](config=config)
@@ -883,7 +891,7 @@ class TestHeapBasedCleanupOptimizations:
         assert cache.get(tuple_key) is None
         assert cache.get(custom_object) is None
 
-    def test_heap_cleanup_no_ttl(self):
+    def test_heap_cleanup_no_ttl(self) -> None:
         """Test that heap cleanup does nothing when TTL is disabled."""
         config = CacheConfig(max_size=50, ttl_seconds=None)
         cache = LRUCache[str, str](config=config)
@@ -902,7 +910,7 @@ class TestHeapBasedCleanupOptimizations:
         for i in range(20):
             assert cache.get(f"key_{i}") == f"value_{i}"
 
-    def test_heap_cleanup_with_zero_ttl(self):
+    def test_heap_cleanup_with_zero_ttl(self) -> None:
         """Test that heap cleanup handles TTL=0 (no expiration)."""
         config = CacheConfig(max_size=50, ttl_seconds=0)
         cache = LRUCache[str, str](config=config)
@@ -919,7 +927,7 @@ class TestHeapBasedCleanupOptimizations:
         for i in range(10):
             assert cache.get(f"key_{i}") == f"value_{i}"
 
-    def test_heap_cleanup_with_reference_time(self):
+    def test_heap_cleanup_with_reference_time(self) -> None:
         """Test that heap cleanup respects custom reference time."""
         config = CacheConfig(max_size=20, ttl_seconds=10)
         cache = LRUCache[str, str](config=config)
@@ -935,7 +943,7 @@ class TestHeapBasedCleanupOptimizations:
         # All entries should be considered expired (they would have expired after 10s)
         assert len(cache) == 0
 
-    def test_heap_cleanup_empty_cache(self):
+    def test_heap_cleanup_empty_cache(self) -> None:
         """Test that heap cleanup handles empty cache gracefully."""
         config = CacheConfig(max_size=50, ttl_seconds=1)
         cache = LRUCache[str, str](config=config)
@@ -944,7 +952,7 @@ class TestHeapBasedCleanupOptimizations:
         cache._cleanup_expired_entries()
         assert len(cache) == 0
 
-    def test_heap_cleanup_preserves_non_expired_entries(self):
+    def test_heap_cleanup_preserves_non_expired_entries(self) -> None:
         """Test that heap cleanup preserves entries that haven't expired."""
         config = CacheConfig(max_size=30, ttl_seconds=5)
         cache = LRUCache[str, str](config=config)

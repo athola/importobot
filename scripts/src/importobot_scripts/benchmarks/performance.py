@@ -111,12 +111,12 @@ class CachePerformanceBenchmark:
                 "cleanup_time_ms": cleanup_time * 1000,
                 "entries_before": size,
                 "entries_after": len(cache),
-                "cleanup_rate_per_second": size / cleanup_time
-                if cleanup_time > 0
-                else 0,
-                "time_per_entry_microseconds": (cleanup_time / size) * 1000000
-                if cleanup_time > 0
-                else 0,
+                "cleanup_rate_per_second": (
+                    size / cleanup_time if cleanup_time > 0 else 0
+                ),
+                "time_per_entry_microseconds": (
+                    (cleanup_time / size) * 1000000 if cleanup_time > 0 else 0
+                ),
             }
 
         return results
@@ -242,9 +242,9 @@ class ContextPerformanceBenchmark:
                 "thread_creation_time_ms": creation_time * 1000,
                 "cleanup_time_ms": cleanup_time * 1000,
                 "stale_contexts_removed": removed_count,
-                "cleanup_rate_per_second": count / cleanup_time
-                if cleanup_time > 0
-                else 0,
+                "cleanup_rate_per_second": (
+                    count / cleanup_time if cleanup_time > 0 else 0
+                ),
                 "average_cleanup_time_ms": stats.get("average_cleanup_time_ms", 0),
                 "max_cleanup_time_ms": stats.get("max_cleanup_duration_ms", 0),
                 "total_threads_processed": stats.get("total_threads_processed", 0),
@@ -493,11 +493,9 @@ class ConversionPerformanceBenchmark:
             "first_access_cold": self._calculate_statistics(cold_times),
             "cached_access": self._calculate_statistics(cached_times),
             "performance_improvement_percent": improvement,
-            "cache_effectiveness": "High"
-            if improvement > 50
-            else "Medium"
-            if improvement > 20
-            else "Low",
+            "cache_effectiveness": (
+                "High" if improvement > 50 else "Medium" if improvement > 20 else "Low"
+            ),
         }
 
         # Add memory statistics
@@ -591,7 +589,7 @@ class ComprehensivePerformanceBenchmark:
             BenchmarkType.CACHE in benchmark_types
             or BenchmarkType.ALL in benchmark_types
         ):
-            print("🔧 Running cache performance benchmarks...")
+            print("Running cache performance benchmarks...")
             results["cache_performance"] = {
                 "cleanup": self.cache_benchmark.benchmark_cache_cleanup(),
                 "operations": self.cache_benchmark.benchmark_cache_operations(),
@@ -601,7 +599,7 @@ class ComprehensivePerformanceBenchmark:
             BenchmarkType.CONTEXT in benchmark_types
             or BenchmarkType.ALL in benchmark_types
         ):
-            print("🔧 Running context registry benchmarks...")
+            print("Running context registry benchmarks...")
             results["context_performance"] = (
                 self.context_benchmark.benchmark_context_registry()
             )
@@ -610,7 +608,7 @@ class ComprehensivePerformanceBenchmark:
             BenchmarkType.CONVERSION in benchmark_types
             or BenchmarkType.ALL in benchmark_types
         ):
-            print("🔧 Running conversion performance benchmarks...")
+            print("Running conversion performance benchmarks...")
             results["conversion_performance"] = {
                 "single_file": self.conversion_benchmark.benchmark_single_conversion(
                     complexity=complexity, iterations=iterations
@@ -624,130 +622,129 @@ class ComprehensivePerformanceBenchmark:
         """Format benchmark results for display."""
         output = []
         output.append("=" * 70)
-        output.append("🚀 IMPORTOBOT COMPREHENSIVE PERFORMANCE BENCHMARK RESULTS")
+        output.append("IMPORTOBOT COMPREHENSIVE PERFORMANCE BENCHMARK RESULTS")
         output.append("=" * 70)
         output.append(f"Timestamp: {results['timestamp']}")
         output.append(f"Types: {', '.join(results['benchmark_types'])}")
         output.append("")
-
-        # Format cache results
-        if "cache_performance" in results:
-            output.append("📈 CACHE PERFORMANCE")
-            output.append("-" * 50)
-
-            # Cleanup results
-            cleanup_results = results["cache_performance"]["cleanup"]
-            for size_key, stats in cleanup_results.items():
-                output.append(f"  {size_key.replace('_', ' ').title()}:")
-                output.append(f"    Cleanup time: {stats['cleanup_time_ms']:.2f}ms")
-                output.append(
-                    f"    Cleanup rate: {stats['cleanup_rate_per_second']:,.0f} entries/sec"
-                )
-                output.append(
-                    f"    Time per entry: {stats['time_per_entry_microseconds']:.2f}μs"
-                )
-
-            # Operations results
-            ops_results = results["cache_performance"]["operations"]
-            output.append("\n  Cache Operations:")
-            for op_type, stats in ops_results.items():
-                if op_type != "final_cache_stats":
-                    output.append(f"    {op_type.replace('_', ' ').title()}:")
-                    output.append(f"      Time: {stats['time_ms']:.2f}ms")
-                    output.append(
-                        f"      Rate: {stats['operations_per_second']:,.0f} ops/sec"
-                    )
-                    output.append(
-                        f"      Per operation: {stats['time_per_operation_microseconds']:.2f}μs"
-                    )
-
-            final_stats = ops_results.get("final_cache_stats", {})
-            if final_stats:
-                output.append("\n  Final Cache Stats:")
-                output.append(f"    Size: {final_stats['cache_size']}")
-                output.append(f"    Hit rate: {final_stats['hit_rate_percent']:.1f}%")
-                output.append(f"    Evictions: {final_stats['evictions']}")
-
-            output.append("")
-
-        # Format context results
-        if "context_performance" in results:
-            output.append("📊 CONTEXT REGISTRY PERFORMANCE")
-            output.append("-" * 50)
-
-            context_results = results["context_performance"]
-            for thread_key, stats in context_results.items():
-                output.append(f"  {thread_key.replace('_', ' ').title()}:")
-                output.append(f"    Cleanup time: {stats['cleanup_time_ms']:.2f}ms")
-                output.append(
-                    f"    Cleanup rate: {stats['cleanup_rate_per_second']:,.0f} threads/sec"
-                )
-                output.append(
-                    f"    Stale contexts removed: {stats['stale_contexts_removed']}"
-                )
-                output.append(
-                    f"    Average cleanup time: {stats['average_cleanup_time_ms']:.2f}ms"
-                )
-                output.append(
-                    f"    Max cleanup time: {stats['max_cleanup_time_ms']:.2f}ms"
-                )
-
-            output.append("")
-
-        # Format conversion results
-        if "conversion_performance" in results:
-            output.append("⚡ CONVERSION PERFORMANCE")
-            output.append("-" * 50)
-
-            conv_results = results["conversion_performance"]
-
-            # Single file conversion
-            single_results = conv_results.get("single_file", {})
-            if single_results:
-                output.append(
-                    f"  Single File Conversion ({results.get('complexity', 'medium')}):"
-                )
-                output.append(
-                    f"    Mean time: {single_results.get('mean', 0) * 1000:.2f}ms"
-                )
-                output.append(
-                    f"    Std dev: {single_results.get('std_dev', 0) * 1000:.2f}ms"
-                )
-                if "percentile_95" in single_results:
-                    output.append(
-                        f"    95th percentile: {single_results['percentile_95'] * 1000:.2f}ms"
-                    )
-
-            # Lazy loading
-            lazy_results = conv_results.get("lazy_loading", {})
-            if lazy_results:
-                output.append("\n  Lazy Loading:")
-                cold_mean = (
-                    lazy_results.get("first_access_cold", {}).get("mean", 0) * 1000
-                )
-                cached_mean = (
-                    lazy_results.get("cached_access", {}).get("mean", 0) * 1000
-                )
-                improvement = lazy_results.get("performance_improvement_percent", 0)
-
-                output.append(f"    Cold start: {cold_mean:.3f}ms")
-                output.append(f"    Cached access: {cached_mean:.3f}ms")
-                output.append(f"    Improvement: {improvement:.1f}%")
-                output.append(
-                    f"    Effectiveness: {lazy_results.get('cache_effectiveness', 'Unknown')}"
-                )
-
-            output.append("")
-
-        # Performance targets
-        output.append("🎯 PERFORMANCE TARGETS")
-        output.append("-" * 50)
-        output.append("✅ Cache cleanup: < 5μs per entry at scale")
-        output.append("✅ Context cleanup: < 50ms even with 500+ threads")
-        output.append("✅ Single file conversion: < 100ms for medium complexity")
-        output.append("✅ Lazy loading: > 50% improvement over cold start")
+        output.extend(self._format_cache_section(results))
+        output.extend(self._format_context_section(results))
+        output.extend(self._format_conversion_section(results))
+        output.extend(self._performance_targets_section())
 
         return "\n".join(output)
+
+    def _format_cache_section(self, results: dict[str, Any]) -> list[str]:
+        cache_perf = results.get("cache_performance")
+        if not cache_perf:
+            return []
+
+        lines = [" CACHE PERFORMANCE", "-" * 50]
+        cleanup_results = cache_perf["cleanup"]
+        for size_key, stats in cleanup_results.items():
+            lines.append(f"  {size_key.replace('_', ' ').title()}:")
+            lines.append(f"    Cleanup time: {stats['cleanup_time_ms']:.2f}ms")
+            lines.append(
+                f"    Cleanup rate: {stats['cleanup_rate_per_second']:,.0f} entries/sec"
+            )
+            lines.append(
+                f"    Time per entry: {stats['time_per_entry_microseconds']:.2f}μs"
+            )
+
+        ops_results = cache_perf["operations"]
+        lines.append("\n  Cache Operations:")
+        for op_type, stats in ops_results.items():
+            if op_type == "final_cache_stats":
+                continue
+            lines.append(f"    {op_type.replace('_', ' ').title()}:")
+            lines.append(f"      Time: {stats['time_ms']:.2f}ms")
+            lines.append(f"      Rate: {stats['operations_per_second']:,.0f} ops/sec")
+            lines.append(
+                f"      Per operation: {stats['time_per_operation_microseconds']:.2f}μs"
+            )
+
+        final_stats = ops_results.get("final_cache_stats", {})
+        if final_stats:
+            lines.append("\n  Final Cache Stats:")
+            lines.append(f"    Size: {final_stats['cache_size']}")
+            lines.append(f"    Hit rate: {final_stats['hit_rate_percent']:.1f}%")
+            lines.append(f"    Evictions: {final_stats['evictions']}")
+
+        lines.append("")
+        return lines
+
+    def _format_context_section(self, results: dict[str, Any]) -> list[str]:
+        context_perf = results.get("context_performance")
+        if not context_perf:
+            return []
+
+        lines = [" CONTEXT REGISTRY PERFORMANCE", "-" * 50]
+        for thread_key, stats in context_perf.items():
+            lines.append(f"  {thread_key.replace('_', ' ').title()}:")
+            lines.append(f"    Cleanup time: {stats['cleanup_time_ms']:.2f}ms")
+            lines.append(
+                f"    Cleanup rate: {stats['cleanup_rate_per_second']:,.0f} threads/sec"
+            )
+            lines.append(
+                f"    Stale contexts removed: {stats['stale_contexts_removed']}"
+            )
+            lines.append(
+                f"    Average cleanup time: {stats['average_cleanup_time_ms']:.2f}ms"
+            )
+            lines.append(f"    Max cleanup time: {stats['max_cleanup_time_ms']:.2f}ms")
+
+        lines.append("")
+        return lines
+
+    def _format_conversion_section(self, results: dict[str, Any]) -> list[str]:
+        conv_results = results.get("conversion_performance")
+        if not conv_results:
+            return []
+
+        lines = [" CONVERSION PERFORMANCE", "-" * 50]
+        single_results = conv_results.get("single_file", {})
+        if single_results:
+            lines.append(
+                f"  Single File Conversion ({results.get('complexity', 'medium')}):"
+            )
+            lines.append(f"    Mean time: {single_results.get('mean', 0) * 1000:.2f}ms")
+            lines.append(
+                f"    Std dev: {single_results.get('std_dev', 0) * 1000:.2f}ms"
+            )
+            if "percentile_95" in single_results:
+                lines.append(
+                    "    95th percentile: "
+                    f"{single_results['percentile_95'] * 1000:.2f}ms"
+                )
+
+        lazy_results = conv_results.get("lazy_loading", {})
+        if lazy_results:
+            lines.append("\n  Lazy Loading:")
+            cold_mean = lazy_results.get("first_access_cold", {}).get("mean", 0) * 1000
+            cached_mean = lazy_results.get("cached_access", {}).get("mean", 0) * 1000
+            improvement = lazy_results.get("performance_improvement_percent", 0)
+
+            lines.append(f"    Cold start: {cold_mean:.3f}ms")
+            lines.append(f"    Cached access: {cached_mean:.3f}ms")
+            lines.append(f"    Improvement: {improvement:.1f}%")
+            lines.append(
+                "    Effectiveness: "
+                f"{lazy_results.get('cache_effectiveness', 'Unknown')}"
+            )
+
+        lines.append("")
+        return lines
+
+    @staticmethod
+    def _performance_targets_section() -> list[str]:
+        return [
+            " PERFORMANCE TARGETS",
+            "-" * 50,
+            " Cache cleanup: < 5μs per entry at scale",
+            " Context cleanup: < 50ms even with 500+ threads",
+            " Single file conversion: < 100ms for medium complexity",
+            " Lazy loading: > 50% improvement over cold start",
+        ]
 
 
 def main() -> None:
@@ -778,7 +775,10 @@ def main() -> None:
         "--output",
         type=Path,
         default=Path("performance_benchmark_results.json"),
-        help="Output file for detailed results (default: performance_benchmark_results.json)",
+        help=(
+            "Output file for detailed results "
+            "(default: performance_benchmark_results.json)"
+        ),
     )
 
     args = parser.parse_args()
@@ -788,7 +788,7 @@ def main() -> None:
 
     # Run benchmarks
     benchmark = ComprehensivePerformanceBenchmark()
-    print("🔧 Running Importobot Comprehensive Performance Benchmarks...")
+    print("Running Importobot Comprehensive Performance Benchmarks...")
 
     try:
         results = benchmark.run_benchmarks(
@@ -804,12 +804,12 @@ def main() -> None:
         with open(args.output, "w", encoding="utf-8") as f:
             json.dump(results, f, indent=2)
 
-        print(f"\n📁 Detailed results saved to: {args.output}")
+        print(f"\n Detailed results saved to: {args.output}")
         print("=" * 70)
-        print("✅ All benchmarks completed successfully!")
+        print(" All benchmarks completed successfully!")
 
     except Exception as e:
-        print(f"\n❌ Benchmark failed with error: {e}")
+        print(f"\n Benchmark failed with error: {e}")
         raise
 
 

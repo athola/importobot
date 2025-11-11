@@ -1,39 +1,70 @@
 # Migration Guide
 
-This guide provides instructions for migrating between different versions of Importobot.
+This guide details the changes and necessary steps when migrating between different versions of Importobot.
 
-## Migrating from 0.1.2 to 0.1.3
+## 0.1.3 to 0.1.4
 
-Version 0.1.3 adds significant architectural enhancements, new features, and documentation cleanup. No breaking changes were introduced.
+Version 0.1.4 focused on improving code quality, refactoring internal module architecture, and enhancing type safety. This release includes some breaking changes due to the removal of deprecated APIs.
 
-**New architecture:**
-- **Application Context Pattern**: Replaced global variables with thread-local context to improve test isolation
-- **Unified Caching System**: New `importobot.caching` module with LRU cache implementation
+### Breaking Changes
 
-**New features:**
-- **JSON Template System**: Learns patterns from your existing Robot files via `--robot-template` flag
-- **Schema Parser**: Extracts field definitions from your documentation via `--input-schema` flag
-- **Improved File Operations**: More JSON examples for system administration tasks
-- **API Examples**: New usage examples in `wiki/API-Examples.md`
+#### Logging API
+**Before:**
+```python
+from importobot.utils.logging import setup_logger
+logger = setup_logger(__name__)
+```
 
-**Configuration improvements:**
-- Better handling of control characters and whitespace in project identifiers
-- CLI arguments that don't parse as valid identifiers default to environment variables
+**After:**
+```python
+from importobot.utils.logging import get_logger
+logger = get_logger(__name__)
+```
 
-**Code quality:**
-- Removed pylint (now using ruff/mypy only)
-- Cleaned up documentation to remove AI-generated content patterns
-- All 1,946 tests pass with 0 skips
+#### Cache Statistics API
+**Before:**
+```python
+cache = LRUCache(...)
+stats = cache.get_cache_stats()
+```
 
-## Migrating from 0.1.1 to 0.1.2
+**After:**
+```python
+cache = LRUCache(...)
+stats = cache.get_stats()
+```
 
-Version 0.1.2 removes the legacy `WeightedEvidenceBayesianScorer`. If you imported it
-directly, switch to `FormatDetector` or the new
-`importobot.medallion.bronze.independent_bayesian_scorer.IndependentBayesianScorer`.
-The behaviour is covered by `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`.
+#### Module Structure (Optional Migration)
+The `importobot.integrations.clients` module has been split into focused modules, but existing import paths continue to work:
 
-Security rate limiting was improved with exponential backoff. Existing deployments work
-unchanged, but can be tuned with:
+```python
+# This still works (no changes required)
+from importobot.integrations.clients import ZephyrClient
+
+# New more specific imports (optional)
+from importobot.integrations.clients.zephyr import ZephyrClient
+```
+
+### Improvements
+- **Test Suite**: The test suite now uses 55 named constants, replacing magic numbers, and adopts modern pytest patterns for improved readability and maintainability.
+- **Type Safety**: Mypy now performs comprehensive type checking across the entire test suite, ensuring consistent code quality.
+- **Performance**: Lazy loading of modules has improved import speed by 3x.
+- **Documentation**: The project documentation has been enhanced with more factual and technical descriptions.
+
+## 0.1.2 to 0.1.3
+
+Version 0.1.3 introduced an application context pattern to replace global variables, a unified caching system, and a template learning system. This release contained no breaking changes.
+
+- **Application Context Pattern**: Global variables were replaced with a thread-local context, improving test isolation and overall stability.
+- **Unified Caching System**: A new `importobot.caching` module was introduced, providing a unified LRU cache for various internal operations.
+- **Robot Template System**: The `--robot-template` flag was added, allowing Importobot to learn patterns from existing Robot Framework files for consistent output.
+- **Schema-Aware Parsing**: The `--input-schema` flag was introduced, enabling the extraction of field definitions from Markdown files to guide parsing.
+
+## 0.1.1 to 0.1.2
+
+Version 0.1.2 removed the legacy `WeightedEvidenceBayesianScorer`. Users who directly imported this class should now use `FormatDetector` or `importobot.medallion.bronze.independent_bayesian_scorer.IndependentBayesianScorer`.
+
+This version also introduced improved rate limiting with exponential backoff. The following environment variables can be used to tune its behavior:
 
 ```bash
 export IMPORTOBOT_SECURITY_RATE_MAX_QUEUE=256
