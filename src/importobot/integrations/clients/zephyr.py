@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 from collections.abc import Iterator
 from enum import Enum
+from http import HTTPStatus
 from typing import Any, ClassVar
 from urllib.parse import urlparse
 
@@ -373,7 +374,7 @@ class ZephyrClient(BaseAPIClient):
                 self._verify_ssl,
             )
 
-            if response.status_code in (401, 403):
+            if response.status_code in (HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN):
                 logger.warning(
                     (
                         "Authentication failed with status %s for pattern=%s using "
@@ -386,7 +387,7 @@ class ZephyrClient(BaseAPIClient):
                 )
                 return False
 
-            if response.status_code == 200:
+            if response.status_code == HTTPStatus.OK:
                 try:
                     data = response.json()
                 except ValueError:
@@ -441,7 +442,7 @@ class ZephyrClient(BaseAPIClient):
                     verify=self._verify_ssl,
                 )
 
-                if response.status_code == 200:
+                if response.status_code == HTTPStatus.OK:
                     try:
                         response.json()
                     except ValueError:

@@ -9,6 +9,7 @@ from __future__ import annotations
 import time
 import warnings
 from collections.abc import Callable, Iterator
+from http import HTTPStatus
 from importlib import metadata
 from typing import Any, ClassVar, NamedTuple, Protocol, runtime_checkable
 
@@ -151,8 +152,10 @@ class BaseAPIClient:
 
         Example:
             ```python
+            from http import HTTPStatus
+
             def log_and_suppress_503(error_info):
-                if error_info['status_code'] == 503:
+                if error_info['status_code'] == HTTPStatus.SERVICE_UNAVAILABLE:
                     logger.warning("Service unavailable, gracefully degrading")
                     return True  # Suppress exception
                 return None  # Let exception propagate
@@ -279,7 +282,7 @@ class BaseAPIClient:
                 )
 
                 # Handle rate limiting with retry (not a circuit breaker failure)
-                if response.status_code == 429:
+                if response.status_code == HTTPStatus.TOO_MANY_REQUESTS:
                     if attempt < self._max_retries:
                         delay = self._compute_retry_delay(response, attempt)
                         logger.info(
@@ -294,8 +297,8 @@ class BaseAPIClient:
                     # Exhausted retries on rate limit
                     raise RuntimeError(f"Exceeded retry budget for {url}")
 
-                # Check for HTTP errors
-                if response.status_code >= 400:
+                # Check for HTTP errors (4xx client errors, 5xx server errors)
+                if response.status_code >= HTTPStatus.BAD_REQUEST:
                     should_suppress = self._handle_http_error(response, url, attempt)
                     if should_suppress:
                         return self._create_empty_response()
@@ -378,7 +381,7 @@ class BaseAPIClient:
         """Create an empty response object to facilitate graceful degradation."""
 
         class EmptyResponse:
-            status_code = 0
+            status_code = 0  # Non-standard: indicates suppressed/empty response
             headers: ClassVar[dict[str, str]] = {}
 
             def json(self) -> dict[str, Any]:

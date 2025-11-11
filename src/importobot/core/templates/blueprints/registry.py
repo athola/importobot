@@ -327,7 +327,7 @@ def _register_template(path: Path, key_override: str | None) -> None:
     if cache_payload is not None:
         content = cache_payload["content"]
         analysis = _deserialize_analysis(cache_payload["analysis"])
-        _apply_template_analysis(analysis)
+        _apply_template_analysis(analysis, base_dir=path.parent)
     else:
         try:
             raw_content = path.read_text(encoding="utf-8")
@@ -339,7 +339,7 @@ def _register_template(path: Path, key_override: str | None) -> None:
         content = _sanitize_template_payload(raw_content)
 
         try:
-            analysis = _learn_from_template(content)
+            analysis = _learn_from_template(content, base_dir=path.parent)
         except ValueError as exc:
             raise TemplateIngestionError(f"Malformed template {path}: {exc}") from exc
         _store_template_cache(path, stat, content, analysis)
@@ -358,7 +358,7 @@ def _register_resource(path: Path, *, base_dir: Path | None) -> None:
     content = _sanitize_template_payload(raw_content)
     try:
         _validate_template_content(content)
-        _learn_from_template(content)
+        _learn_from_template(content, base_dir=base_dir)
         _register_resource_path(path, base_dir=base_dir)
     except Exception as exc:  # pragma: no cover - defensive guard
         raise TemplateIngestionError(
@@ -466,7 +466,9 @@ def _format_resource_reference(path: Path, *, base_dir: Path | None) -> str:
 
     relative = _relative_to(base_dir) or _relative_to(_template_base_dir())
     if relative is None:
-        return path.name
+        # Preserve the original relative path from template if resolution fails
+        # instead of falling back to just the filename
+        return path.as_posix()
 
     posix = relative.as_posix()
     if not posix:
@@ -583,9 +585,11 @@ def _save_setting(
         settings.test_teardown = lines.copy()
 
 
-def _learn_from_template(content: str) -> TemplateAnalysis:
+def _learn_from_template(
+    content: str, *, base_dir: Path | None = None
+) -> TemplateAnalysis:
     analysis = _analyze_template_content(content)
-    _apply_template_analysis(analysis)
+    _apply_template_analysis(analysis, base_dir=base_dir)
     return analysis
 
 
@@ -790,19 +794,30 @@ def _collect_resource_imports_from_lines(lines: list[str]) -> list[str]:
     return resources
 
 
-def _apply_template_analysis(analysis: TemplateAnalysis) -> None:
+def _apply_template_analysis(
+    analysis: TemplateAnalysis, *, base_dir: Path | None = None
+) -> None:
     """Apply learned template analysis to global registries.
 
     Args:
         analysis: TemplateAnalysis with patterns, keywords, resources,
             and suite settings
+        base_dir: Base directory for resolving relative resource paths
     """
     for pattern in analysis.patterns:
         KNOWLEDGE_BASE.add_pattern(pattern)
     for keyword in analysis.keywords:
         KEYWORD_LIBRARY.add(keyword)
     for resource in analysis.resource_imports:
-        _add_resource_import(resource)
+        # Resolve resource paths relative to the template file's location
+        if base_dir and not resource.startswith("${"):
+            resource_path = Path(base_dir) / resource
+            resolved_resource = _format_resource_reference(
+                resource_path, base_dir=base_dir
+            )
+            _add_resource_import(resolved_resource)
+        else:
+            _add_resource_import(resource)
 
     # Store suite settings if present
     if analysis.suite_settings and analysis.suite_settings.has_setup_keywords():

@@ -14,6 +14,11 @@ Importobot is a Python package for converting test case exports from Zephyr, Tes
 
 ## What's new
 
+**Recent Improvements:**
+- **MongoDB Library Support**: Fixed MongoDB library integration by replacing broken `robotframework-mongodblibrary` with modern `robot-mongodb-library`
+- **Type Safety**: Enhanced type checking and fixed enum conversion issues
+- **Code Quality**: Improved linting compliance and code organization
+
 See the [changelog](CHANGELOG.md) for a full list of changes.
 
 ## Installation

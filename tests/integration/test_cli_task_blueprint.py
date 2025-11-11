@@ -65,8 +65,8 @@ def test_cli_blueprint_uses_template_substitutions_when_available() -> None:
 
     robot_output = JsonToRobotConverter().convert_json_data(json_data)
 
-    # Verify templates influenced output
-    assert "Resource            resources/Setup.resource" in robot_output
+    # Verify templates influenced output with proper relative path resolution
+    assert "Resource            ${CURDIR}/../resources/Setup.resource" in robot_output
 
     # Verify learned pattern from set_config.robot is applied for CLI command
     assert (

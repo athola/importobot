@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **MongoDB Library Integration**: Replaced broken `robotframework-mongodblibrary` with modern `robot-mongodb-library` to resolve `ModuleNotFoundError: No module named 'mongo_connection_manager'`
+- **Type Safety**: Fixed type checking errors in `base_generator.py` and `helpers.py` by properly converting `RobotFrameworkLibrary` enums to string values
+- **Code Quality**: Fixed line length violation in `keywords_registry.py` by breaking long description string into multiple lines
+
+### Changed
+- **Library Generation**: Updated codebase generation mechanism to use `RobotMongoDBLibrary` instead of legacy `MongoDBLibrary` across pattern matcher and keyword registry
+- **Keywords Registry**: Updated MongoDB function mappings to reflect actual available functions in the new library (`InsertOne`, `FindOneByID`, `Find`, `Update`, `DeleteOne`, `DeleteOneByID`)
+
 ## [0.1.4] - 2025-11-09
 
 ### Added

@@ -102,7 +102,8 @@ class BaseKeywordGenerator(KeywordGenerator, ABC):
     def detect_libraries(self, steps: list[dict[str, Any]]) -> set[str]:
         """Detect required libraries from steps."""
         combined_text = combine_step_text(steps)
-        return self._library_detector.detect_libraries_from_text(combined_text)
+        detected_libs = self._library_detector.detect_libraries_from_text(combined_text)
+        return {lib.value for lib in detected_libs}
 
     def _get_parser(self) -> GenericTestFileParser:
         """Get the test file parser."""

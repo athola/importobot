@@ -112,7 +112,7 @@ def _render_lazy_loading_section(data: dict[str, Any]) -> str:
 
 def render_dashboard(
     run_results: list[tuple[Path, dict[str, Any]]],
-) -> str:  # pylint: disable=line-too-long
+) -> str:
     """Render HTML dashboard from benchmark results.
 
     Args:
