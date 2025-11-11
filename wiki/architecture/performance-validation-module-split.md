@@ -1,7 +1,7 @@
 # Performance Validation: Client Module Refactoring
 
 **Date**: 2025-11-06
-**Related ADR**: ADR-0006 (Client Module Refactoring)
+**Related ADR**: [ADR-0006 (Client Module Refactoring)](ADR-0006.md)
 **Status**:  No Performance Regression Detected
 
 ## Executive Summary

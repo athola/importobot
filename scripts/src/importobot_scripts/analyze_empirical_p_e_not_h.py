@@ -156,7 +156,7 @@ def calculate_posterior_with_current_formula(
         detector: Format detector instance
     """
     print("\n" + "=" * 80)
-    print("VALIDATION: Strong Evidence → Confidence >0.8")
+    print("VALIDATION: Strong Evidence => Confidence >0.8")
     print("=" * 80)
     print()
 
@@ -194,7 +194,7 @@ def calculate_posterior_with_current_formula(
         if likelihood > 0.9:
             print(
                 f"{status} {true_format.name:15s} L={likelihood:.3f}"
-                f" P(E|¬H)={p_e_not_h:.3f} → Conf={confidence:.3f}"
+                f" P(E|¬H)={p_e_not_h:.3f} => Conf={confidence:.3f}"
             )
 
 
@@ -224,13 +224,13 @@ def main() -> int:
     print("=" * 80)
     print()
     print("1. If empirical P(E|¬H) closely matches hardcoded formula:")
-    print("   → Current formula is adequate, no change needed")
+    print("   => Current formula is adequate, no change needed")
     print()
     print("2. If empirical P(E|¬H) differs significantly (>10% MSE):")
-    print("   → Consider learning parameters (a, b, c) from data")
+    print("   => Consider learning parameters (a, b, c) from data")
     print()
     print("3. If cross-format likelihoods are highly variable:")
-    print("   → Consider format-specific P(E|¬H) models")
+    print("   => Consider format-specific P(E|¬H) models")
     print()
 
     return 0

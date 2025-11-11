@@ -11,8 +11,9 @@ from typing import Any
 
 import numpy as np
 
-# Production code should not import from test modules.
-# Use external data sources or pass data as parameters.
+# TODO: Implement proper test data feeding system for learning P(E|¬H) parameters
+# Issue: https://github.com/athola/importobot/issues/83
+# Production code should load from external data sources, not test modules.
 
 try:
     from scipy import optimize  # pyright: ignore[reportMissingModuleSource]
@@ -225,8 +226,9 @@ def load_test_data_for_learning() -> list[tuple[dict[str, Any], Any]]:
     Returns:
         List of (test_data, ground_truth_format) tuples.
 
-    Note:
-        Production code should load from external data sources, not test modules.
+    TODO: Implement proper test data feeding system for learning P(E|¬H) parameters
+    Issue: https://github.com/athola/importobot/issues/83
+    Production code should load from external data sources, not test modules.
     """
     return []
 

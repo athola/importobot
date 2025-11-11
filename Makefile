@@ -305,7 +305,7 @@ example-selenium:
 	@printf '\n---- Verifying Library Selection (dry-run) ----\n'
 	@printf 'Expected: SeleniumLibrary should be used for web browser automation\n\n'
 	uv run robot --dryrun examples/output/selenium_web_login.robot
-	@printf '\n✓ Selenium library correctly detected and used!\n'
+	@printf '\n[OK] Selenium library correctly detected and used!\n'
 
 .PHONY: example-appium
 example-appium:
@@ -320,15 +320,15 @@ example-appium:
 	@printf '\n---- Verifying Library Selection (dry-run) ----\n'
 	@printf 'Expected: AppiumLibrary should be used for mobile app automation\n\n'
 	uv run robot --dryrun examples/output/appium_mobile_login.robot
-	@printf '\n✓ Appium library correctly detected and used!\n'
+	@printf '\n[OK] Appium library correctly detected and used!\n'
 
 .PHONY: example-library-detection
 example-library-detection: example-selenium example-appium
 	@printf '\n========== Library Detection Demo Complete ==========\n'
 	@printf 'Summary:\n'
-	@printf '  ✓ SeleniumLibrary correctly used for web browser tests\n'
-	@printf '  ✓ AppiumLibrary correctly used for mobile app tests\n'
-	@printf '  ✓ Verification keywords use library-specific methods:\n'
+	@printf '  [OK] SeleniumLibrary correctly used for web browser tests\n'
+	@printf '  [OK] AppiumLibrary correctly used for mobile app tests\n'
+	@printf '  [OK] Verification keywords use library-specific methods:\n'
 	@printf '    - SeleniumLibrary.Page Should Contain (web)\n'
 	@printf '    - AppiumLibrary.Page Should Contain Text (mobile)\n'
 	@printf '\nBoth tests validated with Robot Framework dry-run!\n'

@@ -58,7 +58,7 @@ settings.load_profile("ci")
 @pytest.fixture(scope="session")
 def invariant_test_session() -> Generator[None, None, None]:
     """Session-wide fixture for invariant test setup."""
-    print("\n🔬 Starting system-wide invariant test session")
+    print("\n*** Starting system-wide invariant test session")
     yield
     print("\n Invariant test session completed")
 

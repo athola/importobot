@@ -17,6 +17,10 @@ from importobot.utils.logging import get_logger
 # Module-level logger for configuration warnings
 logger = get_logger()
 
+# Project paths
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+BENCHMARKS_DIR = PROJECT_ROOT / "benchmarks"
+
 # Default values
 DEFAULT_TEST_SERVER_URL = "http://localhost:8000"
 TEST_SERVER_PORT = 8000
