@@ -5,18 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.4] - 2025-11-11
 
 ### Fixed
 - **MongoDB Library Integration**: Replaced broken `robotframework-mongodblibrary` with modern `robot-mongodb-library` to resolve `ModuleNotFoundError: No module named 'mongo_connection_manager'`
 - **Type Safety**: Fixed type checking errors in `base_generator.py` and `helpers.py` by properly converting `RobotFrameworkLibrary` enums to string values
 - **Code Quality**: Fixed line length violation in `keywords_registry.py` by breaking long description string into multiple lines
+- **Multi-Step Parsing**: Fixed 5 failing tests by updating filter patterns to include `SeleniumLibrary.*` prefixes, enabling proper parsing of library-prefixed commands
+- **Unicode Compatibility**: Removed all non-ASCII characters from output messages and scripts, replacing Unicode symbols (✓, →, •, 🔬) with ASCII alternatives for maximum compatibility
 
 ### Changed
 - **Library Generation**: Updated codebase generation mechanism to use `RobotMongoDBLibrary` instead of legacy `MongoDBLibrary` across pattern matcher and keyword registry
 - **Keywords Registry**: Updated MongoDB function mappings to reflect actual available functions in the new library (`InsertOne`, `FindOneByID`, `Find`, `Update`, `DeleteOne`, `DeleteOneByID`)
+- **Project Configuration**: Added `BENCHMARKS_DIR` constant to `importobot.config` for clean path management, replacing hacky `Path.parent.parent.parent.parent` patterns
+- **Documentation Standards**: Enhanced TestRail client documentation with comprehensive docstring explaining Basic authentication vs Bearer token patterns
+- **Test Data Quality**: Converted code notes to actionable TODO comments with GitHub issue references for traceability
 
-## [0.1.4] - 2025-11-09
+### Added
+- **Task Management**: Created GitHub issue #83 for implementing proper test data feeding system for P(E|¬H) learning pipeline
+- **Cross-Reference Links**: Added clickable link to ADR-0006 in performance validation documentation
+- **ASCII Output Standards**: Standardized all CLI output and script messages to use ASCII-only characters for cross-platform compatibility
+
+## [Unreleased]
 
 ### Added
 - **Test Suite Quality**: Improved test architecture by introducing 55 named constants across 9 categories, eliminating magic numbers.
