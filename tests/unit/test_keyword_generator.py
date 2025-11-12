@@ -233,7 +233,9 @@ class TestDetectLibraries:
 
         result = generator.detect_libraries(steps)
 
-        mock_library_detector.detect_libraries_from_steps.assert_called_once_with(steps)
+        mock_library_detector.detect_libraries_from_steps.assert_called_once_with(
+            steps, None
+        )
         assert result == {"SeleniumLibrary"}
 
     def test_detect_libraries_with_empty_steps(self) -> None:
