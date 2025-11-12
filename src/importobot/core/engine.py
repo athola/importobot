@@ -79,7 +79,9 @@ class GenericConversionEngine(ConversionEngine):
             )
 
         # Detect libraries from original steps before generating content
-        detected_libraries = self.keyword_generator.detect_libraries(all_steps)
+        detected_libraries = self.keyword_generator.detect_libraries(
+            all_steps, json_data
+        )
 
         # Pass library context to keyword generator for library-aware verification
         self.keyword_generator.set_library_context(detected_libraries)
