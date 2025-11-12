@@ -134,9 +134,11 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
 
         return lines
 
-    def detect_libraries(self, steps: list[dict[str, Any]]) -> set[Any]:
+    def detect_libraries(
+        self, steps: list[dict[str, Any]], json_data: dict[str, Any] | None = None
+    ) -> set[Any]:
         """Detect required Robot Framework libraries from step content."""
-        return LibraryDetector.detect_libraries_from_steps(steps)
+        return LibraryDetector.detect_libraries_from_steps(steps, json_data)
 
     def _get_parser(self) -> GenericTestFileParser:
         """Get parser instance."""

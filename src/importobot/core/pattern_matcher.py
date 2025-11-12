@@ -865,7 +865,9 @@ class LibraryDetector:
     }
 
     @classmethod
-    def detect_libraries_from_text(cls, text: str) -> set[RobotFrameworkLibrary]:
+    def detect_libraries_from_text(
+        cls, text: str, json_data: dict[str, Any] | None = None
+    ) -> set[RobotFrameworkLibrary]:
         """Detect required Robot Framework libraries from text content."""
         if not text:
             return set()
@@ -876,28 +878,38 @@ class LibraryDetector:
                 library_enums.add(library_enum)
 
         # Resolve conflicts between similar libraries
-        library_enums = cls._resolve_library_conflicts(library_enums, text_lower)
+        library_enums = cls._resolve_library_conflicts(
+            library_enums, text_lower, json_data
+        )
 
         return library_enums
 
     @classmethod
     def detect_libraries_from_steps(
-        cls, steps: list[dict[str, Any]]
+        cls, steps: list[dict[str, Any]], json_data: dict[str, Any] | None = None
     ) -> set[RobotFrameworkLibrary]:
         """Detect required libraries from step content."""
         combined_text = combine_step_text(steps)
-        return cls.detect_libraries_from_text(combined_text)
+        return cls.detect_libraries_from_text(combined_text, json_data)
 
     @classmethod
     def _resolve_library_conflicts(
-        cls, libraries: set[RobotFrameworkLibrary], text: str
+        cls,
+        libraries: set[RobotFrameworkLibrary],
+        text: str,
+        json_data: dict[str, Any] | None = None,
     ) -> set[RobotFrameworkLibrary]:
         """
         Resolve conflicts between libraries using Bayesian evidence collection.
 
-        For library coverage scenarios (many different libraries detected),
-        skips conflict resolution to allow comprehensive testing.
+        For library coverage scenarios (indicated by 'library_coverage' label),
+        skips conflict resolution to allow full coverage testing of all libraries.
         """
+        # Skip conflict resolution for library coverage scenarios
+        # Check for explicit library_coverage label in test data
+        if cls._is_library_coverage_scenario(json_data):
+            return libraries
+
         # Conflict resolution: SeleniumLibrary vs AppiumLibrary
         if (
             RobotFrameworkLibrary.SELENIUM_LIBRARY in libraries
@@ -906,6 +918,53 @@ class LibraryDetector:
             return cls._resolve_selenium_appium_conflict(libraries, text)
 
         return libraries
+
+    @classmethod
+    def _is_library_coverage_scenario(cls, json_data: dict[str, Any] | None) -> bool:
+        """Check if this is a library coverage scenario based on test data labels."""
+        if not json_data:
+            return False
+
+        labels = cls._extract_labels_from_json(json_data)
+        return cls._has_library_coverage_label(labels)
+
+    @classmethod
+    def _extract_labels_from_json(cls, json_data: dict[str, Any]) -> list[str]:
+        """Extract all labels from JSON data structure."""
+        labels = []
+
+        # Direct labels field
+        labels.extend(cls._extract_labels_from_field(json_data, "labels"))
+
+        # Check test cases for labels
+        if "steps" in json_data and isinstance(json_data["steps"], list):
+            for step in json_data["steps"]:
+                labels.extend(cls._extract_labels_from_field(step, "labels"))
+
+        # Check nested test structures
+        if "tests" in json_data and isinstance(json_data["tests"], list):
+            for test in json_data["tests"]:
+                labels.extend(cls._extract_labels_from_field(test, "labels"))
+
+        return labels
+
+    @classmethod
+    def _extract_labels_from_field(cls, data: dict[str, Any], field: str) -> list[str]:
+        """Extract labels from a specific field in a data structure."""
+        if field not in data:
+            return []
+
+        field_data = data[field]
+        if isinstance(field_data, list):
+            return [str(label) for label in field_data]
+        elif isinstance(field_data, str):
+            return [field_data]
+        return []
+
+    @classmethod
+    def _has_library_coverage_label(cls, labels: list[str]) -> bool:
+        """Check if any label indicates a library coverage scenario."""
+        return any("library_coverage" in label.lower() for label in labels)
 
     @classmethod
     def _resolve_selenium_appium_conflict(
