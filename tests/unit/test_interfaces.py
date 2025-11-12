@@ -20,23 +20,23 @@ from importobot.core.interfaces import (
 class TestTestFileParserInterface:
     """Test TestFileParser interface definition."""
 
-    def test_test_file_parser_is_abstract_base_class(self):
+    def test_test_file_parser_is_abstract_base_class(self) -> None:
         """Test that TestFileParser is an abstract base class."""
         assert issubclass(TestFileParser, ABC)
 
-    def test_test_file_parser_cannot_be_instantiated(self):
+    def test_test_file_parser_cannot_be_instantiated(self) -> None:
         """Test that TestFileParser cannot be instantiated directly."""
         with pytest.raises(TypeError, match="Can't instantiate abstract class"):
             # pylint: disable=abstract-class-instantiated
             TestFileParser()  # type: ignore[abstract]
 
-    def test_test_file_parser_has_required_abstract_methods(self):
+    def test_test_file_parser_has_required_abstract_methods(self) -> None:
         """Test that TestFileParser has the required abstract methods."""
         abstract_methods = TestFileParser.__abstractmethods__
         expected_methods = {"find_tests", "find_steps"}
         assert abstract_methods == expected_methods
 
-    def test_test_file_parser_find_tests_signature(self):
+    def test_test_file_parser_find_tests_signature(self) -> None:
         """Test that find_tests method has correct signature."""
         method = TestFileParser.find_tests
         assert hasattr(method, "__annotations__")
@@ -48,17 +48,17 @@ class TestTestFileParserInterface:
 class TestKeywordGeneratorInterface:
     """Test KeywordGenerator interface definition."""
 
-    def test_keyword_generator_is_abstract_base_class(self):
+    def test_keyword_generator_is_abstract_base_class(self) -> None:
         """Test that KeywordGenerator is an abstract base class."""
         assert issubclass(KeywordGenerator, ABC)
 
-    def test_keyword_generator_cannot_be_instantiated(self):
+    def test_keyword_generator_cannot_be_instantiated(self) -> None:
         """Test that KeywordGenerator cannot be instantiated directly."""
         with pytest.raises(TypeError, match="Can't instantiate abstract class"):
             # pylint: disable=abstract-class-instantiated
             KeywordGenerator()  # type: ignore[abstract]
 
-    def test_keyword_generator_has_required_abstract_methods(self):
+    def test_keyword_generator_has_required_abstract_methods(self) -> None:
         """Test that KeywordGenerator has the required abstract methods."""
         abstract_methods = KeywordGenerator.__abstractmethods__
         expected_methods = {
@@ -68,7 +68,7 @@ class TestKeywordGeneratorInterface:
         }
         assert abstract_methods == expected_methods
 
-    def test_keyword_generator_method_signatures(self):
+    def test_keyword_generator_method_signatures(self) -> None:
         """Test that KeywordGenerator methods have correct signatures."""
         # Test generate_test_case signature
         method = KeywordGenerator.generate_test_case
@@ -95,23 +95,23 @@ class TestKeywordGeneratorInterface:
 class TestSuggestionEngineInterface:
     """Test SuggestionEngine interface definition."""
 
-    def test_suggestion_engine_is_abstract_base_class(self):
+    def test_suggestion_engine_is_abstract_base_class(self) -> None:
         """Test that SuggestionEngine is an abstract base class."""
         assert issubclass(SuggestionEngine, ABC)
 
-    def test_suggestion_engine_cannot_be_instantiated(self):
+    def test_suggestion_engine_cannot_be_instantiated(self) -> None:
         """Test that SuggestionEngine cannot be instantiated directly."""
         with pytest.raises(TypeError, match="Can't instantiate abstract class"):
             # pylint: disable=abstract-class-instantiated
             SuggestionEngine()  # type: ignore[abstract]
 
-    def test_suggestion_engine_has_required_abstract_methods(self):
+    def test_suggestion_engine_has_required_abstract_methods(self) -> None:
         """Test that SuggestionEngine has the required abstract methods."""
         abstract_methods = SuggestionEngine.__abstractmethods__
         expected_methods = {"get_suggestions", "apply_suggestions"}
         assert abstract_methods == expected_methods
 
-    def test_suggestion_engine_method_signatures(self):
+    def test_suggestion_engine_method_signatures(self) -> None:
         """Test that SuggestionEngine methods have correct signatures."""
         # Test get_suggestions signature
         method = SuggestionEngine.get_suggestions
@@ -131,23 +131,23 @@ class TestSuggestionEngineInterface:
 class TestConversionEngineInterface:
     """Test ConversionEngine interface definition."""
 
-    def test_conversion_engine_is_abstract_base_class(self):
+    def test_conversion_engine_is_abstract_base_class(self) -> None:
         """Test that ConversionEngine is an abstract base class."""
         assert issubclass(ConversionEngine, ABC)
 
-    def test_conversion_engine_cannot_be_instantiated(self):
+    def test_conversion_engine_cannot_be_instantiated(self) -> None:
         """Test that ConversionEngine cannot be instantiated directly."""
         with pytest.raises(TypeError, match="Can't instantiate abstract class"):
             # pylint: disable=abstract-class-instantiated
             ConversionEngine()  # type: ignore[abstract]
 
-    def test_conversion_engine_has_required_abstract_methods(self):
+    def test_conversion_engine_has_required_abstract_methods(self) -> None:
         """Test that ConversionEngine has the required abstract methods."""
         abstract_methods = ConversionEngine.__abstractmethods__
         expected_methods = {"convert"}
         assert abstract_methods == expected_methods
 
-    def test_conversion_engine_method_signature(self):
+    def test_conversion_engine_method_signature(self) -> None:
         """Test that ConversionEngine convert method has correct signature."""
         method = ConversionEngine.convert
         assert hasattr(method, "__annotations__")
@@ -199,7 +199,7 @@ class MockConversionEngine(ConversionEngine):
 class TestInterfaceImplementation:
     """Test that interfaces can be properly implemented."""
 
-    def test_test_file_parser_can_be_implemented(self):
+    def test_test_file_parser_can_be_implemented(self) -> None:
         """Test that TestFileParser can be implemented."""
         parser = MockTestFileParser()
         assert isinstance(parser, TestFileParser)
@@ -211,7 +211,7 @@ class TestInterfaceImplementation:
         result_steps = parser.find_steps({})
         assert isinstance(result_steps, list)
 
-    def test_keyword_generator_can_be_implemented(self):
+    def test_keyword_generator_can_be_implemented(self) -> None:
         """Test that KeywordGenerator can be implemented."""
         generator = MockKeywordGenerator()
         assert isinstance(generator, KeywordGenerator)
@@ -226,7 +226,7 @@ class TestInterfaceImplementation:
         result_libraries = generator.detect_libraries([])
         assert isinstance(result_libraries, set)
 
-    def test_suggestion_engine_can_be_implemented(self):
+    def test_suggestion_engine_can_be_implemented(self) -> None:
         """Test that SuggestionEngine can be implemented."""
         engine = MockSuggestionEngine()
         assert isinstance(engine, SuggestionEngine)
@@ -238,7 +238,7 @@ class TestInterfaceImplementation:
         _, changes = engine.apply_suggestions({})
         assert isinstance(changes, list)
 
-    def test_conversion_engine_can_be_implemented(self):
+    def test_conversion_engine_can_be_implemented(self) -> None:
         """Test that ConversionEngine can be implemented."""
         engine = MockConversionEngine()
         assert isinstance(engine, ConversionEngine)
@@ -251,7 +251,7 @@ class TestInterfaceImplementation:
 class TestInterfaceInheritance:
     """Test interface inheritance patterns."""
 
-    def test_all_interfaces_inherit_from_abc(self):
+    def test_all_interfaces_inherit_from_abc(self) -> None:
         """Test that all interfaces inherit from ABC."""
         interfaces = [
             TestFileParser,
@@ -263,7 +263,7 @@ class TestInterfaceInheritance:
         for interface in interfaces:
             assert issubclass(interface, ABC)
 
-    def test_interfaces_define_expected_contracts(self):
+    def test_interfaces_define_expected_contracts(self) -> None:
         """Test that interfaces define the expected method contracts."""
         # TestFileParser should have methods for finding tests and steps
         assert hasattr(TestFileParser, "find_tests")
@@ -282,7 +282,7 @@ class TestInterfaceInheritance:
         # ConversionEngine should have a convert method
         assert hasattr(ConversionEngine, "convert")
 
-    def test_interface_method_documentation(self):
+    def test_interface_method_documentation(self) -> None:
         """Test that interface methods have proper documentation."""
         # Check that abstract methods have docstrings
         assert TestFileParser.find_tests.__doc__ is not None

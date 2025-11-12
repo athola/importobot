@@ -25,7 +25,7 @@ from importobot.medallion.storage.local import LocalStorageBackend
 class TestBronzeRecordsRetrieval(unittest.TestCase):
     """Test Bronze layer record retrieval with storage backend integration."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test environment with storage backend."""
         self.temp_dir = Path(tempfile.mkdtemp())
 
@@ -60,11 +60,11 @@ class TestBronzeRecordsRetrieval(unittest.TestCase):
             "testsuites": {"testsuite": [{"name": "Suite 1", "testcase": []}]}
         }
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         """Clean up test environment."""
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def test_get_bronze_records_without_storage_backend(self):
+    def test_get_bronze_records_without_storage_backend(self) -> None:
         """Test that get_bronze_records returns empty list without storage backend."""
         # Create Bronze layer without storage backend
         bronze_layer_no_storage = BronzeLayer(storage_path=self.temp_dir / "no_storage")
@@ -74,14 +74,14 @@ class TestBronzeRecordsRetrieval(unittest.TestCase):
         assert len(records) == 0
         assert isinstance(records, list)
 
-    def test_get_bronze_records_returns_empty_list_when_no_data(self):
+    def test_get_bronze_records_returns_empty_list_when_no_data(self) -> None:
         """Test that get_bronze_records returns empty list when no data stored."""
         records = self.bronze_layer.get_bronze_records()
 
         assert len(records) == 0
         assert isinstance(records, list)
 
-    def test_get_bronze_records_retrieves_single_record(self):
+    def test_get_bronze_records_retrieves_single_record(self) -> None:
         """Test retrieving a single bronze record from storage."""
         # Ingest test data
         metadata = LayerMetadata(
@@ -102,7 +102,7 @@ class TestBronzeRecordsRetrieval(unittest.TestCase):
         assert records[0].format_detection is not None
         assert records[0].lineage is not None
 
-    def test_get_bronze_records_retrieves_multiple_records(self):
+    def test_get_bronze_records_retrieves_multiple_records(self) -> None:
         """Test retrieving multiple bronze records from storage."""
         # Ingest multiple test data
         metadata_1 = LayerMetadata(
@@ -127,7 +127,7 @@ class TestBronzeRecordsRetrieval(unittest.TestCase):
         assert "Login Test" in record_names
         assert "Logout Test" in record_names
 
-    def test_get_bronze_records_with_limit(self):
+    def test_get_bronze_records_with_limit(self) -> None:
         """Test retrieving bronze records with limit parameter."""
         # Ingest multiple records
         for i in range(5):
@@ -149,7 +149,7 @@ class TestBronzeRecordsRetrieval(unittest.TestCase):
 
         assert len(records) == 3
 
-    def test_get_bronze_records_with_filter_criteria(self):
+    def test_get_bronze_records_with_filter_criteria(self) -> None:
         """Test retrieving bronze records with filter criteria."""
         # Ingest different format types
         metadata_zephyr = LayerMetadata(
@@ -173,7 +173,7 @@ class TestBronzeRecordsRetrieval(unittest.TestCase):
         # Note: Filter criteria works on metadata-level filters
         # Format-based filtering would require custom filter implementation
 
-    def test_get_bronze_records_preserves_metadata(self):
+    def test_get_bronze_records_preserves_metadata(self) -> None:
         """Test that retrieved records preserve original metadata."""
         # Ingest with specific metadata
         source_path = Path("important_test.json")
@@ -195,7 +195,7 @@ class TestBronzeRecordsRetrieval(unittest.TestCase):
         assert record.metadata.ingestion_timestamp is not None
         assert isinstance(record.metadata.ingestion_timestamp, datetime)
 
-    def test_get_bronze_records_includes_format_detection(self):
+    def test_get_bronze_records_includes_format_detection(self) -> None:
         """Test that retrieved records include format detection information."""
         metadata = LayerMetadata(
             source_path=Path("zephyr_test.json"),
@@ -216,7 +216,7 @@ class TestBronzeRecordsRetrieval(unittest.TestCase):
         assert record.format_detection.confidence_score > 0
         assert isinstance(record.format_detection.evidence_details, dict)
 
-    def test_get_bronze_records_includes_lineage(self):
+    def test_get_bronze_records_includes_lineage(self) -> None:
         """Test that retrieved records include lineage information."""
         metadata = LayerMetadata(
             source_path=Path("lineage_test.json"),
@@ -237,7 +237,7 @@ class TestBronzeRecordsRetrieval(unittest.TestCase):
         assert record.lineage.source_type is not None
         assert record.lineage.source_location is not None
 
-    def test_get_bronze_records_handles_storage_errors(self):
+    def test_get_bronze_records_handles_storage_errors(self) -> None:
         """Test that get_bronze_records handles storage errors gracefully."""
         # Create a Bronze layer with corrupted storage path
         corrupted_storage_config = {
@@ -255,7 +255,7 @@ class TestBronzeRecordsRetrieval(unittest.TestCase):
         assert len(records) == 0
         assert isinstance(records, list)
 
-    def test_get_bronze_records_returns_bronze_record_objects(self):
+    def test_get_bronze_records_returns_bronze_record_objects(self) -> None:
         """Test that get_bronze_records returns proper BronzeRecord objects."""
         metadata = LayerMetadata(
             source_path=Path("test.json"),
@@ -277,7 +277,7 @@ class TestBronzeRecordsRetrieval(unittest.TestCase):
         assert record.format_detection is not None
         assert record.lineage is not None
 
-    def test_get_bronze_records_default_limit(self):
+    def test_get_bronze_records_default_limit(self) -> None:
         """Test that get_bronze_records applies default limit of 1000."""
         # This test verifies the default limit is reasonable
         # We won't actually create 1001 records, just verify the parameter works
@@ -298,7 +298,7 @@ class TestBronzeRecordsRetrieval(unittest.TestCase):
         # Should get all 3 records (less than default limit)
         assert len(records) == 3
 
-    def test_get_bronze_records_with_zero_limit(self):
+    def test_get_bronze_records_with_zero_limit(self) -> None:
         """Test that get_bronze_records with limit=0 returns empty list.
 
         Business requirement: limit=0 should return 0 records, consistent with

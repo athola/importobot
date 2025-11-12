@@ -28,7 +28,7 @@ from importobot.services.performance_cache import (
 class TestConcurrentConversionWorkflows:
     """Test context isolation in concurrent conversion scenarios."""
 
-    def test_multiple_conversions_in_parallel_have_independent_caches(self):
+    def test_multiple_conversions_in_parallel_have_independent_caches(self) -> None:
         """GIVEN multiple conversion jobs running in parallel
         WHEN each uses its own context
         THEN caches don't interfere with each other
@@ -46,7 +46,7 @@ class TestConcurrentConversionWorkflows:
             cache.get_cached_string_lower(f"job_{job_id}_data")
 
             # Get cache stats for this job
-            stats = cache.get_cache_stats()
+            stats = cache.get_stats()
             results.append((job_id, stats["string_cache_size"]))
 
         # Run 3 conversion jobs in parallel
@@ -58,7 +58,7 @@ class TestConcurrentConversionWorkflows:
         # Each job should have had its own cache
         assert len(results) == 3
 
-    def test_cli_command_gets_fresh_context_each_invocation(self):
+    def test_cli_command_gets_fresh_context_each_invocation(self) -> None:
         """GIVEN a CLI application that processes test files
         WHEN running multiple CLI commands sequentially
         THEN each command starts with a fresh context
@@ -82,7 +82,7 @@ class TestConcurrentConversionWorkflows:
         # Should be different instances (fresh context each time)
         assert cache1 is not cache2
 
-    def test_web_api_request_isolation(self):
+    def test_web_api_request_isolation(self) -> None:
         """GIVEN a web API serving conversion requests
         WHEN handling concurrent requests from different clients
         THEN each request has isolated context
@@ -92,6 +92,9 @@ class TestConcurrentConversionWorkflows:
         request_contexts = []
 
         def handle_api_request(client_id: str) -> None:
+            # Clear any existing context to ensure request-level isolation
+            clear_context()
+
             # Each API request gets its own context
             context = get_context()
             request_contexts.append((client_id, id(context)))
@@ -115,7 +118,7 @@ class TestConcurrentConversionWorkflows:
 class TestCacheLifecycleInBusinessWorkflows:
     """Test cache lifecycle matches business workflow lifecycle."""
 
-    def test_batch_conversion_clears_cache_between_batches(self):
+    def test_batch_conversion_clears_cache_between_batches(self) -> None:
         """GIVEN a batch conversion process
         WHEN processing multiple batches sequentially
         THEN cache is cleared between batches to prevent memory growth
@@ -134,14 +137,14 @@ class TestCacheLifecycleInBusinessWorkflows:
 
             # Get stats before clearing
             if isinstance(cache, PerformanceCache):
-                stats = cache.get_cache_stats()
+                stats = cache.get_stats()
                 cache_size_before = stats["cache_size"]
 
                 # Clear cache after batch
                 context.clear_caches()
 
                 # Verify cache was cleared
-                stats_after = cache.get_cache_stats()
+                stats_after = cache.get_stats()
                 return {
                     "size_before": cache_size_before,
                     "size_after": stats_after["cache_size"],
@@ -163,7 +166,7 @@ class TestCacheLifecycleInBusinessWorkflows:
         assert result2["size_after"] == 0
         assert result3["size_after"] == 0
 
-    def test_long_running_service_maintains_cache_across_requests(self):
+    def test_long_running_service_maintains_cache_across_requests(self) -> None:
         """GIVEN a long-running service process
         WHEN handling multiple sequential requests
         THEN cache is maintained across requests for performance
@@ -179,12 +182,12 @@ class TestCacheLifecycleInBusinessWorkflows:
         # First request
         result1 = handle_request("test_data")
         cache1 = get_performance_cache()
-        stats1 = cache1.get_cache_stats()
+        stats1 = cache1.get_stats()
 
         # Second request with same data (should hit cache)
         result2 = handle_request("test_data")
         cache2 = get_performance_cache()
-        stats2 = cache2.get_cache_stats()
+        stats2 = cache2.get_stats()
 
         # Results should be same
         assert result1 == result2
@@ -209,7 +212,7 @@ class TestContextInTestingScenarios:
         yield
         clear_context()
 
-    def test_test_can_inject_mock_dependencies(self):
+    def test_test_can_inject_mock_dependencies(self) -> None:
         """GIVEN a test that needs to mock telemetry
         WHEN using context for dependency injection
         THEN mock dependencies can be easily injected
@@ -229,7 +232,7 @@ class TestContextInTestingScenarios:
         # Verify we got the test context's cache
         assert cache is not None
 
-    def test_integration_test_can_verify_cache_usage(self):
+    def test_integration_test_can_verify_cache_usage(self) -> None:
         """GIVEN an integration test for conversion workflow
         WHEN running a complete conversion
         THEN can verify cache was used via context
@@ -246,12 +249,12 @@ class TestContextInTestingScenarios:
 
         # Verify caching happened via context
         cache = context.performance_cache
-        if hasattr(cache, "get_cache_stats"):
-            stats = cache.get_cache_stats()
+        if hasattr(cache, "get_stats"):
+            stats = cache.get_stats()
             # Stats should show cache activity
             assert stats is not None
 
-    def test_performance_test_can_measure_cache_effectiveness(self):
+    def test_performance_test_can_measure_cache_effectiveness(self) -> None:
         """GIVEN a performance test
         WHEN measuring cache hit rates
         THEN context provides access to cache metrics
@@ -266,8 +269,8 @@ class TestContextInTestingScenarios:
 
         # Measure cache effectiveness
         cache = context.performance_cache
-        if hasattr(cache, "get_cache_stats"):
-            stats = cache.get_cache_stats()
+        if hasattr(cache, "get_stats"):
+            stats = cache.get_stats()
 
             # Should have high hit rate for repeated data
             if stats["cache_hits"] + stats["cache_misses"] > 0:
@@ -281,7 +284,7 @@ class TestContextInTestingScenarios:
 class TestContextInProductionScenarios:
     """Test context behavior in production-like scenarios."""
 
-    def test_context_survives_exceptions_in_workflow(self):
+    def test_context_survives_exceptions_in_workflow(self) -> None:
         """GIVEN a conversion workflow that raises an exception
         WHEN the exception is handled
         THEN context remains valid for subsequent operations
@@ -298,7 +301,7 @@ class TestContextInProductionScenarios:
             raise ValueError("Simulated error")
 
         # First operation fails
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Simulated error"):
             risky_operation()
 
         # Context should still work
@@ -309,7 +312,7 @@ class TestContextInProductionScenarios:
         # Original context should still be accessible
         assert get_context() is context
 
-    def test_context_cleanup_on_thread_exit(self):
+    def test_context_cleanup_on_thread_exit(self) -> None:
         """GIVEN a worker thread that uses context
         WHEN the thread exits
         THEN context resources are cleaned up automatically
@@ -343,7 +346,7 @@ class TestContextInProductionScenarios:
         main_context_id = id(get_context())
         assert main_context_id != context_id
 
-    def test_context_supports_graceful_shutdown(self):
+    def test_context_supports_graceful_shutdown(self) -> None:
         """GIVEN a service shutting down
         WHEN clearing all contexts
         THEN all cached data is released
@@ -367,8 +370,8 @@ class TestContextInProductionScenarios:
 
         # New context should have empty cache
         new_cache = new_context.performance_cache
-        if hasattr(new_cache, "get_cache_stats"):
-            stats = new_cache.get_cache_stats()
+        if hasattr(new_cache, "get_stats"):
+            stats = new_cache.get_stats()
             # Fresh cache should have no prior data
             assert stats["cache_size"] == 0
 
@@ -376,7 +379,7 @@ class TestContextInProductionScenarios:
 class TestContextMemoryManagement:
     """Test that context doesn't cause memory leaks."""
 
-    def test_context_references_are_garbage_collected(self):
+    def test_context_references_are_garbage_collected(self) -> None:
         """GIVEN multiple contexts created and released
         WHEN contexts go out of scope
         THEN they can be garbage collected
@@ -399,7 +402,7 @@ class TestContextMemoryManagement:
         # Note: This may not always work due to Python's GC behavior,
         # but conceptually demonstrates the test
 
-    def test_clearing_context_releases_cache_memory(self):
+    def test_clearing_context_releases_cache_memory(self) -> None:
         """GIVEN a context with large cached data
         WHEN clearing the context
         THEN cached data is released
@@ -415,12 +418,12 @@ class TestContextMemoryManagement:
 
         # Get cache size
         cache = context.performance_cache
-        if hasattr(cache, "get_cache_stats"):
-            size_before = cache.get_cache_stats()["cache_size"]
+        if hasattr(cache, "get_stats"):
+            size_before = cache.get_stats()["cache_size"]
 
             # Clear cache
             context.clear_caches()
 
             # Verify cache was cleared
-            size_after = cache.get_cache_stats()["cache_size"]
+            size_after = cache.get_stats()["cache_size"]
             assert size_after < size_before

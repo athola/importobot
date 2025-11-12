@@ -161,13 +161,12 @@ class ValidationService:
     ) -> dict[str, Any]:
         """Perform k-fold cross-validation on data using multiple strategies.
 
-        This method implements statistical cross-validation to assess the
-        reliability and consistency of validation results across different
-        data subsets and validation strategies.
+        Assess the reliability and consistency of validation results across
+        different data subsets and validation strategies.
 
         Args:
             data: Data to validate (must be iterable for cross-validation)
-            strategies: List of validation strategy names
+            strategies: List of strategy names to apply
             k_folds: Number of folds for cross-validation (default: 5)
             context: Additional validation context
 
@@ -244,10 +243,24 @@ class ValidationService:
             validation_data = data_list[start_idx:end_idx]
             train_data = data_list[:start_idx] + data_list[end_idx:]
 
+            # Enrich context with fold-specific information
+            fold_context = (context or {}).copy()
+            fold_context.update(
+                {
+                    "fold_number": fold + 1,
+                    "total_folds": k_folds,
+                    "validation_size": len(validation_data),
+                    "train_size": len(train_data),
+                    "is_cross_validation": True,
+                }
+            )
+
             # Validate using each strategy
             fold_strategy_results = {}
             for strategy in strategies:
-                results = self.validate_multiple(validation_data, [strategy], context)
+                results = self.validate_multiple(
+                    validation_data, [strategy], fold_context
+                )
                 valid_ratio = (
                     sum(1 for r in results if r.is_valid) / len(results)
                     if results

@@ -1,6 +1,6 @@
 # Contributing
 
-We welcome contributions. This guide explains how to get set up and align your changes with the project's style.
+We welcome contributions from the community. This guide explains how to set up your development environment and align your changes with the project's standards.
 
 ## Development Setup
 
@@ -33,9 +33,14 @@ Importobot follows Test-Driven Development (TDD) and Extreme Programming (XP) pr
 2. **Green**: Implement the minimum code to pass the test.
 3. **Refactor**: Improve the code while keeping tests green.
 
-### Code Quality
+### Pre-Commit Checklist
 
-All code must pass the test suite, maintain coverage targets, and pass all linting checks. Update the documentation if you change any behavior.
+Before committing, ensure your changes meet the following criteria:
+
+- All tests pass (`uv run pytest`).
+- Code coverage has not decreased.
+- All linting and formatting checks pass (`make lint`).
+- Relevant documentation has been updated if behavior was changed.
 
 ### Running Tests
 
@@ -55,14 +60,8 @@ uv run pytest --cov=src --cov-report=html
 ### Code Quality Checks
 
 ```bash
-# Run all linting tools (same as CI)
+# Run all linting and formatting checks (same as CI)
 make lint
-
-# Individual tools for specific checks
-uv run ruff check .                    # Code linting and formatting checks
-uv run pycodestyle .                   # PEP 8 style guide compliance
-uv run pydocstyle .                    # Docstring standards
-uv run pylint .                        # Static analysis
 
 # Auto-fix common issues
 uv run ruff check --fix .
@@ -77,31 +76,11 @@ make deep-clean  # For more thorough cleanup
 
 ## Project Structure
 
-```
-src/importobot/
-├── cli/                 # Command-line interface
-│   ├── parser.py       # Argument parsing
-│   └── handlers.py     # Command handlers
-├── core/               # Core conversion logic
-│   ├── engine.py       # Conversion engine
-│   ├── converter.py    # File operations
-│   └── parser.py       # Test case parsing
-├── utils/              # Utility modules
-└── __main__.py         # Entry point
-
-tests/
-├── unit/               # Unit tests
-├── integration/        # Integration tests
-└── cli/               # CLI tests
-```
+For a detailed breakdown of the codebase, including the layered architecture and key modules, please see the [How to Navigate this Codebase](How-to-Navigate-this-Codebase.md) guide.
 
 ## Testing Standards
 
-**Unit Tests** test isolated components, execute quickly with minimal dependencies, and use mocking for external dependencies. They are located in `tests/unit/`.
-
-**Integration Tests** test the interaction between multiple components, perform file I/O operations, and verify end-to-end functionality. They are located in `tests/integration/`.
-
-**CLI Tests** test command-line interface functionality, including argument parsing and handling. They are located in `tests/cli/`.
+The project uses unit, integration, and CLI tests. For a detailed description of each type and where to find them, see the [Test Structure](How-to-Navigate-this-Codebase.md#test-structure) section in the codebase navigation guide.
 
 ## Code Style
 
@@ -115,20 +94,22 @@ Follow the existing code style. Use descriptive names, keep functions small, and
 - Use the `typing` module for complex types.
 
 ### Docstrings
-- Follow PEP 257 guidelines.
-- Use the imperative mood for function descriptions.
-- Include parameter and return value descriptions.
+- Follow Google-style docstrings, as shown in the example below.
+- The first line should be a concise, imperative summary (e.g., "Convert a...").
+- If more detail is needed, add a blank line followed by more description.
+- Use `Args:`, `Returns:`, and `Raises:` sections to describe parameters, return values, and exceptions.
 
 ### Example
 ```python
 def convert_test_case(test_data: dict) -> str:
-    """Convert a test case to Robot Framework format.
-    
+    """Converts a test case dictionary to a Robot Framework string.
+
     Args:
-        test_data: A dictionary containing test case data.
-        
+        test_data: A dictionary containing test case data, including
+            'name', 'steps', and 'tags'.
+
     Returns:
-        A string containing the Robot Framework test case.
+        A string representing the test case in Robot Framework format.
     """
     # Implementation
 ```

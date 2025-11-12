@@ -1,72 +1,75 @@
 # Usage Examples
 
-## CLI
+This page presents common usage examples for Importobot, demonstrating how to perform various conversion tasks.
+
+## Command-Line Interface (CLI)
+
+### Convert a single file
 
 ```bash
 uv run importobot zephyr_export.json converted_tests.robot
+```
 
-# Batch mode
+### Convert a directory of files
+
+```bash
 uv run importobot --batch ./exports ./robot-output
 ```
 
 ## Python API
 
+For programmatic use, Importobot provides a Python API.
+
 ```python
 from importobot.api import converters
 
 converter = converters.JsonToRobotConverter()
-summary = converter.convert_file("input.json", "output.robot")
-print(summary)
+
+# Convert a single JSON file to a Robot Framework file
+converter.convert_file("input.json", "output.robot")
+
+# Convert all JSON files in an input directory to a specified output directory
+converter.convert_directory("inputs", "outputs")
 ```
 
-## Schema Parser
+## Schema Mapping
 
-### CLI Quick Start
+If your test exports use custom field names, you can provide a schema file to map them to the standard names that Importobot expects. For a detailed explanation, see the [User Guide on Schema Mapping](User-Guide.md#mapping-custom-field-names).
+
+### Example Schema File (`docs/field_guide.md`)
+
+```markdown
+# Field Guide
+
+- **Title**: Maps to `name`
+- **Description**: Maps to `description`
+- **Steps**: Maps to `steps`
+```
+
+### CLI Usage
 
 ```bash
-# Provide one or more documentation sources describing custom fields
 uv run importobot \
   --input-schema docs/field_guide.md \
-  --input-schema docs/backend_cheat_sheet.md \
   custom_export.json \
   converted.robot
 ```
 
-- Pass `--input-schema` multiple times to merge definitions from different teams.
-- Keep documentation in Markdown or plain text; Importobot extracts headings and bullet lists automatically.
-- Combine with `--batch` or `--robot-template` flags when running migrations.
+## API Integration
 
-### Preview Field Mapping
-
-```bash
-# Show how the schema affects field mapping without writing output files
-uv run importobot \
-  --input-schema docs/field_guide.md \
-  --dry-run \
-  custom_export.json
-```
-
-### Programmatic Usage
+Importobot can fetch test data directly from test management systems. For more details on configuring API integration, refer to the [User Guide on Fetching Data from an API](User-Guide.md#fetching-data-from-an-api).
 
 ```python
-from importobot.core.schema_parser import SchemaParser
-from importobot.api import converters
+import os
+from importobot.integrations.clients import get_api_client, SupportedFormat
 
-schema_parser = SchemaParser()
-schema = schema_parser.parse_markdown("docs/field_guide.md")
+client = get_api_client(
+    SupportedFormat.ZEPHYR,
+    api_url="https://zephyr.example.com",
+    tokens=[os.environ["ZEPHYR_TOKEN"]],
+    project_name="ENG-QA",
+)
 
-# Merge multiple sources if you have team-specific guides
-schema.update(schema_parser.parse_markdown("docs/backend_cheat_sheet.md"))
-
-converter = converters.JsonToRobotConverter(field_schema=schema)
-result = converter.convert_json_dict(payload)
+for page in client.fetch_all():
+    process_page(page)
 ```
-
-### Verification
-
-- Watch for `SchemaParser` warnings on stdout/stderr; they flag missing files, unsupported extensions, or truncated content.
-- Use `--dry-run` to confirm parsed fields before writing Robot Framework output.
-
-## Medallion workflow preview
-
-The medallion optimization example lives in the [User Guide](User-Guide#medallion-workflow-example).

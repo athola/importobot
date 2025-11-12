@@ -1,4 +1,5 @@
 """Generative tests for Robot Framework keyword coverage and execution."""
+
 # pylint: disable=too-many-lines
 
 import json
@@ -7,6 +8,7 @@ import random
 import shutil
 import subprocess
 import tempfile
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
@@ -174,7 +176,9 @@ class RobotFrameworkExecutor:
 
 
 @pytest.mark.parametrize("structure", get_available_structures())
-def test_generative_json_structures_convert_successfully(tmp_path, structure):
+def test_generative_json_structures_convert_successfully(
+    tmp_path: Path, structure: str
+) -> None:
     """Test that all JSON structures convert successfully to Robot Framework."""
     # Generate random JSON for this structure
     json_data = generate_random_test_json(structure)
@@ -202,7 +206,9 @@ def test_generative_json_structures_convert_successfully(tmp_path, structure):
 
 
 @pytest.mark.parametrize("num_keywords", [3, 5, 8, 12])
-def test_generative_keyword_combinations_produce_valid_robot(tmp_path, num_keywords):
+def test_generative_keyword_combinations_produce_valid_robot(
+    tmp_path: Path, num_keywords: int
+) -> None:
     """Test various keyword combinations produce valid Robot Framework syntax."""
     # Use curated keyword sets instead of random generation to fix brittleness
     curated_keywords_by_count = {
@@ -460,7 +466,7 @@ def _create_test_steps(
     return steps
 
 
-def test_library_coverage(tmp_path):
+def test_library_coverage(tmp_path: Path) -> None:
     """Test that all major Robot Framework libraries can be successfully used."""
     keywords_by_library = _extract_keywords_by_library()
 
@@ -502,7 +508,7 @@ def test_library_coverage(tmp_path):
         assert f"Library    {lib}" in content, f"Missing library import: {lib}"
 
 
-def test_builtin_keywords_coverage(tmp_path):
+def test_builtin_keywords_coverage(tmp_path: Path) -> None:
     """Test coverage of BuiltIn keywords with proper structured data."""
     # Create test scenarios for each major BuiltIn keyword category
     builtin_scenarios = [
@@ -688,10 +694,7 @@ def test_builtin_keywords_coverage(tmp_path):
         "Repeat Keyword",
     ]
 
-    found_keywords = []
-    for keyword in builtin_keywords:
-        if keyword in content:
-            found_keywords.append(keyword)
+    found_keywords = [keyword for keyword in builtin_keywords if keyword in content]
 
     # Should find a good portion of BuiltIn keywords
     assert len(found_keywords) >= len(builtin_keywords) // 2, (
@@ -707,7 +710,7 @@ def test_builtin_keywords_coverage(tmp_path):
         )
 
 
-def test_parameter_validation_suggestions_integration(tmp_path):
+def test_parameter_validation_suggestions_integration(tmp_path: Path) -> None:
     """Test that parameter validation suggestions work in the full conversion
     pipeline."""
     # Create test cases with missing/improper parameter data to trigger suggestions
@@ -735,9 +738,7 @@ def test_parameter_validation_suggestions_integration(tmp_path):
         },
         {
             "step": "set variable with value",
-            "test_data": (
-                "test_data_for_set_variable # builtin"  # Missing name/value
-            ),
+            "test_data": ("test_data_for_set_variable # builtin"),  # Missing name/value
             "expected": "",
         },
     ]
@@ -788,7 +789,7 @@ def test_parameter_validation_suggestions_integration(tmp_path):
     )
 
 
-def test_enhanced_library_detection(tmp_path):
+def test_enhanced_library_detection(tmp_path: Path) -> None:
     """Test enhanced library detection that analyzes generated Robot Framework
     content."""
     # Create test cases that will generate keywords requiring specific libraries
@@ -878,13 +879,13 @@ def test_enhanced_library_detection(tmp_path):
 
 
 @pytest.mark.parametrize("iterations", [10])
-def test_generative_fuzz_testing(tmp_path, iterations):
+def test_generative_fuzz_testing(tmp_path: Path, iterations: int) -> None:
     """Fuzz test with random JSON structures and keyword combinations."""
     successful_conversions = 0
     valid_syntax_count = 0
 
     for i in range(iterations):
-        try:
+        with suppress(Exception):
             # Generate completely random test using the new utility
             available_structures = get_available_structures()
             structure = available_structures[i % len(available_structures)]
@@ -908,10 +909,6 @@ def test_generative_fuzz_testing(tmp_path, iterations):
             if validation_result["syntax_valid"]:
                 valid_syntax_count += 1
 
-        except Exception:
-            # Log but don't fail - we're testing robustness
-            pass  # Debug print removed for cleaner test output
-
     # At least 80% of conversions should succeed
     success_rate = successful_conversions / iterations
     assert success_rate >= 0.8, f"Success rate too low: {success_rate:.2f}"
@@ -921,7 +918,7 @@ def test_generative_fuzz_testing(tmp_path, iterations):
     assert syntax_rate >= 0.7, f"Syntax validation rate too low: {syntax_rate:.2f}"
 
 
-def test_generative_edge_case_handling(tmp_path):
+def test_generative_edge_case_handling(tmp_path: Path) -> None:
     """Test edge cases and boundary conditions."""
     edge_cases = [
         # Empty structures
@@ -1031,14 +1028,14 @@ if __name__ == "__main__":
     )  # Truncate for readability
 
 
-def test_ssh_keyword_coverage():
+def test_ssh_keyword_coverage() -> None:
     """Test coverage of all 42 SSH keywords through generative testing."""
     ssh_generator = SSHKeywordTestGenerator()
 
     # Generate test cases for all SSH keywords
     all_ssh_tests = ssh_generator.generate_all_ssh_keyword_tests()
 
-    # Verify we have the expected number of tests (42 keywords × 3 variations = 126)
+    # Verify we have the expected number of tests (42 keywords x 3 variations = 126)
 
     assert len(all_ssh_tests) == EXPECTED_TOTAL_SSH_TESTS, (
         f"Expected 126 SSH tests, got {len(all_ssh_tests)}"
@@ -1119,7 +1116,7 @@ def test_ssh_keyword_coverage():
     print(f"- Keywords tested: {sorted(covered_keywords)}")
 
 
-def test_ssh_keyword_categories_coverage():
+def test_ssh_keyword_categories_coverage() -> None:
     """Test that all SSH keyword categories are covered."""
     ssh_generator = SSHKeywordTestGenerator()
 
@@ -1185,7 +1182,7 @@ def test_ssh_keyword_categories_coverage():
     )
 
 
-def test_ssh_realistic_test_data_generation():
+def test_ssh_realistic_test_data_generation() -> None:
     """Test that SSH test data generation produces realistic, varied content."""
     ssh_generator = SSHKeywordTestGenerator()
 

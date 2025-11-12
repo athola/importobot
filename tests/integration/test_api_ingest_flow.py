@@ -2,8 +2,9 @@
 
 import json
 from argparse import Namespace
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -19,7 +20,7 @@ class DummyClient:
     def __init__(self, payloads: Iterable[dict[str, object]]) -> None:
         self.payloads = list(payloads)
 
-    def fetch_all(self, progress_cb):
+    def fetch_all(self, progress_cb: Callable[..., None]) -> Iterable[dict[str, Any]]:
         """Yield payloads while emitting progress callbacks."""
         for payload in self.payloads:
             items = payload.get("items", [])
@@ -100,7 +101,9 @@ def test_ingest_metadata_tracks_payloads(
     class MultiStageClient:
         """Client that emits key discovery and detail fetch progress events."""
 
-        def fetch_all(self, progress_cb):
+        def fetch_all(
+            self, progress_cb: Callable[..., None]
+        ) -> Iterable[dict[str, Any]]:
             """Fetch all test items with progress callback."""
             progress_cb(items=0, total=None, page=None)
             payload = {

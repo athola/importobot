@@ -147,20 +147,20 @@ Importobot can generate Robot Framework tests that include SSH operations and co
 
 #### SSH Security Considerations
 
-**🔒 Authentication & Access Control:**
+** Authentication & Access Control:**
 - **Never hardcode SSH credentials** in test files or source code
 - Use key-based authentication instead of passwords whenever possible
 - Implement connection timeouts (recommended: 30 seconds)
 - Validate host key fingerprints to prevent man-in-the-middle attacks
 - Use dedicated test environments, never production systems for automated testing
 
-**🔒 Connection Management:**
+** Connection Management:**
 - Always close SSH connections explicitly in test teardown
 - Implement connection pooling limits to prevent resource exhaustion
 - Use SSH connection multiplexing when appropriate
 - Monitor active SSH connections and implement cleanup procedures
 
-**🔒 Command Execution Safeguards:**
+** Command Execution Safeguards:**
 - Validate all command parameters to prevent command injection
 - Escape shell metacharacters in dynamic command construction
 - Avoid using shell operators (`|`, `&`, `;`, `&&`, `||`) in untrusted input
@@ -194,13 +194,13 @@ wget url | bash
 
 #### File Access Security
 
-**🔒 Path Validation:**
+** Path Validation:**
 - Always validate file paths to prevent directory traversal attacks
 - Reject paths containing `..` or `//` sequences
 - Implement allow-lists for accessible directories
 - Use absolute paths when possible
 
-**🔒 Sensitive File Protection:**
+** Sensitive File Protection:**
 Importobot automatically detects and warns about access to sensitive files:
 - `/etc/passwd`, `/etc/shadow` (Unix password files)
 - `~/.ssh/`, `~/.aws/credentials` (Authentication keys)
@@ -209,13 +209,13 @@ Importobot automatically detects and warns about access to sensitive files:
 
 #### Database Security
 
-**🔒 SQL Injection Prevention:**
+** SQL Injection Prevention:**
 - Use parameterized queries exclusively
 - Never construct SQL from untrusted input
 - Implement input validation for all database parameters
 - Use minimal database privileges for test connections
 
-**🔒 Connection Security:**
+** Connection Security:**
 - Use encrypted connections (SSL/TLS) for database access
 - Implement connection timeouts
 - Store database credentials securely (environment variables, vaults)
@@ -223,13 +223,13 @@ Importobot automatically detects and warns about access to sensitive files:
 
 #### Web Application Testing Security
 
-**🔒 Authentication Testing:**
+** Authentication Testing:**
 - Test authentication flows without exposing credentials
 - Validate session management and timeout behaviors
 - Test authorization boundaries and privilege escalation
 - Implement CSRF protection testing
 
-**🔒 Input Validation:**
+** Input Validation:**
 - Test for XSS vulnerabilities in form inputs
 - Validate file upload restrictions
 - Test API endpoint security
@@ -237,13 +237,13 @@ Importobot automatically detects and warns about access to sensitive files:
 
 #### Environment Isolation
 
-**🔒 Test Environment Guidelines:**
+** Test Environment Guidelines:**
 - Use isolated test environments that mirror production architecture
 - Implement network segmentation between test and production
 - Use synthetic test data, never production data
 - Implement proper cleanup procedures for test artifacts
 
-**🔒 Secret Management:**
+** Secret Management:**
 - Use environment variables or secret management systems
 - Rotate test credentials regularly
 - Implement audit logging for secret access
@@ -251,10 +251,10 @@ Importobot automatically detects and warns about access to sensitive files:
 
 #### Security Monitoring and Auditing
 
-**🔒 Logging and Monitoring:**
+** Logging and Monitoring:**
 Log SSH connections and command executions to track test activities. Monitor for unusual test patterns that might indicate misuse and set up alerts for security policy violations. Conduct regular audits of generated test suites to ensure they follow security guidelines.
 
-**🔒 Compliance Considerations:**
+** Compliance Considerations:**
 Test activities should align with your organization's security policies. Document test procedures for audit trails and implement approval workflows for high-risk test scenarios. Periodically review test permissions and access levels to maintain least privilege principles.
 
 ## Additional Security Resources

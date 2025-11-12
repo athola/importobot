@@ -38,7 +38,7 @@ from importobot.services.security_gateway import (
 )
 from importobot.services.security_types import SecurityLevel
 from importobot.telemetry import TelemetryClient, get_telemetry_client
-from importobot.utils.logging import setup_logger
+from importobot.utils.logging import get_logger
 from importobot.utils.validation import (
     ValidationError,
     validate_file_path,
@@ -46,10 +46,12 @@ from importobot.utils.validation import (
     validate_json_size,
 )
 
-logger = setup_logger(__name__)
+logger = get_logger(__name__)
 
 
 class _NullTelemetry:
+    """A no-op telemetry client for when telemetry is disabled."""
+
     def record_cache_metrics(  # pylint: disable=unused-argument
         self,
         cache_name: str,
@@ -159,6 +161,7 @@ class FileContentCache:
         self._emit_cache_metrics()
 
     def _evict_oldest(self) -> None:
+        """Evict the least recently used entry from the cache."""
         if not self._cache:
             return
         _, entry = self._cache.popitem(last=False)
@@ -166,6 +169,7 @@ class FileContentCache:
         self._emit_cache_metrics()
 
     def _evict_key(self, cache_key: str) -> None:
+        """Evict a specific key from the cache."""
         entry = self._cache.pop(cache_key, None)
         if entry:
             self._current_size_bytes -= entry["size"]
@@ -188,6 +192,7 @@ class FileContentCache:
         }
 
     def _emit_cache_metrics(self) -> None:
+        """Emit cache performance metrics to telemetry."""
         self._telemetry.record_cache_metrics(
             "file_content_cache",
             hits=self._cache_hits,
@@ -316,6 +321,7 @@ class DataIngestionService:
         correlation_id: str,
         start_time: datetime,
     ) -> tuple[FileOperationResult | None, ProcessingResult | None]:
+        """Validate file security using the security gateway."""
         if not self.enable_security_gateway or self.security_gateway is None:
             return None, None
 
@@ -344,6 +350,7 @@ class DataIngestionService:
         correlation_id: str,
         start_time: datetime,
     ) -> tuple[Any, SanitizationResult | None, ProcessingResult | None]:
+        """Process file content, applying security sanitization if enabled."""
         if not self.enable_security_gateway or self.security_gateway is None:
             validate_json_size(content, max_size_mb=10)
             data = json.loads(content)
@@ -388,6 +395,7 @@ class DataIngestionService:
         json_validation: SanitizationResult | None,
         correlation_id: str,
     ) -> None:
+        """Attach security validation information to the processing result."""
         payload: dict[str, Any] = {
             "security_level": self.security_level.value,
             "correlation_id": correlation_id,

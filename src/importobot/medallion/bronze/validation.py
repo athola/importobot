@@ -47,7 +47,7 @@ class ValidationThresholds:
 
 
 class BronzeValidator:
-    """Validates raw data for Bronze layer ingestion."""
+    """Validate raw data for Bronze layer ingestion."""
 
     def __init__(self) -> None:
         """Initialize the Bronze validator with validation thresholds."""

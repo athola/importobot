@@ -4,7 +4,7 @@ from typing import Any
 
 
 class SSHTestDataGenerator:
-    """Generates SSH test data."""
+    """Generate SSH test data."""
 
     def __init__(self) -> None:
         """Initialize the SSH test data generator."""

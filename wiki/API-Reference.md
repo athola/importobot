@@ -1,105 +1,55 @@
 # API Reference
 
-Reference for Importobot's public API surface. Everything here is supported; anything under `importobot.core.*` or `importobot.medallion.*` is considered private.
+This document serves as the reference for Importobot's public API. All components described here are officially supported; modules under `importobot.core.*` or `importobot.medallion.*` are considered internal and private.
 
-**Looking for practical examples?** See [API Examples](API-Examples) for detailed usage patterns with the newest features.
+For practical demonstrations, refer to [API Examples](API-Examples.md), which illustrates detailed usage patterns for the latest features.
 
-## API Architecture Overview
+## API Overview
 
-Importobot exposes two layers:
-1. `import importobot` — core converter, config, and exceptions.
-2. `importobot.api.*` — validation, suggestions, additional converters.
+Importobot's API is structured into two primary layers:
 
-### Design notes
+1.  **`importobot`**: The core package, encompassing the main `JsonToRobotConverter` class, global configuration settings, and custom exceptions.
+2.  **`importobot.api`**: A collection of modules tailored for advanced use cases, including CI/CD integration, custom validation, and experimental features.
 
-- Public imports stay stable; internal modules can change without notice.
-- Type hints and `TYPE_CHECKING` guards provide IDE support.
-
-## Public API Structure
-
-```
-importobot/
-├── JsonToRobotConverter    # Core bulk conversion class
-├── config                  # Configuration settings
-├── exceptions              # Error handling
-└── api/                    # Advanced API utilities
-    ├── converters          # Advanced conversion engines
-    ├── suggestions         # QA suggestion engine
-    └── validation          # CI/CD validation utilities
-```
-
-### Internal Implementation (Private)
-```
-src/importobot/
-├── cli/                    # Command-line interface (private)
-├── core/                   # Core conversion logic (private)
-├── utils/                  # Utility modules (private)
-└── __main__.py            # Entry point
-```
+The public API surface maintains stability across releases. Internal modules (e.g., `core`, `medallion`) are subject to change. All public APIs include comprehensive type hints for enhanced IDE support.
 
 ## Primary Interface
 
-### JsonToRobotConverter
+### `importobot`
 
-```python
-import importobot
+The main `importobot` package provides the following core components:
 
-converter = importobot.JsonToRobotConverter()
-```
+-   **`JsonToRobotConverter`**: The central class for converting test exports. Key methods include:
+    -   `convert_json_string(json_string: str) -> str`: Converts a JSON string to a Robot Framework string.
+    -   `convert_file(input_path: str, output_path: str) -> None`: Converts a single input file to a Robot Framework file.
+    -   `convert_directory(input_dir: str, output_dir: str) -> Dict[str, Any]`: Converts all supported files within a directory.
 
-- `convert_json_string(json_string: str) -> str` — Convert JSON text to Robot code.
-- `convert_file(input_path: str, output_path: str) -> None` — Convert one file; creates the output directory when needed.
-- `convert_directory(input_dir: str, output_dir: str) -> Dict[str, Any]` — Bulk conversion with success/error counts.
+### `importobot.config`
 
-### Configuration
+This module provides access to global configuration settings:
 
-Access configuration settings:
+-   `MAX_JSON_SIZE_MB`: Defines the maximum size (in MB) of a JSON file that can be processed.
+-   `TEST_SERVER_URL`: Specifies the URL of the test server used for validation.
+-   `TEST_SERVER_PORT`: Specifies the port of the test server.
+-   `CHROME_OPTIONS`: A set of options for configuring the headless Chrome browser, primarily used in testing.
 
-```python
-import importobot
+### `importobot.exceptions`
 
-# Configuration settings
-max_size = importobot.config.MAX_JSON_SIZE_MB
-test_url = importobot.config.TEST_SERVER_URL
-chrome_options = importobot.config.CHROME_OPTIONS
-```
+This module defines all custom exceptions raised by Importobot:
 
-#### Available Settings
+-   `ImportobotError`: The base class for all Importobot-specific exceptions.
+-   `ValidationError`: Raised when input data fails validation checks.
+-   `ConversionError`: Raised when an error occurs during the conversion process.
+-   `ParseError`: Raised when an input file cannot be parsed.
+-   `FileNotFound`: Raised when a specified file does not exist.
+-   `FileAccessError`: Raised when a file cannot be accessed due to permissions or other issues.
+-   `SuggestionError`: Raised when an error occurs within the suggestion engine.
 
-- `MAX_JSON_SIZE_MB`: Maximum JSON file size (default: 10MB)
-- `TEST_SERVER_URL`: Test server URL for validation
-- `TEST_SERVER_PORT`: Test server port
-- `CHROME_OPTIONS`: Headless browser configuration
+## Advanced API Utilities (`importobot.api`)
 
-### Exceptions
+### `importobot.api.converters`
 
-Example error handling:
-
-```python
-import importobot
-
-try:
-    importobot.JsonToRobotConverter().convert_file("test.json", "out.robot")
-except importobot.exceptions.ValidationError:
-    ...  # bad input
-except importobot.exceptions.ConversionError:
-    ...  # failure during generation
-```
-
-Key exceptions:
-- `ImportobotError`
-- `ValidationError`
-- `ConversionError`
-- `ParseError`
-- `FileNotFound`
-- `FileAccessError`
-- `SuggestionError`
-
-## Advanced API Utilities (importobot.api)
-
-### importobot.api.converters
-
-Advanced conversion engines for integration.
+This module provides advanced conversion engines for integration purposes.
 
 ```python
 from importobot.api import converters
@@ -115,13 +65,13 @@ converter = converters.JsonToRobotConverter()
 #### Classes
 
 **`GenericConversionEngine`**
-- Low-level conversion engine with configuration options
-- Supports custom keyword mapping and format options
-- Used internally by `JsonToRobotConverter`
+-   A low-level conversion engine offering extensive configuration options.
+-   Supports custom keyword mapping and various format options.
+-   Used internally by `JsonToRobotConverter`.
 
-### importobot.api.validation
+### `importobot.api.validation`
 
-CI/CD validation utilities.
+This module offers utilities for CI/CD and general data validation.
 
 ```python
 from importobot.api import validation
@@ -136,23 +86,23 @@ validation.validate_safe_path(output_path)
 #### Functions
 
 **`validate_json_dict(data: dict) -> None`**
-- Validates JSON structure and content
-- Raises `ValidationError` on failure
-- Checks required fields and data types
+-   Validates the structure and content of JSON data.
+-   Raises `ValidationError` upon failure.
+-   Checks for required fields and correct data types.
 
 **`validate_safe_path(path: str) -> str`**
-- Prevents directory traversal attacks
-- Validates file path security
-- Returns sanitized path
+-   Prevents directory traversal attacks.
+-   Validates the security of file paths.
+-   Returns a sanitized path.
 
 **`ValidationError`**
-- Exception class for validation failures
-- Provides detailed error messages
-- Used throughout validation pipeline
+-   The exception class for validation failures.
+-   Provides detailed error messages.
+-   Used throughout the validation pipeline.
 
-### importobot.api.suggestions
+### `importobot.api.suggestions`
 
-QA suggestion engine for handling ambiguous test cases.
+This module provides a suggestion engine for quality assurance, designed to handle ambiguous test cases.
 
 ```python
 from importobot.api import suggestions
@@ -165,18 +115,18 @@ fixes = engine.suggest_improvements(ambiguous_test_data)
 #### Classes
 
 **`GenericSuggestionEngine`**
-- Analyzes problematic test cases
-- Provides suggestions for improvements
-- Handles ambiguous or incomplete test data
+-   Analyzes problematic test cases.
+-   Provides suggestions for improvements.
+-   Handles ambiguous or incomplete test data.
 
 ## API Client Error Handling
 
-Importobot's HTTP clients (Zephyr, TestRail, Jira/Xray, TestLink) inherit from `BaseAPIClient` and raise familiar Python exceptions when requests fail.
+Importobot's HTTP clients (for Zephyr, TestRail, Jira/Xray, TestLink), which inherit from `BaseAPIClient`, raise standard Python exceptions upon request failures.
 
-- `requests.HTTPError` — raised by `response.raise_for_status()` for non-success status codes. Inspect `err.response.status_code` and `err.response.text` for remediation guidance.
-- `RuntimeError("Exceeded retry budget ...")` — raised after the client retries the same request `_max_retries + 1` times (default: 3 retries). Wrap calls in your own retry loop if you need a longer budget.
-- `ValueError("Unsupported fetch format ...")` — raised by `get_api_client` when the supplied `SupportedFormat` is not mapped to a client, or when an unsupported HTTP method is invoked.
-- Standard `requests` exceptions (`ConnectionError`, `Timeout`, etc.) — bubbled up for network issues before any response is returned.
+-   `requests.HTTPError`: Raised by `response.raise_for_status()` for non-success status codes. Inspect `err.response.status_code` and `err.response.text` for remediation guidance.
+-   `RuntimeError("Exceeded retry budget ...")`: Raised after the client exhausts its retry budget (default: 3 retries). Implement a custom retry loop for a longer budget.
+-   `ValueError("Unsupported fetch format ...")`: Raised by `get_api_client` if the provided `SupportedFormat` is not mapped to a client, or if an unsupported HTTP method is invoked.
+-   Standard `requests` exceptions (`ConnectionError`, `Timeout`, etc.): These exceptions are propagated for network issues occurring before a response is returned.
 
 ```python
 import logging
@@ -217,67 +167,22 @@ except ValueError as config_err:
 
 > Tip: Only disable TLS verification (`verify_ssl=False`) in trusted development environments. Importobot logs a warning whenever verification is turned off.
 
-## Business Use Cases
-
-### 1. Bulk Conversion Pipeline
-
-```python
-import importobot
-
-# Bulk conversion
-converter = importobot.JsonToRobotConverter()
-results = converter.convert_directory("/zephyr/exports", "/robot/tests")
-
-print(f"Converted {results['success_count']} test cases")
-print(f"Failed: {results['error_count']} files")
-```
-
-### 2. CI/CD Integration
-
-```python
-from importobot.api import validation, converters
-
-# Validate before conversion in automated pipeline
-validation.validate_json_dict(test_data)
-validation.validate_safe_path(output_directory)
-
-# Convert with error handling
-converter = converters.JsonToRobotConverter()
-try:
-    result = converter.convert_json_string(json_data)
-except Exception as e:
-    # Log and handle conversion failures
-    pass
-```
-
-### 3. QA Suggestion Engine
-
-```python
-from importobot.api import suggestions
-
-# Handle ambiguous test cases
-suggestion_engine = suggestions.GenericSuggestionEngine()
-
-for test_case in problematic_tests:
-    fixes = suggestion_engine.suggest_improvements(test_case)
-    # Apply or review suggested improvements
-```
 
 ## Version Stability Promise
 
-Following pandas-style API evolution:
+Importobot adheres to a Pandas-style API evolution model:
 
-- **Public API Stability**: `importobot.*` and `importobot.api.*` remain stable across versions
-- **Internal Implementation**: Core modules can be refactored freely without breaking public API
-- **Deprecation Warnings**: Any breaking changes include migration guidance
-- **Semantic Versioning**: Major.Minor.Patch versioning with clear upgrade paths
+-   **Public API Stability**: Modules under `importobot.*` and `importobot.api.*` are guaranteed stable.
+-   **Internal Implementation**: Core modules may be refactored without impacting the public API.
+-   **Deprecation Warnings**: Breaking changes are accompanied by deprecation warnings and migration guidance.
+-   **Semantic Versioning**: Versioning follows Major.Minor.Patch conventions, providing clear upgrade paths.
 
 ## Environment Variables
 
-Configuration can be customized via environment variables:
+Configuration can be customized using environment variables:
 
-- `IMPORTOBOT_TEST_SERVER_URL`: Test server URL (default: "http://localhost:8000")
-- `IMPORTOBOT_MAX_JSON_SIZE_MB`: Maximum JSON file size in MB (default: "10")
+-   `IMPORTOBOT_TEST_SERVER_URL`: Specifies the test server URL (default: "http://localhost:8000").
+-   `IMPORTOBOT_MAX_JSON_SIZE_MB`: Sets the maximum JSON file size in MB (default: "10").
 
 Example:
 ```bash
@@ -287,14 +192,14 @@ export IMPORTOBOT_TEST_SERVER_URL=https://testing.example.com
 
 ## Migration from Internal APIs
 
-If you were previously using internal modules directly:
+If you were previously accessing internal modules directly, please update your imports to use the public API:
 
 ```python
-# ❌ Old internal access (will break)
+#  Old internal access (will break)
 from importobot.core.engine import GenericConversionEngine
 from importobot.utils.validation import validate_json_dict
 
-# ✅ New public API (stable)
+#  New public API (stable)
 from importobot.api import converters, validation
 
 engine = converters.GenericConversionEngine()
@@ -303,7 +208,7 @@ validation.validate_json_dict(data)
 
 ## Type Hints & IDE Support
 
-Full type safety for development:
+The API includes comprehensive type hints for enhanced IDE support and static analysis:
 
 ```python
 from typing import TYPE_CHECKING
@@ -315,96 +220,11 @@ if TYPE_CHECKING:
 engine: suggestions.GenericSuggestionEngine = ...
 ```
 
-## Confidence Scoring API
-
-Access the Bayesian confidence scoring system for advanced use cases:
-
-### Bayesian Configuration
-
-```python
-from importobot.medallion.bronze.independent_bayesian_scorer import BayesianConfiguration
-
-# Create custom configuration
-config = BayesianConfiguration(
-    min_evidence_not_format=0.01,      # Lower bound for P(E|¬H)
-    evidence_not_format_scale=0.49,    # Scale factor for quadratic decay
-    evidence_not_format_exponent=2.0,  # Quadratic decay exponent
-    numerical_epsilon=1e-15,           # Division by zero prevention
-)
-
-# Validate configuration
-if not config.validate():
-    raise ValueError("Invalid Bayesian configuration")
-```
-
-### Evidence Metrics
-
-```python
-from importobot.medallion.bronze.evidence_metrics import EvidenceMetrics
-
-# Create evidence metrics
-metrics = EvidenceMetrics(
-    completeness=0.8,    # Evidence coverage [0, 1]
-    quality=0.9,         # Average confidence [0, 1]
-    uniqueness=0.7,      # Normalized uniqueness [0, 1]
-    evidence_count=15,   # Total evidence items [0, ∞)
-    unique_count=8,      # Unique evidence items [0, ∞)
-    complexity_score=0.2 # Optional complexity scaling [0, 1]
-)
-```
-
-### Independent Bayesian Scoring
-
-```python
-from importobot.medallion.bronze.independent_bayesian_scorer import (
-    IndependentBayesianParameters,
-    IndependentBayesianScorer,
-)
-
-scorer = IndependentBayesianScorer(
-    parameters=IndependentBayesianParameters(),
-)
-
-likelihood = scorer.calculate_likelihood(metrics)
-posterior = scorer.calculate_posterior(
-    likelihood=likelihood,
-    format_name="TESTRAIL",
-    metrics=metrics,
-)
-
-print(f"Likelihood: {likelihood:.3f}")
-print(f"Posterior confidence: {posterior:.3f}")
-```
-
-### Parameter Customization
-
-```python
-from importobot.medallion.bronze.independent_bayesian_scorer import IndependentBayesianParameters
-
-custom_parameters = IndependentBayesianParameters(
-    quality_alpha=4.0,
-    quality_beta=1.2,
-    uniqueness_alpha=3.5,
-    uniqueness_beta=1.2,
-)
-
-if not custom_parameters.validate():
-    raise ValueError("Invalid Bayesian parameter configuration")
-```
-
-### Mathematical Constants Reference
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `min_evidence_not_format` | 0.01 | Minimum P(E|¬H) for perfect evidence |
-| `evidence_not_format_scale` | 0.49 | Scale factor for quadratic decay |
-| `evidence_not_format_exponent` | 2.0 | Decay exponent (quadratic) |
-| `numerical_epsilon` | 1e-15 | Division by zero prevention |
 
 ## Performance Considerations
 
-- **Bulk Operations**: Use `convert_directory()` for hundreds/thousands of files
-- **Memory Management**: Large files are managed within defined size limits
-- **Parallel Processing**: Directory conversion uses efficient batching
-- **Error Recovery**: Individual file failures don't stop batch processing
-- **Bayesian Calculations**: Confidence scoring is O(1) per evaluation with optional Monte Carlo sampling for uncertainty quantification
+-   **Bulk Operations**: For processing hundreds or thousands of files, use `convert_directory()`.
+-   **Memory Management**: Large files are processed within defined size limits to prevent excessive memory consumption.
+-   **Parallel Processing**: Directory conversion leverages efficient batching for parallel processing.
+-   **Error Recovery**: Individual file failures do not halt batch processing, ensuring robust operation.
+-   **Bayesian Calculations**: Confidence scoring is O(1) per evaluation, with optional Monte Carlo sampling available for uncertainty quantification.

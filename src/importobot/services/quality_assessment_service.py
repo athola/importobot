@@ -17,7 +17,7 @@ logger = get_logger()
 
 
 def stable_weighted_average(values: list[float], weights: list[float]) -> float:
-    """Calculate weighted average with enhanced numerical stability.
+    """Calculate weighted average with numerical stability.
 
     Uses Kahan summation algorithm to minimize floating-point errors
     and includes proper validation for edge cases.
@@ -27,7 +27,7 @@ def stable_weighted_average(values: list[float], weights: list[float]) -> float:
         weights: List of weights corresponding to values
 
     Returns:
-        Weighted average with enhanced numerical stability
+        Weighted average
 
     Raises:
         ValueError: If lengths don't match or total weight is near zero
@@ -102,7 +102,7 @@ class QualityAssessmentService:
             self._min_quality_for_valid = float(min_quality_for_valid)
 
     def calculate_quality_metrics(self, data: Any) -> DataQualityMetrics:
-        """Calculate comprehensive data quality metrics.
+        """Calculate data quality metrics.
 
         Args:
             data: Data to assess quality for

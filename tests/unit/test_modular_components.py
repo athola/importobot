@@ -9,7 +9,7 @@ from importobot.core.suggestions import GenericSuggestionEngine
 class TestModularComponents:
     """Tests for the modular components."""
 
-    def test_parser_finds_tests(self):
+    def test_parser_finds_tests(self) -> None:
         """Test that the parser can find tests in various formats."""
         test_parser = GenericTestFileParser()
 
@@ -29,7 +29,7 @@ class TestModularComponents:
         assert len(single_tests) == 1
         assert single_tests[0]["name"] == "Single Test"
 
-    def test_keyword_generator_creates_test_case(self):
+    def test_keyword_generator_creates_test_case(self) -> None:
         """Test that the keyword generator can create test cases."""
         generator = GenericKeywordGenerator()
 
@@ -46,7 +46,7 @@ class TestModularComponents:
         assert "A sample test case" in lines[1]
         assert "# Step: Do something" in lines[2]
 
-    def test_conversion_engine_converts_data(self):
+    def test_conversion_engine_converts_data(self) -> None:
         """Test that the conversion engine can convert data."""
         engine = GenericConversionEngine()
 
@@ -61,16 +61,12 @@ class TestModularComponents:
         assert "Test Case" in result
         assert "A test case description" in result
 
-    def test_suggestion_engine_generates_suggestions(self):
+    def test_suggestion_engine_generates_suggestions(self) -> None:
         """Test that the suggestion engine generates suggestions."""
         engine = GenericSuggestionEngine()
 
         # Test with incomplete data that should generate suggestions
-        data = {
-            "steps": [
-                {"expectedResult": "Something happens"}  # Missing action
-            ]
-        }
+        data = {"steps": [{"expectedResult": "Something happens"}]}  # Missing action
 
         suggestions = engine.get_suggestions(data)
         # Should have suggestions for missing fields

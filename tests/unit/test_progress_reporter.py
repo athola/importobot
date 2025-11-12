@@ -16,7 +16,7 @@ from importobot.utils.progress_reporter import (
 class TestProgressReporter:
     """Test ProgressReporter class."""
 
-    def test_initialization_with_default_logger(self):
+    def test_initialization_with_default_logger(self) -> None:
         """Test initialization with default logger."""
         reporter = ProgressReporter()
 
@@ -26,7 +26,7 @@ class TestProgressReporter:
         assert reporter.completed_items == 0
         assert reporter.last_reported_milestone == 0
 
-    def test_initialization_with_custom_logger_and_name(self):
+    def test_initialization_with_custom_logger_and_name(self) -> None:
         """Test initialization with custom logger and operation name."""
         custom_logger = logging.getLogger("custom")
         reporter = ProgressReporter(custom_logger, "custom_operation")
@@ -34,7 +34,7 @@ class TestProgressReporter:
         assert reporter.operation_name == "custom_operation"
         assert reporter.logger == custom_logger
 
-    def test_initialize_with_basic_params(self):
+    def test_initialize_with_basic_params(self) -> None:
         """Test initialize method with basic parameters."""
         reporter = ProgressReporter()
         reporter.initialize(100)
@@ -43,14 +43,14 @@ class TestProgressReporter:
         assert reporter.completed_items == 0
         assert reporter.last_reported_milestone == 0
 
-    def test_initialize_with_custom_milestone(self):
+    def test_initialize_with_custom_milestone(self) -> None:
         """Test initialize method with custom milestone percentage."""
         reporter = ProgressReporter()
         reporter.initialize(100, milestone_percentage=25)
 
         assert reporter.milestone_percentage == 25
 
-    def test_initialize_logs_start_message(self):
+    def test_initialize_logs_start_message(self) -> None:
         """Test that initialize logs the start message."""
         reporter = ProgressReporter()
         with patch.object(reporter.logger, "info") as mock_info:
@@ -58,7 +58,7 @@ class TestProgressReporter:
 
             mock_info.assert_called_once_with("Starting operation: 50 items to process")
 
-    def test_update_single_item(self):
+    def test_update_single_item(self) -> None:
         """Test update method with single item increment."""
         reporter = ProgressReporter()
         reporter.initialize(10)
@@ -67,7 +67,7 @@ class TestProgressReporter:
 
         assert reporter.completed_items == 1
 
-    def test_update_multiple_items(self):
+    def test_update_multiple_items(self) -> None:
         """Test update method with multiple item increment."""
         reporter = ProgressReporter()
         reporter.initialize(10)
@@ -76,7 +76,7 @@ class TestProgressReporter:
 
         assert reporter.completed_items == 3
 
-    def test_update_progress_reporting_at_milestones(self):
+    def test_update_progress_reporting_at_milestones(self) -> None:
         """Test that progress is reported at milestone percentages."""
         reporter = ProgressReporter()
         reporter.initialize(100, milestone_percentage=25)
@@ -103,7 +103,7 @@ class TestProgressReporter:
             ]
             assert len(progress_calls) == 4  # 25%, 50%, 75%, 100%
 
-    def test_complete_logs_completion_message(self):
+    def test_complete_logs_completion_message(self) -> None:
         """Test that complete logs the completion message."""
         reporter = ProgressReporter()
         reporter.initialize(50)
@@ -116,7 +116,7 @@ class TestProgressReporter:
                 "Completed operation: 50/50 items processed"
             )
 
-    def test_complete_no_message_for_zero_total(self):
+    def test_complete_no_message_for_zero_total(self) -> None:
         """Test that complete doesn't log for zero total items."""
         reporter = ProgressReporter()
         reporter.initialize(0)
@@ -130,7 +130,7 @@ class TestProgressReporter:
 class TestBatchProgressReporter:
     """Test BatchProgressReporter class."""
 
-    def test_initialization_inherits_from_progress_reporter(self):
+    def test_initialization_inherits_from_progress_reporter(self) -> None:
         """Test that BatchProgressReporter inherits from ProgressReporter."""
         reporter = BatchProgressReporter()
 
@@ -138,7 +138,7 @@ class TestBatchProgressReporter:
         assert hasattr(reporter, "batch_threshold")
         assert hasattr(reporter, "batch_interval")
 
-    def test_should_report_batch_progress_large_batch_at_interval(self):
+    def test_should_report_batch_progress_large_batch_at_interval(self) -> None:
         """Test should_report_batch_progress for large batch at interval."""
         reporter = BatchProgressReporter()
 
@@ -147,7 +147,7 @@ class TestBatchProgressReporter:
 
         assert result is True
 
-    def test_should_report_batch_progress_small_batch(self):
+    def test_should_report_batch_progress_small_batch(self) -> None:
         """Test should_report_batch_progress for small batch."""
         reporter = BatchProgressReporter()
 
@@ -156,7 +156,7 @@ class TestBatchProgressReporter:
 
         assert result is False
 
-    def test_should_report_batch_progress_not_at_interval(self):
+    def test_should_report_batch_progress_not_at_interval(self) -> None:
         """Test should_report_batch_progress not at interval."""
         reporter = BatchProgressReporter()
 
@@ -165,7 +165,7 @@ class TestBatchProgressReporter:
 
         assert result is False
 
-    def test_report_batch_progress_logs_message(self):
+    def test_report_batch_progress_logs_message(self) -> None:
         """Test report_batch_progress logs the correct message."""
         reporter = BatchProgressReporter(operation_name="file_processing")
 
@@ -174,7 +174,7 @@ class TestBatchProgressReporter:
 
             mock_info.assert_called_once_with("file_processing: 20/100 (20.0%)")
 
-    def test_report_batch_progress_no_message_when_not_should_report(self):
+    def test_report_batch_progress_no_message_when_not_should_report(self) -> None:
         """Test report_batch_progress doesn't log when "
         "should_report_batch_progress is False."""
         reporter = BatchProgressReporter()
@@ -191,11 +191,11 @@ class TestBatchProgressReporter:
 class TestWithProgressReporting:
     """Test with_progress_reporting decorator."""
 
-    def test_decorator_successful_execution(self):
+    def test_decorator_successful_execution(self) -> None:
         """Test decorator with successful function execution."""
 
         @with_progress_reporting(total_items=10, operation_name="test_op")
-        def test_function(reporter, x, y):
+        def test_function(reporter: ProgressReporter, x: int, y: int) -> int:
             for _ in range(10):
                 reporter.update(1)
             return x + y
@@ -216,11 +216,11 @@ class TestWithProgressReporting:
             mock_reporter.initialize.assert_called_once_with(10, None)
             mock_reporter.complete.assert_called_once()
 
-    def test_decorator_with_exception(self):
+    def test_decorator_with_exception(self) -> None:
         """Test decorator handles exceptions properly."""
 
         @with_progress_reporting(total_items=5, operation_name="failing_op")
-        def failing_function(reporter):
+        def failing_function(reporter: ProgressReporter) -> None:
             raise ValueError("Test error")
 
         with patch(
@@ -242,7 +242,7 @@ class TestWithProgressReporting:
             assert isinstance(args[2], ValueError)
             assert str(args[2]) == "Test error"
 
-    def test_decorator_with_custom_logger_and_milestone(self):
+    def test_decorator_with_custom_logger_and_milestone(self) -> None:
         """Test decorator with custom logger and milestone percentage."""
         custom_logger = logging.getLogger("custom")
 
@@ -252,7 +252,7 @@ class TestWithProgressReporting:
             logger=custom_logger,
             milestone_percentage=25,
         )
-        def custom_function(reporter):
+        def custom_function(reporter: ProgressReporter) -> str:
             _ = reporter  # Mark as used
             return "done"
 
@@ -273,14 +273,14 @@ class TestWithProgressReporting:
 class TestCreateProgressCallback:
     """Test create_progress_callback function."""
 
-    def test_create_progress_callback_returns_callable(self):
+    def test_create_progress_callback_returns_callable(self) -> None:
         """Test create_progress_callback returns a callable."""
         reporter = ProgressReporter()
         callback = create_progress_callback(reporter)
 
         assert callable(callback)
 
-    def test_create_progress_callback_calls_update(self):
+    def test_create_progress_callback_calls_update(self) -> None:
         """Test that the callback calls reporter.update."""
         reporter = ProgressReporter()
         callback = create_progress_callback(reporter)
@@ -291,7 +291,7 @@ class TestCreateProgressCallback:
         # Since update is a method, we need to check it was called
         assert reporter.completed_items == 5
 
-    def test_create_progress_callback_with_custom_increment(self):
+    def test_create_progress_callback_with_custom_increment(self) -> None:
         """Test callback with custom increment value."""
         reporter = ProgressReporter()
         callback = create_progress_callback(reporter)

@@ -14,7 +14,7 @@ from importobot.utils.validation import format_robot_framework_arguments
 
 
 class SSHKeywordGenerator(BaseKeywordGenerator):
-    """Generates SSH-related Robot Framework keywords."""
+    """Generate SSH-related Robot Framework keywords."""
 
     def generate_connect_keyword(self, test_data: str) -> str:
         """Generate SSH connection keyword."""

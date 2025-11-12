@@ -1,69 +1,57 @@
 # Security Standards
 
-This document outlines security practices for development, CI/CD, and runtime.
+This document outlines the mandatory security practices for this project. All contributions must adhere to these standards, which cover development, CI/CD, and runtime environments.
 
 ## Input Validation
 
-- **JSON intake**: Process through `SecurityGateway` when enabled. Always call
-  `validate_json_size(json_string, max_size_mb=10)` before parsing.
-- **File paths**: Validate with `validate_file_path` and `validate_safe_path`
-  before interacting with the filesystem.
-- **SQL statements**: Validate with `_validate_sql_query` to reject dangerous
-  patterns (chained commands, comments, `UNION SELECT`, `exec`, `xp_`, `sp_`,
-  shutdown verbs).
-- **Size limits**: Default JSON payload limit is 10 MB; adjust only with explicit
-  review.
+All external input must be treated as untrusted and validated before use.
 
-## File operations
+- **JSON Data**: Before parsing, all JSON input must be validated for size using `validate_json_size()`. The default limit is 10 MB. For more complex validation, use the `SecurityGateway` module.
+- **File Paths**: Before any filesystem operations, file paths must be validated with `validate_file_path()` and `validate_safe_path()` to prevent directory traversal attacks.
+- **SQL Queries**: To prevent SQL injection, all dynamic SQL statements must be checked with `_validate_sql_query()`. This function blocks common attack patterns like chained commands, `UNION SELECT`, and execution of stored procedures.
+- **Size Limits**: Do not raise the default 10 MB JSON size limit without a security review.
 
-- Temporary files must be created with restrictive permissions (`0600`) using
-  `temporary_json_file` or equivalent wrappers.
-- Do not write sensitive data to world-readable paths. Use project-specific
-  directories under `os.path.expanduser("~")` with `os.path.join`.
-- Validate and normalise paths with `Path.resolve()` before use, and apply security validator checks where available.
-- Use atomic operations (move/copy/commit) with rollback for file restoration to prevent partial state.
+## Secure File Operations
 
-## Credential hygiene
+Careless file handling can lead to data exposure or corruption.
 
-- Do not hard-code credentials in source code or tests.
-- `SecurityValidator` inspects SSH and remote command parameters for exposure.
-- Block credential-like patterns during validation and log structured warnings.
-- Record security-relevant events with the structured logger (no raw secrets in
-  output).
+- **Temporary Files**: Always create temporary files with restrictive permissions (`0600`). Use helpers like `temporary_json_file` which handle this automatically.
+- **File Permissions**: Never write sensitive data to world-readable paths (e.g., `/tmp`). When writing to user-specific locations, use project-specific subdirectories.
+- **Path Normalization**: Before use, all file paths must be normalized with `Path.resolve()` to prevent symbolic link vulnerabilities.
+- **Atomic Operations**: To prevent data corruption from partial writes, use atomic move/copy operations with rollback mechanisms.
 
-## Error handling
+## Credential Management
 
-- Raise specific exception types (e.g., `ValidationError`, `SecurityError`);
-  avoid bare `Exception`.
-- Scrub sensitive details (paths, secrets) from user-facing error messages.
-- Do not expose stack traces to users. Show actionable summaries instead.
-- Log security failures with context to aid auditing.
+Never hard-code credentials (passwords, tokens, API keys) in source code or tests.
+- The `SecurityValidator` module is used to inspect command parameters for accidentally exposed credentials.
+- The validation system should reject inputs that match common credential patterns (e.g., `sk_live_...`).
+- Use the structured logger to record security events, ensuring that raw secrets are never written to logs.
 
-## Dependency management
+## Secure Error Handling
 
-- Run Bandit and Safety scans weekly and for every PR.
-- Avoid unsafe primitives such as `eval`, `exec`, or untrusted `pickle` loads in
-  production code.
-- Pin runtime dependencies in `pyproject.toml` (lockfiles kept under version
-  control).
-- Generate a Software Bill of Materials (SBOM) for each release if required for compliance.
+Error messages can be a source of information leakage.
+- **Specific Exceptions**: Always raise specific exception types (e.g., `ValidationError`, `SecurityError`) instead of generic `Exception`.
+- **Scrubbing Output**: Ensure that user-facing error messages do not contain sensitive details like file paths or secrets.
+- **Stack Traces**: Never expose full stack traces in user output. Provide a concise, actionable summary and a correlation ID if possible.
+- **Auditing**: Log security-related failures with enough context to support a future audit, but without logging the sensitive data itself.
 
-## CI/CD security gates
+## Dependency Management
 
-- `.github/workflows/security.yml` runs Bandit, Safety, SQL pattern detection,
-  and credential leak checks on each push/PR; artifacts are uploaded to support audit
-  trails.
-- Security workflow failures are release blockers. Investigate them before merging.
+Vulnerabilities in dependencies are a major risk.
+- **Scanning**: We use Bandit and Safety to scan for vulnerabilities in our codebase and dependencies. These scans run weekly and on every pull request.
+- **Unsafe Primitives**: Avoid dangerous Python primitives like `eval()`, `exec()`, and `pickle` with untrusted data.
+- **Pinning**: All runtime dependencies must be pinned to specific versions in `pyproject.toml` and `uv.lock` to ensure reproducible and secure builds.
+- **SBOM**: A Software Bill of Materials (SBOM) should be generated for each release to meet compliance requirements.
 
-## Operational checklist
+## CI/CD Security
 
-1. **Development**: Use security gateway helpers and keep new endpoints behind validation.
-2. **Code Review**: Confirm that new code handling files, SQL, or JSON follows these standards. Flag any deviations.
-3. **Release**: Attach security workflow results to the release record. Document any accepted risks.
-4. **Incident Response**: Use structured logs and workflow artifacts to investigate incidents. Use the atomic patterns for data restoration.
+Our CI/CD pipeline is a critical control point for security.
+- The `.github/workflows/security.yml` workflow automatically runs multiple security checks (Bandit, Safety, SQL pattern detection, credential scanning) on every push and pull request.
+- A failure in this workflow is a release blocker and must be investigated and fixed before merging. The artifacts from the scan are saved to provide an audit trail.
 
-## Related References
+## Operational Checklist
 
-- [Optimization Implementation Summary](Optimization-Implementation)
-- [Testing](Testing)
-- [Deployment Guide](Deployment-Guide)
+1.  **During Development**: Use the provided security helpers (e.g., `SecurityGateway`) and ensure all new endpoints have input validation.
+2.  **During Code Review**: Review all changes against these standards, especially those handling files, SQL, or user-provided data.
+3.  **During Release**: Attach the security scan results from the CI/CD pipeline to the release notes. Any accepted risks must be documented.
+4.  **For Incident Response**: Use the structured logs and CI/CD artifacts as the primary sources of information for investigation. Use the atomic file operations for data restoration if needed.

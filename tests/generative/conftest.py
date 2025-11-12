@@ -1,13 +1,14 @@
 """Mark generative tests as slow."""
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 pytestmark = pytest.mark.slow
 
 
-def pytest_collection_modifyitems(session, config, items):
+def pytest_collection_modifyitems(session: Any, config: Any, items: Any) -> None:
     """Mark collected generative tests as slow for pytest selection."""
     base_dir = Path(__file__).parent.resolve()
     for item in items:

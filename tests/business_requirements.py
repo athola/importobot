@@ -229,7 +229,7 @@ def validate_business_requirement(
         True if requirement is met, False otherwise
     """
     if actual_value < requirement_constant:
-        print(f"❌ {requirement_name}: {actual_value:.3f} < {requirement_constant:.3f}")
+        print(f" {requirement_name}: {actual_value:.3f} < {requirement_constant:.3f}")
         return False
     return True
 

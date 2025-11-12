@@ -7,28 +7,28 @@ from importobot.core.zephyr_parsers import ZephyrPreconditionAnalyzer
 class TestZephyrPreconditionAnalyzer:
     """Test ZephyrPreconditionAnalyzer class."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         # Reinitialize for each test to ensure clean state
         self.analyzer = ZephyrPreconditionAnalyzer()
 
-    def test_no_hardcoded_preconditions(self):
+    def test_no_hardcoded_preconditions(self) -> None:
         """Test that analyzer has no hard-coded customer-specific preconditions."""
         # Verify no STANDARD_PRECONDITIONS attribute exists (removed customer data)
         assert not hasattr(self.analyzer, "STANDARD_PRECONDITIONS")
 
-    def test_analyze_preconditions_empty_string(self):
+    def test_analyze_preconditions_empty_string(self) -> None:
         """Test analyzing empty precondition text."""
         result = self.analyzer.analyze_preconditions("")
         assert not result
 
-    def test_analyze_preconditions_whitespace_only(self):
+    def test_analyze_preconditions_whitespace_only(self) -> None:
         """Test analyzing whitespace-only precondition text."""
         test_data = "   \n\t  \n   "
         result = self.analyzer.analyze_preconditions(test_data)
         assert not result
 
-    def test_analyze_preconditions_single_line(self):
+    def test_analyze_preconditions_single_line(self) -> None:
         """Test analyzing single line precondition."""
         test_data = "System should be running"
         result = self.analyzer.analyze_preconditions(test_data)
@@ -36,7 +36,7 @@ class TestZephyrPreconditionAnalyzer:
         expected = [{"description": "System should be running"}]
         assert result == expected
 
-    def test_analyze_preconditions_numbered_list(self):
+    def test_analyze_preconditions_numbered_list(self) -> None:
         """Test analyzing numbered list preconditions."""
         test_data = """1. First precondition step
 2. Second precondition step
@@ -51,7 +51,7 @@ class TestZephyrPreconditionAnalyzer:
         ]
         assert result == expected
 
-    def test_analyze_preconditions_numbered_with_parentheses(self):
+    def test_analyze_preconditions_numbered_with_parentheses(self) -> None:
         """Test analyzing numbered list with parentheses."""
         test_data = """1) First precondition step
 2) Second precondition step
@@ -66,7 +66,7 @@ class TestZephyrPreconditionAnalyzer:
         ]
         assert result == expected
 
-    def test_analyze_preconditions_bulleted_list(self):
+    def test_analyze_preconditions_bulleted_list(self) -> None:
         """Test analyzing bulleted list preconditions."""
         test_data = """- First precondition step
 - Second precondition step
@@ -81,7 +81,7 @@ class TestZephyrPreconditionAnalyzer:
         ]
         assert result == expected
 
-    def test_analyze_preconditions_asterisk_bullets(self):
+    def test_analyze_preconditions_asterisk_bullets(self) -> None:
         """Test analyzing asterisk-bulleted list preconditions."""
         test_data = """* First precondition step
 * Second precondition step
@@ -96,7 +96,7 @@ class TestZephyrPreconditionAnalyzer:
         ]
         assert result == expected
 
-    def test_analyze_preconditions_mixed_formatting(self):
+    def test_analyze_preconditions_mixed_formatting(self) -> None:
         """Test analyzing mixed formatting preconditions."""
         test_data = """1. First numbered step
 - First bulleted step
@@ -113,7 +113,7 @@ class TestZephyrPreconditionAnalyzer:
         ]
         assert result == expected
 
-    def test_analyze_preconditions_multiline_descriptions(self):
+    def test_analyze_preconditions_multiline_descriptions(self) -> None:
         """Test analyzing preconditions with multiline descriptions."""
         test_data = """1. First precondition step with
    additional description on next line
@@ -139,7 +139,7 @@ class TestZephyrPreconditionAnalyzer:
         ]
         assert result == expected
 
-    def test_analyze_preconditions_with_empty_lines(self):
+    def test_analyze_preconditions_with_empty_lines(self) -> None:
         """Test analyzing preconditions with empty lines."""
         test_data = """1. First precondition step
 
@@ -156,7 +156,7 @@ class TestZephyrPreconditionAnalyzer:
         ]
         assert result == expected
 
-    def test_analyze_preconditions_unformatted_text(self):
+    def test_analyze_preconditions_unformatted_text(self) -> None:
         """Test analyzing unformatted precondition text."""
         test_data = """This is a simple precondition without any formatting.
 It contains multiple lines but no numbering or bullets.
@@ -174,7 +174,7 @@ Each line should be treated as a continuation."""
         ]
         assert result == expected
 
-    def test_analyze_preconditions_complex_formatting(self):
+    def test_analyze_preconditions_complex_formatting(self) -> None:
         """Test analyzing complex precondition formatting."""
         test_data = """
         1. System Setup:
@@ -199,7 +199,7 @@ Each line should be treated as a continuation."""
             "Environment Configuration" in step["description"] for step in result
         )
 
-    def test_analyze_preconditions_with_special_characters(self):
+    def test_analyze_preconditions_with_special_characters(self) -> None:
         """Test analyzing preconditions with special characters."""
         test_data = """1. Ensure configuration file exists at /etc/app/config.ini
 2. Set environment variable: APP_HOME="/opt/app"
@@ -219,7 +219,7 @@ Each line should be treated as a continuation."""
         ]
         assert result == expected
 
-    def test_analyze_preconditions_with_unicode(self):
+    def test_analyze_preconditions_with_unicode(self) -> None:
         """Test analyzing preconditions with unicode characters."""
         test_data = """1. El sistema debe estar configurado correctamente
 2. La base de datos debe estar funcionando
@@ -234,12 +234,12 @@ Each line should be treated as a continuation."""
         ]
         assert result == expected
 
-    def test_detect_hyperlinked_test_cases_empty(self):
+    def test_detect_hyperlinked_test_cases_empty(self) -> None:
         """Test detecting hyperlinked test cases in empty text."""
         result = self.analyzer.detect_hyperlinked_test_cases("")
         assert not result
 
-    def test_detect_hyperlinked_test_cases_with_keys(self):
+    def test_detect_hyperlinked_test_cases_with_keys(self) -> None:
         """Test detecting test case keys in preconditions."""
         test_data = """See test case PROJ-123 for detailed setup.
 Refer to AUTH-456 for authentication steps.
@@ -250,7 +250,7 @@ Test LINK-789 should be executed first."""
         expected = ["PROJ-123", "AUTH-456", "LINK-789"]
         assert sorted(result) == sorted(expected)
 
-    def test_detect_hyperlinked_test_cases_with_quoted_names(self):
+    def test_detect_hyperlinked_test_cases_with_quoted_names(self) -> None:
         """Test detecting quoted test case names."""
         test_data = """See "User Login Test" for authentication details.
 Refer to "Database Connection Validation" for setup steps.
@@ -265,7 +265,7 @@ Execute "File Upload Functionality" first."""
         ]
         assert sorted(result) == sorted(expected)
 
-    def test_detect_hyperlinked_test_cases_mixed_format(self):
+    def test_detect_hyperlinked_test_cases_mixed_format(self) -> None:
         """Test detecting mixed format test case references."""
         test_data = """Refer to PROJ-123 and "User Management Test".
 See AUTH-456, "API Authentication Test", and DATA-789.
@@ -283,7 +283,7 @@ Execute "System Setup" first."""
 
         assert sorted(result) == sorted(expected)
 
-    def test_detect_hyperlinked_test_cases_edge_cases(self):
+    def test_detect_hyperlinked_test_cases_edge_cases(self) -> None:
         """Test edge cases in hyperlinked test case detection."""
         test_data = """No test case references here.
 Just regular text with numbers like 123-456.
@@ -296,7 +296,7 @@ Quoted: "Test Case" with extra text after."""
         expected = ["PROJ-123", "Test Case"]
         assert sorted(result) == sorted(expected)
 
-    def test_detect_hyperlinked_test_cases_with_special_characters(self):
+    def test_detect_hyperlinked_test_cases_with_special_characters(self) -> None:
         """Test detecting test cases with special characters around them."""
         test_data = """See (PROJ-123) for details.
 Refer to [AUTH-456] in documentation.
@@ -307,7 +307,7 @@ Execute "Data-Test-001" (note: quotes handle special chars)."""
         expected = ["PROJ-123", "AUTH-456", "Data-Test-001"]
         assert sorted(result) == sorted(expected)
 
-    def test_analyze_prestructures_return_format(self):
+    def test_analyze_prestructures_return_format(self) -> None:
         """Test that analyze_preconditions returns expected format."""
         test_data = "1. Simple precondition"
 
@@ -322,7 +322,7 @@ Execute "Data-Test-001" (note: quotes handle special chars)."""
         assert "description" in result[0]
         assert isinstance(result[0]["description"], str)
 
-    def test_detect_hyperlinked_test_cases_return_format(self):
+    def test_detect_hyperlinked_test_cases_return_format(self) -> None:
         """Test that detect_hyperlinked_test_cases returns expected format."""
         test_data = "Refer to PROJ-123 and 'Test Case'"
 
@@ -337,7 +337,7 @@ Execute "Data-Test-001" (note: quotes handle special chars)."""
             assert isinstance(item, str)
             assert len(item) > 0
 
-    def test_integration_with_real_world_example(self):
+    def test_integration_with_real_world_example(self) -> None:
         """Test integration with real-world precondition example."""
         test_data = """
         1. Application Server Setup:
@@ -370,7 +370,7 @@ Execute "Data-Test-001" (note: quotes handle special chars)."""
         expected_refs = ["PROJ-123", "System Health Check Test"]
         assert sorted(test_case_refs) == sorted(expected_refs)
 
-    def test_performance_large_precondition_text(self):
+    def test_performance_large_precondition_text(self) -> None:
         """Test performance with large precondition text."""
         # Create a large precondition text
         large_text = "\n".join(
@@ -390,7 +390,7 @@ Execute "Data-Test-001" (note: quotes handle special chars)."""
         )
         assert "PROJ-123" in test_refs
 
-    def test_edge_case_malformed_formatting(self):
+    def test_edge_case_malformed_formatting(self) -> None:
         """Test handling of malformed precondition formatting."""
         test_data = """1. Valid step
 Invalid line without numbering

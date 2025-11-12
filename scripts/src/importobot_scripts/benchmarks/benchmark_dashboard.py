@@ -14,7 +14,7 @@ from typing import Any
 
 def _human_ms(value: float | None) -> str:
     if value is None:
-        return "–"
+        return "-"
     return f"{value * 1000:.2f} ms"
 
 
@@ -110,7 +110,9 @@ def _render_lazy_loading_section(data: dict[str, Any]) -> str:
     return f"<h2>Lazy Loading</h2>{summary}{table}"
 
 
-def render_dashboard(run_results: list[tuple[Path, dict[str, Any]]]) -> str:  # pylint: disable=line-too-long
+def render_dashboard(
+    run_results: list[tuple[Path, dict[str, Any]]],
+) -> str:
     """Render HTML dashboard from benchmark results.
 
     Args:
@@ -242,7 +244,7 @@ def main(argv: list[str] | None = None) -> int:
     html_output = render_dashboard(run_results)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(html_output, encoding="utf-8")
-    print(f"📊 Benchmark dashboard written to {args.output}")
+    print(f"Benchmark dashboard written to {args.output}")
     return 0
 
 

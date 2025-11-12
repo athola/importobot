@@ -1,14 +1,50 @@
 """Unit tests for Chrome options functionality."""
 
+from collections.abc import Generator
 from unittest.mock import patch
 
+import pytest
+
 from importobot.core.converter import JsonToRobotConverter
+from importobot.core.templates.blueprints.registry import (
+    KEYWORD_LIBRARY,
+    KNOWLEDGE_BASE,
+    RESOURCE_IMPORTS,
+    SUITE_SETTINGS_REGISTRY,
+    TEMPLATE_REGISTRY,
+    TEMPLATE_STATE,
+)
+
+
+@pytest.fixture(autouse=True)
+def clean_template_state() -> Generator[None, None, None]:
+    """Ensure template registry is clean before each test."""
+    # Clear global registries before test
+    TEMPLATE_REGISTRY.clear()
+    KNOWLEDGE_BASE.clear()
+    KEYWORD_LIBRARY.clear()
+    RESOURCE_IMPORTS.clear()
+    SUITE_SETTINGS_REGISTRY.clear()
+    TEMPLATE_STATE["base_dir"] = None
+    TEMPLATE_STATE["enabled"] = False
+
+    yield
+
+    # Clear after test as well
+    TEMPLATE_REGISTRY.clear()
+    KNOWLEDGE_BASE.clear()
+    KEYWORD_LIBRARY.clear()
+    RESOURCE_IMPORTS.clear()
+    SUITE_SETTINGS_REGISTRY.clear()
+    TEMPLATE_STATE["base_dir"] = None
+    TEMPLATE_STATE["enabled"] = False
 
 
 class TestChromeOptions:
     """Tests for Chrome options functionality."""
 
-    def test_chrome_options_in_browser_keyword(self):
+    @pytest.mark.web_tests
+    def test_chrome_options_in_browser_keyword(self) -> None:
         """Test that Chrome options are properly added to browser keywords."""
         converter = JsonToRobotConverter()
 
@@ -35,7 +71,7 @@ class TestChromeOptions:
         assert "--disable-web-security" in result
         assert "--allow-running-insecure-content" in result
 
-    def test_chrome_options_with_default_url(self):
+    def test_chrome_options_with_default_url(self) -> None:
         """Test that Chrome options work with default URL."""
         converter = JsonToRobotConverter()
 
@@ -62,7 +98,8 @@ class TestChromeOptions:
         assert "--no-sandbox" in result
         assert "--headless" in result
 
-    def test_chrome_options_format(self):
+    @pytest.mark.web_tests
+    def test_chrome_options_format(self) -> None:
         """Test that Chrome options are formatted correctly."""
         converter = JsonToRobotConverter()
 

@@ -14,7 +14,7 @@ def create_enhanced_json_error_message(
     file_path: str | Path | None = None,
     context: str = "JSON parsing",
 ) -> str:
-    """Create enhanced error message for JSON decode errors.
+    """Create an error message for JSON decode errors.
 
     Args:
         error: The JSONDecodeError that occurred
@@ -22,7 +22,7 @@ def create_enhanced_json_error_message(
         context: Context description for the error
 
     Returns:
-        Enhanced error message with line/column information and helpful guidance
+        Error message with line/column information and guidance
     """
     message_parts = [
         f"Failed to parse JSON during {context}",
@@ -46,7 +46,7 @@ def create_enhanced_io_error_message(
     file_path: str | Path | None = None,
     context: str = "file operation",
 ) -> str:
-    """Create enhanced error message for IO errors.
+    """Create an error message for IO errors.
 
     Args:
         error: The IOError that occurred
@@ -54,7 +54,7 @@ def create_enhanced_io_error_message(
         context: Context description for the error
 
     Returns:
-        Enhanced error message with helpful guidance
+        Error message with guidance
     """
     message_parts = [
         f"Failed to perform {context}",
@@ -76,7 +76,7 @@ def create_missing_resource_error_message(
     available_resources: list[str] | None = None,
     suggestion: str | None = None,
 ) -> str:
-    """Create enhanced error message for missing resources.
+    """Create an error message for missing resources.
 
     Args:
         resource_name: Name of the missing resource
@@ -85,7 +85,7 @@ def create_missing_resource_error_message(
         suggestion: Optional suggestion for resolution
 
     Returns:
-        Enhanced error message with available alternatives and helpful guidance
+        Error message with available alternatives and guidance
     """
     message_parts = [f"No {resource_type} found for '{resource_name}'."]
 
@@ -112,7 +112,7 @@ def create_validation_error_message(
     context: str = "validation",
     suggestions: list[str] | None = None,
 ) -> str:
-    """Create enhanced error message for validation failures.
+    """Create an error message for validation failures.
 
     Args:
         validation_errors: List of validation error messages
@@ -120,7 +120,7 @@ def create_validation_error_message(
         suggestions: Optional list of suggestions for fixing the issues
 
     Returns:
-        Enhanced error message with all validation issues and suggestions
+        Error message with validation issues and suggestions
     """
     message_parts = [f"{context.capitalize()} failed: {'; '.join(validation_errors)}"]
 
@@ -131,12 +131,12 @@ def create_validation_error_message(
 
 
 class EnhancedErrorLogger:
-    """Utility class for consistent error logging with enhanced context."""
+    """Utility class for consistent error logging."""
 
     def __init__(
         self, logger: logging.Logger | None = None, component_name: str = "component"
     ):
-        """Initialize enhanced error logger.
+        """Initialize error logger.
 
         Args:
             logger: Logger instance to use. If None, creates default logger.
@@ -151,7 +151,7 @@ class EnhancedErrorLogger:
         file_path: str | Path | None = None,
         level: int = logging.ERROR,
     ) -> None:
-        """Log JSON decode error with enhanced context."""
+        """Log JSON decode error."""
         message = create_enhanced_json_error_message(
             error, file_path, f"{self.component_name} JSON parsing"
         )
@@ -164,7 +164,7 @@ class EnhancedErrorLogger:
         operation: str = "file operation",
         level: int = logging.ERROR,
     ) -> None:
-        """Log IO error with enhanced context."""
+        """Log IO error."""
         message = create_enhanced_io_error_message(
             error, file_path, f"{self.component_name} {operation}"
         )
@@ -176,7 +176,7 @@ class EnhancedErrorLogger:
         context: str = "operation",
         level: int = logging.ERROR,
     ) -> None:
-        """Log general error with enhanced context."""
+        """Log general error."""
         message = f"{self.component_name} {context}: {error!s}"
         self.logger.log(level, message)
 
@@ -187,7 +187,7 @@ class EnhancedErrorLogger:
         available_resources: list[str] | None = None,
         level: int = logging.WARNING,
     ) -> None:
-        """Log missing resource error with enhanced context."""
+        """Log missing resource error."""
         message = create_missing_resource_error_message(
             resource_name, resource_type, available_resources
         )
@@ -200,7 +200,7 @@ class EnhancedErrorLogger:
         suggestions: list[str] | None = None,
         level: int = logging.ERROR,
     ) -> None:
-        """Log validation error with enhanced context."""
+        """Log validation error."""
         message = create_validation_error_message(
             validation_errors, context, suggestions
         )
@@ -212,7 +212,7 @@ def safe_json_load(
     logger: logging.Logger | None = None,
     component_name: str = "component",
 ) -> dict[str, Any] | None:
-    """Safely load JSON file with enhanced error handling.
+    """Safely load JSON file.
 
     Args:
         file_path: Path to JSON file
@@ -249,7 +249,7 @@ def safe_file_operation(
     component_name: str = "component",
     operation_name: str = "file operation",
 ) -> Any | None:
-    """Safely perform file operation with enhanced error handling.
+    """Safely perform file operation.
 
     Args:
         operation_func: Function to perform the file operation

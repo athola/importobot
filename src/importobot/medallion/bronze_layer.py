@@ -586,9 +586,11 @@ class BronzeLayer(BaseMedallionLayer):
             record_metadata = RecordMetadata(
                 record_id=record_id,
                 ingestion_timestamp=metadata.ingestion_timestamp,
-                processing_status=ProcessingStatus.COMPLETED
-                if metadata.processing_timestamp
-                else ProcessingStatus.PENDING,
+                processing_status=(
+                    ProcessingStatus.COMPLETED
+                    if metadata.processing_timestamp
+                    else ProcessingStatus.PENDING
+                ),
                 source_system=str(metadata.source_path),
                 source_file_size=(
                     metadata.file_size_bytes if metadata.file_size_bytes > 0 else None

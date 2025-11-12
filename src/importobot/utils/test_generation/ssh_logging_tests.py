@@ -4,7 +4,7 @@ from typing import Any
 
 
 class SSHLoggingTestGenerator:
-    """Generates SSH logging test cases."""
+    """Generate SSH logging test cases."""
 
     def __init__(self) -> None:
         """Initialize the SSH logging test generator."""

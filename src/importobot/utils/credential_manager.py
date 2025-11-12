@@ -68,6 +68,7 @@ class CredentialManager:
         return plaintext.decode("utf-8")
 
     def _encrypt(self, payload: bytes) -> bytes:
+        """Encrypt the given payload."""
         if self._cipher is not None:
             return cast(bytes, self._cipher.encrypt(payload))
         encoded = base64.urlsafe_b64encode(payload)
@@ -78,17 +79,20 @@ class CredentialManager:
         return encoded
 
     def _decrypt(self, ciphertext: bytes) -> bytes:
+        """Decrypt the given ciphertext."""
         if self._cipher is not None:
             return cast(bytes, self._cipher.decrypt(ciphertext))
         return base64.urlsafe_b64decode(ciphertext)
 
     def _load_key(self) -> bytes | None:
+        """Load the encryption key from environment variables."""
         key = os.getenv("IMPORTOBOT_ENCRYPTION_KEY")
         if key:
             return key.encode("utf-8")
         return None
 
     def _build_cipher(self, key: bytes | None) -> Any | None:
+        """Build the Fernet cipher from the provided key."""
         if Fernet is None or key is None:
             return None
 
@@ -104,6 +108,7 @@ class CredentialManager:
 
     @staticmethod
     def _normalize_key(key: bytes) -> bytes:
+        """Normalize the encryption key to a valid Fernet key format."""
         # Fernet keys must be 32 url-safe base64-encoded bytes. Accept raw
         # 32-byte keys or base64 strings.
         if len(key) == 44:

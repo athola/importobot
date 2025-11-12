@@ -12,7 +12,7 @@ _MULTI_TEST_CONTAINER_KEY = "testCases"
 
 
 def load_json_file(json_file_path: str | None) -> dict[str, Any]:
-    """Load JSON data from file with comprehensive error handling.
+    """Load JSON data from file.
 
     Args:
         json_file_path: Path to the JSON file to load

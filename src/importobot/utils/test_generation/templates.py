@@ -20,7 +20,7 @@ class TemplateManager:
         )
 
     def _build_template_cache(self) -> None:
-        """Build and cache templates for performance optimization."""
+        """Build and cache templates."""
         # Cache web automation templates
         self._template_cache["web_automation"] = [
             "Navigate to {environment} login page",
@@ -108,7 +108,7 @@ class TemplateManager:
     def get_optimized_random_templates(
         self, category: str, scenario: str, count: int
     ) -> list[str]:
-        """Get random templates optimized to avoid repeated random.choice() calls."""
+        """Get random templates."""
         available_templates = self.get_templates_for_scenario(category, scenario)
 
         if not available_templates:
@@ -165,7 +165,7 @@ class TemplateManager:
     def get_scenario_steps_range(
         self, scenario: str, complexity: str
     ) -> tuple[int, int]:
-        """Get the recommended steps range for a scenario and complexity."""
+        """Get the steps range for a scenario and complexity."""
         base_ranges = {
             "user_authentication": (3, 6),
             "microservices_integration": (5, 10),
@@ -194,7 +194,7 @@ class TemplateManager:
     def get_scenario_info(
         self, category: str, scenario: str, complexity_override: str | None = None
     ) -> dict[str, Any]:
-        """Get comprehensive scenario information."""
+        """Get scenario information."""
         complexity = complexity_override or self.get_scenario_complexity(scenario)
         min_steps, max_steps = self.get_scenario_steps_range(scenario, complexity)
         templates = self.get_templates_for_scenario(category, scenario)

@@ -4,6 +4,8 @@ Tests the enterprise validation toolkit for CI/CD pipeline integration.
 Verifies validation functions work correctly for automated processing.
 """
 
+from typing import Any
+
 import pytest
 
 from importobot.api import validation
@@ -13,7 +15,7 @@ from tests.shared_test_data import INTERNATIONAL_CHARACTERS_TEST_DATA
 class TestValidationFunctions:
     """Test validation functions in the API module."""
 
-    def test_validate_json_dict_with_valid_data(self):
+    def test_validate_json_dict_with_valid_data(self) -> None:
         """Test validate_json_dict with valid test data."""
         valid_data = {
             "name": "Test Case",
@@ -27,7 +29,7 @@ class TestValidationFunctions:
         except Exception as e:
             pytest.fail(f"Valid data should not raise exception: {e}")
 
-    def test_validate_json_dict_with_invalid_data(self):
+    def test_validate_json_dict_with_invalid_data(self) -> None:
         """Test validate_json_dict with invalid test data."""
         # Test with non-dict input
         with pytest.raises(validation.ValidationError):
@@ -39,7 +41,7 @@ class TestValidationFunctions:
         with pytest.raises(validation.ValidationError):
             validation.validate_json_dict(None)
 
-    def test_validate_json_dict_with_empty_data(self):
+    def test_validate_json_dict_with_empty_data(self) -> None:
         """Test validate_json_dict with empty data."""
         # Empty dict should be handled gracefully
         try:
@@ -47,7 +49,7 @@ class TestValidationFunctions:
         except Exception as e:
             pytest.fail(f"Empty dict should not raise exception: {e}")
 
-    def test_validate_safe_path_with_safe_paths(self):
+    def test_validate_safe_path_with_safe_paths(self) -> None:
         """Test validate_safe_path with safe file paths."""
         safe_paths = [
             "/tmp/test.robot",
@@ -61,7 +63,7 @@ class TestValidationFunctions:
             assert isinstance(result, str)
             assert len(result) > 0
 
-    def test_validate_safe_path_with_directory_traversal(self):
+    def test_validate_safe_path_with_directory_traversal(self) -> None:
         """Test validate_safe_path prevents directory traversal."""
         dangerous_paths = [
             "../../../etc/passwd",
@@ -70,18 +72,14 @@ class TestValidationFunctions:
             "..\\..\\windows\\system32\\config\\sam",
         ]
 
-        for path in dangerous_paths:
-            try:
-                result = validation.validate_safe_path(path)
-                pytest.fail(
-                    f"Path {path} should have raised an exception"
-                    f" but returned: {result}"
-                )
-            except Exception:
-                # Expected - path should raise an exception
-                pass
+        def _assert_path_blocked(path: str) -> None:
+            with pytest.raises(validation.ValidationError):
+                validation.validate_safe_path(path)
 
-    def test_validation_error_inheritance(self):
+        for path in dangerous_paths:
+            _assert_path_blocked(path)
+
+    def test_validation_error_inheritance(self) -> None:
         """Test that ValidationError has proper inheritance."""
         assert issubclass(validation.ValidationError, Exception)
 
@@ -89,12 +87,12 @@ class TestValidationFunctions:
         with pytest.raises(validation.ValidationError):
             raise validation.ValidationError("Test error")
 
-    def test_validation_functions_are_callable(self):
+    def test_validation_functions_are_callable(self) -> None:
         """Test that all validation functions are properly callable."""
         assert callable(validation.validate_json_dict)
         assert callable(validation.validate_safe_path)
 
-    def test_validation_module_exports(self):
+    def test_validation_module_exports(self) -> None:
         """Test that validation module exports expected functions."""
         expected_exports = [
             "validate_json_dict",
@@ -111,7 +109,7 @@ class TestValidationFunctions:
 class TestCICDIntegrationScenarios:
     """Test validation scenarios for CI/CD pipeline integration."""
 
-    def test_batch_validation_for_pipeline(self):
+    def test_batch_validation_for_pipeline(self) -> None:
         """Test validation of multiple test cases for CI/CD pipeline."""
         test_cases = [
             {"name": "Test 1", "steps": []},
@@ -120,13 +118,16 @@ class TestCICDIntegrationScenarios:
         ]
 
         # All test cases should validate successfully
-        for i, test_case in enumerate(test_cases):
+        def _validate_case(case: dict[str, Any], index: int) -> None:
             try:
-                validation.validate_json_dict(test_case)
-            except Exception as e:
-                pytest.fail(f"Test case {i + 1} should be valid: {e}")
+                validation.validate_json_dict(case)
+            except Exception as exc:
+                pytest.fail(f"Test case {index + 1} should be valid: {exc}")
 
-    def test_enterprise_scale_validation(self):
+        for i, test_case in enumerate(test_cases):
+            _validate_case(test_case, i)  # type: ignore[arg-type]
+
+    def test_enterprise_scale_validation(self) -> None:
         """Test validation performance with enterprise-scale data."""
         # Create large test case to simulate enterprise workload
         large_test_case = {
@@ -151,7 +152,7 @@ class TestCICDIntegrationScenarios:
         except Exception as e:
             pytest.fail(f"Large test case should validate successfully: {e}")
 
-    def test_security_validation_for_automated_systems(self):
+    def test_security_validation_for_automated_systems(self) -> None:
         """Test security validation for automated processing systems."""
         # Test path validation for output files in automated systems
         secure_output_paths = [
@@ -160,14 +161,17 @@ class TestCICDIntegrationScenarios:
             "/var/tmp/pipeline_output/enterprise_tests.robot",
         ]
 
-        for path in secure_output_paths:
+        def _validate_path(path: str) -> None:
             try:
                 result = validation.validate_safe_path(path)
                 assert isinstance(result, str)
-            except Exception as e:
-                pytest.fail(f"Secure path should be valid: {path}, error: {e}")
+            except Exception as exc:
+                pytest.fail(f"Secure path should be valid: {path}, error: {exc}")
 
-    def test_error_reporting_for_automation(self):
+        for path in secure_output_paths:
+            _validate_path(path)
+
+    def test_error_reporting_for_automation(self) -> None:
         """Test that validation errors provide useful information for automation."""
         # Test that validation errors contain useful information
         try:
@@ -184,16 +188,19 @@ class TestCICDIntegrationScenarios:
             error_message = str(e)
             assert len(error_message) > 0
 
-    def test_validation_consistency_across_calls(self):
+    def test_validation_consistency_across_calls(self) -> None:
         """Test that validation results are consistent across multiple calls."""
         test_data = {"name": "Consistency Test", "steps": [{"step": "test action"}]}
 
         # Multiple validations should behave consistently
-        for _ in range(10):
+        def _validate_consistency() -> None:
             try:
                 validation.validate_json_dict(test_data)
-            except Exception as e:
-                pytest.fail(f"Validation should be consistent: {e}")
+            except Exception as exc:
+                pytest.fail(f"Validation should be consistent: {exc}")
+
+        for _ in range(10):
+            _validate_consistency()
 
         # Path validation should also be consistent
         test_path = "/tmp/consistency_test.robot"
@@ -209,7 +216,7 @@ class TestCICDIntegrationScenarios:
 class TestEnterpriseValidationRequirements:
     """Test validation requirements for enterprise environments."""
 
-    def test_handles_international_characters(self):
+    def test_handles_international_characters(self) -> None:
         """Test validation handles international characters in test data."""
         # Should handle international characters without issues
         try:
@@ -217,7 +224,7 @@ class TestEnterpriseValidationRequirements:
         except Exception as e:
             pytest.fail(f"International characters should be handled: {e}")
 
-    def test_validates_enterprise_test_structures(self):
+    def test_validates_enterprise_test_structures(self) -> None:
         """Test validation of complex enterprise test structures."""
         enterprise_test = {
             "name": "Enterprise Compliance Test",
@@ -250,7 +257,7 @@ class TestEnterpriseValidationRequirements:
         except Exception as e:
             pytest.fail(f"Enterprise test structure should be valid: {e}")
 
-    def test_memory_efficiency_with_large_datasets(self):
+    def test_memory_efficiency_with_large_datasets(self) -> None:
         """Test memory efficiency with large enterprise datasets."""
         # Create test case with large amount of test data
         large_enterprise_test = {

@@ -1,184 +1,88 @@
 # How to Navigate this Codebase
 
-This guide provides a breakdown of the Importobot codebase, focusing on its layered architecture and key modules. It is intended to help new engineers get started with development.
-
-The project's structure is influenced by the pandas API pattern: core functionality is exposed through key classes, internal modules are kept private, and an advanced toolkit is available for integration purposes.
+This guide explains the Importobot codebase, its layered architecture, and key modules. The project exposes core functionality through a small public API and keeps internal modules private to ensure stability.
 
 ```
 src/importobot/
-├── __init__.py              # Main API - most users only need this
-├── api/                     # Advanced integrations (CI/CD, custom tools)
-├── core/                    # Conversion engine - don't touch directly
-├── medallion/               # Data pipeline - implementation details
-├── utils/                   # Shared helpers - mixed visibility
-├── services/                # Business logic coordination
-├── cli/                     # Command-line interface
-└── exceptions.py            # Error types
+├── __init__.py              # Public API for library usage.
+├── api/                     # Stable API for external integrations.
+├── core/                    # Internal conversion logic.
+├── medallion/               # Medallion data cleaning pipeline.
+├── utils/                   # General utility functions.
+├── services/                # Connects different services and modules.
+├── cli/                     # CLI entry point and logic.
+└── exceptions.py            # Custom exception classes.
 ```
 
-## The Public API
+## Public API
 
-A public API is exposed for users looking to tie this into their project.
+The public API is the intended entry point for using Importobot as a Python library.
 
 ### `src/importobot/__init__.py`
 
-This file exposes the `JsonToRobotConverter` class and a few helpers. The public surface is kept small because changing APIs can frequently break user code. The dependency validation happens at import time - clear errors display immediately if Robot Framework is missing.
-
-```python
-import importobot
-converter = importobot.JsonToRobotConverter()
-```
+This file exposes the main `JsonToRobotConverter` class. Its public interface is kept small to minimize breaking changes between releases.
 
 ### `src/importobot/api/`
 
-The API module is for integration work. This was built to address the need to plug Importobot into a CI/CD pipeline and provide programmatic access to validation and suggestions.
+This module provides a stable, documented API for deeper integrations, like CI/CD pipelines or custom validation scripts.
 
-- `validation/` - JSON structure validation before conversion
-- `suggestions/` - Step improvement suggestions (still experimental)
-- `converters/` - Alternative conversion strategies
+## Core Conversion Engine
 
-Use this when building tooling to call the script to perform analysis on test suite infrastructure.
+The `core/` directory holds the internal conversion logic. Its modules are not considered part of the public API and may change between releases.
 
-## The Core Engine
+- `engine.py`: Assembles and executes the steps of the conversion process.
+- `parsers.py`: Parses different JSON export formats into a standardized internal model.
+- `keyword_generator.py`: Translates the internal representation of test steps into Robot Framework keywords.
 
-The `core/` directory contains the conversion pipeline. These modules are intentionally private. They may be refactored as the conversion logic is improved.
+## Medallion Architecture
 
-### `core/engine.py`
+This architecture was adopted from data engineering patterns to manage inconsistent and messy data from different test management tools. It processes data in three sequential layers:
 
-The `GenericConversionEngine.convert()` method is the main pipeline. It runs three phases:
+- **Bronze Layer (Ingestion):** Ingests the raw JSON export and detects its format (e.g., Zephyr, Xray).
+- **Silver Layer (Standardization):** Cleans the raw data and transforms it into a single, consistent internal format.
+- **Gold Layer (Generation):** Generates the final `.robot` test suite from the standardized data.
 
-1. Extract test cases from the JSON structure using `find_tests()`
-2. Detect Robot Framework libraries by analyzing step patterns
-3. Generate the final Robot Framework syntax
+This layered approach isolates the logic for handling each source format, making the system easier to maintain and extend.
 
-The error handling around line 64-74 provides insight into how feedback is provided to users when their JSON doesn't match expected patterns.
+## Other Key Directories
 
-### `core/parsers.py`
-
-The `GenericTestFileParser` handles the messiness of real-world JSON exports. Test management systems export slightly different structures, so this module looks for common patterns like `name` + `steps` fields or `testCase` objects.
-
-### `core/keyword_generator.py`
-
-This turns parsed test steps into Robot Framework keywords. The `generate_test_case()` method handles the conversion, while `detect_libraries()` scans for patterns that indicate which Robot Framework libraries to import.
-
-### `core/keywords/generators/`
-
-Each file handles a specific domain:
-
-- `web_keywords.py` - Selenium patterns like "click button" or "enter text"
-- `api_keywords.py` - HTTP request patterns
-- `ssh_keywords.py` - Command execution patterns
-- `database_keywords.py` - SQL query patterns
-
-The pattern matching is regex-based. If adding support for a new type of step, start by looking at the existing patterns in these files.
-
-## The Medallion Architecture
-
-This architecture was adopted from data lakehouse patterns because Importobot needed to handle messy, real-world data exports. The layers are internal implementation details and change frequently.
-
-**Bronze Layer:** Raw data ingestion and format detection
-**Silver Layer:** Processed and standardized data
-**Gold Layer:** Business-ready outputs
-
-### Bronze Layer Format Detection
-
-The bronze layer figures out what kind of JSON is being dealt with. This matters because customers provide exports from at least five different test management systems, each with slightly different JSON structures.
-
-#### `bronze/format_detector.py`
-
-This runs Bayesian confidence scoring to guess the format. Bayesian methods are chosen because they expose probability scores rather than binary decisions - important when dealing with ambiguous data.
-
-#### `bronze/evidence_collector.py`
-
-Collects signals from the JSON structure. For example, Zephyr exports usually have `testCase` fields, while Xray uses different key names. The evidence accumulator weighs these signals.
-
-#### `bronze/confidence_calculator.py`
-
-The Bayesian math is derived here. Proper temperature scaling was integrated after discovering that the initial implementation couldn't achieve >0.8 confidence for strong evidence - a business requirement from this testing framework. The quadratic decay function for P(E|¬H) estimation was the result of several iterations of testing against real customer data.
-
-#### `bronze/storage/local.py`
-
-Handles file system operations and caching. A query pagination bug was fixed here from an earlier implementation which caused issues with large test suites - it was materializing data prematurely instead of just counting matches.
-
-## Utilities and Services
-
-### `utils/`
-
-Shared helpers used across the codebase:
-
-- `validation/` - Input validation with helpful error messages
-- `test_generation/` - Test data generators for development
-- Legacy Robot Framework compatibility layers were removed after upgrading dependencies
-
-The validation module is worth understanding - it catches common JSON structure issues early and provides specific feedback about what went wrong.
-
-### `services/`
-
-High-level business logic coordination. Most of this is plumbing for the conversion pipeline.
-
-### `cli/`
-
-Command-line interface using standard argparse patterns. The `handlers.py` file shows how CLI commands are wired to the core conversion logic.
-
-### `exceptions.py`
-
-Custom exception types. When an error is received, check here first - the exception names usually describe exactly what went wrong (e.g., `ValidationError` for bad input, `ConversionError` for processing failures).
+- **`utils/`**: Contains shared helper functions, such as file I/O and data manipulation routines, used across multiple modules.
+- **`services/`**: Implements specific, high-level features by connecting different parts of the application. For example, `services/conversion_service.py` might use the `core` engine and `medallion` pipeline to perform a full conversion.
+- **`cli/`**: Implements the command-line interface using Python's `argparse`. This is the entry point for the `importobot` command.
+- **`exceptions.py`**: Defines custom exception classes, allowing for specific error handling throughout the application.
 
 ## Test Structure
 
-The test suite demonstrates how the codebase is intended to work:
+The `tests/` directory is organized by testing type. The tests serve as living documentation for how components are expected to behave.
 
-- `unit/` - Component tests
-- `integration/` - End-to-end workflows
-- `performance/` - Performance benchmarks
-- `generative/` - Property-based tests with Hypothesis
+- **`unit/`**: Tests for individual functions and classes in isolation.
+- **`integration/`**: Tests that verify workflows between multiple components, such as converting a file and checking the output.
+- **`performance/`**: Benchmarks for critical code paths, tracked with `asv`.
+- **`generative/`**: Property-based tests using the Hypothesis library to find edge cases.
 
-The most useful tests to read are in `tests/unit/core/test_engine.py` (shows conversion pipeline) and `tests/unit/medallion/bronze/` (shows format detection logic).
+## Learning the Codebase
 
-## Learning Path
+A good way to learn the codebase is to trace the data flow of a conversion:
 
-Based on mentoring new engineers who join the project:
+1.  Start with the public API in `src/importobot/__init__.py`. See how it's used in the [Getting Started](Getting-Started.md) guide.
+2.  Follow the call into `core/engine.py` to see how the conversion is managed.
+3.  Trace the process through the `medallion/` layers (Bronze, Silver, Gold) to see how data is cleaned and standardized.
+4.  Examine the `tests/` for the corresponding modules to see concrete examples of their behavior.
 
-### Week 1: Public API
-Read `__init__.py` completely, understand `JsonToRobotConverter`, try the basic examples from Getting-Started.
+### How to...
 
-### Week 2: Core Pipeline
-Study `core/engine.py`'s `convert()` method, look at how parsing works in `core/parsers.py`, understand keyword generation.
+- **...add support for a new test management system?**
+  1. Create a new format definition in `medallion/bronze/formats/`.
+  2. Add detection logic to `medallion/bronze/format_detector.py`.
+  3. Update `medallion/bronze/evidence_collector.py` to extract signals from the new format.
+  4. Write unit tests in `tests/unit/medallion/bronze/formats/`.
 
-### Week 3: Format Detection
-Read the bronze layer files, understand the Bayesian confidence scoring, look at real test data to see how evidence collection works.
-
-### Week 4: Advanced Topics
-Study the caching system, performance optimizations, and how to add new test management system formats.
-
-## Common Questions
-
-**How is Zephyr format handled?**
-Start at `medallion/bronze/formats/zephyr_format.py`, then trace through `format_detector.py` and `evidence_collector.py`. The confidence scoring in `confidence_calculator.py` shows how we measure certainty.
-
-**How does Robot Framework code generation work?**
-Begin with `core/keyword_generator.py`, check the domain-specific generators in `core/keywords/generators/`, see library detection in `pattern_matcher.py`, and study the final assembly in `core/engine.py`.
-
-**Where should I look when errors occur?**
-Check `exceptions.py` for error types, look at validation in `utils/validation/`, and examine how errors are raised in `core/engine.py`.
-
-**How do I add support for a new test management system?**
-Create a format file in `medallion/bronze/formats/`, add detection logic to `format_detector.py`, update evidence collection in `evidence_collector.py`, and write tests in `tests/unit/medallion/bronze/formats/`.
-
-## Development Guidelines
-
-**Reading the code:** Start with `core/interfaces.py` for contracts, follow the data flow from `engine.py`, and use the tests to understand intended usage.
-
-**Making changes:** Don't break public APIs, write tests first (TDD is a recommended practice), ensure Bayesian confidence scores exceed 0.8 for strong evidence, and run `make test` before committing.
-
-**Debugging:** Enable telemetry with `IMPORTOBOT_ENABLE_TELEMETRY=true` to see cache hit rates, use `importobot.api.validation` for input issues, and check confidence scores when format detection seems wrong.
+- **...understand the Robot Framework code generation?**
+  1. Start with `core/keyword_generator.py`.
+  2. Examine the domain-specific generators in `core/keywords/generators/`.
 
 ## Related Documentation
 
-- [Getting Started](Getting-Started) - Installation and usage
-- [Mathematical Foundations](Mathematical-Foundations) - Bayesian confidence algorithms
-- [Architecture Decision Records](architecture/ADR-0001-medallion-architecture) - Design history
-
----
-
-This guide was written to provide essential guidance for engineers learning this codebase. The medallion architecture and Bayesian confidence scoring took time to get right - the >0.8 confidence requirement came from real testing needs. If parts are unclear, raise the flag so this guide can be improved.
+- [Getting Started](Getting-Started.md)
+- [Mathematical Foundations](Mathematical-Foundations.md)
+- [Architecture Decision Records](architecture/ADR-0001-medallion-architecture.md)

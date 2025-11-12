@@ -5,7 +5,7 @@
     "Connect To Database": {
       "args": ["dbapiModuleName", "databaseName", "username", "password", "host", "port"],
       "description": "Connect to database",
-      "security_warning": "⚠️  Use secure connection strings and avoid hardcoded credentials"
+      "security_warning": "WARNING: Use secure connection strings and avoid hardcoded credentials"
     },
     "Disconnect From Database": {
       "args": [],
@@ -14,12 +14,12 @@
     "Execute Sql String": {
       "args": ["sqlString"],
       "description": "Execute SQL statement",
-      "security_warning": "⚠️  Use parameterized queries to prevent SQL injection"
+      "security_warning": "WARNING: Use parameterized queries to prevent SQL injection"
     },
     "Query": {
       "args": ["selectStatement"],
       "description": "Execute SELECT query",
-      "security_warning": "⚠️  Validate and sanitize query parameters"
+      "security_warning": "WARNING: Validate and sanitize query parameters"
     },
     "Row Count Should Be": {
       "args": ["expected_count"],

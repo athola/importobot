@@ -19,7 +19,7 @@ from importobot.utils.validation_models import QualitySeverity, ValidationResult
 class TestMedallionInterfaces(unittest.TestCase):
     """Test cases for Medallion architecture interface classes."""
 
-    def test_test_format_type_enum(self):
+    def test_test_format_type_enum(self) -> None:
         """Test SupportedFormat enum values."""
         assert SupportedFormat.ZEPHYR.value == "zephyr"
         assert SupportedFormat.TESTLINK.value == "testlink"
@@ -28,7 +28,7 @@ class TestMedallionInterfaces(unittest.TestCase):
         assert SupportedFormat.GENERIC.value == "generic"
         assert SupportedFormat.UNKNOWN.value == "unknown"
 
-    def test_quality_severity_enum(self):
+    def test_quality_severity_enum(self) -> None:
         """Test QualitySeverity enum values."""
         assert QualitySeverity.CRITICAL.value == "critical"
         assert QualitySeverity.HIGH.value == "high"
@@ -36,7 +36,7 @@ class TestMedallionInterfaces(unittest.TestCase):
         assert QualitySeverity.LOW.value == "low"
         assert QualitySeverity.INFO.value == "info"
 
-    def test_processing_status_enum(self):
+    def test_processing_status_enum(self) -> None:
         """Test ProcessingStatus enum values."""
         assert ProcessingStatus.PENDING.value == "pending"
         assert ProcessingStatus.IN_PROGRESS.value == "in_progress"
@@ -44,7 +44,7 @@ class TestMedallionInterfaces(unittest.TestCase):
         assert ProcessingStatus.FAILED.value == "failed"
         assert ProcessingStatus.SKIPPED.value == "skipped"
 
-    def test_layer_metadata_creation(self):
+    def test_layer_metadata_creation(self) -> None:
         """Test LayerMetadata dataclass creation."""
         source_path = Path("/test/data.json")
         timestamp = datetime.now()
@@ -66,7 +66,7 @@ class TestMedallionInterfaces(unittest.TestCase):
         assert metadata.file_size_bytes == 1024
         assert metadata.version == "1.0"  # Default value
 
-    def test_data_quality_metrics_creation(self):
+    def test_data_quality_metrics_creation(self) -> None:
         """Test DataQualityMetrics dataclass creation."""
         metrics = DataQualityMetrics(
             completeness_score=85.5,
@@ -86,7 +86,7 @@ class TestMedallionInterfaces(unittest.TestCase):
         assert metrics.validation_errors == 0  # Default value
         assert len(metrics.quality_issues) == 0  # Default empty list
 
-    def test_validation_result_creation(self):
+    def test_validation_result_creation(self) -> None:
         """Test ValidationResult dataclass creation."""
         validation = ValidationResult(
             is_valid=True,
@@ -103,7 +103,7 @@ class TestMedallionInterfaces(unittest.TestCase):
         assert len(validation.issues) == 2
         assert "Minor formatting issue" in validation.issues
 
-    def test_lineage_info_creation(self):
+    def test_lineage_info_creation(self) -> None:
         """Test LineageInfo dataclass creation."""
         timestamp = datetime.now()
         lineage = LineageInfo(
@@ -123,7 +123,7 @@ class TestMedallionInterfaces(unittest.TestCase):
         assert lineage.parent_ids == ["parent1", "parent2"]
         assert len(lineage.child_ids) == 0  # Default empty list
 
-    def test_processing_result_creation(self):
+    def test_processing_result_creation(self) -> None:
         """Test ProcessingResult dataclass creation."""
         start_time = datetime.now()
         metadata = LayerMetadata(
@@ -156,7 +156,7 @@ class TestMedallionInterfaces(unittest.TestCase):
         assert result.metadata == metadata
         assert result.quality_metrics == quality_metrics
 
-    def test_layer_query_creation(self):
+    def test_layer_query_creation(self) -> None:
         """Test LayerQuery dataclass creation."""
         start_date = datetime(2024, 1, 1)
         end_date = datetime(2024, 12, 31)
@@ -181,7 +181,7 @@ class TestMedallionInterfaces(unittest.TestCase):
         assert query.offset == 10
         assert query.filters["status"] == "active"
 
-    def test_layer_data_creation(self):
+    def test_layer_data_creation(self) -> None:
         """Test LayerData dataclass creation."""
         records = [{"test": "data1"}, {"test": "data2"}]
         metadata_list = [
@@ -205,7 +205,7 @@ class TestMedallionInterfaces(unittest.TestCase):
         assert layer_data.query == query
         assert isinstance(layer_data.retrieved_at, datetime)
 
-    def test_layer_metadata_defaults(self):
+    def test_layer_metadata_defaults(self) -> None:
         """Test LayerMetadata default values."""
         metadata = LayerMetadata(
             source_path=Path("/test.json"),
@@ -223,7 +223,7 @@ class TestMedallionInterfaces(unittest.TestCase):
         assert metadata.session_id == ""
         assert len(metadata.custom_metadata) == 0
 
-    def test_data_quality_metrics_defaults(self):
+    def test_data_quality_metrics_defaults(self) -> None:
         """Test DataQualityMetrics default values."""
         metrics = DataQualityMetrics()
 
@@ -239,7 +239,7 @@ class TestMedallionInterfaces(unittest.TestCase):
         assert metrics.data_anomalies == 0
         assert isinstance(metrics.calculated_at, datetime)
 
-    def test_validation_result_defaults(self):
+    def test_validation_result_defaults(self) -> None:
         """Test ValidationResult default values."""
         validation = ValidationResult(
             is_valid=True,

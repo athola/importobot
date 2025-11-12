@@ -15,7 +15,7 @@ logger = get_logger()
 
 
 class SecurityValidator:
-    """Validates and sanitizes test parameters for security concerns.
+    """Validate and sanitizes test parameters for security concerns.
 
     Supports configurable security policies for different environments.
     Logs security validation failures with specific rule violations and context.
@@ -352,12 +352,12 @@ class SecurityValidator:
 
         password_value = parameters.get("password")
         if isinstance(password_value, EncryptedCredential):
-            warnings.append("✓ Password encrypted in memory")
+            warnings.append("Password encrypted in memory")
             return warnings
 
         if password_value:
             warning_msg = (
-                "⚠️  SSH password found - consider using key-based authentication"
+                "WARNING: SSH password found - consider using key-based authentication"
             )
             warnings.append(warning_msg)
 
@@ -375,7 +375,7 @@ class SecurityValidator:
             # Also flag as credential exposure
             if isinstance(password_value, str) and len(password_value) > 1:
                 exposure_warning = (
-                    "⚠️  Hardcoded credential detected - avoid exposing "
+                    "WARNING: Hardcoded credential detected - avoid exposing "
                     "secrets in test data"
                 )
                 warnings.append(exposure_warning)
@@ -397,7 +397,7 @@ class SecurityValidator:
                         password_value
                     )
                     parameters["password"] = encrypted
-                    warnings.append("✓ Password encrypted in memory")
+                    warnings.append("Password encrypted in memory")
                     self._log_security_event(
                         "PASSWORD_ENCRYPTED",
                         {
@@ -442,7 +442,7 @@ class SecurityValidator:
                 for pattern in credential_patterns:
                     if re.search(pattern, value, re.IGNORECASE):
                         warning_msg = (
-                            f"⚠️  Potential hardcoded credential exposure "
+                            f"WARNING: Potential hardcoded credential exposure "
                             f"detected in {key}"
                         )
                         warnings.append(warning_msg)
@@ -473,7 +473,7 @@ class SecurityValidator:
             for pattern in self.dangerous_patterns:
                 if re.search(pattern, command, re.IGNORECASE):
                     warning_msg = (
-                        f"⚠️  Potentially dangerous command pattern detected: {pattern}"
+                        f"Potentially dangerous command pattern detected: {pattern}"
                     )
                     warnings.append(warning_msg)
 
@@ -516,7 +516,7 @@ class SecurityValidator:
                 for pattern in injection_patterns:
                     if re.search(pattern, value, re.IGNORECASE):
                         warning_msg = (
-                            f"⚠️  Potential injection pattern detected in {key}: "
+                            f"WARNING: Potential injection pattern detected in {key}: "
                             f"suspicious command sequence"
                         )
                         warnings.append(warning_msg)
@@ -555,7 +555,7 @@ class SecurityValidator:
             if isinstance(value, str):
                 for pattern in self.sensitive_paths:
                     if re.search(pattern, value, re.IGNORECASE):
-                        warning_msg = f"⚠️  Sensitive path detected in {key}: {pattern}"
+                        warning_msg = f"Sensitive path detected in {key}: {pattern}"
                         warnings.append(warning_msg)
 
                         # Log audit event for sensitive path
@@ -582,7 +582,7 @@ class SecurityValidator:
 
         if any(env in lowered for env in ["prod", "production", "live"]):
             warning_msg = (
-                "⚠️  Production environment detected - ensure proper authorization"
+                "WARNING: Production environment detected - ensure proper authorization"
             )
             warnings.append(warning_msg)
 
@@ -652,7 +652,7 @@ class SecurityValidator:
 
         # Check for path traversal attempts
         if ".." in file_path or "//" in file_path:
-            warning_msg = "⚠️  Potential path traversal detected in file path"
+            warning_msg = "WARNING: Potential path traversal detected in file path"
             warnings.append(warning_msg)
 
             # Log audit event for path traversal detection
@@ -670,7 +670,7 @@ class SecurityValidator:
         # Check for sensitive file access
         for pattern in self.sensitive_paths:
             if re.search(pattern, file_path, re.IGNORECASE):
-                warning_msg = f"⚠️  Sensitive file access detected: {file_path}"
+                warning_msg = f"WARNING: Sensitive file access detected: {file_path}"
                 warnings.append(warning_msg)
 
                 # Log audit event for sensitive file access
@@ -688,7 +688,7 @@ class SecurityValidator:
         # Warn about destructive operations
         if operation.lower() in ["delete", "remove", "truncate", "drop"]:
             warning_msg = (
-                f"⚠️  Destructive operation '{operation}' - ensure proper safeguards"
+                f"Destructive operation '{operation}' - ensure proper safeguards"
             )
             warnings.append(warning_msg)
 
@@ -778,16 +778,16 @@ class SecurityValidator:
         ):
             recommendations.extend(
                 [
-                    "💡 Validate all form inputs for XSS prevention",
-                    "💡 Test authentication and authorization flows",
-                    "💡 Use secure test data, avoid production credentials",
+                    "TIP: Validate all form inputs for XSS prevention",
+                    "TIP: Test authentication and authorization flows",
+                    "TIP: Use secure test data, avoid production credentials",
                 ]
             )
 
         return recommendations
 
     def validate_test_security(self, test_case: dict[str, Any]) -> dict[str, list[str]]:
-        """Comprehensive security validation for test cases.
+        """Validate test case security.
 
         Performs security validation of test cases:
         - Extracts and validates SSH parameters from test steps
@@ -815,9 +815,7 @@ class SecurityValidator:
 def validate_test_security(test_case: dict[str, Any]) -> dict[str, list[str]]:
     """Security validation for test cases.
 
-    Standalone function that creates a SecurityValidator with standard security level
-    and performs validation of test cases. This is the main entry point
-    for test security validation.
+    Creates a SecurityValidator with standard security level and performs validation.
 
     Args:
         test_case: Test case dictionary containing steps and test data

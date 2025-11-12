@@ -18,7 +18,7 @@ def _safe_home_path(name: str) -> str:
 
 
 class OperatingSystemKeywordGenerator(BaseKeywordGenerator):
-    """Generates OperatingSystem library Robot Framework keywords."""
+    """Generate OperatingSystem library Robot Framework keywords."""
 
     BINARY_EXTENSIONS: ClassVar[set[str]] = {
         ".zip",

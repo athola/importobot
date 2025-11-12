@@ -33,16 +33,16 @@ for json_file in "$INPUT_DIR"/*.json; do
         # Attempt conversion with uv run first, then use the secondary path
         if cd "/home/alext/importobot" && uv run python -m importobot \
             "$json_file" "$output_file" 2>/dev/null; then
-            echo "✅ SUCCESS: $filename" >> \
+            echo " SUCCESS: $filename" >> \
                 "$REPORT_FILE"
             SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
         elif cd "/home/alext/importobot" && python -m importobot \
             "$json_file" "$output_file" 2>/dev/null; then
-            echo "✅ SUCCESS: $filename" >> \
+            echo " SUCCESS: $filename" >> \
                 "$REPORT_FILE"
             SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
         else
-            echo "❌ FAILED: $filename" >> "$REPORT_FILE"
+            echo " FAILED: $filename" >> "$REPORT_FILE"
         fi
     fi
 done

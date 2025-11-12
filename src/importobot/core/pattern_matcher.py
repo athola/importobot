@@ -7,8 +7,94 @@ from functools import lru_cache
 from re import Pattern
 from typing import Any, ClassVar
 
+from importobot.medallion.bronze.evidence_accumulator import EvidenceItem
+from importobot.medallion.bronze.format_models import EvidenceWeight
+from importobot.medallion.interfaces.enums import EvidenceSource
 from importobot.utils.defaults import PROGRESS_CONFIG
 from importobot.utils.step_processing import combine_step_text
+
+
+class RobotFrameworkLibrary(str, Enum):
+    """Robot Framework library enumeration for extensible library management."""
+
+    # Web automation libraries
+    SELENIUM_LIBRARY = "SeleniumLibrary"
+    APPIUM_LIBRARY = "AppiumLibrary"
+
+    # API and database libraries
+    REQUESTS_LIBRARY = "RequestsLibrary"
+    DATABASE_LIBRARY = "DatabaseLibrary"
+    MONGODB_LIBRARY = "RobotMongoDBLibrary"
+
+    # System and SSH libraries
+    SSH_LIBRARY = "SSHLibrary"
+    OPERATING_SYSTEM = "OperatingSystem"
+    PROCESS = "Process"
+
+    # Utility libraries
+    COLLECTIONS = "Collections"
+    STRING = "String"
+    TELNET = "Telnet"
+
+    # FTP and messaging libraries
+    FTP_LIBRARY = "FtpLibrary"
+    MQTT_LIBRARY = "MQTTLibrary"
+    REDIS_LIBRARY = "RedisLibrary"
+
+    # Built-in library (always available)
+    BUILTIN = "builtin"
+
+    @classmethod
+    def get_conflict_groups(cls) -> dict[str, set["RobotFrameworkLibrary"]]:
+        """
+        Get groups of libraries that have keyword conflicts.
+
+        Returns:
+            Dictionary mapping conflict group names to sets of conflicting libraries
+        """
+        return {
+            "web_automation": {cls.SELENIUM_LIBRARY, cls.APPIUM_LIBRARY},
+            # Add future conflict groups here as needed
+            # "database": {cls.DATABASE_LIBRARY, cls.MONGODB_LIBRARY},
+        }
+
+    @classmethod
+    def get_conflict_prone_libraries(cls) -> set["RobotFrameworkLibrary"]:
+        """
+        Get libraries that commonly have keyword conflicts requiring prefixes.
+
+        Returns:
+            Set of libraries that need explicit prefixes for disambiguation
+        """
+        conflict_prone = set()
+        for group in cls.get_conflict_groups().values():
+            if len(group) > 1:  # Only groups with actual conflicts
+                conflict_prone.update(group)
+        return conflict_prone
+
+    @classmethod
+    def from_string(cls, library_name: str) -> "RobotFrameworkLibrary":
+        """
+        Convert string library name to enum value.
+
+        Args:
+            library_name: Library name as string
+
+        Returns:
+            RobotFrameworkLibrary enum value
+
+        Raises:
+            ValueError: If library name is not recognized
+        """
+        try:
+            return cls(library_name)
+        except ValueError:
+            # Handle legacy naming or common variations
+            normalized_name = library_name.replace("Library", "").upper()
+            for lib in cls:
+                if lib.value.replace("Library", "").upper() == normalized_name:
+                    return lib
+            raise ValueError(f"Unknown library: {library_name}") from None
 
 
 class IntentType(Enum):
@@ -291,11 +377,11 @@ class PatternMatcher:
                 r"\blist.*deployment.*contents\b",
                 priority=6,
             ),
-            # Browser operations
+            # Browser operations (higher priority than SSH patterns)
             IntentPattern(
                 IntentType.BROWSER_OPEN,
-                r"\b(?:open|navigate|visit).*(?:browser|page|url|application)\b",
-                priority=6,
+                r"\b(?:open|navigate|visit|launch).*(?:browser|page|url|application)\b",
+                priority=8,
             ),
             IntentPattern(
                 IntentType.BROWSER_NAVIGATE,
@@ -303,7 +389,7 @@ class PatternMatcher:
                     r"\b(?:go to|navigate(?:\s+to)?)\b.*\b(?:url|page|site|screen|"
                     r"login|portal|dashboard|home)\b"
                 ),
-                priority=6,
+                priority=8,
             ),
             IntentPattern(
                 IntentType.BROWSER_NAVIGATE,
@@ -705,92 +791,334 @@ class DataExtractor:
 class LibraryDetector:
     """Unified library detection based on text patterns."""
 
-    # Library detection patterns consolidated from keywords_registry
-    LIBRARY_PATTERNS: ClassVar[dict[str, str]] = {
-        "SeleniumLibrary": (
+    # Library detection patterns using enum for extensibility
+    LIBRARY_PATTERNS: ClassVar[dict[RobotFrameworkLibrary, str]] = {
+        RobotFrameworkLibrary.SELENIUM_LIBRARY: (
             r"\b(?:browser|navigate|click|input|page|web|url|login|button|element"
             r"|selenium|page.*should.*contain|should.*contain.*page|verify.*content"
             r"|check.*content|ensure.*content|page.*contains|contains.*page"
             r"|verify.*text|check.*text|ensure.*text|title.*should|"
             r"location.*should)\b"
         ),
-        "SSHLibrary": (
+        RobotFrameworkLibrary.SSH_LIBRARY: (
             r"\b(?:ssh|remote|connection|host|server|ssh.*connect|ssh.*disconnect|"
             r"execute.*command|open.*connection|close.*connection|connect.*ssh)\b"
         ),
-        "Process": (
+        RobotFrameworkLibrary.PROCESS: (
             r"\b(?:command|execute|run|curl|wget|bash|process|run.*process"
             r"|start.*process|terminate.*process|wait.*for.*process)\b"
         ),
-        "OperatingSystem": (
+        RobotFrameworkLibrary.OPERATING_SYSTEM: (
             r"\b(?:file|directory|exists|remove|delete|filesystem|create.*file"
             r"|copy.*file|move.*file|file.*should.*exist|create.*directory"
             r"|remove.*directory|list.*directory|get.*file)\b"
         ),
-        "DatabaseLibrary": (
+        RobotFrameworkLibrary.DATABASE_LIBRARY: (
             r"\b(?:database|sql|query|table|connect.*database|db_|execute.*sql"
             r"|row.*count|insert.*into|update.*table|delete.*from|select.*from"
             r"|database.*connection|db.*query|db.*execute|table.*exist"
             r"|row.*count|verify.*row|check.*database|"
             r"disconnect.*from.*database)\b"
         ),
-        "RequestsLibrary": (
+        RobotFrameworkLibrary.REQUESTS_LIBRARY: (
             r"\b(?:api|rest|request|response|session|get.*request|post.*request"
             r"|put.*request|delete.*request|http|create.*session|make.*request"
             r"|send.*request|api.*call|rest.*api|http.*request|verify.*response"
             r"|check.*status|get.*response|status.*should.*be)\b"
         ),
-        "Collections": (
+        RobotFrameworkLibrary.COLLECTIONS: (
             r"\b(?:list|dictionary|collection|append|get.*from.*list"
             r"|get.*from.*dict|create.*list|create.*dictionary|dictionary.*key"
             r"|list.*item|collections|dict.*update|append.*to.*list)\b"
         ),
-        "String": (
+        RobotFrameworkLibrary.STRING: (
             r"\b(?:string|uppercase|lowercase|replace.*string|split.*string|strip"
             r"|string.*operation|string.*manipulation|convert.*case"
             r"|format.*string|convert.*to.*uppercase|convert.*to.*lowercase)\b"
         ),
-        "Telnet": (
+        RobotFrameworkLibrary.TELNET: (
             r"\b(?:telnet|telnet.*connection|open.*telnet|telnet.*session"
             r"|telnet.*command|telnet.*read|telnet.*write)\b"
         ),
-        "AppiumLibrary": (
-            r"\b(?:mobile|appium|app|android|ios|device|mobile.*app|mobile.*testing|"
-            r"open.*application|mobile.*element|mobile.*click|touch|swipe|"
-            r"mobile.*automation)\b"
+        RobotFrameworkLibrary.APPIUM_LIBRARY: (
+            r"\b(?:mobile.*app|android.*app|ios.*app|mobile.*application|"
+            r"appium.*server|mobile.*device.*automation|mobile.*testing|"
+            r"launch.*app|install.*app|app.*package|bundle.*id|device.*name|"
+            r"platform.*name|udid|native.*app|webview|hybrid.*app)\b"
         ),
-        "FtpLibrary": (
-            r"\b(?:ftp|file.*transfer|ftp.*connect|ftp.*upload|ftp.*download"
-            r"|ftp.*put|ftp.*get|ftp.*file)\b"
+        RobotFrameworkLibrary.FTP_LIBRARY: (
+            r"\b(?:ftp.*server|ftp.*connection|ftp.*protocol|"
+            r"file.*transfer.*protocol)\b"
         ),
-        "MQTTLibrary": (
+        RobotFrameworkLibrary.MQTT_LIBRARY: (
             r"\b(?:mqtt|message.*queue|publish|subscribe|broker|iot|mqtt.*message"
             r"|mqtt.*topic|mqtt.*connect)\b"
         ),
-        "RedisLibrary": (
+        RobotFrameworkLibrary.REDIS_LIBRARY: (
             r"\b(?:redis|cache|key.*value|redis.*connect|redis.*get|redis.*set"
             r"|redis.*key|redis.*cache)\b"
         ),
-        "MongoDBLibrary": (
+        RobotFrameworkLibrary.MONGODB_LIBRARY: (
             r"\b(?:mongodb|mongo|nosql|document.*database|collection|mongo.*connect"
             r"|mongo.*insert|mongo.*query|mongo.*update|mongo.*delete)\b"
         ),
     }
 
     @classmethod
-    def detect_libraries_from_text(cls, text: str) -> set[str]:
+    def detect_libraries_from_text(
+        cls, text: str, json_data: dict[str, Any] | None = None
+    ) -> set[RobotFrameworkLibrary]:
         """Detect required Robot Framework libraries from text content."""
         if not text:
             return set()
-        libraries = set()
+        library_enums = set()
         text_lower = text.lower()
-        for library, pattern in cls.LIBRARY_PATTERNS.items():
+        for library_enum, pattern in cls.LIBRARY_PATTERNS.items():
             if re.search(pattern, text_lower):
-                libraries.add(library)
+                library_enums.add(library_enum)
+
+        # Resolve conflicts between similar libraries
+        library_enums = cls._resolve_library_conflicts(
+            library_enums, text_lower, json_data
+        )
+
+        return library_enums
+
+    @classmethod
+    def detect_libraries_from_steps(
+        cls, steps: list[dict[str, Any]], json_data: dict[str, Any] | None = None
+    ) -> set[RobotFrameworkLibrary]:
+        """Detect required libraries from step content."""
+        combined_text = combine_step_text(steps)
+        return cls.detect_libraries_from_text(combined_text, json_data)
+
+    @classmethod
+    def _resolve_library_conflicts(
+        cls,
+        libraries: set[RobotFrameworkLibrary],
+        text: str,
+        json_data: dict[str, Any] | None = None,
+    ) -> set[RobotFrameworkLibrary]:
+        """
+        Resolve conflicts between libraries using Bayesian evidence collection.
+
+        For library coverage scenarios (indicated by 'library_coverage' label),
+        skips conflict resolution to allow full coverage testing of all libraries.
+        """
+        # Skip conflict resolution for library coverage scenarios
+        # Check for explicit library_coverage label in test data
+        if cls._is_library_coverage_scenario(json_data):
+            return libraries
+
+        # Conflict resolution: SeleniumLibrary vs AppiumLibrary
+        if (
+            RobotFrameworkLibrary.SELENIUM_LIBRARY in libraries
+            and RobotFrameworkLibrary.APPIUM_LIBRARY in libraries
+        ):
+            return cls._resolve_selenium_appium_conflict(libraries, text)
+
         return libraries
 
     @classmethod
-    def detect_libraries_from_steps(cls, steps: list[dict[str, Any]]) -> set[str]:
-        """Detect required libraries from step content."""
-        combined_text = combine_step_text(steps)
-        return cls.detect_libraries_from_text(combined_text)
+    def _is_library_coverage_scenario(cls, json_data: dict[str, Any] | None) -> bool:
+        """Check if this is a library coverage scenario based on test data labels."""
+        if not json_data:
+            return False
+
+        labels = cls._extract_labels_from_json(json_data)
+        return cls._has_library_coverage_label(labels)
+
+    @classmethod
+    def _extract_labels_from_json(cls, json_data: dict[str, Any]) -> list[str]:
+        """Extract all labels from JSON data structure."""
+        labels = []
+
+        # Direct labels field
+        labels.extend(cls._extract_labels_from_field(json_data, "labels"))
+
+        # Check test cases for labels
+        if "steps" in json_data and isinstance(json_data["steps"], list):
+            for step in json_data["steps"]:
+                labels.extend(cls._extract_labels_from_field(step, "labels"))
+
+        # Check nested test structures
+        if "tests" in json_data and isinstance(json_data["tests"], list):
+            for test in json_data["tests"]:
+                labels.extend(cls._extract_labels_from_field(test, "labels"))
+
+        return labels
+
+    @classmethod
+    def _extract_labels_from_field(cls, data: dict[str, Any], field: str) -> list[str]:
+        """Extract labels from a specific field in a data structure."""
+        if field not in data:
+            return []
+
+        field_data = data[field]
+        if isinstance(field_data, list):
+            return [str(label) for label in field_data]
+        elif isinstance(field_data, str):
+            return [field_data]
+        return []
+
+    @classmethod
+    def _has_library_coverage_label(cls, labels: list[str]) -> bool:
+        """Check if any label indicates a library coverage scenario."""
+        return any("library_coverage" in label.lower() for label in labels)
+
+    @classmethod
+    def _resolve_selenium_appium_conflict(
+        cls, libraries: set[RobotFrameworkLibrary], text: str
+    ) -> set[RobotFrameworkLibrary]:
+        """
+        Resolve SeleniumLibrary vs AppiumLibrary conflict using Bayesian evidence.
+
+        Creates library-specific evidence items and applies Bayesian inference
+        principles to determine whether the automation context is web-based
+        or mobile-based.
+        """
+        # Create evidence items for mobile patterns
+        mobile_evidence_items = [
+            EvidenceItem(
+                source=EvidenceSource.STRUCTURE_INDICATOR,
+                confidence=0.95,
+                weight=EvidenceWeight.UNIQUE,
+                details="Strong mobile automation indicator",
+            ),
+            EvidenceItem(
+                source=EvidenceSource.STRUCTURE_INDICATOR,
+                confidence=0.80,
+                weight=EvidenceWeight.STRONG,
+                details="Clear mobile application pattern",
+            ),
+            EvidenceItem(
+                source=EvidenceSource.STRUCTURE_INDICATOR,
+                confidence=0.60,
+                weight=EvidenceWeight.MODERATE,
+                details="Mobile suggestive pattern",
+            ),
+        ]
+
+        # Create evidence items for web patterns
+        web_evidence_items = [
+            EvidenceItem(
+                source=EvidenceSource.STRUCTURE_INDICATOR,
+                confidence=0.95,
+                weight=EvidenceWeight.UNIQUE,
+                details="Strong web browser indicator",
+            ),
+            EvidenceItem(
+                source=EvidenceSource.STRUCTURE_INDICATOR,
+                confidence=0.80,
+                weight=EvidenceWeight.STRONG,
+                details="Clear web automation pattern",
+            ),
+            EvidenceItem(
+                source=EvidenceSource.STRUCTURE_INDICATOR,
+                confidence=0.60,
+                weight=EvidenceWeight.MODERATE,
+                details="Web suggestive pattern",
+            ),
+        ]
+
+        # Pattern definitions for mobile detection
+        mobile_patterns = [
+            # UNIQUE patterns (0.95 confidence)
+            (r"\b(?:android.*app|ios.*app|native.*app)\b", 0, 0.95),
+            (r"\b(?:appium.*server|desired.*capabilities)\b", 0, 0.95),
+            (r"\b(?:device.*orientation|screen.*rotation)\b", 0, 0.95),
+            (r"\b(?:app.*package|bundle.*id)\b", 0, 0.95),
+            # STRONG patterns (0.80 confidence)
+            (r"\b(?:mobile.*device.*automation|mobile.*application)\b", 1, 0.80),
+            (r"\b(?:install.*app|launch.*app)\b", 1, 0.80),
+            (r"\b(?:touch|swipe|pinch|zoom).*screen\b", 1, 0.80),
+            (r"\b(?:platform.*name|device.*name|udid)\b", 1, 0.80),
+            # MODERATE patterns (0.60 confidence)
+            (r"\b(?:webview|hybrid.*app)\b", 2, 0.60),
+            (r"\b(?:mobile.*element|mobile.*test)\b", 2, 0.60),
+        ]
+
+        # Pattern definitions for web detection
+        web_patterns = [
+            # UNIQUE patterns (0.95 confidence)
+            (r"\b(?:web.*browser|chrome|firefox|safari|edge)\b", 0, 0.95),
+            (r"\b(?:xpath|css.*selector|html.*element)\b", 0, 0.95),
+            (r"\b(?:javascript|dom|page.*object)\b", 0, 0.95),
+            # STRONG patterns (0.80 confidence)
+            (r"\b(?:url|http://|https://|www\.)\b", 1, 0.80),
+            (r"\b(?:navigate.*to|open.*browser)\b", 1, 0.80),
+            (r"\b(?:webElement|web.*element)\b", 1, 0.80),
+            # MODERATE patterns (0.60 confidence)
+            (r"\b(?:click|type|verify).*element\b", 2, 0.60),
+            (r"\b(?:page.*title|browser.*window)\b", 2, 0.60),
+        ]
+
+        # Calculate Bayesian scores
+        mobile_score = cls._calculate_bayesian_score(
+            text, mobile_patterns, mobile_evidence_items
+        )
+        web_score = cls._calculate_bayesian_score(
+            text, web_patterns, web_evidence_items
+        )
+
+        # Apply decision logic
+        return cls._apply_bayesian_decision(libraries, mobile_score, web_score)
+
+    @classmethod
+    def _calculate_bayesian_score(
+        cls,
+        text: str,
+        patterns: list[tuple[str, int, float]],
+        evidence_items: list[EvidenceItem],
+    ) -> float:
+        """Calculate Bayesian score for a set of patterns and evidence items."""
+        score = 0.0
+        for pattern, evidence_idx, confidence in patterns:
+            if re.search(pattern, text, re.IGNORECASE):
+                evidence = evidence_items[evidence_idx]
+                score += confidence * evidence.effective_weight
+        return score
+
+    @classmethod
+    def _apply_bayesian_decision(
+        cls,
+        libraries: set[RobotFrameworkLibrary],
+        mobile_score: float,
+        web_score: float,
+    ) -> set[RobotFrameworkLibrary]:
+        """Apply Bayesian decision logic to resolve library conflicts."""
+        HIGH_CONFIDENCE_THRESHOLD = 2.85  # 3.0 * 0.95 (UNIQUE evidence)
+        MODERATE_CONFIDENCE_THRESHOLD = 1.6  # 2.0 * 0.80 (STRONG evidence)
+
+        if mobile_score >= HIGH_CONFIDENCE_THRESHOLD:
+            # Strong evidence for mobile - discard SeleniumLibrary
+            libraries.discard(RobotFrameworkLibrary.SELENIUM_LIBRARY)
+        elif web_score >= HIGH_CONFIDENCE_THRESHOLD:
+            # Strong evidence for web - discard AppiumLibrary
+            libraries.discard(RobotFrameworkLibrary.APPIUM_LIBRARY)
+        elif mobile_score > web_score and mobile_score >= MODERATE_CONFIDENCE_THRESHOLD:
+            # Moderate preference for mobile
+            libraries.discard(RobotFrameworkLibrary.SELENIUM_LIBRARY)
+        elif web_score > mobile_score and web_score >= MODERATE_CONFIDENCE_THRESHOLD:
+            # Moderate preference for web
+            libraries.discard(RobotFrameworkLibrary.APPIUM_LIBRARY)
+        else:
+            # Low confidence or tie - prefer SeleniumLibrary (more common)
+            libraries.discard(RobotFrameworkLibrary.APPIUM_LIBRARY)
+
+        return libraries
+
+    @classmethod
+    def get_keyword_prefix_for_library(cls, library: RobotFrameworkLibrary) -> str:
+        """
+        Get the appropriate keyword prefix for disambiguation.
+
+        When libraries have conflicting keywords, this returns the library name
+        to use as a prefix (e.g., "SeleniumLibrary.Input Text").
+        """
+        # Use the enum's built-in conflict detection
+        return (
+            library.value
+            if library in RobotFrameworkLibrary.get_conflict_prone_libraries()
+            else ""
+        )

@@ -1,0 +1,37 @@
+{
+  "name": "Mobile App Login Test",
+  "description": "Demonstrates AppiumLibrary detection for mobile application automation",
+  "priority": "High",
+  "testCases": [
+    {
+      "name": "Mobile App Login Flow",
+      "description": "Test user login through mobile application",
+      "steps": [
+        {
+          "index": 1,
+          "description": "Launch mobile application on Android device",
+          "testData": "platformName: Android, deviceName: emulator-5554, appPackage: com.example.app",
+          "expectedResult": "Mobile app launches successfully"
+        },
+        {
+          "index": 2,
+          "description": "Enter username and password in mobile app form",
+          "testData": "username: mobileuser@test.com, password: Mobile123!",
+          "expectedResult": "Mobile form fields populated correctly"
+        },
+        {
+          "index": 3,
+          "description": "Tap login button on mobile screen",
+          "testData": "locator: accessibility_id=login_button",
+          "expectedResult": "Mobile login button tapped and form submitted"
+        },
+        {
+          "index": 4,
+          "description": "Verify mobile dashboard displays",
+          "testData": "verify: Welcome to mobile dashboard",
+          "expectedResult": "Mobile dashboard screen loads successfully"
+        }
+      ]
+    }
+  ]
+}

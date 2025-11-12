@@ -2,7 +2,7 @@
 
 Importobot automates the conversion of test management frameworks (Atlassian Zephyr,
 JIRA/Xray, TestLink, etc.) into Robot Framework format with bulk processing capabilities
-and intelligent suggestions for ambiguous test cases.
+and provides suggestions for ambiguous test cases.
 
 Public API:
     - JsonToRobotConverter
@@ -28,7 +28,7 @@ from importobot.core.converter import JsonToRobotConverter
 
 # Dependency validation following pandas pattern
 def _check_dependencies() -> None:
-    """Validate critical dependencies at import time."""
+    """Validate essential runtime dependencies during package import."""
     missing_deps = []
 
     # Check json (standard library)
@@ -62,7 +62,7 @@ api = _api
 
 
 def convert(payload: dict[str, Any] | str) -> str:
-    """Convert a JSON payload (dict or string) to Robot Framework text."""
+    """Convert a JSON payload (dictionary or string) to Robot Framework text."""
     converter = JsonToRobotConverter()
     return converter.convert(payload)
 
@@ -89,7 +89,7 @@ __all__ = [
     "exceptions",
 ]
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 
 # Clean up namespace - remove internal imports from dir()
 del _config, _exceptions, _api

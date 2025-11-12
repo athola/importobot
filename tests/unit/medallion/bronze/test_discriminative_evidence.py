@@ -35,11 +35,11 @@ class TestDiscriminativeEvidenceCollection(unittest.TestCase):
         applies conservative ratio capping (3:1 max) for mathematical stability.
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Initialize format detector for testing."""
         self.detector = FormatDetector()
 
-    def test_zephyr_unique_fields_produce_high_likelihood_ratio(self):
+    def test_zephyr_unique_fields_produce_high_likelihood_ratio(self) -> None:
         """Test that Zephyr-specific fields produce discriminative likelihoods.
 
         Business Logic:
@@ -96,7 +96,7 @@ class TestDiscriminativeEvidenceCollection(unittest.TestCase):
             f"ratio={likelihood_ratio:.2f}. All likelihoods: {likelihoods}"
         )
 
-    def test_jira_xray_unique_fields_produce_high_likelihood_ratio(self):
+    def test_jira_xray_unique_fields_produce_high_likelihood_ratio(self) -> None:
         """Test that JIRA/Xray-specific fields produce discriminative likelihoods.
 
         Business Logic:
@@ -148,7 +148,7 @@ class TestDiscriminativeEvidenceCollection(unittest.TestCase):
             f"ratio={likelihood_ratio:.2f}. All likelihoods: {likelihoods}"
         )
 
-    def test_testlink_unique_structure_produces_high_likelihood_ratio(self):
+    def test_testlink_unique_structure_produces_high_likelihood_ratio(self) -> None:
         """Test that TestLink-specific structure produces discriminative likelihoods.
 
         Business Logic:
@@ -198,7 +198,7 @@ class TestDiscriminativeEvidenceCollection(unittest.TestCase):
             f"ratio={likelihood_ratio:.2f}. All likelihoods: {likelihoods}"
         )
 
-    def test_ambiguous_data_produces_similar_likelihoods(self):
+    def test_ambiguous_data_produces_similar_likelihoods(self) -> None:
         """Test that truly ambiguous data produces similar likelihoods.
 
         Business Logic:
@@ -236,7 +236,7 @@ class TestDiscriminativeEvidenceCollection(unittest.TestCase):
                 f"Got ratio={ratio:.2f}. Likelihoods: {likelihoods}"
             )
 
-    def test_wrong_format_data_produces_low_likelihood(self):
+    def test_wrong_format_data_produces_low_likelihood(self) -> None:
         """Test that format-specific data produces LOW likelihood for wrong formats.
 
         Business Logic:
@@ -265,7 +265,7 @@ class TestDiscriminativeEvidenceCollection(unittest.TestCase):
             f"All likelihoods: {likelihoods}"
         )
 
-    def test_multi_class_posterior_ranks_correct_format_highest(self):
+    def test_multi_class_posterior_ranks_correct_format_highest(self) -> None:
         """Test that with discriminative likelihoods, correct
         format has highest posterior.
 

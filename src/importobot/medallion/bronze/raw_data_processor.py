@@ -171,7 +171,7 @@ class MetadataFacade:
 
 
 class PreviewOperations:
-    """Handles preview operations combining format detection and quality metrics."""
+    """Handle preview operations combining format detection and quality metrics."""
 
     def __init__(
         self,
@@ -228,7 +228,7 @@ class PreviewOperations:
 
 
 class DataLayerOperations:
-    """Handles DataLayer interface operations."""
+    """Handle DataLayer interface operations."""
 
     def __init__(
         self,
@@ -299,7 +299,7 @@ class DataLayerOperations:
 
 
 class IntegrationOperations:
-    """Handles integrated operations requiring multiple services."""
+    """Handle integrated operations requiring multiple services."""
 
     def __init__(
         self,
@@ -460,7 +460,7 @@ class IntegrationOperations:
 
 
 class SecurityOperations:
-    """Handles security-related operations."""
+    """Handle security-related operations."""
 
     def __init__(self, ingestion_service: DataIngestionService):
         """Initialize security operations."""

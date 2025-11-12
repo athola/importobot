@@ -58,7 +58,7 @@ except ImportError as exc:  # pragma: no cover
 class TestFormatDetectionPerformance(unittest.TestCase):
     """Performance tests for format detection at scale."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up performance testing environment."""
         self.detector = FormatDetector()
         self.process = psutil.Process(os.getpid())
@@ -295,7 +295,7 @@ class TestFormatDetectionPerformance(unittest.TestCase):
 
         return large_dataset
 
-    def test_small_dataset_performance_baseline(self):
+    def test_small_dataset_performance_baseline(self) -> None:
         """Test performance baseline with small datasets."""
         small_zephyr = self._create_large_zephyr_dataset(1, 5)
 
@@ -306,7 +306,7 @@ class TestFormatDetectionPerformance(unittest.TestCase):
             "Small dataset should detect within 5 seconds (advanced algorithms)",
         )
 
-    def test_medium_dataset_performance(self):
+    def test_medium_dataset_performance(self) -> None:
         """Test performance with medium-sized datasets (typical API responses)."""
         # Medium Zephyr dataset - reduced for advanced algorithms
         medium_zephyr = self._create_large_zephyr_dataset(5, 20)  # Reduced from 20x100
@@ -325,15 +325,13 @@ class TestFormatDetectionPerformance(unittest.TestCase):
         assert confidence >= MIN_FORMAT_CONFIDENCE_HIGH_QUALITY, (
             "Confidence should remain high for large datasets per business requirements"
         )
-        self.assertLess(
-            detection_time,
-            MAX_FORMAT_DETECTION_TIME * 10,  # Allow 10x for complex medium datasets
+        assert detection_time < MAX_FORMAT_DETECTION_TIME * 10, (
             "Medium dataset should detect within reasonable time "
-            "per business requirements",
+            "per business requirements"
         )
         assert memory_used < 50, "Memory usage should be reasonable"
 
-    def test_large_dataset_performance(self):
+    def test_large_dataset_performance(self) -> None:
         """Test performance with large datasets (enterprise scale)."""
         # Large Zephyr dataset - reduced for advanced algorithms
         large_zephyr = self._create_large_zephyr_dataset(10, 50)  # Reduced from 100x500
@@ -348,17 +346,15 @@ class TestFormatDetectionPerformance(unittest.TestCase):
         memory_used = memory_after - memory_before
 
         assert detected_format == SupportedFormat.ZEPHYR
-        self.assertLess(
-            detection_time,
-            MAX_FORMAT_DETECTION_TIME * 15,  # Allow 15x for very large datasets
+        assert detection_time < MAX_FORMAT_DETECTION_TIME * 15, (
             "Large dataset should detect within reasonable time "
-            "per business requirements",
+            "per business requirements"
         )
         assert memory_used < MAX_MEMORY_USAGE_LARGE_DATASET * 50, (
             "Memory usage should remain reasonable per business requirements"
         )
 
-    def test_very_large_xray_dataset_performance(self):
+    def test_very_large_xray_dataset_performance(self) -> None:
         """Test performance with very large Xray datasets."""
         # Very large Xray dataset - further reduced for advanced algorithms
         very_large_xray = self._create_large_xray_dataset(20)  # Reduced from 100
@@ -368,16 +364,12 @@ class TestFormatDetectionPerformance(unittest.TestCase):
         detection_time = time.time() - start_time
 
         assert detected_format == SupportedFormat.JIRA_XRAY
-        self.assertLess(
-            detection_time,
-            MAX_FORMAT_DETECTION_TIME * 15,  # Allow 15x for very large datasets
-            (
-                "Very large Xray dataset should detect within reasonable time "
-                "per business requirements (advanced algorithms)"
-            ),
+        assert detection_time < MAX_FORMAT_DETECTION_TIME * 15, (
+            "Very large Xray dataset should detect within reasonable time "
+            "per business requirements (advanced algorithms)"
         )
 
-    def test_testrail_dataset_scaling_performance(self):
+    def test_testrail_dataset_scaling_performance(self) -> None:
         """Test performance scaling with TestRail datasets of different sizes."""
         sizes = [
             (10, 50, 30),  # Small: 10 runs, 50 tests, 30 cases
@@ -404,7 +396,7 @@ class TestFormatDetectionPerformance(unittest.TestCase):
             "Performance scaling should meet business requirements for bulk processing"
         )
 
-    def test_concurrent_detection_performance(self):
+    def test_concurrent_detection_performance(self) -> None:
         """Test performance under concurrent detection load."""
         # Reduced dataset sizes for faster testing with advanced mathematical algorithms
         datasets = [
@@ -418,7 +410,10 @@ class TestFormatDetectionPerformance(unittest.TestCase):
         results: list[tuple[SupportedFormat, float]] = []
         threads = []
 
-        def detect_format_threaded(dataset, results_list):
+        def detect_format_threaded(
+            dataset: dict[str, "Any"],
+            results_list: "list[tuple[SupportedFormat, float]]",
+        ) -> None:
             start_time = time.time()
             detected_format = self.detector.detect_format(dataset)
             detection_time = time.time() - start_time
@@ -456,14 +451,12 @@ class TestFormatDetectionPerformance(unittest.TestCase):
                 SupportedFormat.JIRA_XRAY,
                 SupportedFormat.TESTRAIL,
             ]
-            self.assertLess(
-                detection_time,
-                MAX_FORMAT_DETECTION_TIME * 5,  # Allow 5x for concurrent operations
-                msg="Individual concurrent detection should be reasonable "
-                "per business requirements",
+            assert detection_time < MAX_FORMAT_DETECTION_TIME * 5, (
+                "Individual concurrent detection should be reasonable "
+                "per business requirements"
             )
 
-    def test_memory_efficiency_large_datasets(self):
+    def test_memory_efficiency_large_datasets(self) -> None:
         """Test memory efficiency with large datasets."""
         # Create progressively larger datasets and measure memory
         memory_measurements = []
@@ -498,14 +491,12 @@ class TestFormatDetectionPerformance(unittest.TestCase):
         else:
             # If baseline is zero, just check that largest measurement is reasonable
             # per business requirements
-            self.assertLess(
-                memory_measurements[-1],
-                MAX_MEMORY_USAGE_LARGE_DATASET * 50,  # Allow 50MB for scale testing
+            assert memory_measurements[-1] < MAX_MEMORY_USAGE_LARGE_DATASET * 50, (
                 "Memory usage should remain reasonable even with zero baseline "
-                "per business requirements",
+                "per business requirements"
             )
 
-    def test_json_serialization_performance_impact(self):
+    def test_json_serialization_performance_impact(self) -> None:
         """Test performance impact of JSON serialization during detection."""
         large_dataset = self._create_large_zephyr_dataset(
             10, 10
@@ -533,7 +524,7 @@ class TestFormatDetectionPerformance(unittest.TestCase):
             abs(detection_time_json - detection_time_dict) < MAX_FORMAT_DETECTION_TIME
         ), "JSON vs dict detection time should be similar per business requirements"
 
-    def test_repeated_detection_performance_consistency(self):
+    def test_repeated_detection_performance_consistency(self) -> None:
         """Test that repeated detections maintain consistent performance."""
         dataset = self._create_large_zephyr_dataset(
             1, 1
@@ -559,13 +550,11 @@ class TestFormatDetectionPerformance(unittest.TestCase):
         assert max_deviation < avg_time * 0.5, (
             "Detection time should be consistent across repeated runs"
         )
-        self.assertLess(
-            avg_time,
-            MAX_FORMAT_DETECTION_TIME * 10,  # Allow 10x for repeated operations
-            "Average detection time should be reasonable per business requirements",
+        assert avg_time < MAX_FORMAT_DETECTION_TIME * 10, (
+            "Average detection time should be reasonable per business requirements"
         )
 
-    def test_data_structure_complexity_performance(self):
+    def test_data_structure_complexity_performance(self) -> None:
         """Test performance impact of different data structure complexities."""
         base_dataset = self._create_large_zephyr_dataset(10, 10)
 
