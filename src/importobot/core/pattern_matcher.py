@@ -898,11 +898,6 @@ class LibraryDetector:
         For library coverage scenarios (many different libraries detected),
         skips conflict resolution to allow comprehensive testing.
         """
-        # Skip conflict resolution for library coverage scenarios
-        # If we have many different libraries, it's likely intentional testing
-        if len(libraries) > 5:
-            return libraries
-
         # Conflict resolution: SeleniumLibrary vs AppiumLibrary
         if (
             RobotFrameworkLibrary.SELENIUM_LIBRARY in libraries
