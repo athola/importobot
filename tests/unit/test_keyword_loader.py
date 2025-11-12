@@ -288,7 +288,7 @@ class TestKeywordLibraryLoader:
 
     def test_load_library_success_with_caching(
         self,
-        keyword_loader_fixture: KeywordLibraryLoader,  # pylint: disable=redefined-outer-name
+        keyword_loader_fixture: KeywordLibraryLoader,
     ) -> None:
         """Test successful library loading with caching."""
         loader = keyword_loader_fixture
@@ -306,7 +306,7 @@ class TestKeywordLibraryLoader:
 
     def test_get_keywords_for_library(
         self,
-        keyword_loader_fixture: KeywordLibraryLoader,  # pylint: disable=redefined-outer-name
+        keyword_loader_fixture: KeywordLibraryLoader,
     ) -> None:
         """Test get_keywords_for_library method."""
         loader = keyword_loader_fixture
@@ -318,7 +318,7 @@ class TestKeywordLibraryLoader:
 
     def test_get_available_libraries(
         self,
-        keyword_loader_fixture: KeywordLibraryLoader,  # pylint: disable=redefined-outer-name
+        keyword_loader_fixture: KeywordLibraryLoader,
     ) -> None:
         """Test getting list of available libraries."""
         loader = keyword_loader_fixture
@@ -330,7 +330,7 @@ class TestKeywordLibraryLoader:
 
     def test_get_security_warnings_for_keyword(
         self,
-        keyword_loader_fixture: KeywordLibraryLoader,  # pylint: disable=redefined-outer-name
+        keyword_loader_fixture: KeywordLibraryLoader,
     ) -> None:
         """Test getting security warnings for specific keywords."""
         loader = keyword_loader_fixture
