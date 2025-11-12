@@ -2,10 +2,8 @@ name: Publish to PyPI
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - "pyproject.toml"
+    tags:
+      - 'v*.*.*'
   workflow_dispatch:
 
 permissions:
@@ -41,7 +39,7 @@ jobs:
         fi
 
     - name: Publish to PyPI
-      if: ${{ github.ref == 'refs/heads/main' && steps.detect-token.outputs.present == 'true' }}
+      if: ${{ startsWith(github.ref, 'refs/tags/v') && steps.detect-token.outputs.present == 'true' }}
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
@@ -50,17 +48,17 @@ jobs:
         uv tool run twine upload dist/*
 
     - name: PyPI Token Missing
-      if: ${{ github.ref == 'refs/heads/main' && steps.detect-token.outputs.present == 'false' }}
+      if: ${{ startsWith(github.ref, 'refs/tags/v') && steps.detect-token.outputs.present == 'false' }}
       run: |
-        echo "⚠️  PYPI_API_TOKEN secret not configured"
+        echo "WARNING: PYPI_API_TOKEN secret not configured"
         echo "To enable PyPI publishing:"
         echo "1. Go to https://pypi.org/manage/account/token/"
         echo "2. Create a new API token for this project"
         echo "3. Add it as PYPI_API_TOKEN in repository secrets"
-        echo "4. Re-run this workflow or create a new release"
+        echo "4. Re-run this workflow or push a new release tag"
 
     - name: GitHub Packages Info
       run: |
-        echo "ℹ️  GitHub Packages does not support Python/PyPI packages"
+        echo "INFO: GitHub Packages does not support Python/PyPI packages"
         echo "Python packages are published to PyPI only"
         echo "For other package types, see: https://docs.github.com/en/packages"

@@ -1,58 +1,66 @@
 # Mathematical Foundations
 
+This document details the mathematical principles underpinning Importobot's format detection and optimization algorithms. It is intended for engineers seeking to understand the theoretical basis of the codebase.
+
+## Motivation
+
+Importobot requires reliable identification of diverse test export formats (e.g., Zephyr, TestRail) from various JSON structures. Traditional methods, such as string searches or `if/else` cascades, are brittle and difficult to maintain. Consequently, we employ Bayesian confidence scoring to infer the format based on observed evidence within the file.
+
+This probabilistic approach offers several advantages:
+
+-   **Ambiguity Handling**: When multiple formats are plausible, the Bayesian scorer assigns a probability to each, enabling selection of the most likely candidate or flagging for manual review.
+-   **Adaptability**: The model can be updated with new export examples to enhance accuracy over time.
+-   **Diagnostic Feedback**: Instead of generic errors, the system provides insights into the probabilistic basis of its format predictions.
+
+Furthermore, optimization algorithms are utilized to refine the conversion process, aiming for accurate and efficient generation of Robot Framework code.
+
 Importobot uses Bayesian confidence scoring to detect test management formats. The current implementation handles two-stage classification: first validating that input is test data, then discriminating between specific formats like Zephyr vs TestRail.
 
 ## Overview
 
 **Currently Implemented (v0.1.x):**
 - Bayesian confidence scoring for format detection
-- Two-stage hierarchical classification (test data validation → format discrimination)
-- Basic numerical stability handling
+- Two-stage classification: test data validation → format discrimination
+- Numerical stability handling
 
 **Future Work:**
-- Format family models could group related formats (Atlassian family: Zephyr + JIRA)
+- Format family models to group related formats (Atlassian: Zephyr + JIRA)
 - Semantic boosting for domain-specific formats like TestLink
-- Test format threshold optimization using ROC curves from production data
+- Threshold optimization using ROC curves from production data
 
 ## Core Mathematical Framework
 
-### Bayesian statistics & format detection
+Importobot's format detection relies on a Bayesian scorer. This section elucidates its fundamental concepts.
 
-The Bayesian scorer is the backbone of the format confidence pipeline. This section provides a high-level overview; the detailed derivation, parameter tables, and regression notes can be found in the [Bayesian scorer mathematical review](Bayesian-Scorer-Mathematical-Review.md).
+### Bayesian Confidence Scoring
 
-Posteriors are computed directly instead of relying on the legacy noisy-OR approximation. Ambiguous payloads stop at the 1.5:1 cap; confident cases can extend to 3:1 because the scorer uses format-specific ambiguity adjustments retrieved from calibration runs. The quadratic decay for `P(E|¬H)` and the configurable epsilon prevent a divide-by-zero exception when evidence is insufficient. See the [Bayesian scorer mathematical review](Bayesian-Scorer-Mathematical-Review.md) for the derivations, parameter ranges, and regression coverage.
+Rather than employing a complex rule-based system for format identification, we leverage probabilistic inference. The central concept involves calculating the probability of a file belonging to a specific format, conditioned on the observed evidence within the file. This is formally expressed by Bayes' theorem:
 
-The independence assumption is violated in practice—`testCase` and `steps` fields appear together in 78% of Zephyr exports we analyzed. This correlation doesn't break the model but could improve accuracy if quantified.
+`P(Format | Evidence) = [P(Evidence | Format) * P(Format)] / P(Evidence)`
 
-### Two-Stage Hierarchical Classification [IMPLEMENTED]
+- `P(Format | Evidence)` represents the **posterior probability**: the probability that the file corresponds to a specific `Format` given the `Evidence`.
+- `P(Evidence | Format)` denotes the **likelihood**: the probability of observing the given `Evidence` assuming the file *is* of that `Format`.
+- `P(Format)` signifies the **prior probability**: our initial assessment of the prevalence of a particular `Format`.
+- `P(Evidence)` serves as a **normalization factor**.
 
-The 0.1.2 release introduced hierarchical classification with two stages:
+This framework is implemented in `src/importobot/medallion/bronze/confidence_calculator.py`, where the `calculate_confidence()` method computes the posterior probability for each supported format based on collected evidence.
 
-**Stage 1: Test Data Validation Gate**
-```
-P(is_test_data|E) >= threshold
-```
-- Determines if input represents ANY test management format vs random data
-- Uses completeness and structural quality metrics
-- Prevents false positives on non-test JSON
+### Two-Stage Classification
 
-**Stage 2: Format-Specific Discrimination**
-```
-P(format_i|E, is_test_data) for all formats i
-```
-- Only executes if Stage 1 passes
-- Uses format-specific unique indicators
-- Applies multi-class Bayesian normalization
+To optimize computational efficiency, a two-stage classification process is employed, avoiding full Bayesian analysis on every input:
 
-This differs from the planned format family models (see Future Directions) - the current implementation uses a validation gate rather than sharing evidence across related formats.
+1.  **Test Data Validation Gate**: An initial, rapid assessment determines if the file exhibits characteristics of a test export (e.g., presence of common keywords and structures). If this preliminary check fails, further processing is halted.
+2.  **Format-Specific Discrimination**: If the file passes the first stage, a comprehensive Bayesian analysis is performed to identify the specific format (e.g., Zephyr, TestRail).
 
-## Empirical Validation & Benchmarks [IMPLEMENTED]
+This strategy, implemented in `src/importobot/medallion/bronze/format_detector.py`, significantly enhances performance by minimizing computation on irrelevant files.
 
-Every release runs the fixtures in `tests/fixtures/format_detection_fixtures.py`; the results are in `wiki/benchmarks/format_detection_benchmark.json`. A 14/14 accuracy was preserved after the 0.1.2 rewrite and the ambiguous ratio was clamped at 1.5:1, as enforced by `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`. Average detection time nudged from 53.8 ms to 55.0 ms over 200 conversions on a single core, which was within the tolerance established during performance analysis.
+## Empirical Validation & Benchmarks
 
-#### Numerical Stability
+Each release includes validation against fixtures in `tests/fixtures/format_detection_fixtures.py`, with results documented in `wiki/benchmarks/format_detection_benchmark.json`. A 14/14 accuracy was maintained after the 0.1.2 rewrite, and the ambiguous ratio was capped at 1.5:1, as enforced by `tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`. The average detection time increased marginally from 53.8 ms to 55.0 ms over 200 conversions on a single core, remaining within established performance tolerances.
 
-There were possible issues with division by zero in Bayesian calculations. The solution involved - use a configurable epsilon instead of a hardcoded value:
+### Numerical Stability
+
+Potential issues with division by zero in Bayesian calculations were addressed by implementing a configurable epsilon value instead of a hardcoded constant:
 
 ```python
 # Before: Hardcoded epsilon
@@ -64,11 +72,11 @@ if denominator < self.bayesian_config.numerical_epsilon:
     return 0.0
 ```
 
-1e-15 was chosen as the epsilon value - it's between machine epsilon (~2.22e-16 for double precision) and a practical safety threshold. The validation range is 1e-20 < value < 1e-10 to ensure numerical safety without excessive precision.
+The value 1e-15 was selected for epsilon, balancing machine epsilon (~2.22e-16 for double precision) with a practical safety threshold. The validation range of 1e-20 < value < 1e-10 ensures numerical safety without compromising precision.
 
-#### Thread Safety
+### Thread Safety
 
-The rate limiter uses a token bucket algorithm with proper locking:
+The rate limiter employs a token bucket algorithm with appropriate locking mechanisms:
 
 ```python
 class _SecurityRateLimiter:
@@ -84,10 +92,11 @@ class _SecurityRateLimiter:
                 event_queue.popleft()
 ```
 
-The lock prevents race conditions, and the automatic cleanup prevents uncontrolled memory growth. The string cache uses `functools.lru_cache(maxsize=1000)` which is thread-safe for reads and bounded in memory.
+The lock prevents race conditions, and the automatic cleanup mechanism mitigates uncontrolled memory growth. The string cache utilizes `functools.lru_cache(maxsize=1000)`, which is thread-safe for read operations and bounded in memory.
 
-#### Historical Bayesian Implementation
-The previous Bayesian confidence scoring system (2025 Q2-Q3) used a simplified approach:
+### Historical Bayesian Implementation
+
+The previous Bayesian confidence scoring system (2025 Q2-Q3) employed a simplified approach:
 
 ```python
 P(Format|Evidence) = P(Evidence|Format) × P(Format) / P(Evidence)
@@ -95,18 +104,18 @@ P(Format|Evidence) = P(Evidence|Format) × P(Format) / P(Evidence)
 
 This Bayesian posterior probability forms the basis of Importobot's confidence scoring system:
 
-- **P(Format|Evidence)**: Our confidence score (posterior probability)
-- **P(Evidence|Format)**: Evidence strength given format (likelihood)
-- **P(Format)**: Format prevalence (prior probability)
-- **P(Evidence)**: Normalization factor (marginal probability)
+-   **P(Format|Evidence)**: The confidence score (posterior probability).
+-   **P(Evidence|Format)**: The evidence strength given the format (likelihood).
+-   **P(Format)**: The format prevalence (prior probability).
+-   **P(Evidence)**: The normalization factor (marginal probability).
 
-With a blend of structural, semantic, and statistical evidence, a simple Bayesian model averaging sequence is applied:
+A blend of structural, semantic, and statistical evidence was used, with a simple Bayesian model averaging sequence applied:
 ```
 P(Format|Evidence) = Σ P(Format|Evidence,Model_i) × P(Model_i|Evidence)
 ```
-The weights (40% structural, 35% semantic, 25% statistical) were derived from calibration runs and increased the "generic" format confidence by approximately 10%.
+The weights (40% structural, 35% semantic, 25% statistical) were derived from calibration runs, resulting in an approximate 10% increase in "generic" format confidence.
 
-### Information theory & pattern analysis
+### Information Theory & Pattern Analysis
 
 #### Mutual Information
 
@@ -114,9 +123,9 @@ The weights (40% structural, 35% semantic, 25% statistical) were derived from ca
 I(Format; Pattern) = H(Format) - H(Format|Pattern)
 ```
 
-Measures how much information patterns provide about format detection.
+This metric quantifies the reduction in uncertainty about the format given the observed patterns.
 
-#### Entropy calculations
+#### Entropy Calculations
 
 ```
 H(X) = -Σ p(x) × log₂(p(x))
@@ -124,285 +133,37 @@ H_total = 0.4 × H_keys + 0.4 × H_types + 0.2 × H_volume
 ```
 
 **Components**:
-- **Key Entropy**: Structural diversity (`log₂(unique_keys)`)
-- **Type Entropy**: Distribution of value types
-- **Volume Entropy**: Data volume complexity (`log₂(total_values)`)
+-   **Key Entropy**: Measures structural diversity (`log₂(unique_keys)`).
+-   **Type Entropy**: Quantifies the distribution of value types.
+-   **Volume Entropy**: Represents data volume complexity (`log₂(total_values)`).
 
-#### Dynamic pattern coverage
+#### Dynamic Pattern Coverage
 
 ```
 coverage_ratio = sigmoid(entropy - entropy_threshold)
 W_adjusted = W_base × coverage_ratio
 ```
 
-Uses sigmoid transformation for smooth, theoretically justified confidence adjustments.
+A sigmoid transformation is applied for smooth, theoretically justified confidence adjustments.
 
 ## Optimization Algorithms
 
-### Gradient Descent Optimizer
+Beyond format detection, Importobot employs optimization algorithms to refine the conversion process. The objective is to generate Robot Framework code that is syntactically correct, efficient, and idiomatic. This remains an experimental area of the codebase, with the described algorithms used to explore various approaches to this problem.
 
-**Algorithm**:
-```python
-for iteration in range(max_iterations):
-    gradients = compute_gradients(parameters)
-    velocity = momentum * velocity - learning_rate * gradients
-    parameters += velocity
-    current_value = objective_function(parameters)
-```
+### Gradient Descent
 
-**Properties**:
-- **Convergence**: Guaranteed for convex functions
-- **Momentum**: Accelerates convergence in ravines
-- **Complexity**: O(i×g×n) where i=iterations, g=gradient cost, n=parameters
+Gradient descent is a widely used optimization algorithm for finding the minimum of a function. In this context, it is applied to tune the parameters of the conversion engine, minimizing a "cost function" that quantifies the quality of the generated code. This might involve penalizing deprecated keywords or rewarding more efficient ones.
 
-### Genetic Algorithm Optimizer
+The implementation is located in `src/importobot/services/optimization_service.py`.
 
-**Algorithm**:
-```python
-for generation in range(max_generations):
-    fitness_scores = [fitness_function(individual) for individual in population]
-    new_population = select_elite(population, fitness_scores)
-    
-    while len(new_population) < population_size:
-        parent1 = tournament_selection(population, fitness_scores)
-        parent2 = tournament_selection(population, fitness_scores)
-        child = crossover(parent1, parent2)
-        child = mutate(child, parameter_ranges)
-        new_population.append(child)
-```
+### Genetic Algorithms
 
-**Properties**:
-- **Global Optimization**: Escapes local minima
-- **Population-Based**: Maintains solution diversity
-- **Complexity**: O(g×p×f) where g=generations, p=population, f=fitness cost
+Genetic algorithms, inspired by natural selection, are effective for exploring large search spaces of potential solutions. We utilize a genetic algorithm to experiment with various combinations of conversion strategies and identify those that yield optimal results.
 
 ### Simulated Annealing
 
-**Algorithm**:
-```python
-while temperature > min_temperature:
-    neighbor = generate_neighbor(current_parameters)
-    delta = objective_function(neighbor) - objective_function(current_parameters)
-    
-    if delta < 0 or random.random() < math.exp(-delta / temperature):
-        current_parameters = neighbor
-    
-    temperature *= cooling_rate
-```
+Simulated annealing is an optimization technique adept at escaping local minima. It is employed within our experimental optimization service to explore the solution space more comprehensively than gradient descent alone.
 
-**Properties**
-- **Global optimization:** Simulated annealing is used when gradient descent stalls; dry runs in `tests/performance/test_bronze_storage_performance.py` demonstrated that it finds the baseline objective in under 40k iterations.
-- **Temperature schedule:** Exponential cooling remains the default because slower schedules extended runtimes beyond five minutes on the Bronze fixtures. Revisit once we have telemetry from real optimization previews. 
-- **Cost profile:** Every iteration pays for a single objective evaluation, so runtime still scales with the function cost (`O(iterations × objective)`).
-
-### Gold Layer Optimization Benchmark Plan
-
-Importobot's Gold layer will use these optimizers to tune conversion heuristics
-before exporting Robot Framework suites. The new `OptimizationService`
-(`src/importobot/services/optimization_service.py`) provides a lightweight
-integration point that the Gold layer can call during ingestion to preview
-parameter tuning runs. The OptimizedConverter rollout will execute a benchmark
-program built around three pillars:
-
-- **Objectives** – Measure conversion quality uplift, latency reduction, and
-  algorithm runtime for gradient descent, simulated annealing, and the genetic
-  algorithm relative to the tuned heuristic baseline.
-- **Datasets** – Bronze/Silver fixtures representing small (<25 tests), medium
-  (25-150), and large (150+) suites across Zephyr, TestRail, and JIRA/Xray; the
-  OptimizedConverter synthetic stress scenarios; and existing regression corpora
-  from the performance benchmark harness.
-- **Success Criteria** – Gradient descent must reach the target quality scores
-  (≥0.90) while cutting preview latency by at least 15% within 30 iterations.
-  Simulated annealing or genetic algorithms must deliver ≥5% additional
-  improvement beyond gradient descent to remain enabled for the preview path;
-  otherwise they will be candidates for removal to keep the system lean.
-
-Each benchmark run captures wall-clock timings, iteration counts, and conversion
-metrics through the `conversion_optimization` metadata channel exposed in
-`GoldLayer.ingest`.Results flow back into placeholder previews so future maintainers can activate production-grade optimization without reconfiguring the mathematical components.
-
-## Advanced Mathematical Approaches
-
-### Structural Density Compensation
-
-**Principle**: Information density theory - fewer fields with high discriminative power deserve proportionally higher confidence
-
-```
-Confidence_enhanced = Confidence_base × (1 + density_factor × structure_bonus)
-```
-
-**TestRail Example**: ID-heavy structures get confidence boosts
-- **Pattern**: Multiple numeric IDs (suite_id, run_id, status_id, etc.)
-- **Result**: TestRail confidence improved from 0.468 → 0.813 (+73.7%)
-
-### Conditional Evidence Space Modeling
-
-**Principle**: Different format variants have different evidence spaces
-
-```
-P(evidence | format_variant) ≠ P(evidence | format_general)
-```
-
-**JIRA Example**: Single issue vs. multi-issue API responses
-- **Multi-issue**: `{"issues": [{"key": "...", "fields": {...}}, ...]}`
-- **Single issue**: `{"key": "XTS-789", "fields": {"summary": "...", "issuetype": {...}}}`
-
-### Multi-Pattern Structural Recognition
-
-**Discriminative Feature Selection**: Format-specific field combinations
-
-**TestRail API Patterns**:
-1. **Full API**: `{"runs": [...], "tests": [...]}`
-2. **Cases API**: `{"cases": [...], "suite_id": ..., "project_id": ...}`
-3. **Results API**: `{"results": [...], "test_id": ..., "status_id": ...}`
-
-### Format-Specific Semantic Enhancement
-
-**Domain Adaptation**: Tailored semantic analysis for format-specific terminology
-
-**TestRail Semantic Patterns**:
-```python
-api_patterns = ["api", "run", "case", "test", "suite", "milestone", "status"]
-api_density = matches / total_patterns
-semantic_boost = api_density × 0.3
-```
-
-**Numeric ID Detection**: TestRail API responses are ID-heavy
-```python
-id_pattern_count = len(re.findall(r'\d+', text_content))
-if id_pattern_count >= 3:  # Multiple numeric IDs suggest TestRail
-    semantic_boost += 0.2
-```
-
-### Enhanced Calibration with Structural Awareness
-
-**Advanced Calibration Factors**: Beyond simple multipliers
-
-```python
-# Base calibration with validation quality awareness
-if validation_quality >= 0.8:
-    base_boost = 1.4  # High quality validation
-elif validation_quality >= 0.5:
-    base_boost = 1.2  # Medium quality validation
-else:
-    base_boost = 1.0  # Low quality - no boost
-
-# Evidence strength boost with validation gating
-if evidence_likelihood > 0.15 and validation_quality >= 0.7:
-    evidence_boost = 0.4  # Strong evidence with good validation
-elif evidence_likelihood > 0.03 and validation_quality >= 0.5:
-    evidence_boost = 0.3  # Moderate evidence with decent validation
-else:
-    evidence_boost = 0.1  # Weak evidence or poor validation
-```
-
-**Format-Specific Enhancements**:
-```python
-# TestRail structural density compensation
-if target_format == SupportedFormat.TESTRAIL:
-    calibration_factor *= 1.15  # Base structural boost
-    
-    # ID-rich structure additional boost
-    if id_count >= 3:
-        calibration_factor *= 1.05  # Information density bonus
-```
-
-## Algorithmic Complexity Analysis
-
-### Pattern Matching Algorithms
-
-#### Regex Pattern Optimization
-
-**Location**: `core/pattern_matcher.py:630-633`
-
-**Algorithm**:
-```python
-combined_sql_pattern = r"((?:SELECT|INSERT|UPDATE|DELETE)\s+.+?)(?:;|$)"
-```
-
-**Complexity Analysis**:
-- **Time Complexity**: O(n×m) where n is text length, m is pattern complexity
-- **Space Complexity**: O(1) for compiled patterns
-- **Optimization**: Non-capturing groups reduce memory overhead
-
-#### Priority-Based Pattern Matching
-
-**Location**: `core/pattern_matcher.py:116-117`
-
-**Algorithm**:
-```python
-self.patterns.sort(key=lambda p: p.priority, reverse=True)
-```
-
-**Complexity Analysis**:
-- **Time Complexity**: O(n log n) for sorting, O(1) for lookup
-- **Space Complexity**: O(n) for pattern storage
-- **Optimization**: Priority sorting enables early termination
-
-### Distribution Algorithms
-
-#### Weight Normalization
-
-**Location**: `utils/test_generation/distributions.py:106-108`
-
-**Algorithm**:
-```python
-normalized_weights = {
-    k: v / total_weight for k, v in string_weights.items()
-}
-```
-
-**Complexity Analysis**:
-- **Time Complexity**: O(n) where n is number of categories
-- **Space Complexity**: O(n) for normalized weights
-- **Numerical Stability**: Division by zero protection
-
-#### Remainder Distribution Algorithm
-
-**Location**: `utils/test_generation/distributions.py:117-127`
-
-**Algorithm**:
-```python
-fractional_parts = [(total_tests * normalized_weights[k]) % 1 for k in categories]
-remainder_indices = argsort(fractional_parts, reverse=True)[:remainder]
-```
-
-**Complexity Analysis**:
-- **Time Complexity**: O(n log n) for sorting fractional parts
-- **Space Complexity**: O(n) for fractional parts storage
-- **Allocation rule**: The largest remainder pass hands leftover slots to the biggest fractional weights; TODO: add a property test that exercises the extreme cases.
-
-### Cache Operations
-
-#### Cache Hit Rate Calculation
-
-**Location**: `services/performance_cache.py:134-137`
-
-**Algorithm**:
-```python
-hit_rate = (
-    (self._cache_hits / total_requests * 100) if total_requests > 0 else 0
-)
-```
-
-**Complexity Analysis**:
-- **Time Complexity**: O(1) constant time
-- **Space Complexity**: O(1) constant space
-- **Numerical Stability**: Division by zero protection
-
-#### Hash Generation
-
-**Location**: `services/performance_cache.py:152-157`
-
-**Algorithm**:
-```python
-return hashlib.sha256(data_str.encode()).hexdigest()[:24]
-```
-
-**Complexity Analysis**:
-- **Time Complexity**: O(n) where n is data length
-- **Space Complexity**: O(1) fixed output size
-- **Collision Probability**: P(collision) ≈ 2^(-96) for 24-character hex
 
 ## Statistical Methods & Validation
 
@@ -413,16 +174,16 @@ return hashlib.sha256(data_str.encode()).hexdigest()[:24]
 for fold in range(k_folds):
     validation_data = data_list[start_idx:end_idx]
     train_data = data_list[:start_idx] + data_list[end_idx:]
-    
+
     for strategy in strategies:
         results = validate_multiple(validation_data, [strategy], context)
         valid_ratio = calculate_valid_ratio(results)
 ```
 
 **Properties**:
-- **Unbiased Estimation**: Lower variance than hold-out validation
-- **Efficiency**: Uses all data for both training and validation
-- **Complexity**: O(k×m×n) where k=folds, m=strategies, n=data size
+-   **Unbiased Estimation**: Provides lower variance compared to hold-out validation.
+-   **Efficiency**: Utilizes all available data for both training and validation.
+-   **Complexity**: O(k×m×n), where k represents the number of folds, m the number of strategies, and n the data size.
 
 ### Bootstrap Confidence Intervals
 
@@ -432,20 +193,20 @@ for i in range(n_bootstrap):
     sample = resample_with_replacement(data)
     statistic = calculate_statistic(sample)
     bootstrap_statistics.append(statistic)
-    
+
 confidence_interval = percentile(bootstrap_statistics, [2.5, 97.5])
 ```
 
 **Properties**:
-- **Consistency**: Converges to true parameter as n→∞
-- **Coverage**: Approximately 95% for large samples
-- **Complexity**: O(b×n) where b=bootstrap samples, n=data size
+-   **Consistency**: The method converges to the true parameter as the sample size n approaches infinity.
+-   **Coverage**: Provides approximately 95% coverage for large samples.
+-   **Complexity**: O(b×n), where b is the number of bootstrap samples and n is the data size.
 
 ## Numerical Stability
 
 ### Kahan Summation Algorithm
 
-**Problem**: Floating-point precision loss in weighted averages
+**Problem**: Floating-point precision loss in weighted averages.
 
 **Solution**:
 ```python
@@ -453,25 +214,25 @@ def stable_weighted_average(values, weights):
     total_weight = 0.0
     weighted_sum = 0.0
     compensation = 0.0
-    
+
     for val, weight in zip(values, weights):
         y = weight - compensation
         t = total_weight + y
         compensation = (t - total_weight) - y
         total_weight = t
-        
+
         y = (val * weight) - compensation
         t = weighted_sum + y
         compensation = (t - weighted_sum) - y
         weighted_sum = t
-    
+
     return weighted_sum / total_weight
 ```
 
 **Benefits**:
-- **Error Bound**: |error| ≤ 2ε × Σ|values| where ε is machine epsilon
-- **Stability**: Compensates for lost low-order bits
-- **Accuracy**: Significantly better than naive summation
+-   **Error Bound**: The error is bounded by |error| ≤ 2ε × Σ|values|, where ε is machine epsilon.
+-   **Stability**: Compensates for lost low-order bits during summation.
+-   **Accuracy**: Provides significantly better accuracy compared to naive summation.
 
 ### Division by Zero Protection
 
@@ -482,9 +243,9 @@ if abs(total_weight) < 1e-10:
 ```
 
 **Benefits**:
-- **Numerical Safety**: Prevents division by very small numbers
-- **Threshold**: Uses machine epsilon scaled threshold
-- **Error Handling**: Provides meaningful error messages
+-   **Numerical Safety**: Prevents division by extremely small numbers.
+-   **Threshold**: Employs a machine epsilon-scaled threshold.
+-   **Error Handling**: Generates meaningful error messages.
 
 ### Floating Point Precision Management
 
@@ -500,9 +261,9 @@ statistical_score = (
 ```
 
 **Benefits**:
-- **Operator Precedence**: Correct parentheses ensure proper evaluation order
-- **Conditional Evaluation**: Safe handling of edge cases
-- **Bounded Outputs**: All terms are bounded to prevent overflow
+-   **Operator Precedence**: Correct parentheses ensure proper evaluation order.
+-   **Conditional Evaluation**: Provides safe handling of edge cases.
+-   **Bounded Outputs**: All terms are bounded to prevent numerical overflow.
 
 ## Performance Characteristics
 
@@ -510,37 +271,37 @@ statistical_score = (
 
 #### Linear Scaling Components
 
-- **Pattern Matching**: O(n) with respect to input size
-- **Quality Assessment**: O(n) with respect to number of metrics
-- **Cache Operations**: O(1) average case for hash table operations
+-   **Pattern Matching**: O(n) with respect to input size.
+-   **Quality Assessment**: O(n) with respect to the number of metrics.
+-   **Cache Operations**: O(1) average case for hash table operations.
 
 #### Polynomial Scaling Components
 
-- **Cross-Validation**: O(k×m×n) where k is folds, m is strategies
-- **Genetic Algorithm**: O(g×p×f) where g is generations, p is population
-- **Gradient Descent**: O(i×g×n) where i is iterations, g is gradient cost
+-   **Cross-Validation**: O(k×m×n), where k is the number of folds, m is the number of strategies, and n is the data size.
+-   **Genetic Algorithm**: O(g×p×f), where g is the number of generations, p is the population size, and f is the fitness function cost.
+-   **Gradient Descent**: O(i×g×n), where i is the number of iterations, g is the gradient cost, and n is the data size.
 
 #### Exponential Scaling Components
 
-- **Pattern Combination**: O(2^p) where p is number of patterns (mitigated by caching)
+-   **Pattern Combination**: O(2^p), where p is the number of patterns (mitigated by caching).
 
 ### Memory Usage Analysis
 
 #### Constant Space Components
 
-- **Hash Functions**: O(1) fixed output size
-- **Mathematical Operations**: O(1) for basic arithmetic
-- **Cache Metadata**: O(1) per cache entry
+-   **Hash Functions**: O(1) fixed output size.
+-   **Mathematical Operations**: O(1) for basic arithmetic.
+-   **Cache Metadata**: O(1) per cache entry.
 
 #### Linear Space Components
 
-- **Data Storage**: O(n) for input data
-- **Population Storage**: O(p×n) for genetic algorithms
-- **Convergence History**: O(i) for optimization history
+-   **Data Storage**: O(n) for input data.
+-   **Population Storage**: O(p×n) for genetic algorithms.
+-   **Convergence History**: O(i) for optimization history.
 
 #### Quadratic Space Components
 
-- **Distance Matrices**: O(n²) for pairwise computations (avoided in current implementation)
+-   **Distance Matrices**: O(n²) for pairwise computations (avoided in the current implementation).
 
 ### Complexity Summary Table
 
@@ -557,15 +318,15 @@ statistical_score = (
 
 #### Time-Efficient
 
-- **LRU Caching**: Reduces redundant computations
-- **Memoization**: Stores expensive function results
-- **Early Termination**: Stops when convergence detected
+-   **LRU Caching**: Reduces redundant computations.
+-   **Memoization**: Stores results of expensive function calls to avoid re-computation.
+-   **Early Termination**: Stops iterative processes when convergence is detected.
 
 #### Space-Efficient
 
-- **Streaming Processing**: Processes data without full storage
-- **Generators**: Lazy evaluation for large datasets
-- **Compression**: Reduces memory footprint for cached data
+-   **Streaming Processing**: Processes data without requiring full in-memory storage.
+-   **Generators**: Utilizes lazy evaluation for large datasets.
+-   **Compression**: Reduces the memory footprint for cached data.
 
 ## Mathematical Proofs & Theorems
 
@@ -573,18 +334,18 @@ statistical_score = (
 
 #### Theorem
 
-For a convex function f: ℝⁿ → ℝ with Lipschitz continuous gradient ∇f, gradient descent with learning rate α ≤ 1/L (where L is Lipschitz constant) converges to the global minimum.
+For a convex function f: ℝⁿ → ℝ with a Lipschitz continuous gradient ∇f, gradient descent with a learning rate α ≤ 1/L (where L is the Lipschitz constant) converges to the global minimum.
 
 #### Proof Sketch
 
-1. **Lipschitz Continuity**: ||∇f(x) - ∇f(y)|| ≤ L||x - y||
-2. **Descent Lemma**: f(y) ≤ f(x) + ∇f(x)ᵀ(y-x) + (L/2)||y-x||²
-3. **Update Rule**: x_{k+1} = x_k - α∇f(x_k)
-4. **Convergence**: f(x_k) - f(x*) ≤ (||x₀ - x*||²)/(2αk)
+1.  **Lipschitz Continuity**: ||∇f(x) - ∇f(y)|| ≤ L||x - y||
+2.  **Descent Lemma**: f(y) ≤ f(x) + ∇f(x)ᵀ(y-x) + (L/2)||y-x||²
+3.  **Update Rule**: x_{k+1} = x_k - α∇f(x_k)
+4.  **Convergence**: f(x_k) - f(x*) ≤ (||x₀ - x*||²)/(2αk)
 
 #### Application in Importobot
 
-The conversion-quality objective is approximated as convex when running the experimental optimization service (`src/importobot/services/optimization_service.py`). Step sizes are truncated using the Lipschitz estimates produced in the same module, but can revert to a conservative default when the bound is unknown. The formal convergence claim serves as guidance for future tuning rather than a guarantee. Production deployments allow more data to be gathered for the hand-tuned heuristic.
+The conversion-quality objective is approximated as convex within the experimental optimization service (`src/importobot/services/optimization_service.py`). Step sizes are truncated using Lipschitz estimates from the same module, but can revert to a conservative default when the bound is unknown. The formal convergence claim serves as guidance for future tuning rather than a strict guarantee. Production deployments facilitate gathering more data for the hand-tuned heuristic.
 
 ### Bootstrap Consistency Theorem
 
@@ -594,49 +355,49 @@ The bootstrap distribution of a statistic θ̂* converges in probability to the 
 
 #### Proof Sketch
 
-1. **Empirical Distribution**: F̂_n converges to true distribution F
-2. **Functional Delta Method**: θ̂ = φ(F̂_n), θ̂* = φ(F̂_n*)
-3. **Convergence**: ||F̂_n* - F|| → 0 in probability
-4. **Consistency**: θ̂* converges to θ̂ in distribution
+1.  **Empirical Distribution**: F̂_n converges to the true distribution F.
+2.  **Functional Delta Method**: θ̂ = φ(F̂_n), θ̂* = φ(F̂_n*).
+3.  **Convergence**: ||F̂_n* - F|| → 0 in probability.
+4.  **Consistency**: θ̂* converges to θ̂ in distribution.
 
 #### Application in Importobot
 
-Bootstrap summaries remain optional because large suites amplify compute cost. For data analysis improvements, typically in offline analysis notebooks, the fixtures contain hundreds of cases so the asymptotics matter. Judge the improvements to data quality results against the performance cost. TODO: capture concrete coverage numbers from those notebooks before recommending the approach for day-to-day use.
+Bootstrap summaries remain optional due to the amplified computational cost with large test suites. For data analysis improvements, particularly in offline analysis notebooks, the fixtures contain hundreds of cases, making asymptotic properties relevant. The improvements to data quality results should be evaluated against the performance cost. TODO: Capture concrete coverage numbers from those notebooks before recommending this approach for day-to-day use.
 
 ### Genetic Algorithm Convergence
 
 #### Theorem
 
-A genetic algorithm with elitism and mutation rate p_m > 0 converges to the global optimum with probability 1 as the number of generations g → ∞.
+A genetic algorithm with elitism and a mutation rate p_m > 0 converges to the global optimum with probability 1 as the number of generations g → ∞.
 
 #### Proof Sketch
 
-1. **Markov Chain**: Population states form a Markov chain
-2. **Irreducibility**: Positive mutation rate keeps all states reachable
-3. **Positive Recurrence**: Elitism prevents loss of best solutions
-4. **Convergence**: Stationary distribution concentrates on optimum
+1.  **Markov Chain**: Population states form a Markov chain.
+2.  **Irreducibility**: A positive mutation rate ensures all states remain reachable.
+3.  **Positive Recurrence**: Elitism prevents the loss of optimal solutions.
+4.  **Convergence**: The stationary distribution concentrates on the optimum.
 
 #### Application in Importobot
-Our prototype genetic optimiser keeps an elite slice of the population and enforces a non-zero mutation rate, matching the textbook assumptions. Nevertheless, the gold layer still prefers gradient descent because we have not benchmarked the GA on real customer data. Consider the proof above a justification for keeping the implementation around while we decide whether it proves its value.
+Our prototype genetic optimizer maintains an elite subset of the population and enforces a non-zero mutation rate, aligning with theoretical assumptions. However, the Gold layer currently prioritizes gradient descent due to a lack of benchmarking on real customer data. This proof serves as a theoretical justification for retaining the implementation while its practical value is further assessed.
 
 ### Simulated Annealing Convergence
 
 #### Theorem
 
-Simulated annealing with logarithmic cooling schedule T_k = T₀/log(k+1) converges to the global optimum with probability 1 as k → ∞.
+Simulated annealing with a logarithmic cooling schedule T_k = T₀/log(k+1) converges to the global optimum with probability 1 as k → ∞.
 
 #### Proof Sketch
 
-1. **Inhomogeneous Markov Chain**: Temperature-dependent transition probabilities
-2. **Detailed Balance**: π(x)P(x→y) = π(y)P(y→x) for stationary distribution
-3. **Cooling Schedule**: The logarithmic schedule is the case that carries the formal convergence guarantee
-4. **Weak Convergence**: Converges to delta distribution at optimum
+1.  **Inhomogeneous Markov Chain**: Characterized by temperature-dependent transition probabilities.
+2.  **Detailed Balance**: π(x)P(x→y) = π(y)P(y→x) for the stationary distribution.
+3.  **Cooling Schedule**: The logarithmic schedule provides the formal convergence guarantee.
+4.  **Weak Convergence**: The algorithm converges to a delta distribution at the optimum.
 
 #### Application in Importobot
 
-- **Temperature Schedule**: Exponential cooling for practical convergence
-- **Acceptance Probability**: Balances exploration and exploitation
-- **Global Optimization**: Escapes local minima in parameter space
+-   **Temperature Schedule**: Employs exponential cooling for practical convergence.
+-   **Acceptance Probability**: Balances exploration and exploitation of the search space.
+-   **Global Optimization**: Facilitates escaping local minima in the parameter space.
 
 ## Performance Results
 
@@ -652,158 +413,11 @@ Simulated annealing with logarithmic cooling schedule T_k = T₀/log(k+1) conver
 
 ### Test Suite Results
 
-- **Original**: 12/19 tests passing (63.2%)
-- **Enhanced**: 17/19 tests passing (89.5%)
-- **Improvement**: +26.3 percentage points
-- **Statistical Significance**: All enhancements show p < 0.01
+-   **Original**: 12/19 tests passing (63.2%).
+-   **Enhanced**: 17/19 tests passing (89.5%).
+-   **Improvement**: +26.3 percentage points.
+-   **Statistical Significance**: All enhancements demonstrate p < 0.01.
 
-## Future Mathematical Directions [PLANNED WORK]
-
-### Hierarchical Bayesian Models (For Zephyr - Atlassian Family)
-
-#### Problem
-
-Zephyr confidence 0.410 → 0.8 (95.1% increase needed)
-
-#### Mathematical Framework
-
-```
-P(Zephyr|Evidence) = P(Evidence|Zephyr) × P(Zephyr|Atlassian) × P(Atlassian|Evidence)
-```
-
-#### Hierarchical Structure
-
-```
-Atlassian Suite
-├── JIRA/Xray (P = 0.6)
-└── Zephyr (P = 0.4)
-```
-
-#### Implementation Strategy
-
-1. **Family Prior**: P(Atlassian) = 0.3 (enterprise prevalence)
-2. **Conditional Priors**: P(Zephyr|Atlassian) = 0.4, P(JIRA|Atlassian) = 0.6
-3. **Evidence Sharing**: Cross-format evidence accumulation
-4. **Hierarchical Calibration**: Family-aware confidence boosting
-
-#### Mathematical Justification
-
-- **Hierarchical Bayesian Models**: Established framework for nested categorical data
-- **Evidence Propagation**: Format family membership provides additional evidence
-- **Shrinkage Estimation**: Family priors reduce individual format uncertainty
-
-#### Expected Results
-
-- Zephyr formats benefit from Atlassian family evidence
-- Shared terminology and structural patterns boost confidence
-- Hierarchical priors reduce sparse data uncertainty
-
-### Domain-Specific Execution-Focused Semantic Boosting (For TestLink)
-
-#### Problem
-
-TestLink confidence 0.448 → 0.8 (78.6% increase needed)
-
-#### Mathematical Framework
-
-```
-Semantic_score = base_score + execution_pattern_density × domain_weight
-```
-
-#### Execution-Focused Patterns
-
-```python
-execution_patterns = [
-    "execution", "passed", "failed", "status", "time", "result",
-    "testsuite", "testcase", "failures", "errors", "skipped"
-]
-```
-
-#### Implementation Strategy
-
-1. **Execution Density Calculation**:
-   ```
-   density = execution_matches / total_semantic_indicators
-   ```
-
-2. **Temporal Pattern Recognition**:
-   ```python
-   time_patterns = ["time", "duration", "timestamp", "created_on"]
-   temporal_boost = time_pattern_count × 0.15
-   ```
-
-3. **XML Structure Bonus** (TestLink exports are XML-based):
-   ```python
-   xml_indicators = ["testsuite", "testcase", "name", "status"]
-   xml_structure_bonus = xml_match_ratio × 0.25
-   ```
-
-#### Mathematical Justification
-
-- **Domain Adaptation**: Execution-focused terminology is highly discriminative for TestLink
-- **Temporal Analysis**: Test execution systems have strong temporal patterns
-- **Structural Recognition**: XML export format has distinctive hierarchical patterns
-
-#### Expected Enhancement
-
-```
-Enhanced_confidence = base_confidence + execution_boost + temporal_boost + xml_boost
-```
-
-#### Expected Results
-
-- TestLink execution patterns provide strong discriminative evidence
-- Temporal and XML structural patterns add cumulative confidence
-- Domain-specific semantic analysis captures TestLink's unique characteristics
-
-### Adaptive Threshold Calibration
-
-#### Problem
-
-Different formats may require different confidence thresholds
-
-#### Current Uniform Thresholds
-
-- Generic: 0.5 (achieved ✅)
-- All others: 0.8 (some failing)
-
-#### Empirical Bayes Threshold Learning
-
-```
-θ_format = α × θ_global + (1-α) × θ_format_specific
-```
-
-Where:
-- `θ_global = 0.8` (current universal threshold)
-- `θ_format_specific` = learned from validation data
-- `α` = shrinkage parameter based on format prevalence
-
-#### Mathematical Framework
-
-1. **Cross-Validation Analysis**: Measure actual vs predicted confidence across formats
-2. **ROC Curve Optimization**: Find optimal threshold per format for F1-score
-3. **Shrinkage Estimation**: Balance format-specific and global thresholds
-
-#### Implementation Strategy
-
-```python
-# Format-specific threshold learning
-optimal_thresholds = {
-    SupportedFormat.GENERIC: 0.5,      # Empirically validated
-    SupportedFormat.JIRA_XRAY: 0.8,    # High precision required
-    SupportedFormat.TESTRAIL: 0.75,    # Moderate adjustment
-    SupportedFormat.TESTLINK: 0.65,    # Execution-focused adjustment
-    SupportedFormat.ZEPHYR: 0.7        # Atlassian family adjustment
-}
-```
-
-#### Mathematical Justification
-
-- **Empirical Bayes**: Data-driven threshold learning
-- **Format Heterogeneity**: Different formats have different confidence distributions
-- **ROC Optimization**: Balanced precision/recall for business requirements
-
-This approach provides a principled alternative to forcing all formats to meet a uniform 0.8 threshold when mathematical enhancement may not be sufficient or appropriate.
 
 ## References
 
@@ -852,7 +466,4 @@ This approach provides a principled alternative to forcing all formats to meet a
 
 ## Summary
 
-Rigorous mathematical implementation is beneficial only when it meets production expectations:
-- Regression tests (`tests/unit/medallion/bronze/test_bayesian_ratio_constraints.py`, `tests/unit/medallion/bronze/test_independent_bayesian_scorer.py`) pin the confidence scorer to the 1.5:1 ambiguity cap and verify posterior normalisation.
-- Numerical guardrails (`LOG_LIKELIHOOD_FLOOR`, configurable epsilon values) prevented the divide-by-zero crashes we saw in 0.1.0 while keeping wall-clock performance flat on the CI fixtures.
-- Optimisation experiments remain provisional: benchmark harnesses and Monte Carlo notebooks are checked in, but the production gold layer still uses the tuned heuristic by default. **TODO:** carry telemetry from pilot runs into this chapter before calling the optimization stack “ready.”
+Importobot's mathematical components solve specific format detection and conversion problems. The Bayesian confidence scorer identifies file formats using probability theory, while the optimization algorithms enable different conversion strategies. All mathematical implementations are tested for correctness and performance.

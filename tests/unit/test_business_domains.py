@@ -1,6 +1,6 @@
 """Tests for business domain templates and enterprise scenarios."""
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from importobot.core.business_domains import (
     BusinessDomainTemplates,
@@ -11,7 +11,7 @@ from importobot.core.business_domains import (
 class TestBusinessDomainTemplatesStructure:
     """Test BusinessDomainTemplates structure and data validation."""
 
-    def test_enterprise_scenarios_structure(self):
+    def test_enterprise_scenarios_structure(self) -> None:
         """Test that enterprise_scenarios has expected structure."""
         bt = BusinessDomainTemplates()
         raw_scenarios = bt.enterprise_scenarios
@@ -29,7 +29,7 @@ class TestBusinessDomainTemplatesStructure:
             assert category in scenarios
             assert isinstance(scenarios[category], dict)
 
-    def test_enterprise_scenarios_have_required_fields(self):
+    def test_enterprise_scenarios_have_required_fields(self) -> None:
         """Test that scenarios have required fields."""
         bt = BusinessDomainTemplates()
         raw_scenarios = bt.enterprise_scenarios
@@ -49,7 +49,7 @@ class TestBusinessDomainTemplatesStructure:
                 assert isinstance(scenario_data["templates"], list)
                 assert len(scenario_data["templates"]) > 0
 
-    def test_enterprise_data_pools_structure(self):
+    def test_enterprise_data_pools_structure(self) -> None:
         """Test that enterprise_data_pools has expected structure."""
         bt = BusinessDomainTemplates()
         raw_pools = bt.enterprise_data_pools
@@ -63,7 +63,7 @@ class TestBusinessDomainTemplatesStructure:
             assert isinstance(pool_data, list)
             assert len(pool_data) > 0
 
-    def test_environment_requirements_structure(self):
+    def test_environment_requirements_structure(self) -> None:
         """Test ENVIRONMENT_REQUIREMENTS structure."""
         requirements = BusinessDomainTemplates.ENVIRONMENT_REQUIREMENTS
 
@@ -72,7 +72,7 @@ class TestBusinessDomainTemplatesStructure:
             assert isinstance(reqs, list)
             assert len(reqs) > 0
 
-    def test_compliance_requirements_structure(self):
+    def test_compliance_requirements_structure(self) -> None:
         """Test COMPLIANCE_REQUIREMENTS structure."""
         requirements = BusinessDomainTemplates.COMPLIANCE_REQUIREMENTS
 
@@ -81,7 +81,7 @@ class TestBusinessDomainTemplatesStructure:
             assert isinstance(reqs, list)
             assert len(reqs) > 0
 
-    def test_setup_instructions_structure(self):
+    def test_setup_instructions_structure(self) -> None:
         """Test SETUP_INSTRUCTIONS structure."""
         instructions = BusinessDomainTemplates.SETUP_INSTRUCTIONS
 
@@ -90,7 +90,7 @@ class TestBusinessDomainTemplatesStructure:
             assert isinstance(instrs, list)
             assert len(instrs) > 0
 
-    def test_teardown_instructions_structure(self):
+    def test_teardown_instructions_structure(self) -> None:
         """Test TEARDOWN_INSTRUCTIONS structure."""
         instructions = BusinessDomainTemplates.TEARDOWN_INSTRUCTIONS
 
@@ -103,7 +103,7 @@ class TestBusinessDomainTemplatesStructure:
 class TestBusinessDomainTemplatesMethods:
     """Test BusinessDomainTemplates method behavior."""
 
-    def test_get_scenario_existing_scenario(self):
+    def test_get_scenario_existing_scenario(self) -> None:
         """Test get_scenario with existing scenario."""
         result = BusinessDomainTemplates.get_scenario(
             "web_automation", "user_authentication"
@@ -115,19 +115,19 @@ class TestBusinessDomainTemplatesMethods:
         assert "steps_count" in result
         assert "templates" in result
 
-    def test_get_scenario_nonexistent_scenario(self):
+    def test_get_scenario_nonexistent_scenario(self) -> None:
         """Test get_scenario with nonexistent scenario."""
         result = BusinessDomainTemplates.get_scenario("web_automation", "nonexistent")
 
         assert result == {}
 
-    def test_get_scenario_nonexistent_category(self):
+    def test_get_scenario_nonexistent_category(self) -> None:
         """Test get_scenario with nonexistent category."""
         result = BusinessDomainTemplates.get_scenario("nonexistent", "scenario")
 
         assert result == {}
 
-    def test_get_all_scenarios_existing_category(self):
+    def test_get_all_scenarios_existing_category(self) -> None:
         """Test get_all_scenarios with existing category."""
         result = BusinessDomainTemplates.get_all_scenarios("web_automation")
 
@@ -135,13 +135,13 @@ class TestBusinessDomainTemplatesMethods:
         assert len(result) > 0
         assert "user_authentication" in result
 
-    def test_get_all_scenarios_nonexistent_category(self):
+    def test_get_all_scenarios_nonexistent_category(self) -> None:
         """Test get_all_scenarios with nonexistent category."""
         result = BusinessDomainTemplates.get_all_scenarios("nonexistent")
 
         assert result == {}
 
-    def test_get_data_pool_existing_pool(self):
+    def test_get_data_pool_existing_pool(self) -> None:
         """Test get_data_pool with existing pool."""
         result = BusinessDomainTemplates.get_data_pool("domains")
 
@@ -149,59 +149,59 @@ class TestBusinessDomainTemplatesMethods:
         assert len(result) > 0
         assert "enterprise.com" in result
 
-    def test_get_data_pool_nonexistent_pool(self):
+    def test_get_data_pool_nonexistent_pool(self) -> None:
         """Test get_data_pool with nonexistent pool."""
         result = BusinessDomainTemplates.get_data_pool("nonexistent")
 
         assert not result
 
-    def test_get_environment_requirements_existing_category(self):
+    def test_get_environment_requirements_existing_category(self) -> None:
         """Test get_environment_requirements with existing category."""
         result = BusinessDomainTemplates.get_environment_requirements("web_automation")
 
         assert isinstance(result, list)
         assert len(result) > 0
 
-    def test_get_environment_requirements_nonexistent_category(self):
+    def test_get_environment_requirements_nonexistent_category(self) -> None:
         """Test get_environment_requirements with nonexistent category."""
         result = BusinessDomainTemplates.get_environment_requirements("nonexistent")
 
         assert result == ["Standard Test Environment"]
 
-    def test_get_compliance_requirements_existing_category(self):
+    def test_get_compliance_requirements_existing_category(self) -> None:
         """Test get_compliance_requirements with existing category."""
         result = BusinessDomainTemplates.get_compliance_requirements("web_automation")
 
         assert isinstance(result, list)
         assert len(result) > 0
 
-    def test_get_compliance_requirements_nonexistent_category(self):
+    def test_get_compliance_requirements_nonexistent_category(self) -> None:
         """Test get_compliance_requirements with nonexistent category."""
         result = BusinessDomainTemplates.get_compliance_requirements("nonexistent")
 
         assert result == ["Standard Compliance"]
 
-    def test_get_setup_instructions_existing_category(self):
+    def test_get_setup_instructions_existing_category(self) -> None:
         """Test get_setup_instructions with existing category."""
         result = BusinessDomainTemplates.get_setup_instructions("web_automation")
 
         assert isinstance(result, list)
         assert len(result) > 0
 
-    def test_get_setup_instructions_nonexistent_category(self):
+    def test_get_setup_instructions_nonexistent_category(self) -> None:
         """Test get_setup_instructions with nonexistent category."""
         result = BusinessDomainTemplates.get_setup_instructions("nonexistent")
 
         assert result == ["Initialize test environment"]
 
-    def test_get_teardown_instructions_existing_category(self):
+    def test_get_teardown_instructions_existing_category(self) -> None:
         """Test get_teardown_instructions with existing category."""
         result = BusinessDomainTemplates.get_teardown_instructions("web_automation")
 
         assert isinstance(result, list)
         assert len(result) > 0
 
-    def test_get_teardown_instructions_nonexistent_category(self):
+    def test_get_teardown_instructions_nonexistent_category(self) -> None:
         """Test get_teardown_instructions with nonexistent category."""
         result = BusinessDomainTemplates.get_teardown_instructions("nonexistent")
 
@@ -211,7 +211,7 @@ class TestBusinessDomainTemplatesMethods:
 class TestBusinessDomainTemplatesLazyLoading:
     """Test BusinessDomainTemplates lazy loading behavior."""
 
-    def test_lazy_loading_property_enterprise_scenarios(self):
+    def test_lazy_loading_property_enterprise_scenarios(self) -> None:
         """Test that enterprise_scenarios property uses lazy loading."""
         bt = BusinessDomainTemplates()
 
@@ -228,7 +228,7 @@ class TestBusinessDomainTemplatesLazyLoading:
             mock_load.assert_called_once_with("enterprise_scenarios")
             assert result == {"test": "data"}
 
-    def test_lazy_loading_property_enterprise_data_pools(self):
+    def test_lazy_loading_property_enterprise_data_pools(self) -> None:
         """Test that enterprise_data_pools property uses lazy loading."""
         bt = BusinessDomainTemplates()
 
@@ -245,7 +245,7 @@ class TestBusinessDomainTemplatesLazyLoading:
             mock_load.assert_called_once_with("enterprise_data_pools")
             assert result == {"pools": "data"}
 
-    def test_lazy_loading_caching_behavior(self):
+    def test_lazy_loading_caching_behavior(self) -> None:
         """Test that lazy loading properties work with caching."""
         bt = BusinessDomainTemplates()
 
@@ -269,7 +269,7 @@ class TestBusinessDomainTemplatesLazyLoading:
 class TestTestCaseTemplates:
     """Test TestCaseTemplates class."""
 
-    def test_json_structures_content(self):
+    def test_json_structures_content(self) -> None:
         """Test JSON_STRUCTURES contains expected structures."""
         structures = TestCaseTemplates.JSON_STRUCTURES
 
@@ -280,7 +280,7 @@ class TestTestCaseTemplates:
         for structure in expected_structures:
             assert structure in structures
 
-    def test_enterprise_labels_content(self):
+    def test_enterprise_labels_content(self) -> None:
         """Test ENTERPRISE_LABELS contains expected labels."""
         labels = TestCaseTemplates.ENTERPRISE_LABELS
 
@@ -291,7 +291,7 @@ class TestTestCaseTemplates:
         for label in expected_labels:
             assert label in labels
 
-    def test_test_priorities_content(self):
+    def test_test_priorities_content(self) -> None:
         """Test TEST_PRIORITIES contains expected priorities."""
         priorities = TestCaseTemplates.TEST_PRIORITIES
 
@@ -302,7 +302,7 @@ class TestTestCaseTemplates:
         assert "Medium" in priorities
         assert "Low" in priorities
 
-    def test_test_statuses_content(self):
+    def test_test_statuses_content(self) -> None:
         """Test TEST_STATUSES contains expected statuses."""
         statuses = TestCaseTemplates.TEST_STATUSES
 
@@ -311,7 +311,7 @@ class TestTestCaseTemplates:
         assert "Approved" in statuses
         assert "Ready for Execution" in statuses
 
-    def test_automation_readiness_levels_structure(self):
+    def test_automation_readiness_levels_structure(self) -> None:
         """Test AUTOMATION_READINESS_LEVELS structure."""
         levels = TestCaseTemplates.AUTOMATION_READINESS_LEVELS
 
@@ -323,7 +323,7 @@ class TestTestCaseTemplates:
         for key in expected_keys:
             assert key in levels
 
-    def test_security_classifications_structure(self):
+    def test_security_classifications_structure(self) -> None:
         """Test SECURITY_CLASSIFICATIONS structure."""
         classifications = TestCaseTemplates.SECURITY_CLASSIFICATIONS
 
@@ -334,7 +334,7 @@ class TestTestCaseTemplates:
         for classification in classifications.values():
             assert isinstance(classification, str)
 
-    def test_get_available_structures_returns_copy(self):
+    def test_get_available_structures_returns_copy(self) -> None:
         """Test get_available_structures returns a copy."""
         structures1 = TestCaseTemplates.get_available_structures()
         structures2 = TestCaseTemplates.get_available_structures()
@@ -342,14 +342,14 @@ class TestTestCaseTemplates:
         assert structures1 is not structures2
         assert structures1 == structures2
 
-    def test_get_enterprise_labels_no_count(self):
+    def test_get_enterprise_labels_no_count(self) -> None:
         """Test get_enterprise_labels with no count limit."""
         labels = TestCaseTemplates.get_enterprise_labels()
 
         assert isinstance(labels, list)
         assert len(labels) == len(TestCaseTemplates.ENTERPRISE_LABELS)
 
-    def test_get_enterprise_labels_with_count(self):
+    def test_get_enterprise_labels_with_count(self) -> None:
         """Test get_enterprise_labels with count limit."""
         count = 3
         labels = TestCaseTemplates.get_enterprise_labels(count)
@@ -361,7 +361,7 @@ class TestTestCaseTemplates:
         for label in labels:
             assert label in TestCaseTemplates.ENTERPRISE_LABELS
 
-    def test_get_enterprise_labels_count_larger_than_available(self):
+    def test_get_enterprise_labels_count_larger_than_available(self) -> None:
         """Test get_enterprise_labels with count larger than available labels."""
         large_count = len(TestCaseTemplates.ENTERPRISE_LABELS) + 10
         labels = TestCaseTemplates.get_enterprise_labels(large_count)
@@ -369,7 +369,9 @@ class TestTestCaseTemplates:
         assert len(labels) == len(TestCaseTemplates.ENTERPRISE_LABELS)
 
     @patch("random.sample")
-    def test_get_enterprise_labels_uses_random_sample(self, mock_sample):
+    def test_get_enterprise_labels_uses_random_sample(
+        self, mock_sample: MagicMock
+    ) -> None:
         """Test get_enterprise_labels uses random.sample for selection."""
         mock_sample.return_value = ["selected1", "selected2"]
 
@@ -378,43 +380,43 @@ class TestTestCaseTemplates:
         mock_sample.assert_called_once_with(TestCaseTemplates.ENTERPRISE_LABELS, 2)
         assert result == ["selected1", "selected2"]
 
-    def test_get_automation_readiness_very_high_complexity(self):
+    def test_get_automation_readiness_very_high_complexity(self) -> None:
         """Test get_automation_readiness with very_high complexity."""
         result = TestCaseTemplates.get_automation_readiness("any_category", "very_high")
 
         assert result == "Partial - Manual verification required"
 
-    def test_get_automation_readiness_web_automation(self):
+    def test_get_automation_readiness_web_automation(self) -> None:
         """Test get_automation_readiness for web_automation category."""
         result = TestCaseTemplates.get_automation_readiness("web_automation", "high")
 
         assert result == "Full - Ready for CI/CD"
 
-    def test_get_automation_readiness_api_testing(self):
+    def test_get_automation_readiness_api_testing(self) -> None:
         """Test get_automation_readiness for api_testing category."""
         result = TestCaseTemplates.get_automation_readiness("api_testing", "high")
 
         assert result == "Full - Ready for CI/CD"
 
-    def test_get_automation_readiness_default(self):
+    def test_get_automation_readiness_default(self) -> None:
         """Test get_automation_readiness default case."""
         result = TestCaseTemplates.get_automation_readiness("other_category", "high")
 
         assert result == "High - Suitable for automation"
 
-    def test_get_security_classification_existing_category(self):
+    def test_get_security_classification_existing_category(self) -> None:
         """Test get_security_classification for existing category."""
         result = TestCaseTemplates.get_security_classification("web_automation")
 
         assert result == "Internal"
 
-    def test_get_security_classification_api_testing(self):
+    def test_get_security_classification_api_testing(self) -> None:
         """Test get_security_classification for api_testing."""
         result = TestCaseTemplates.get_security_classification("api_testing")
 
         assert result == "Confidential"
 
-    def test_get_security_classification_nonexistent_category(self):
+    def test_get_security_classification_nonexistent_category(self) -> None:
         """Test get_security_classification for nonexistent category."""
         result = TestCaseTemplates.get_security_classification("nonexistent")
 

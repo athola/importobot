@@ -7,6 +7,8 @@ is critical for automated test conversion pipelines.
 import json
 import os
 import time
+from collections.abc import Generator
+from pathlib import Path
 
 import pytest
 
@@ -23,7 +25,7 @@ class TestSecurityValidationCICD:
     """Integration tests for security validation in CI/CD environments."""
 
     @pytest.fixture
-    def ci_cd_environment(self):
+    def ci_cd_environment(self) -> Generator[None, None, None]:
         """Simulate CI/CD environment variables."""
         original_env = os.environ.copy()
         os.environ.update(
@@ -41,7 +43,7 @@ class TestSecurityValidationCICD:
         os.environ.update(original_env)
 
     @pytest.fixture
-    def production_test_data(self, tmp_path):
+    def production_test_data(self, tmp_path: Path) -> Path:
         """Create test data that simulates production environment access."""
         prod_data = {
             "test_case": {
@@ -88,7 +90,7 @@ class TestSecurityValidationCICD:
         return test_file
 
     @pytest.fixture
-    def security_violation_test_data(self, tmp_path):
+    def security_violation_test_data(self, tmp_path: Path) -> Path:
         """Create test data with multiple security violations."""
         violation_data = {
             "test_case": {
@@ -140,7 +142,7 @@ class TestSecurityValidationCICD:
         return test_file
 
     @pytest.fixture
-    def safe_test_data(self, tmp_path):
+    def safe_test_data(self, tmp_path: Path) -> Path:
         """Create test data that follows security best practices."""
         safe_data = {
             "test_case": {
@@ -182,8 +184,8 @@ class TestSecurityValidationCICD:
         return test_file
 
     def test_strict_security_level_in_ci_cd(
-        self, ci_cd_environment, production_test_data
-    ):
+        self, ci_cd_environment: dict[str, str], production_test_data: Path
+    ) -> None:
         """Test that strict security level is enforced in CI/CD environments."""
         # ci_cd_environment fixture is used for test setup but not directly in this test
         _ = ci_cd_environment
@@ -210,8 +212,8 @@ class TestSecurityValidationCICD:
         )
 
     def test_security_validation_blocks_dangerous_operations(
-        self, ci_cd_environment, security_violation_test_data
-    ):
+        self, ci_cd_environment: dict[str, str], security_violation_test_data: Path
+    ) -> None:
         """Test that security validation blocks dangerous operations in CI/CD."""
         # ci_cd_environment fixture is used for test setup but not directly in this test
         _ = ci_cd_environment
@@ -241,7 +243,9 @@ class TestSecurityValidationCICD:
                 for warning in results["warnings"]
             ), f"Should detect {pattern_name} violation"
 
-    def test_safe_operations_pass_validation(self, ci_cd_environment, safe_test_data):
+    def test_safe_operations_pass_validation(
+        self, ci_cd_environment: dict[str, str], safe_test_data: Path
+    ) -> None:
         """Test that safe operations pass security validation."""
         # ci_cd_environment fixture is used for test setup but not directly in this test
         _ = ci_cd_environment
@@ -262,8 +266,11 @@ class TestSecurityValidationCICD:
         )
 
     def test_security_validation_integration_with_conversion_engine(
-        self, ci_cd_environment, security_violation_test_data, tmp_path
-    ):
+        self,
+        ci_cd_environment: dict[str, str],
+        security_violation_test_data: Path,
+        tmp_path: Path,
+    ) -> None:
         """Test that security validation integrates with conversion engine."""
         # Fixtures are used for test setup but not directly in this test
         _ = ci_cd_environment, tmp_path
@@ -310,8 +317,8 @@ class TestSecurityValidationCICD:
         assert dangerous_found, "Should handle dangerous commands in generated code"
 
     def test_ci_cd_environment_security_level_detection(
-        self, ci_cd_environment, production_test_data
-    ):
+        self, ci_cd_environment: dict[str, str], production_test_data: Path
+    ) -> None:
         """Test that CI/CD environment variables affect security level."""
         # ci_cd_environment fixture is used for test setup but not directly in this test
         _ = ci_cd_environment
@@ -334,7 +341,9 @@ class TestSecurityValidationCICD:
             "Standard should detect more than permissive"
         )
 
-    def test_bulk_security_validation_in_ci_cd(self, ci_cd_environment, tmp_path):
+    def test_bulk_security_validation_in_ci_cd(
+        self, ci_cd_environment: dict[str, str], tmp_path: Path
+    ) -> None:
         """Test bulk security validation for multiple test files in CI/CD."""
         # Fixtures are used for test setup but not directly in this test
         _ = ci_cd_environment, tmp_path
@@ -409,8 +418,8 @@ class TestSecurityValidationCICD:
         assert len(dangerous_files) > 0, "Should flag dangerous files"
 
     def test_security_validation_performance_in_ci_cd(
-        self, ci_cd_environment, tmp_path
-    ):
+        self, ci_cd_environment: dict[str, str], tmp_path: Path
+    ) -> None:
         """Test security validation performance for large test suites in CI/CD."""
         # Fixtures are used for test setup but not directly in this test
         _ = ci_cd_environment, tmp_path
@@ -462,7 +471,9 @@ class TestSecurityValidationCICD:
         # Should detect security violations
         assert len(results["warnings"]) >= 10, "Should detect all security violations"
 
-    def test_security_guidelines_integration(self, ci_cd_environment):
+    def test_security_guidelines_integration(
+        self, ci_cd_environment: dict[str, str]
+    ) -> None:
         """Test that security guidelines are properly integrated in CI/CD."""
         # ci_cd_environment fixture is used for test setup but not directly in this test
         _ = ci_cd_environment
@@ -482,7 +493,9 @@ class TestSecurityValidationCICD:
         for topic in essential_topics:
             assert topic in guidelines_text, f"Guidelines should cover {topic}"
 
-    def test_security_validation_error_handling(self, ci_cd_environment, tmp_path):
+    def test_security_validation_error_handling(
+        self, ci_cd_environment: dict[str, str], tmp_path: Path
+    ) -> None:
         """Test security validation error handling in CI/CD."""
         # ci_cd_environment fixture is used for test setup but not directly in this test
         _ = ci_cd_environment
@@ -509,8 +522,8 @@ class TestSecurityValidationCICD:
             )
 
     def test_security_validation_with_environment_variables(
-        self, ci_cd_environment, tmp_path
-    ):
+        self, ci_cd_environment: dict[str, str], tmp_path: Path
+    ) -> None:
         """Test security validation with environment variable substitution."""
         # Fixtures are used for test setup but not directly in this test
         _ = ci_cd_environment, tmp_path
@@ -556,8 +569,11 @@ class TestSecurityValidationCICD:
             os.environ.pop(key, None)
 
     def test_security_validation_report_generation(
-        self, ci_cd_environment, security_violation_test_data, tmp_path
-    ):
+        self,
+        ci_cd_environment: dict[str, str],
+        security_violation_test_data: Path,
+        tmp_path: Path,
+    ) -> None:
         """Test security validation report generation for CI/CD."""
         # ci_cd_environment fixture is used for test setup but not directly in this test
         _ = ci_cd_environment

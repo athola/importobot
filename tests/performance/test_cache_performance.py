@@ -5,6 +5,7 @@ Uses adaptive thresholds to account for machine performance differences.
 
 import random
 import time
+from collections.abc import Generator
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
@@ -22,14 +23,14 @@ class TestCachePerformanceCharacteristics:
     """Test cache performance meets business requirements."""
 
     @pytest.fixture(autouse=True)
-    def setup(self):
+    def setup(self) -> Generator[None, None, None]:
         """Set up adaptive thresholds for this test session."""
         self.thresholds = get_adaptive_thresholds()
         clear_context()
         yield
         clear_context()
 
-    def test_cache_lookup_is_fast(self):
+    def test_cache_lookup_is_fast(self) -> None:
         """GIVEN a cache with 1000 entries
         WHEN looking up a cached value
         THEN lookup completes within adaptive threshold
@@ -59,7 +60,7 @@ class TestCachePerformanceCharacteristics:
             f"(perf factor: {self.thresholds.system.performance_factor:.2f})"
         )
 
-    def test_cache_scales_to_large_datasets(self):
+    def test_cache_scales_to_large_datasets(self) -> None:
         """GIVEN a cache handling 10,000 entries
         WHEN accessing entries randomly
         THEN performance remains consistent
@@ -96,7 +97,7 @@ class TestCachePerformanceCharacteristics:
         )
 
     @pytest.mark.timeout(10)
-    def test_cache_eviction_performance(self):
+    def test_cache_eviction_performance(self) -> None:
         """GIVEN a cache at capacity
         WHEN continuously adding new entries (causing evictions)
         THEN eviction overhead is minimal
@@ -131,7 +132,7 @@ class TestCachePerformanceCharacteristics:
 class TestCacheMemoryEfficiency:
     """Test cache memory usage meets requirements."""
 
-    def test_cache_respects_size_limits(self):
+    def test_cache_respects_size_limits(self) -> None:
         """GIVEN a cache with max_size=100
         WHEN adding 1000 entries
         THEN cache never exceeds 100 entries
@@ -146,7 +147,7 @@ class TestCacheMemoryEfficiency:
             stats = cache.get_stats()
             assert stats["cache_size"] <= 100
 
-    def test_ttl_prevents_unbounded_memory_growth(self):
+    def test_ttl_prevents_unbounded_memory_growth(self) -> None:
         """GIVEN a cache with TTL=1 second
         WHEN entries expire
         THEN memory is freed automatically
@@ -166,13 +167,16 @@ class TestCacheMemoryEfficiency:
         # Wait for TTL
         time.sleep(1.2)
 
-        # Access keys to trigger expiration check
-        expired_count = sum(1 for i in range(100) if cache.get(i) is None)
+        # Trigger cleanup and check cache size without refreshing TTL.
+        cache._cleanup_expired_entries()
 
-        # Most entries should have expired
-        assert expired_count > 90
+        # Most entries should have expired and been cleaned up
+        final_size = cache.get_stats()["cache_size"]
+        assert final_size < 10, (
+            f"Expected <10 entries after expiration, got {final_size}"
+        )
 
-    def test_security_limits_prevent_dos(self):
+    def test_security_limits_prevent_dos(self) -> None:
         """GIVEN a cache with content size limits
         WHEN attempting to cache extremely large values
         THEN large values are rejected to prevent DoS
@@ -197,14 +201,14 @@ class TestConcurrentCachePerformance:
     """Test cache performance under concurrent load."""
 
     @pytest.fixture(autouse=True)
-    def setup(self):
+    def setup(self) -> Generator[None, None, None]:
         """Set up adaptive thresholds."""
         self.thresholds = get_adaptive_thresholds()
         clear_context()
         yield
         clear_context()
 
-    def test_cache_handles_concurrent_reads(self):
+    def test_cache_handles_concurrent_reads(self) -> None:
         """GIVEN a cache shared across threads
         WHEN multiple threads read simultaneously
         THEN all reads complete quickly without blocking
@@ -217,7 +221,7 @@ class TestConcurrentCachePerformance:
         for i in range(100):
             cache.set(i, f"value_{i}")
 
-        def read_operations():
+        def read_operations() -> float:
             start = time.perf_counter()
             for i in range(100):
                 _ = cache.get(i % 100)
@@ -239,7 +243,7 @@ class TestConcurrentCachePerformance:
             f"Concurrent reads too slow: {avg_time:.3f}s > {threshold:.3f}s"
         )
 
-    def test_context_isolation_has_minimal_overhead(self):
+    def test_context_isolation_has_minimal_overhead(self) -> None:
         """GIVEN multiple threads each with own context
         WHEN accessing context and cache
         THEN overhead is minimal
@@ -247,7 +251,7 @@ class TestConcurrentCachePerformance:
         Business requirement: Context pattern shouldn't slow down multi-threaded apps
         """
 
-        def worker_task():
+        def worker_task() -> float:
             start = time.perf_counter()
 
             # Get context (thread-local)
@@ -284,7 +288,7 @@ class TestConcurrentCachePerformance:
 class TestCacheHitRateOptimization:
     """Test cache achieves good hit rates in realistic scenarios."""
 
-    def test_conversion_workflow_achieves_high_hit_rate(self):
+    def test_conversion_workflow_achieves_high_hit_rate(self) -> None:
         """GIVEN a typical conversion workflow with repeated strings
         WHEN processing multiple test cases
         THEN cache hit rate is > 50%
@@ -308,8 +312,8 @@ class TestCacheHitRateOptimization:
         context = get_context()
         cache = context.performance_cache
 
-        if hasattr(cache, "get_cache_stats"):
-            stats = cache.get_cache_stats()
+        if hasattr(cache, "get_stats"):
+            stats = cache.get_stats()
             total = stats["cache_hits"] + stats["cache_misses"]
 
             if total > 0:
@@ -319,7 +323,7 @@ class TestCacheHitRateOptimization:
                     f"(hits: {stats['cache_hits']}, misses: {stats['cache_misses']})"
                 )
 
-    def test_batch_processing_improves_hit_rate_over_time(self):
+    def test_batch_processing_improves_hit_rate_over_time(self) -> None:
         """GIVEN a batch of files being processed
         WHEN processing files sequentially
         THEN hit rate improves with each batch
@@ -339,8 +343,8 @@ class TestCacheHitRateOptimization:
             context = get_context()
             cache = context.performance_cache
 
-            if hasattr(cache, "get_cache_stats"):
-                stats = cache.get_cache_stats()
+            if hasattr(cache, "get_stats"):
+                stats = cache.get_stats()
                 total = stats["cache_hits"] + stats["cache_misses"]
                 if total > 0:
                     hit_rates.append(stats["cache_hits"] / total)

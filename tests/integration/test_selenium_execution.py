@@ -11,8 +11,9 @@ import json
 import sys
 import threading
 import types
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from http.server import HTTPServer
+from pathlib import Path
 from typing import cast
 
 import pytest
@@ -85,8 +86,10 @@ def _create_stub_module(library_name: str) -> types.ModuleType:
         func.__doc__ = f"Stub keyword for {display_name}"
         attrs[method_name] = func
 
-    def __getattr__(self, name):  # pragma: no cover - safety default handler
-        def _keyword(*args, **kwargs):
+    def __getattr__(
+        self: object, name: str
+    ) -> "types.MethodType":  # pragma: no cover - safety default handler
+        def _keyword(*args: object, **kwargs: object) -> object:
             return None
 
         _keyword.__name__ = name
@@ -106,7 +109,7 @@ robot_run = cast(Callable[..., int], robot.run)  # type: ignore[attr-defined]
 
 
 @pytest.fixture(scope="module", autouse=True)
-def stub_robot_libraries():
+def stub_robot_libraries() -> Generator[None, None, None]:
     """Provide lightweight stubs for Robot external libraries used in tests."""
     originals: dict[str, types.ModuleType | None] = {
         lib: sys.modules.get(lib) for lib in ("SeleniumLibrary", "RequestsLibrary")
@@ -128,7 +131,7 @@ def stub_robot_libraries():
 
 
 @pytest.fixture
-def mock_server():
+def mock_server() -> Generator[str, None, None]:
     """Start a mock HTTP server for Selenium testing."""
     try:
         server = HTTPServer(("127.0.0.1", 0), MyHandler)
@@ -147,7 +150,7 @@ def mock_server():
         thread.join(timeout=1)
 
 
-def test_json_to_robot_selenium_execution(tmp_path, mock_server):
+def test_json_to_robot_selenium_execution(tmp_path: Path, mock_server: str) -> None:
     """
     Full integration test: JSON -> Robot Framework -> Selenium execution.
 
@@ -275,7 +278,9 @@ def test_json_to_robot_selenium_execution(tmp_path, mock_server):
             pytest.fail("Robot file missing expected Selenium keywords")
 
 
-def test_json_to_robot_complex_selenium_workflow(tmp_path, mock_server):
+def test_json_to_robot_complex_selenium_workflow(
+    tmp_path: Path, mock_server: str
+) -> None:
     """
     Test complex Selenium workflow with multiple operations.
 

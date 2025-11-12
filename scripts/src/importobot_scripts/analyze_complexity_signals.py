@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 """Inspect how complexity-related signals correlate with detection accuracy.
 
-This utility runs the format detector against the curated integration samples and
-logs, for each payload, the structural complexity, information richness, indicator
-counts, and the Bayesian posterior. The output can be redirected to a CSV for
-quick correlation checks before we tune amplification heuristics.
+This utility runs the format detector against integration samples and logs
+structural complexity, information richness, indicator counts, and Bayesian posterior.
+Output can be redirected to a CSV for correlation checks.
 """
 
 # ruff: noqa: E402, I001 - Module level import not at top of file

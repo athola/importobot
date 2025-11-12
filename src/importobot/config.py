@@ -17,6 +17,10 @@ from importobot.utils.logging import get_logger
 # Module-level logger for configuration warnings
 logger = get_logger()
 
+# Project paths
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+BENCHMARKS_DIR = PROJECT_ROOT / "benchmarks"
+
 # Default values
 DEFAULT_TEST_SERVER_URL = "http://localhost:8000"
 TEST_SERVER_PORT = 8000
@@ -31,12 +35,12 @@ TEST_LOGIN_URL = f"{TEST_SERVER_URL}{LOGIN_PAGE_PATH}"
 # Authentication requirements
 ZEPHYR_MIN_TOKEN_COUNT = 2
 
-# Numeric project identifiers must fit within a signed 64-bit integer. This aligns
-# with the largest BIGINT value supported by downstream databases and partner
-# APIs, preventing overflow when storing project references.
+# Numeric project identifiers must fit within a signed 64-bit integer to prevent
+# overflow in downstream databases and APIs.
 MAX_PROJECT_ID = 9_223_372_036_854_775_807
 
-# Chrome options for headless browser testing
+# Headless Chrome options for browser-based tests. These flags are necessary
+# for running Chrome in a containerized or CI/CD environment.
 CHROME_OPTIONS = [
     "--no-sandbox",
     "--disable-dev-shm-usage",
@@ -46,7 +50,8 @@ CHROME_OPTIONS = [
     "--allow-running-insecure-content",
 ]
 
-# Cache cleanup defaults (seconds). Exposed for tuning via config imports.
+# Cache cleanup defaults (seconds). These can be overridden by importing them
+# in other modules.
 CACHE_MIN_CLEANUP_INTERVAL = 0.1
 CACHE_DEFAULT_CLEANUP_INTERVAL = 5.0
 CACHE_MAX_CLEANUP_INTERVAL = 300.0
@@ -54,7 +59,7 @@ CACHE_SHORT_TTL_THRESHOLD = 5.0
 
 
 def _int_from_env(var_name: str, default: int, *, minimum: int | None = None) -> int:
-    """Parse integer environment variable with validation."""
+    """Parse an integer from an environment variable."""
     raw_value = os.getenv(var_name)
     if raw_value is None:
         return default
@@ -76,7 +81,7 @@ def _int_from_env(var_name: str, default: int, *, minimum: int | None = None) ->
 
 
 def _flag_from_env(var_name: str, default: bool = False) -> bool:
-    """Parse boolean environment variable."""
+    """Parse a boolean from an environment variable."""
     raw_value = os.getenv(var_name)
     if raw_value is None:
         return default
@@ -112,7 +117,7 @@ MAX_CACHE_CONTENT_SIZE_BYTES = _int_from_env(
 
 
 def validate_global_limits() -> None:
-    """Validate critical configuration limits and raise if misconfigured."""
+    """Validate critical configuration limits."""
     issues: list[str] = []
     if MAX_SCHEMA_FILE_SIZE_BYTES <= 0:
         issues.append(
@@ -173,20 +178,14 @@ FORMAT_DETECTION_CIRCUIT_RESET_SECONDS = _int_from_env(
     "IMPORTOBOT_DETECTION_CIRCUIT_RESET_SECONDS", 30, minimum=1
 )
 
-# Bronze layer in-memory cache configuration
-# Default 1024 records chosen based on:
-# - Typical enterprise test suite size: 500-2000 test cases
-# - Memory footprint: ~1MB (1KB per record average)
-# - Performance: 50-80% query speedup for cached records
-# - Balance: Reasonable for both small projects and large organizations
+# Bronze layer in-memory cache configuration.
+# Default is 1024 records, using about 1MB of memory.
 BRONZE_LAYER_MAX_IN_MEMORY_RECORDS = _int_from_env(
     "IMPORTOBOT_BRONZE_MAX_IN_MEMORY_RECORDS", 1024, minimum=1
 )
 
-# Default TTL=0 (disabled) chosen because:
-# - Most use cases have single-writer append-only patterns
-# - TTL adds GC overhead without benefit in immutable scenarios
-# - Enable TTL only when external updates require cache invalidation
+# Default TTL is 0 (disabled) because most use cases are append-only.
+# Enable TTL only when external updates require cache invalidation.
 BRONZE_LAYER_IN_MEMORY_TTL_SECONDS = _int_from_env(
     "IMPORTOBOT_BRONZE_IN_MEMORY_TTL_SECONDS", 0, minimum=0
 )
@@ -194,7 +193,7 @@ BRONZE_LAYER_IN_MEMORY_TTL_SECONDS = _int_from_env(
 
 @dataclass(slots=True)
 class APIIngestConfig:
-    """Resolved configuration for API ingestion workflow."""
+    """Hold configuration for the API ingestion workflow."""
 
     fetch_format: SupportedFormat
     api_url: str
@@ -208,28 +207,28 @@ class APIIngestConfig:
 
 
 def _split_tokens(raw_tokens: str | None) -> list[str]:
-    """Split comma separated tokens into a clean list."""
+    """Split a comma-separated string of tokens into a list."""
     if not raw_tokens:
         return []
     return [token.strip() for token in raw_tokens.split(",") if token.strip()]
 
 
 def _mask(tokens: list[str] | None) -> str:
-    """Return masked token representation for logging/errors."""
+    """Return a masked representation of tokens for logging."""
     if not tokens:
         return "***"
     return ", ".join("***" for _ in tokens)
 
 
 def _resolve_output_dir(cli_path: str | None) -> Path:
-    """Resolve output directory defaulting to environment and cwd."""
+    """Resolve the output directory from CLI arguments or environment variables."""
     env_dir = os.getenv("IMPORTOBOT_API_INPUT_DIR")
     candidate = cli_path or env_dir
     return Path(candidate).expanduser().resolve() if candidate else Path.cwd()
 
 
 def _resolve_max_concurrency(cli_value: int | None) -> int | None:
-    """Resolve max concurrency with environment defaults."""
+    """Resolve the maximum concurrency from CLI arguments or environment variables."""
     if cli_value is not None:
         return cli_value
     raw_env = os.getenv("IMPORTOBOT_API_MAX_CONCURRENCY")
@@ -244,7 +243,7 @@ def _resolve_max_concurrency(cli_value: int | None) -> int | None:
 
 
 def _resolve_insecure_flag(args: Any, prefix: str) -> bool:
-    """Resolve TLS verification flag from CLI arguments and environment."""
+    """Resolve the TLS verification flag from CLI arguments or environment variables."""
     cli_insecure = bool(getattr(args, "insecure", False))
     env_insecure = _flag_from_env(f"{prefix}_INSECURE", False)
     return cli_insecure or env_insecure
@@ -257,7 +256,7 @@ def _validate_required_fields(
     tokens: list[str],
     api_user: str | None,
 ) -> None:
-    """Validate that required API configuration fields are present."""
+    """Validate that all required API configuration fields are present."""
     missing: list[str] = []
     if not api_url:
         missing.append("API URL")
@@ -274,7 +273,7 @@ def _validate_required_fields(
 
 
 def _parse_project_identifier(value: str | None) -> tuple[str | None, int | None]:
-    """Split project identifier into name or numeric ID."""
+    """Parse a project identifier into a name or a numeric ID."""
     if not value:
         return None, None
     raw = value.strip()
@@ -308,7 +307,7 @@ def _parse_project_identifier(value: str | None) -> tuple[str | None, int | None
 
 
 class _ProjectReferenceArgs(Protocol):
-    """Protocol for arguments containing project reference information."""
+    """Define a protocol for arguments that contain a project reference."""
 
     @property
     def project(self) -> str | None:
@@ -322,7 +321,7 @@ def _resolve_project_reference(
     prefix: str,
     fetch_format: SupportedFormat,
 ) -> tuple[str | None, int | None]:
-    """Determine project identifiers from CLI args or environment."""
+    """Resolve project identifiers from CLI arguments or environment variables."""
     cli_project = getattr(args, "project", None)
     cli_invalid = False
     if cli_project is not None:
@@ -390,7 +389,7 @@ def _resolve_project_reference(
 
 
 def resolve_api_ingest_config(args: Any) -> APIIngestConfig:
-    """Resolve API ingestion credentials from CLI args and environment."""
+    """Resolve API ingestion credentials from CLI args and environment variables."""
     fetch_format = getattr(args, "fetch_format", None)
     if isinstance(fetch_format, str):
         fetch_format = FETCHABLE_FORMATS.get(fetch_format.lower())
@@ -474,8 +473,7 @@ def update_medallion_config(config: Any = None, **kwargs: Any) -> Any:
     """Update Medallion storage configuration with lazy dependency loading.
 
     This helper defers importing the Medallion storage stack until explicitly
-    requested, preventing circular import chains when the Medallion optional
-    component is not installed.
+    requested.
     """
     try:
         storage_module = import_module("importobot.medallion.storage.config")

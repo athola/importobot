@@ -1,7 +1,7 @@
-"""Core module internals - not part of public API.
+"""Contains internal core module implementations.
 
-This module contains implementation details and should not be accessed
-directly. Use the public API through importobot.api instead.
+This module's contents are implementation details and should not be accessed
+directly. Public API functionality is exposed through `importobot.api`.
 """
 
 from typing import NoReturn
@@ -12,7 +12,7 @@ __all__: list[str] = []
 
 
 def __getattr__(name: str) -> NoReturn:
-    """Guard against accidental use of internal core modules."""
+    """Prevents accidental access to internal core modules."""
     raise ModuleNotFoundError(
         "importobot.core is internal. Use importobot.api.* or documented helpers."
     )

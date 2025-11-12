@@ -1,4 +1,4 @@
-"""Lightweight telemetry helpers for emitting runtime metrics."""
+"""Provide lightweight telemetry helpers for emitting runtime metrics."""
 
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ TelemetryExporter = Callable[[str, TelemetryPayload], None]
 
 
 def _flag_from_env(var_name: str, default: bool = False) -> bool:
+    """Get a boolean flag from an environment variable."""
     raw = os.getenv(var_name)
     if raw is None:
         return default
@@ -24,6 +25,7 @@ def _flag_from_env(var_name: str, default: bool = False) -> bool:
 
 
 def _float_from_env(var_name: str, default: float) -> float:
+    """Get a float value from an environment variable."""
     raw = os.getenv(var_name)
     if raw is None:
         return default
@@ -34,6 +36,7 @@ def _float_from_env(var_name: str, default: float) -> float:
 
 
 def _int_from_env(var_name: str, default: int) -> int:
+    """Get an integer value from an environment variable."""
     raw = os.getenv(var_name)
     if raw is None:
         return default
@@ -44,11 +47,7 @@ def _int_from_env(var_name: str, default: int) -> int:
 
 
 class TelemetryClient:
-    """Simple telemetry client with basic rate limiting.
-
-    For applications that don't want telemetry, simply don't create a client or
-    pass ``None`` where telemetry clients are optional parameters.
-    """
+    """Provide a simple telemetry client with basic rate limiting."""
 
     def __init__(
         self,
@@ -56,7 +55,7 @@ class TelemetryClient:
         min_emit_interval: float,
         min_sample_delta: int,
     ) -> None:
-        """Initialize telemetry client with rate limiting configuration."""
+        """Initialize the telemetry client with rate limiting configuration."""
         self._min_emit_interval = min_emit_interval
         self._min_sample_delta = min_sample_delta
         self._lock = threading.Lock()
@@ -121,6 +120,7 @@ class TelemetryClient:
     # ---------------------------------------------------------------------
     # Internals
     def _emit(self, event_name: str, payload: TelemetryPayload) -> None:
+        """Emit a telemetry event to all registered exporters."""
         if not self._exporters:
             return
         for exporter in list(self._exporters):
@@ -129,6 +129,7 @@ class TelemetryClient:
     def _default_logger_exporter(
         self, event_name: str, payload: TelemetryPayload
     ) -> None:
+        """Log telemetry events as warnings."""
         logger.warning("telemetry.%s %s", event_name, json.dumps(payload, default=str))
 
     def _emit_with_exporter(

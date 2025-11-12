@@ -1,6 +1,7 @@
 """Tests for LazyDataLoader utility following TDD principles."""
 
 import json
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -11,7 +12,7 @@ from importobot.utils.lazy_loader import LazyDataLoader
 class TestLazyDataLoader:
     """Test LazyDataLoader class following TDD methodology."""
 
-    def test_load_templates_with_existing_file(self, tmp_path):
+    def test_load_templates_with_existing_file(self, tmp_path: Path) -> None:
         """Test loading templates from existing JSON file."""
         LazyDataLoader.load_templates.cache_clear()
         # Arrange
@@ -44,7 +45,7 @@ class TestLazyDataLoader:
             assert "__precomputed__" in result
             assert "__index__" in result
 
-    def test_load_templates_with_nonexistent_file(self):
+    def test_load_templates_with_nonexistent_file(self) -> None:
         """Test loading templates when file doesn't exist returns empty dict."""
         LazyDataLoader.load_templates.cache_clear()
         # Act
@@ -54,7 +55,7 @@ class TestLazyDataLoader:
         assert "__precomputed__" in result
         assert isinstance(result, dict)
 
-    def test_load_keyword_mappings_with_existing_file(self, tmp_path):
+    def test_load_keyword_mappings_with_existing_file(self, tmp_path: Path) -> None:
         """Test loading keyword mappings from existing JSON file."""
         LazyDataLoader.load_keyword_mappings.cache_clear()
         # Clear any cached results first
@@ -89,7 +90,7 @@ class TestLazyDataLoader:
             assert "__reverse_index__" in result
             assert "__precomputed__" in result
 
-    def test_load_keyword_mappings_with_nonexistent_file(self):
+    def test_load_keyword_mappings_with_nonexistent_file(self) -> None:
         """Test loading keyword mappings when file doesn't exist returns empty dict."""
         LazyDataLoader.load_keyword_mappings.cache_clear()
         # Act
@@ -99,7 +100,7 @@ class TestLazyDataLoader:
         assert "__precomputed__" in result
         assert isinstance(result, dict)
 
-    def test_caching_behavior_templates(self, tmp_path):
+    def test_caching_behavior_templates(self, tmp_path: Path) -> None:
         """Test that templates are cached using LRU cache."""
         LazyDataLoader.load_templates.cache_clear()
         # Arrange
@@ -119,7 +120,7 @@ class TestLazyDataLoader:
             assert result1 == result2
             assert result1 is result2  # Should be same object due to caching
 
-    def test_caching_behavior_keyword_mappings(self, tmp_path):
+    def test_caching_behavior_keyword_mappings(self, tmp_path: Path) -> None:
         """Test that keyword mappings are cached using LRU cache."""
         LazyDataLoader.load_keyword_mappings.cache_clear()
         # Arrange
@@ -139,7 +140,7 @@ class TestLazyDataLoader:
             assert result1 == result2
             assert result1 is result2  # Should be same object due to caching
 
-    def test_create_summary_comment_empty_structure(self):
+    def test_create_summary_comment_empty_structure(self) -> None:
         """Test summary comment creation for empty data structure."""
         # Act
         result = LazyDataLoader.create_summary_comment({})
@@ -147,7 +148,7 @@ class TestLazyDataLoader:
         # Assert
         assert result == "# Empty data structure"
 
-    def test_create_summary_comment_small_structure(self):
+    def test_create_summary_comment_small_structure(self) -> None:
         """Test summary comment creation for small data structure."""
         # Arrange
         data = {"key1": "value1", "key2": "value2"}
@@ -162,7 +163,7 @@ class TestLazyDataLoader:
             "(2 total items)" not in result
         )  # Should not show count for small structures
 
-    def test_create_summary_comment_large_structure(self):
+    def test_create_summary_comment_large_structure(self) -> None:
         """Test summary comment creation for large data structure."""
         # Arrange
         data = {f"key{i}": f"value{i}" for i in range(10)}
@@ -175,7 +176,7 @@ class TestLazyDataLoader:
         assert "(10 total items)" in result
         assert "# Data structure with:" in result
 
-    def test_create_summary_comment_custom_max_items(self):
+    def test_create_summary_comment_custom_max_items(self) -> None:
         """Test summary comment creation with custom max items."""
         # Arrange
         data = {"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}
@@ -187,7 +188,7 @@ class TestLazyDataLoader:
         assert "a, b" in result
         assert "(5 total items)" in result
 
-    def test_json_file_encoding_utf8(self, tmp_path):
+    def test_json_file_encoding_utf8(self, tmp_path: Path) -> None:
         """Test that JSON files are read with UTF-8 encoding."""
         # Arrange
         template_data = {"unicode_test": "测试数据"}
@@ -208,7 +209,7 @@ class TestLazyDataLoader:
             assert result["unicode_test"] == "测试数据"
             assert "__precomputed__" in result
 
-    def test_file_path_construction(self):
+    def test_file_path_construction(self) -> None:
         """Test that file paths are constructed correctly."""
         # This test verifies the path construction logic
         with patch("importobot.utils.lazy_loader.Path") as mock_path:
@@ -228,7 +229,7 @@ class TestLazyDataLoader:
             assert "__precomputed__" in result
             mock_path.assert_called()
 
-    def test_json_parsing_error_handling(self, tmp_path):
+    def test_json_parsing_error_handling(self, tmp_path: Path) -> None:
         """Test handling of malformed JSON files."""
         # Arrange
         template_dir = tmp_path / "data" / "templates"

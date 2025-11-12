@@ -113,7 +113,7 @@ def create_large_data() -> dict[str, Any]:
 class TestBronzeValidationQualityScoring(unittest.TestCase):
     """Quality scoring and structure validation tests for Bronze layer."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test environment with validator."""
         self.validator = BronzeValidator()
 
@@ -145,7 +145,7 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
         ]
 
     # Test 1: Quality scoring accuracy and consistency
-    def test_high_quality_data_scores_appropriately(self):
+    def test_high_quality_data_scores_appropriately(self) -> None:
         """Test that high-quality data receives appropriate quality scores."""
         validation_result = self.validator.validate_raw_data(self.high_quality_data)
 
@@ -160,7 +160,7 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
         assert "size_validation" in validation_result.details
         assert "content_validation" in validation_result.details
 
-    def test_medium_quality_data_has_warnings(self):
+    def test_medium_quality_data_has_warnings(self) -> None:
         """Test that medium-quality data generates appropriate warnings."""
         validation_result = self.validator.validate_raw_data(self.medium_quality_data)
 
@@ -177,7 +177,7 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
             "Should identify missing or empty content"
         )
 
-    def test_poor_quality_data_identified_correctly(self):
+    def test_poor_quality_data_identified_correctly(self) -> None:
         """Test that poor-quality data is identified with multiple warnings."""
         validation_result = self.validator.validate_raw_data(self.poor_quality_data)
 
@@ -194,7 +194,7 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
         )
         assert found_issues >= 2, "Should identify multiple types of quality issues"
 
-    def test_validation_consistency_across_runs(self):
+    def test_validation_consistency_across_runs(self) -> None:
         """Test that validation results are consistent across multiple runs."""
         results = []
         for _ in range(5):  # Run validation multiple times
@@ -210,7 +210,7 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
             assert result.severity == first_result.severity
 
     # Test 2: Structure validation business logic
-    def test_structure_validation_dictionary_requirement(self):
+    def test_structure_validation_dictionary_requirement(self) -> None:
         """Test that structure validation enforces dictionary requirement."""
         for malformed_data in self.malformed_data_examples:
             with self.subTest(data_type=type(malformed_data).__name__):
@@ -221,7 +221,7 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
                     assert validation_result.error_count > 0
                     assert validation_result.severity == QualitySeverity.CRITICAL
 
-    def test_structure_validation_nesting_depth_limits(self):
+    def test_structure_validation_nesting_depth_limits(self) -> None:
         """Test that structure validation enforces reasonable nesting depth."""
         deeply_nested: dict[str, Any] = {"level1": {"level2": {"level3": {}}}}
         for _i in range(25):  # Create very deep nesting
@@ -236,7 +236,7 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
                 keyword in issues_text for keyword in ["depth", "nesting", "deep"]
             ), "Should warn about excessive nesting depth"
 
-    def test_structure_validation_test_indicators(self):
+    def test_structure_validation_test_indicators(self) -> None:
         """Test that structure validation identifies test-related content."""
         # Data with test indicators
         test_data = {
@@ -265,7 +265,7 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
         assert validation_result.warning_count > 0
 
     # Test 3: Size validation business logic
-    def test_size_validation_reasonable_limits(self):
+    def test_size_validation_reasonable_limits(self) -> None:
         """Test that size validation enforces reasonable data size limits."""
         validation_result = self.validator.validate_raw_data(self.large_data)
 
@@ -276,7 +276,7 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
         # Should complete validation even for large data
         assert validation_result.is_valid is not None
 
-    def test_size_validation_extremely_large_data(self):
+    def test_size_validation_extremely_large_data(self) -> None:
         """Test size validation behavior with extremely large data."""
         # Create data that exceeds reasonable limits
         huge_data = {
@@ -298,7 +298,7 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
             # Acceptable to fail with memory error for extremely large data
             pass
 
-    def test_size_validation_individual_field_limits(self):
+    def test_size_validation_individual_field_limits(self) -> None:
         """Test validation of individual field sizes."""
         data_with_large_fields = {
             "normal_field": "normal value",
@@ -315,7 +315,7 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
                 assert len(large_fields) > 0
 
     # Test 4: Error severity classification
-    def test_severity_classification_critical_errors(self):
+    def test_severity_classification_critical_errors(self) -> None:
         """Test that critical errors are classified correctly."""
         critical_data_examples: list[Any] = [
             None,  # Not a dict
@@ -331,7 +331,7 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
                 assert validation_result.severity == QualitySeverity.CRITICAL
                 assert validation_result.error_count > 0
 
-    def test_severity_classification_warning_levels(self):
+    def test_severity_classification_warning_levels(self) -> None:
         """Test that different warning levels are classified correctly."""
         # High warning scenario
         high_warning_data = {f"empty_field_{i}": "" for i in range(10)}
@@ -365,7 +365,7 @@ class TestBronzeValidationQualityScoring(unittest.TestCase):
 class TestBronzeValidationContentAndPerformance(unittest.TestCase):
     """Content validation and performance tests for Bronze layer."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test environment with validator."""
         self.validator = BronzeValidator()
 
@@ -375,7 +375,7 @@ class TestBronzeValidationContentAndPerformance(unittest.TestCase):
         self.large_data = create_large_data()
 
     # Test 1: Content validation business logic
-    def test_content_validation_encoding_issues(self):
+    def test_content_validation_encoding_issues(self) -> None:
         """Test detection of encoding and character issues."""
         data_with_encoding_issues = {
             "field1": "normal text",
@@ -394,7 +394,7 @@ class TestBronzeValidationContentAndPerformance(unittest.TestCase):
                 # Encoding issues were detected and reported
                 pass
 
-    def test_content_validation_null_value_analysis(self):
+    def test_content_validation_null_value_analysis(self) -> None:
         """Test analysis of null and empty values."""
         data_with_nulls: dict[str, Any] = {
             "field1": "value",
@@ -419,7 +419,7 @@ class TestBronzeValidationContentAndPerformance(unittest.TestCase):
         assert null_percentage >= 0
         assert null_percentage <= 100
 
-    def test_content_validation_suspicious_patterns(self):
+    def test_content_validation_suspicious_patterns(self) -> None:
         """Test detection of suspicious or problematic patterns."""
         suspicious_data = {
             "extremely_long_value": "a" * 50000,
@@ -440,7 +440,7 @@ class TestBronzeValidationContentAndPerformance(unittest.TestCase):
             assert len(suspicious_patterns) >= 1
 
     # Test 2: Performance validation
-    def test_validation_performance_large_datasets(self):
+    def test_validation_performance_large_datasets(self) -> None:
         """Test that validation performs well on large datasets."""
 
         start_time = time.time()
@@ -451,7 +451,7 @@ class TestBronzeValidationContentAndPerformance(unittest.TestCase):
         assert validation_time < 10.0, "Validation took too long for large dataset"
         assert validation_result.is_valid is not None
 
-    def test_validation_memory_efficiency(self):
+    def test_validation_memory_efficiency(self) -> None:
         """Test that validation is memory efficient."""
         tracemalloc.start()
 
@@ -466,7 +466,7 @@ class TestBronzeValidationContentAndPerformance(unittest.TestCase):
         assert peak_mb < 100, f"Validation used too much memory: {peak_mb}MB"
 
     # Test 3: Configuration and customization
-    def test_configurable_size_limits(self):
+    def test_configurable_size_limits(self) -> None:
         """Test that size limits can be configured."""
         # Create validator with custom limits
         custom_validator = BronzeValidator()
@@ -484,7 +484,7 @@ class TestBronzeValidationContentAndPerformance(unittest.TestCase):
                 "Should respect configured size limits"
             )
 
-    def test_configurable_nesting_limits(self):
+    def test_configurable_nesting_limits(self) -> None:
         """Test that nesting depth limits can be configured."""
         custom_validator = BronzeValidator()
         custom_validator.max_nesting_depth = 5  # Shallow limit
@@ -503,7 +503,7 @@ class TestBronzeValidationContentAndPerformance(unittest.TestCase):
                 pass
 
     # Test 4: Integration validation
-    def test_validation_result_structure_completeness(self):
+    def test_validation_result_structure_completeness(self) -> None:
         """Test that validation results provide complete information."""
         validation_result = self.validator.validate_raw_data(self.medium_quality_data)
 
@@ -519,7 +519,7 @@ class TestBronzeValidationContentAndPerformance(unittest.TestCase):
         time_diff = datetime.now() - validation_result.validation_timestamp
         assert time_diff < timedelta(seconds=10)
 
-    def test_validation_details_informativeness(self):
+    def test_validation_details_informativeness(self) -> None:
         """Test that validation details provide useful diagnostic information."""
         validation_result = self.validator.validate_raw_data(self.high_quality_data)
 

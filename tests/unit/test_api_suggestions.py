@@ -44,13 +44,13 @@ def make_test_case(
 class TestSuggestionEngine:
     """Test the suggestion engine in the API module."""
 
-    def test_suggestion_engine_instantiation(self):
+    def test_suggestion_engine_instantiation(self) -> None:
         """Engine can be created and exposes the public API."""
         engine = suggestions.GenericSuggestionEngine()
         assert hasattr(engine, "get_suggestions")
         assert hasattr(engine, "apply_suggestions")
 
-    def test_suggestion_engine_with_empty_data(self):
+    def test_suggestion_engine_with_empty_data(self) -> None:
         """Empty payload returns concrete guidance for missing structure."""
         engine = suggestions.GenericSuggestionEngine()
 
@@ -64,7 +64,7 @@ class TestSuggestionEngine:
             for suggestion in result
         )
 
-    def test_suggestion_engine_with_minimal_test_case(self):
+    def test_suggestion_engine_with_minimal_test_case(self) -> None:
         """Minimal but incomplete test case surfaces actionable prompts."""
         engine = suggestions.GenericSuggestionEngine()
 
@@ -78,7 +78,7 @@ class TestSuggestionEngine:
             for suggestion in result
         )
 
-    def test_suggestions_module_exports(self):
+    def test_suggestions_module_exports(self) -> None:
         """Public module re-exports match the documented surface."""
         assert hasattr(suggestions, "__all__")
         assert set(suggestions.__all__) == {"GenericSuggestionEngine"}
@@ -89,7 +89,7 @@ class TestSuggestionEngine:
 class TestQAWorkflowIntegration:
     """Test suggestion engine integration with QA workflows."""
 
-    def test_ambiguous_test_case_suggestions(self):
+    def test_ambiguous_test_case_suggestions(self) -> None:
         """Missing step metadata produces the correct per-step guidance."""
         engine = suggestions.GenericSuggestionEngine()
 
@@ -103,7 +103,7 @@ class TestQAWorkflowIntegration:
         assert any("Add expected result field" in suggestion for suggestion in result)
         assert any("Add test data field" in suggestion for suggestion in result)
 
-    def test_incomplete_test_case_suggestions(self):
+    def test_incomplete_test_case_suggestions(self) -> None:
         """Engine highlights every missing field across multiple steps."""
         engine = suggestions.GenericSuggestionEngine()
 
@@ -130,7 +130,7 @@ class TestQAWorkflowIntegration:
             for suggestion in result
         )
 
-    def test_enterprise_test_case_optimization(self):
+    def test_enterprise_test_case_optimization(self) -> None:
         """Well-formed test case returns the success sentinel message."""
         engine = suggestions.GenericSuggestionEngine()
 
@@ -159,7 +159,7 @@ class TestQAWorkflowIntegration:
 
         assert result == ["No improvements needed - test data is well-structured"]
 
-    def test_suggestion_consistency_across_calls(self):
+    def test_suggestion_consistency_across_calls(self) -> None:
         """Subsequent calls with the same payload stay deterministic."""
         engine = suggestions.GenericSuggestionEngine()
 
@@ -177,7 +177,7 @@ class TestQAWorkflowIntegration:
 class TestEnterpriseQARequirements:
     """Test suggestion engine requirements for enterprise QA teams."""
 
-    def test_handles_large_test_suites(self):
+    def test_handles_large_test_suites(self) -> None:
         """Large suites return the success sentinel rather than raising."""
         engine = suggestions.GenericSuggestionEngine()
 
@@ -203,7 +203,7 @@ class TestEnterpriseQARequirements:
 
         assert result == ["No improvements needed - test data is well-structured"]
 
-    def test_suggestion_quality_for_complex_scenarios(self):
+    def test_suggestion_quality_for_complex_scenarios(self) -> None:
         """Complex scenarios surface parameter mapping suggestions when needed."""
         engine = suggestions.GenericSuggestionEngine()
 
@@ -241,7 +241,7 @@ class TestEnterpriseQARequirements:
         )
         assert any("Add parameter definition" in item for item in result)
 
-    def test_security_suggestions_for_enterprise(self):
+    def test_security_suggestions_for_enterprise(self) -> None:
         """Placeholder parameters trigger explicit variable mapping guidance."""
         engine = suggestions.GenericSuggestionEngine()
 
@@ -266,7 +266,7 @@ class TestEnterpriseQARequirements:
         assert any("ADMIN_PASSWORD" in suggestion for suggestion in result)
         assert any("API_TOKEN" in suggestion for suggestion in result)
 
-    def test_performance_with_enterprise_workloads(self):
+    def test_performance_with_enterprise_workloads(self) -> None:
         """Massive step lists yield a single success message, not errors."""
         engine = suggestions.GenericSuggestionEngine()
 
@@ -288,7 +288,7 @@ class TestEnterpriseQARequirements:
 
         assert result == ["No improvements needed - test data is well-structured"]
 
-    def test_internationalization_support(self):
+    def test_internationalization_support(self) -> None:
         """International characters survive analysis and still succeed."""
         engine = suggestions.GenericSuggestionEngine()
 

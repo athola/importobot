@@ -15,7 +15,7 @@ def generate_test_suite(
     distribution: DistributionDict | None = None,
     weights: WeightsDict | None = None,
 ) -> DistributionDict:
-    """Generate a test suite using the enterprise generator.
+    """Generate a test suite.
 
     Args:
         output_dir: Directory to save generated test files
@@ -84,7 +84,7 @@ def get_required_libraries_for_keywords(keywords: list[dict[str, Any]]) -> set[s
 
     # Detect libraries from the generated steps (same as conversion process)
     detected_libs = LibraryDetector.detect_libraries_from_steps(steps)
-    return set(detected_libs)
+    return {lib.value for lib in detected_libs}
 
 
 def generate_keyword_list(num_keywords: int) -> list[dict[str, Any]]:

@@ -64,11 +64,7 @@ WARNING_NORMAL_DIRECTORY_CONVERSION = (
 
 
 def detect_input_type(input_path: str) -> tuple[InputType, list[str]]:
-    """Detect input type and return (type, files_list).
-
-    Returns:
-        tuple: (input_type, files_list) where input_type is an InputType enum
-    """
+    """Detect input type and return a tuple of (type, files_list)."""
     # Check if it contains wildcard characters
     if any(char in input_path for char in ["*", "?", "[", "]"]):
         # Handle wildcard pattern

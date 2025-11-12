@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator
 from pathlib import Path
 
 import pytest
@@ -16,7 +17,7 @@ TEMPLATE_DIR = BASE_DIR / "tests" / "fixtures" / "robot_templates"
 
 
 @pytest.fixture(autouse=True)
-def reset_blueprint_sources():
+def reset_blueprint_sources() -> Generator[None, None, None]:
     """Ensure each test starts with a clean blueprint registry."""
     configure_template_sources([])
     try:
@@ -64,8 +65,8 @@ def test_cli_blueprint_uses_template_substitutions_when_available() -> None:
 
     robot_output = JsonToRobotConverter().convert_json_data(json_data)
 
-    # Verify templates influenced output
-    assert "Resource            resources/Setup.resource" in robot_output
+    # Verify templates influenced output with proper relative path resolution
+    assert "Resource            ${CURDIR}/../resources/Setup.resource" in robot_output
 
     # Verify learned pattern from set_config.robot is applied for CLI command
     assert (

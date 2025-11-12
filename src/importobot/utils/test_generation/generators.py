@@ -124,7 +124,7 @@ class TestSuiteGenerator:
     def generate_enterprise_test_step(
         self, template: str, test_data: dict[str, str], step_index: int
     ) -> dict[str, Any]:
-        """Generate a sophisticated test step with realistic enterprise context."""
+        """Generate a test step with enterprise context."""
         findings = self.secrets_detector.scan({"template": template, "data": test_data})
         if findings:
             previews = ", ".join(
@@ -219,7 +219,7 @@ class TestSuiteGenerator:
         return f"Correlation ID: {test_data.get('correlation_id', 'N/A')}"
 
     def _generate_expected_result_for_step(self, step_description: str) -> str:
-        """Generate realistic expected results for enterprise test steps."""
+        """Generate expected results for enterprise test steps."""
         # Expected result generation
         if "login" in step_description.lower():
             return "User successfully authenticated and redirected to dashboard"
@@ -238,7 +238,7 @@ class TestSuiteGenerator:
         return "Operation completed successfully with expected outcome"
 
     def _determine_step_type(self, template: str) -> str:
-        """Determine the type of test step for enterprise categorization."""
+        """Determine the type of test step for categorization."""
         template_lower = template.lower()
         # Check navigation first (higher priority than authentication)
         if any(keyword in template_lower for keyword in ["navigate", "open", "go"]):
@@ -277,7 +277,7 @@ class TestSuiteGenerator:
         return "operation"
 
     def _estimate_step_duration(self, template: str) -> str:
-        """Estimate step execution duration in seconds for enterprise planning."""
+        """Estimate step execution duration in seconds."""
         template_lower = template.lower()
         if "database" in template_lower or "query" in template_lower:
             duration = random.randint(2, 8)  # Database operations
@@ -293,7 +293,7 @@ class TestSuiteGenerator:
         return f"{duration} {unit}"
 
     def _assess_step_risk_level(self, step_description: str) -> str:
-        """Assess risk level for enterprise test step planning."""
+        """Assess risk level for test step planning."""
         high_risk_keywords = ["delete", "remove", "truncate", "drop", "production"]
         medium_risk_keywords = ["update", "modify", "insert", "create", "admin"]
 
@@ -305,7 +305,7 @@ class TestSuiteGenerator:
         return "low"
 
     def _determine_criticality(self, step_description: str) -> str:
-        """Determine criticality level for enterprise test step planning."""
+        """Determine criticality level for test step planning."""
         critical_keywords = [
             "delete",
             "remove",
@@ -331,7 +331,7 @@ class TestSuiteGenerator:
         return "medium"
 
     def _evaluate_automation_complexity(self, template: str) -> str:
-        """Evaluate automation complexity for enterprise resource planning."""
+        """Evaluate automation complexity."""
         complex_keywords = ["file", "ssh", "database", "integration"]
         simple_keywords = ["click", "input", "verify", "navigate"]
 
@@ -349,7 +349,7 @@ class TestSuiteGenerator:
         test_id: int,
         complexity_override: str | None = None,
     ) -> dict[str, Any]:
-        """Generate an enterprise test case."""
+        """Generate a test case."""
         # Validate scenario exists
         if not self.template_manager.validate_scenario(category, scenario):
             # If scenario is not valid, use a default one
@@ -510,7 +510,7 @@ class TestSuiteGenerator:
         distribution: DistributionDict | None = None,
         weights: WeightsDict | None = None,
     ) -> DistributionDict:
-        """Generate an enterprise test suite."""
+        """Generate a test suite."""
         # Create output directory before validation
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 

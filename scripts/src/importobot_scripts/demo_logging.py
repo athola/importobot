@@ -46,7 +46,7 @@ class ColoredConsoleFormatter(logging.Formatter):
 
 
 class DemoLogger:
-    """Enhanced logger for demo operations with multiple output targets."""
+    """Logger for demo operations."""
 
     def __init__(self, name: str = "importobot_demo", log_level: int = logging.INFO):
         """Initialize the demo logger."""
@@ -329,7 +329,7 @@ class ProgressReporter:
 
 
 class BusinessMetricsReporter:
-    """Specialized reporter for business metrics and ROI calculations."""
+    """Reporter for business metrics and ROI calculations."""
 
     def __init__(self, logger: DemoLogger):
         """Initialize the BusinessMetricsReporter with a logger."""
@@ -338,7 +338,7 @@ class BusinessMetricsReporter:
     def report_scenario_analysis(
         self, scenario_name: str, metrics: dict[str, float]
     ) -> None:
-        """Report detailed analysis of a business scenario."""
+        """Report analysis of a business scenario."""
         self.logger.info(f"=== {scenario_name} Analysis ===")
 
         # Time savings

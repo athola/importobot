@@ -1,4 +1,4 @@
-"""Implementation of test file parsing components."""
+"""Implements components for parsing test files."""
 
 from typing import Any
 
@@ -19,17 +19,17 @@ logger = get_logger()
 
 
 class GenericTestFileParser(TestFileParser):
-    """Generic parser that handles any JSON test format programmatically."""
+    """A generic parser to handle various JSON test formats programmatically."""
 
     def __init__(self) -> None:
-        """Initialize parser with step field names cache."""
+        """Initialize the parser with a cached set of step field names."""
         super().__init__()
         self._step_field_names_cache = frozenset(
             field.lower() for field in TEST_STEP_FIELDS.fields
         )
 
     def find_tests(self, data: dict[str, Any]) -> list[dict[str, Any]]:
-        """Find test structures anywhere in JSON, regardless of format."""
+        """Identify test structures within JSON data regardless of format."""
         if not isinstance(data, dict):
             return []
 
@@ -55,12 +55,12 @@ class GenericTestFileParser(TestFileParser):
         return tests
 
     def _get_step_field_names(self) -> frozenset[str]:
-        """Get cached set of step field names."""
+        """Retrieve the cached set of step field names."""
         # Using an instance-level cache to avoid lru_cache on methods
         return self._step_field_names_cache
 
     def find_steps(self, test_data: dict[str, Any]) -> list[dict[str, Any]]:
-        """Find step structures anywhere in test data."""
+        """Identify step structures within the provided test data."""
         steps = []
         step_field_names = self._get_step_field_names()
         script_field_names = {name.lower() for name in TEST_SCRIPT_FIELDS.fields}

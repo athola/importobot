@@ -89,7 +89,7 @@ class SingleFileStrategy(ConversionStrategy):
             return
 
         if suggestions:
-            print("💡 Conversion Suggestions:")
+            print("Conversion Suggestions:")
             for index, suggestion in enumerate(suggestions, start=1):
                 print(f"{index}. {suggestion}")
 

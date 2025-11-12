@@ -20,7 +20,11 @@ from importobot.core.keywords.generators.web_keywords import WebKeywordGenerator
 from importobot.core.keywords_registry import IntentRecognitionEngine
 from importobot.core.multi_command_parser import MultiCommandParser
 from importobot.core.parsers import GenericTestFileParser
-from importobot.core.pattern_matcher import IntentType, LibraryDetector
+from importobot.core.pattern_matcher import (
+    IntentType,
+    LibraryDetector,
+    RobotFrameworkLibrary,
+)
 from importobot.utils.field_extraction import extract_field
 from importobot.utils.pattern_extraction import extract_pattern
 from importobot.utils.ssh_patterns import (
@@ -47,6 +51,36 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
         self.builtin_generator = BuiltInKeywordGenerator()
         self.multi_command_parser = MultiCommandParser()
         self.context_analyzer = ContextAnalyzer()
+        self.intent_recognizer = IntentRecognitionEngine()
+
+        # Store library context for verification methods
+        self.library_context: set[Any] = set()
+
+    def set_library_context(self, libraries: set[Any]) -> None:
+        """Set the library context for library-aware verification methods."""
+        self.library_context = libraries
+
+    def _get_library_aware_verification(self, content: str) -> str:
+        """Get library-aware verification keyword for ambiguous patterns.
+
+        This method delegates to the web generator's library-aware verification
+        to ensure consistent behavior across all verification keyword generation.
+
+        Args:
+            content: Placeholder content (e.g., "${container}    ${item}")
+
+        Returns:
+            Library-prefixed verification keyword for the current context
+        """
+        if not self.library_context:
+            # Fallback to standard verification if no library context
+            return f"Should Contain    {content}"
+
+        # Delegate to web generator for consistent library-aware verification
+        # Note: content already includes both test_data and expected
+        return self.web_generator.generate_library_aware_page_verification_keyword(
+            test_data=content, expected="", library_context=self.library_context
+        )
 
     def generate_step_keywords(self, step: dict[str, Any]) -> list[str]:
         """Generate Robot Framework keywords for a step."""
@@ -100,9 +134,11 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
 
         return lines
 
-    def detect_libraries(self, steps: list[dict[str, Any]]) -> set[str]:
+    def detect_libraries(
+        self, steps: list[dict[str, Any]], json_data: dict[str, Any] | None = None
+    ) -> set[Any]:
         """Detect required Robot Framework libraries from step content."""
-        return LibraryDetector.detect_libraries_from_steps(steps)
+        return LibraryDetector.detect_libraries_from_steps(steps, json_data)
 
     def _get_parser(self) -> GenericTestFileParser:
         """Get parser instance."""
@@ -133,6 +169,8 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
         ssh_generator = self.ssh_generator
         os_generator = self.operating_system_generator
         builtin = self.builtin_generator
+        web_gen = self.web_generator
+        library_aware = web_gen.generate_library_aware_page_verification_keyword
 
         intent_handlers: dict[Any, Callable[[], str]] = {
             # Web operations
@@ -142,9 +180,11 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
             ),
             IntentType.INPUT_USERNAME: (
                 lambda: web.generate_input_keyword(
-                    "email"
-                    if self._has_email_indicator(description, test_data)
-                    else "username",
+                    (
+                        "email"
+                        if self._has_email_indicator(description, test_data)
+                        else "username"
+                    ),
                     test_data,
                 )
             ),
@@ -155,7 +195,11 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
                 lambda: web.generate_click_keyword(description, test_data)
             ),
             IntentType.VERIFY_CONTENT: (
-                lambda: web.generate_page_verification_keyword(test_data, expected)
+                lambda: (
+                    self.web_generator.generate_library_aware_page_verification_keyword(
+                        test_data, expected, self.library_context
+                    )
+                )
             ),
             # Database operations
             IntentType.DATABASE_CONNECT: (
@@ -264,14 +308,10 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
                 lambda: builtin.generate_assert_contains_keyword(test_data, expected)
             ),
             IntentType.ELEMENT_VERIFICATION: (
-                lambda: builtin.generate_verification_keyword(
-                    description, test_data, expected
-                )
+                lambda: library_aware(test_data, expected, self.library_context)
             ),
             IntentType.CONTENT_VERIFICATION: (
-                lambda: builtin.generate_verification_keyword(
-                    description, test_data, expected
-                )
+                lambda: library_aware(test_data, expected, self.library_context)
             ),
             # BuiltIn keywords
             IntentType.CONVERT_TO_INTEGER: lambda: (
@@ -542,9 +582,22 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
         Returns:
             List of Robot Framework keywords for credential input
         """
+        # For credentials, default to SeleniumLibrary unless mobile context is detected
+        prefix = LibraryDetector.get_keyword_prefix_for_library(
+            RobotFrameworkLibrary.SELENIUM_LIBRARY
+        )
+
         return [
-            "Input Text    id=username    ${USERNAME}",
-            "Input Password    id=password    ${PASSWORD}",
+            (
+                f"{prefix}.Input Text    id=username    ${{USERNAME}}"
+                if prefix
+                else "Input Text    id=username    ${{USERNAME}}"
+            ),
+            (
+                f"{prefix}.Input Password    id=password    ${{PASSWORD}}"
+                if prefix
+                else "Input Password    id=password    ${{PASSWORD}}"
+            ),
         ]
 
     def _detect_ambiguous_cases(
@@ -566,10 +619,10 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
             # Cases where both logging and verification could apply
             r"\b(?:log|record).*(?:and|then|&).*(?:verify|check|assert)": [
                 "Log    ${message}",
-                "Should Contain    ${container}    ${item}",
+                self._get_library_aware_verification("${container}    ${item}"),
             ],
             r"\bverify.*(?:and|then|&).*(?:log|record)": [
-                "Should Contain    ${container}    ${item}",
+                self._get_library_aware_verification("${container}    ${item}"),
                 "Log    ${message}",
             ],
             # Cases where conversion and validation could apply
@@ -785,22 +838,16 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
 
         # Check for password usage
         if re.search(r"\bpassword\s*:\s*\S+", test_data, re.IGNORECASE):
-            warnings.append(
-                "    # ⚠️  Security Warning: Hardcoded password detected in test data"
-            )
+            warnings.append("    # WARNING: Hardcoded password detected in test data")
 
         # Check for other sensitive patterns
         if re.search(
             r"\b(?:api[_\s]*key|secret|token)\s*:\s*\S+", test_data, re.IGNORECASE
         ):
-            warnings.append(
-                "    # ⚠️  Security Warning: Sensitive credential detected in test data"
-            )
+            warnings.append("    # WARNING: Sensitive credential detected in test data")
 
         # Check for private key files
         if re.search(r"\.pem|\.key|id_rsa|id_dsa", test_data, re.IGNORECASE):
-            warnings.append(
-                "    # ⚠️  Security Warning: Private key file reference detected"
-            )
+            warnings.append("    # WARNING: Private key file reference detected")
 
         return warnings

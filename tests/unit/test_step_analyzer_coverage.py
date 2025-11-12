@@ -8,7 +8,7 @@ from importobot.core.suggestions.step_analyzer import StepAnalyzer
 
 
 @pytest.fixture
-def analyzer():
+def analyzer() -> StepAnalyzer:
     """Initialize step analyzer."""
     return StepAnalyzer()
 
@@ -16,7 +16,7 @@ def analyzer():
 class TestStepImprovement:
     """Test step improvement functionality."""
 
-    def test_improve_steps_basic(self, analyzer):
+    def test_improve_steps_basic(self, analyzer: StepAnalyzer) -> None:
         """Test basic step improvement."""
         test_case: dict[str, Any] = {"testScript": {"steps": [{"step": "test action"}]}}
         changes_made: list[dict[str, Any]] = []
@@ -27,7 +27,7 @@ class TestStepImprovement:
         assert "steps" in test_case["testScript"]
         assert isinstance(test_case["testScript"]["steps"], list)
 
-    def test_improve_steps_missing_action(self, analyzer):
+    def test_improve_steps_missing_action(self, analyzer: StepAnalyzer) -> None:
         """Test step improvement when action is missing."""
         test_case: dict[str, Any] = {
             "testScript": {
@@ -43,7 +43,7 @@ class TestStepImprovement:
         # Changes should be tracked
         assert isinstance(changes_made, list)
 
-    def test_improve_steps_missing_expected(self, analyzer):
+    def test_improve_steps_missing_expected(self, analyzer: StepAnalyzer) -> None:
         """Test step improvement when expected result is missing."""
         test_case: dict[str, Any] = {
             "testScript": {
@@ -61,7 +61,7 @@ class TestStepImprovement:
         assert has_expected
         assert isinstance(changes_made, list)
 
-    def test_add_default_action_when_missing(self, analyzer):
+    def test_add_default_action_when_missing(self, analyzer: StepAnalyzer) -> None:
         """Test adding default action when missing."""
         step = {"test_data": "input data", "expected": "expected output"}
         result = analyzer._add_default_action(step)  # pylint: disable=protected-access
@@ -74,7 +74,9 @@ class TestStepImprovement:
         assert isinstance(added_field, str)
         assert len(added_field) > 0
 
-    def test_add_default_expected_result_when_missing(self, analyzer):
+    def test_add_default_expected_result_when_missing(
+        self, analyzer: StepAnalyzer
+    ) -> None:
         """Test adding default expected result when missing."""
         step = {"step": "perform test action", "test_data": "input data"}
         # pylint: disable=protected-access
@@ -87,7 +89,7 @@ class TestStepImprovement:
         assert isinstance(step["expectedResult"], str)
         assert len(step["expectedResult"]) > 0
 
-    def test_improve_single_step_private(self, analyzer):
+    def test_improve_single_step_private(self, analyzer: StepAnalyzer) -> None:
         """Test improving single step private method."""
         step = {"step": "test action"}
         result = analyzer._improve_single_step(step)  # pylint: disable=protected-access
@@ -98,7 +100,7 @@ class TestStepImprovement:
         assert isinstance(step, dict)
         assert "step" in step or "action" in step
 
-    def test_empty_steps_handling(self, analyzer):
+    def test_empty_steps_handling(self, analyzer: StepAnalyzer) -> None:
         """Test handling of empty steps list."""
         test_case: dict[str, Any] = {"testScript": {"steps": []}}
         changes_made: list[dict[str, Any]] = []
@@ -110,7 +112,7 @@ class TestStepImprovement:
         assert len(changes_made) > 0
         assert any(change["type"] == "step_added" for change in changes_made)
 
-    def test_none_steps_handling(self, analyzer):
+    def test_none_steps_handling(self, analyzer: StepAnalyzer) -> None:
         """Test handling of None steps."""
         test_case: dict[str, Any] = {}
         changes_made: list[dict[str, Any]] = []
@@ -123,7 +125,7 @@ class TestStepImprovement:
         assert len(test_case["testScript"]["steps"]) > 0
         assert isinstance(changes_made, list)
 
-    def test_multiple_steps_processing(self, analyzer):
+    def test_multiple_steps_processing(self, analyzer: StepAnalyzer) -> None:
         """Test processing multiple steps together."""
         test_case: dict[str, Any] = {
             "testScript": {
@@ -148,7 +150,7 @@ class TestStepImprovement:
 class TestBraceHandling:
     """Test brace matching and fixing functionality."""
 
-    def test_fix_unmatched_braces_in_step(self, analyzer):
+    def test_fix_unmatched_braces_in_step(self, analyzer: StepAnalyzer) -> None:
         """Test fixing unmatched braces in step data."""
         test_case: dict[str, Any] = {
             "testScript": {
@@ -167,7 +169,7 @@ class TestBraceHandling:
         assert open_braces == close_braces or "{" not in step_text
         assert isinstance(changes_made, list)
 
-    def test_fix_unmatched_braces_private(self, analyzer):
+    def test_fix_unmatched_braces_private(self, analyzer: StepAnalyzer) -> None:
         """Test fixing unmatched braces private method."""
         step = {"step": "test {unmatched brace", "test_data": "data"}
         # pylint: disable=protected-access
@@ -181,17 +183,17 @@ class TestBraceHandling:
             close_braces = step["step"].count("}")
             assert open_braces == close_braces
 
-    def test_check_brace_matching_private(self, analyzer):
+    def test_check_brace_matching_private(self, analyzer: StepAnalyzer) -> None:
         """Test brace matching check private method."""
         step = {"step": "test {matched} braces"}
-        suggestions: list[dict[str, Any]] = []
+        suggestions: list[str] = []
         # pylint: disable=protected-access
         analyzer._check_brace_matching(step, 1, 1, suggestions)
 
         # Should not add suggestions for matched braces
         assert len(suggestions) == 0
 
-    def test_fix_brace_mismatches_text(self, analyzer):
+    def test_fix_brace_mismatches_text(self, analyzer: StepAnalyzer) -> None:
         """Test fixing brace mismatches in text."""
         text = "test {unmatched brace"
         # pylint: disable=protected-access
@@ -207,7 +209,7 @@ class TestBraceHandling:
 class TestStepValidation:
     """Test step validation and checking functionality."""
 
-    def test_check_steps_functionality(self, analyzer):
+    def test_check_steps_functionality(self, analyzer: StepAnalyzer) -> None:
         """Test check_steps functionality."""
         steps = [{"step": "test action", "expected": "result"}]
         suggestions: list[str] = []
@@ -218,7 +220,7 @@ class TestStepValidation:
         # All suggestions should be strings
         assert all(isinstance(s, str) for s in suggestions)
 
-    def test_check_step_ordering(self, analyzer):
+    def test_check_step_ordering(self, analyzer: StepAnalyzer) -> None:
         """Test step ordering check."""
         # Use steps with explicit ordering that's wrong
         steps = [
@@ -235,7 +237,7 @@ class TestStepValidation:
                 "order" in s.lower() or "sequence" in s.lower() for s in suggestions
             )
 
-    def test_check_step_fields_private(self, analyzer):
+    def test_check_step_fields_private(self, analyzer: StepAnalyzer) -> None:
         """Test checking step fields private method."""
         step = {"step": "test action", "test_data": "data"}
         suggestions: list[str] = []
@@ -247,7 +249,7 @@ class TestStepValidation:
         # All suggestions should be strings with test case reference
         assert all(isinstance(s, str) for s in suggestions)
 
-    def test_collect_command_steps(self, analyzer):
+    def test_collect_command_steps(self, analyzer: StepAnalyzer) -> None:
         """Test command step collection."""
         steps = [
             {"step": "run command", "test_data": "ls -la"},
@@ -265,7 +267,7 @@ class TestStepValidation:
 class TestComplexStepData:
     """Test handling of complex and edge case step data."""
 
-    def test_step_with_special_characters(self, analyzer):
+    def test_step_with_special_characters(self, analyzer: StepAnalyzer) -> None:
         """Test step with special characters."""
         test_case: dict[str, Any] = {
             "testScript": {
@@ -288,7 +290,7 @@ class TestComplexStepData:
         assert "!@#$%^&*()" in step["step"]
         assert isinstance(changes_made, list)
 
-    def test_step_with_nested_data_structures(self, analyzer):
+    def test_step_with_nested_data_structures(self, analyzer: StepAnalyzer) -> None:
         """Test step with nested data structures."""
         test_case: dict[str, Any] = {
             "testScript": {
@@ -316,7 +318,7 @@ class TestComplexStepData:
         assert step["test_data"]["nested"]["deep"] == "value"
         assert isinstance(changes_made, list)
 
-    def test_edge_case_step_data(self, analyzer):
+    def test_edge_case_step_data(self, analyzer: StepAnalyzer) -> None:
         """Test edge case step data."""
         edge_case_steps = [
             {"step": ""},  # Empty step

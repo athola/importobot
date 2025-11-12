@@ -62,7 +62,7 @@ uv tool run twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
 ### Verify Installation
 ```bash
 # Test basic import
-python -c "import importobot; print('✅ Package installed successfully')"
+python -c "import importobot; print(' Package installed successfully')"
 
 # Check version
 python -c "import importobot; print(f'Version: {getattr(importobot, \"__version__\", \"0.1.1\")}')"

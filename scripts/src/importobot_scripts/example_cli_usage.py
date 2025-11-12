@@ -52,7 +52,7 @@ def basic_cli_example() -> None:
         exit_code, stdout, stderr = run_command(command, cwd=root_dir)
 
         if exit_code == 0:
-            print("✅ Importobot CLI is available")
+            print(" Importobot CLI is available")
             print("Help output preview:")
             print("-" * 30)
             print(stdout[:500] + "..." if len(stdout) > 500 else stdout)
@@ -60,7 +60,7 @@ def basic_cli_example() -> None:
 
         print(f"Command failed: {stderr}")
 
-    print("❌ CLI not available or not installed properly")
+    print(" CLI not available or not installed properly")
     print("Try running with: uv run python -m importobot --help")
 
 
@@ -94,7 +94,7 @@ def file_conversion_cli_example() -> None:
         exit_code, stdout, stderr = run_command(command, cwd=root_dir)
 
         if exit_code == 0:
-            print("✅ CLI conversion successful")
+            print(" CLI conversion successful")
             if stdout:
                 print("Output:", stdout)
 
@@ -111,12 +111,12 @@ def file_conversion_cli_example() -> None:
                 print("".join(lines))
                 print("-" * 30)
             else:
-                print("⚠️ Output file was not created")
+                print("WARNING: Output file was not created")
             return
 
         print(f"Command failed: {stderr}")
 
-    print("❌ All CLI conversion attempts failed")
+    print(" All CLI conversion attempts failed")
 
 
 def batch_processing_cli_example() -> None:
@@ -162,13 +162,13 @@ def batch_processing_cli_example() -> None:
             exit_code, _stdout, _stderr = run_command(command, cwd=root_dir)
 
             if exit_code == 0:
-                print(f"  ✅ {json_file.name} -> {output_file.name}")
+                print(f"   {json_file.name} -> {output_file.name}")
                 success_count += 1
                 converted = True
                 break
 
         if not converted:
-            print(f"  ❌ Failed to process {json_file.name}")
+            print(f"   Failed to process {json_file.name}")
 
     print(
         f"\nBatch processing completed: {success_count}/"
@@ -184,7 +184,7 @@ def pipeline_integration_example() -> None:
     pipeline_script = root_dir / "examples" / "pipeline_example.sh"
     pipeline_script.parent.mkdir(exist_ok=True)
 
-    pipeline_content = f'''#!/bin/bash
+    pipeline_content = f"""#!/bin/bash
 # Example CI/CD pipeline integration for Importobot
 
 set -e  # Exit on error
@@ -219,16 +219,16 @@ for json_file in "$INPUT_DIR"/*.json; do
         # Attempt conversion with uv run first, then use the secondary path
         if cd "{root_dir}" && uv run python -m importobot \\
             "$json_file" "$output_file" 2>/dev/null; then
-            echo "✅ SUCCESS: $filename" >> \\
+            echo " SUCCESS: $filename" >> \\
                 "$REPORT_FILE"
             SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
         elif cd "{root_dir}" && python -m importobot \\
             "$json_file" "$output_file" 2>/dev/null; then
-            echo "✅ SUCCESS: $filename" >> \\
+            echo " SUCCESS: $filename" >> \\
                 "$REPORT_FILE"
             SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
         else
-            echo "❌ FAILED: $filename" >> "$REPORT_FILE"
+            echo " FAILED: $filename" >> "$REPORT_FILE"
         fi
     fi
 done
@@ -245,7 +245,7 @@ if [ $TOTAL_COUNT -gt 0 ]; then
 fi
 
 echo "Pipeline completed. Report saved to: $REPORT_FILE"
-'''
+"""
 
     # Write pipeline script
     with open(pipeline_script, "w", encoding="utf-8") as f:
@@ -267,7 +267,7 @@ echo "Pipeline completed. Report saved to: $REPORT_FILE"
     exit_code, stdout, stderr = run_command(command, cwd=root_dir)
 
     if exit_code == 0:
-        print("✅ Pipeline execution successful")
+        print(" Pipeline execution successful")
         if stdout:
             print("Pipeline output:")
             print(stdout)
@@ -280,7 +280,7 @@ echo "Pipeline completed. Report saved to: $REPORT_FILE"
             with open(report_file, encoding="utf-8") as f:
                 print(f.read())
     else:
-        print("❌ Pipeline execution failed")
+        print(" Pipeline execution failed")
         if stderr:
             print(f"Error: {stderr}")
 
@@ -334,14 +334,14 @@ def validation_cli_example() -> None:
         exit_code, stdout, stderr = run_command(command, cwd=root_dir)
 
         if exit_code != 0:
-            print("✅ Validation correctly detected issues")
+            print(" Validation correctly detected issues")
             print("Validation output:")
             print(stderr if stderr else stdout)
             return
 
         print("Command executed but didn't detect expected issues")
 
-    print("⚠️ Validation commands not available or didn't detect issues")
+    print("WARNING: Validation commands not available or didn't detect issues")
 
 
 def help_and_documentation_example() -> None:
@@ -392,7 +392,7 @@ def main() -> int:
         if output_files:
             print("\nGenerated Robot Framework files:")
             for file in output_files:
-                print(f"  📄 {file}")
+                print(f"  File: {file}")
 
     except Exception as e:
         print(f"\nError running CLI examples: {e}")

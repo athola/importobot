@@ -36,7 +36,7 @@ except ImportError as exc:  # pragma: no cover
 class TestFormatDetectionIntegration(unittest.TestCase):
     """Integration tests for complete format detection workflow."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test environment with detector and real-world test data."""
         self.detector = FormatDetector()
 
@@ -107,9 +107,7 @@ class TestFormatDetectionIntegration(unittest.TestCase):
                                 "displayName": "Jane Tester",
                                 "emailAddress": "jane.tester@company.com",
                             },
-                            "customfield_10100": {  # Xray test type
-                                "value": "Manual"
-                            },
+                            "customfield_10100": {"value": "Manual"},  # Xray test type
                             "labels": ["api", "authentication", "regression", "smoke"],
                         },
                     }
@@ -271,7 +269,7 @@ class TestFormatDetectionIntegration(unittest.TestCase):
             },
         }
 
-    def test_end_to_end_zephyr_detection(self):
+    def test_end_to_end_zephyr_detection(self) -> None:
         """Test complete Zephyr format detection workflow."""
         test_data = self.test_data_samples["zephyr_complete"]
 
@@ -279,7 +277,7 @@ class TestFormatDetectionIntegration(unittest.TestCase):
 
         assert result == SupportedFormat.ZEPHYR
 
-    def test_end_to_end_xray_detection(self):
+    def test_end_to_end_xray_detection(self) -> None:
         """Test complete Xray format detection workflow."""
         test_data = self.test_data_samples["xray_with_jira"]
 
@@ -287,7 +285,7 @@ class TestFormatDetectionIntegration(unittest.TestCase):
 
         assert result == SupportedFormat.JIRA_XRAY
 
-    def test_end_to_end_testrail_detection(self):
+    def test_end_to_end_testrail_detection(self) -> None:
         """Test complete TestRail format detection workflow."""
         test_data = self.test_data_samples["testrail_api_response"]
 
@@ -295,7 +293,7 @@ class TestFormatDetectionIntegration(unittest.TestCase):
 
         assert result == SupportedFormat.TESTRAIL
 
-    def test_end_to_end_testlink_detection(self):
+    def test_end_to_end_testlink_detection(self) -> None:
         """Test complete TestLink format detection workflow."""
         test_data = self.test_data_samples["testlink_xml_export"]
 
@@ -303,7 +301,7 @@ class TestFormatDetectionIntegration(unittest.TestCase):
 
         assert result == SupportedFormat.TESTLINK
 
-    def test_ambiguous_data_handling(self):
+    def test_ambiguous_data_handling(self) -> None:
         """Test handling of ambiguous or unclear data."""
         test_data = self.test_data_samples["ambiguous_data"]
 
@@ -312,7 +310,7 @@ class TestFormatDetectionIntegration(unittest.TestCase):
         # Should still return a result but likely UNKNOWN or GENERIC
         assert result in [SupportedFormat.UNKNOWN, SupportedFormat.GENERIC]
 
-    def test_malformed_data_handling(self):
+    def test_malformed_data_handling(self) -> None:
         """Test handling of malformed or incomplete data."""
         test_data = self.test_data_samples["malformed_data"]
 
@@ -323,7 +321,7 @@ class TestFormatDetectionIntegration(unittest.TestCase):
         assert result in list(SupportedFormat)
 
     @patch("importobot.medallion.bronze.format_detector.FormatRegistry")
-    def test_registry_integration(self, mock_registry):
+    def test_registry_integration(self, mock_registry: Any) -> None:
         """Test integration with FormatRegistry."""
 
         # Create mock format definitions with required methods
@@ -359,7 +357,7 @@ class TestFormatDetectionIntegration(unittest.TestCase):
         # Note: With empty mock formats, detection may fall back to UNKNOWN
         assert result in [SupportedFormat.ZEPHYR, SupportedFormat.UNKNOWN]
 
-    def test_performance_acceptability(self):
+    def test_performance_acceptability(self) -> None:
         """Test that detection performance is acceptable for Bronze layer."""
 
         test_data = self.test_data_samples["zephyr_complete"]
@@ -379,18 +377,18 @@ class TestFormatDetectionIntegration(unittest.TestCase):
 class TestFormatDetectionBoundaryConditions(unittest.TestCase):
     """Test boundary conditions and stress scenarios for format detection."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test environment."""
         self.detector = FormatDetector()
 
-    def test_empty_data_handling(self):
+    def test_empty_data_handling(self) -> None:
         """Test handling of completely empty data."""
         result = self.detector.detect_format({})
 
         assert result is not None
         assert result in list(SupportedFormat)
 
-    def test_extremely_large_data_handling(self):
+    def test_extremely_large_data_handling(self) -> None:
         """Test handling of extremely large data structures."""
         # Create a large but valid Zephyr-like structure
         large_data = {
@@ -410,7 +408,7 @@ class TestFormatDetectionBoundaryConditions(unittest.TestCase):
         assert result is not None
         assert result in list(SupportedFormat)
 
-    def test_deeply_nested_data_handling(self):
+    def test_deeply_nested_data_handling(self) -> None:
         """Test handling of deeply nested data structures."""
         deeply_nested = {
             "level1": {
@@ -434,17 +432,17 @@ class TestFormatDetectionBoundaryConditions(unittest.TestCase):
         assert result is not None
         assert result in list(SupportedFormat)
 
-    def test_unicode_and_special_characters(self):
+    def test_unicode_and_special_characters(self) -> None:
         """Test handling of Unicode and special characters."""
         unicode_data = {
             "testCase": {
                 "key": "UNICODE-001",
-                "name": "Test with émojis 🚀 and spëcial chars",
+                "name": "Test with émojis  and spëcial chars",
                 "description": "Test with 中文, العربية, and 日本語",
                 "steps": [
                     {
                         "stepDescription": "Step with ümlauts",
-                        "expectedResult": "Result with spëcial chars ✨",
+                        "expectedResult": "Result with spëcial chars",
                     }
                 ],
             }

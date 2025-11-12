@@ -64,13 +64,22 @@ def _invoke_ingest_with_compat(
         {"_records": records, "_template": template},
     ]
     last_error: TypeError | None = None
-    for kwargs in attempts:
+
+    def _attempt_ingest(
+        kwargs: dict[str, Any],
+    ) -> tuple[bool, tuple[float, float] | None, TypeError | None]:
         try:
-            return _ingest_records(layer, **kwargs)  # type: ignore[arg-type]
+            return True, _ingest_records(layer, **kwargs), None
         except TypeError as exc:  # pragma: no cover - exercised via tests
             if "unexpected keyword argument" not in str(exc):
                 raise
-            last_error = exc
+            return False, None, exc
+
+    for kwargs in attempts:
+        success, result, error = _attempt_ingest(kwargs)
+        if success and result is not None:
+            return result
+        last_error = error
     if last_error is not None:
         raise last_error
     raise TypeError("Unable to invoke _ingest_records with provided arguments")

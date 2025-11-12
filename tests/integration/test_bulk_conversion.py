@@ -17,7 +17,7 @@ from importobot.core.converter import (
 class TestBulkConversionIntegration:
     """Integration tests for bulk file conversion."""
 
-    def test_convert_multiple_files_integration(self):
+    def test_convert_multiple_files_integration(self) -> None:
         """Tests end-to-end conversion of multiple JSON files."""
         sample_json_data = {
             "tests": [
@@ -61,7 +61,7 @@ class TestBulkConversionIntegration:
                 assert "*** Test Cases ***" in content
                 assert "Test Login" in content
 
-    def test_convert_directory_integration(self):
+    def test_convert_directory_integration(self) -> None:
         """Tests end-to-end conversion of entire directory."""
         sample_json_data = {
             "tests": [
@@ -176,7 +176,7 @@ class TestBulkConversionIntegration:
                     [str(valid_file), str(invalid_file)], str(output_dir)
                 )
 
-    def test_convert_directory_empty_directory(self):
+    def test_convert_directory_empty_directory(self) -> None:
         """Tests directory conversion with empty directory."""
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)

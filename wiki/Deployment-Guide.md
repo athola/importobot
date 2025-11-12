@@ -1,85 +1,77 @@
 # Deployment Guide
 
-Deploy Importobot locally, in containers, or inside CI jobs using the steps below.
+This guide covers several common methods for deploying and running Importobot.
 
-## Prerequisites
+## Running from Source
 
-- Python 3.10+
-- `uv` package manager (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
-- Access to target format exports (Zephyr/JIRA/etc.) OR API credentials for direct integration
-
-> Note: Only local storage is supported. Cloud storage interfaces were designed but not implemented due to other development commitments.
-
-## Local Development
+For local development or testing, you can run Importobot directly from a clone of the repository. This setup is covered in detail in the [Getting Started](Getting-Started.md) guide.
 
 ```bash
 git clone https://github.com/athola/importobot.git
 cd importobot
-uv sync
-uv run python -m pytest
+uv sync --dev
+uv run pytest
 ```
 
-## API Integration Deployment
+## Containerized Deployment
 
-### Environment Configuration
+For production and CI/CD environments, we recommend deploying Importobot as a Docker container.
 
-For production deployments using API integration, configure credentials securely:
+### Building the Docker Image
 
 ```bash
-# Zephyr configuration
-export IMPORTOBOT_ZEPHYR_API_URL="https://your-zephyr.example.com"
-export IMPORTOBOT_ZEPHYR_TOKENS="secure-token-here"
-
-# TestRail configuration
-export IMPORTOBOT_TESTRAIL_API_URL="https://testrail.example.com/api/v2"
-export IMPORTOBOT_TESTRAIL_TOKENS="api-token-here"
-export IMPORTOBOT_TESTRAIL_API_USER="automation-user"
-
-# Jira/Xray configuration
-export IMPORTOBOT_JIRA_XRAY_API_URL="https://jira.example.com/rest/api/2/search"
-export IMPORTOBOT_JIRA_XRAY_TOKENS="jira-token-here"
-
-# Shared configuration
-export IMPORTOBOT_API_INPUT_DIR="/data/api_payloads"
-export IMPORTOBOT_API_MAX_CONCURRENCY="4"
+docker build -t importobot:latest .
 ```
 
-### Container Deployment with API Support
+### Running Basic Conversions
 
-1. Build the image
+```bash
+# --rm: Automatically remove the container when it exits
+# -v: Mount the local ./data directory into the container at /data
+docker run --rm -v $PWD/data:/data importobot:latest \
+    uv run importobot /data/input.json /data/output.robot
+```
 
-   ```bash
-   docker build -t importobot:latest .
-   ```
+### Deployment with API Integration
 
-2. Run with API credentials
+When using API integration, you can provide credentials to the container using environment variables or an environment file.
 
-   ```bash
-   docker run --rm \
-     -v $PWD/data:/data \
-     -e IMPORTOBOT_ZEPHYR_API_URL="https://zephyr.example.com" \
-     -e IMPORTOBOT_ZEPHYR_TOKENS="secure-token" \
-     -e IMPORTOBOT_API_INPUT_DIR="/data/payloads" \
-     importobot:latest \
-     uv run importobot --fetch-format zephyr --project PROJ --output /data/converted.robot
-   ```
+#### Using Environment Variables
 
-3. Using environment file
+```bash
+docker run --rm \
+  -v $PWD/data:/data \
+  -e IMPORTOBOT_ZEPHYR_API_URL="https://zephyr.example.com" \
+  -e IMPORTOBOT_ZEPHYR_TOKENS="secure-token" \
+  importobot:latest \
+  uv run importobot --fetch-format zephyr --project PROJ --output /data/converted.robot
+```
 
-   ```bash
-   # .env file
-   IMPORTOBOT_ZEPHYR_API_URL=https://zephyr.example.com
-   IMPORTOBOT_ZEPHYR_TOKENS=secure-token
-   IMPORTOBOT_ZEPHYR_PROJECT=PROJECT_KEY
+#### Using an Environment File
 
-   docker run --rm \
-     --env-file .env \
-     -v $PWD/data:/data \
-     importobot:latest \
-     uv run importobot --fetch-format zephyr --output /data/converted.robot
-   ```
+Create a `.env` file with your API credentials:
+
+```
+IMPORTOBOT_ZEPHYR_API_URL=https://zephyr.example.com
+IMPORTOBOT_ZEPHYR_TOKENS=secure-token
+IMPORTOBOT_ZEPHYR_PROJECT=PROJECT_KEY
+```
+
+Then, run the container with the `--env-file` flag:
+
+```bash
+docker run --rm \
+  --env-file .env \
+  -v $PWD/data:/data \
+  importobot:latest \
+  uv run importobot --fetch-format zephyr --output /data/converted.robot
+```
 
 ### Kubernetes Deployment
+
+For large-scale or scheduled tasks, you can run Importobot as a one-off task in Kubernetes using a Job.
+
+First, ensure your API credentials are stored in a Kubernetes Secret named `importobot-secrets`. Then, you can apply the following Job definition:
 
 ```yaml
 apiVersion: batch/v1
@@ -111,97 +103,11 @@ spec:
             secretKeyRef:
               name: importobot-secrets
               key: zephyr-tokens
-        - name: IMPORTOBOT_API_INPUT_DIR
-          value: "/data/payloads"
-        volumeMounts:
-        - name: data-volume
-          mountPath: /data
-      volumes:
-      - name: data-volume
-        persistentVolumeClaim:
-          claimName: importobot-data
       restartPolicy: Never
 ```
 
-## Container deployment
+## CI/CD Integration
 
-1. Build the image
+Importobot can be integrated into any CI/CD pipeline. The general approach is to use a containerized deployment (as shown above) within a pipeline step to automatically convert test suites as part of your build or test process.
 
-   ```bash
-   docker build -t importobot:latest .
-   ```
-
-2. Run conversions
-
-   ```bash
-   docker run --rm -v $PWD/data:/data importobot:latest \
-       uv run importobot /data/input.json /data/output.robot
-   ```
-
-## CI/CD integration
-
-### Basic Conversion Jobs
-```yaml
-# GitHub Actions example
-- name: Convert test cases
-  run: |
-    uv run importobot input.json output.robot
-    uv run python -m pytest output.robot
-```
-
-### API Integration Jobs
-```yaml
-# GitHub Actions example with API integration
-- name: Fetch and convert from Zephyr
-  env:
-    IMPORTOBOT_ZEPHYR_API_URL: ${{ secrets.ZEPHYR_API_URL }}
-    IMPORTOBOT_ZEPHYR_TOKENS: ${{ secrets.ZEPHYR_TOKENS }}
-    IMPORTOBOT_ZEPHYR_PROJECT: ${{ secrets.ZEPHYR_PROJECT }}
-  run: |
-    uv run importobot --fetch-format zephyr --output converted.robot
-    uv run python -m pytest converted.robot
-```
-
-### Performance Monitoring
-- Schedule `uv run python -m importobot_scripts.benchmarks.performance_benchmark --parallel` nightly to catch performance regressions and archive `performance_benchmark_results.json`
-- Full validation (`make validate`) takes about 4 minutes; see [Performance-Characteristics](Performance-Characteristics) for timing breakdown and faster alternatives during development
-- Monitor API rate limits and response times when using direct integration
-
-**Production performance**: 10,000 test cases convert in 45 seconds on an 8-core AWS instance, using under 200MB RAM
-
-## Storage Configuration
-
-Importobot currently supports local storage only:
-
-```python
-from importobot.medallion.storage.config import StorageConfig
-
-config = StorageConfig(
-    backend_type="local",
-    base_path="./medallion_data",
-    compression=False,
-    auto_backup=True,
-)
-```
-
-The storage interface is extensible - see `src/importobot/medallion/storage/` if you want to contribute cloud backends.
-
-## Production checklist
-
-### Configuration
-- Set storage paths in `importobot.config` and maintain backups
-- Monitor cache stats and memory usage
-- Store API tokens in secret management systems
-- Use service accounts with minimal required permissions
-
-### Performance
-- Configure `IMPORTOBOT_API_MAX_CONCURRENCY` based on platform rate limits
-- Monitor API response times
-- Set appropriate timeouts to prevent job hangs
-- Use payload caching to reduce redundant API calls
-
-### Monitoring
-- Track API integration success/failure rates
-- Alert on authentication failures and rate limit breaches
-- Track conversion success rates and processing times
-- Log API discovery failures for troubleshooting
+For a complete, working example using GitHub Actions, see the project's own [test workflow file](https://github.com/athola/importobot/blob/main/.github/workflows/test.yml).
