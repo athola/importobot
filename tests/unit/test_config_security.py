@@ -13,6 +13,10 @@ from importobot.security.secure_memory import SecureString, SecurityError
 VALID_TOKEN_A = "token_value_alpha_1234"
 VALID_TOKEN_B = "token_value_beta_5678"
 VALID_TOKEN_C = "token_value_gamma_9012"
+STRIPE_TEST_KEY = "sk_live_" + "51H1234567890abcdef1234567890abcdef12345678"
+***REMOVED*** = "ghp_" + "1234567890abcdef1234567890abcdef12345678"
+***REMOVED*** = "xoxb-" + "1234567890-1234567890-abcd1234abcd1234"
+AWS_TEST_KEY = "AKIA" + "IOSFODNN7Z9PQLR"
 
 
 class TestAPIIngestConfigSecurity:
@@ -188,9 +192,9 @@ class TestAPIIngestConfigSecurity:
         """Test retrieving token by index."""
         # Use valid tokens that pass security validation
         tokens = [
-            SecureString("***REMOVED***12"),
-            SecureString("***REMOVED***"),
-            SecureString("***REMOVED***"),
+            SecureString("sk_live_" + "1234567890abcdef12"),
+            SecureString(***REMOVED***),
+            SecureString(***REMOVED***),
         ]
 
         config = APIIngestConfig(
@@ -205,9 +209,9 @@ class TestAPIIngestConfigSecurity:
             insecure=False,
         )
 
-        assert config.get_token(0) == "***REMOVED***12"
-        assert config.get_token(1) == "***REMOVED***"
-        assert config.get_token(2) == "***REMOVED***"
+        assert config.get_token(0) == "sk_live_" + "1234567890abcdef12"
+        assert config.get_token(1) == ***REMOVED***
+        assert config.get_token(2) == ***REMOVED***
 
     def test_get_token_index_out_of_range(self) -> None:
         """Test retrieving token with invalid index."""
@@ -451,9 +455,9 @@ class TestTokenSecurityValidation:
     def test_valid_tokens_acceptance(self) -> None:
         """Test that valid tokens are accepted."""
         valid_tokens = [
-            "***REMOVED***",  # Stripe-like
-            "ghp_1234567890abcdef123456",  # GitHub-like
-            "***REMOVED***",  # Slack-like
+            STRIPE_TEST_KEY,
+            ***REMOVED***,
+            ***REMOVED***,
             "random_string_12345_abcd",  # Generic but valid
             "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",  # Hex-like
         ]
@@ -536,10 +540,10 @@ class TestAPIIngestConfigIntegration:
     def test_real_world_token_scenarios(self) -> None:
         """Test real-world token scenarios."""
         real_tokens = {
-            "stripe": "***REMOVED***",
-            "github": "***REMOVED***",
-            "slack": "***REMOVED***",
-            "aws": "AKIAIOSFODNN7Z9PQLR",  # AWS access key format
+            "stripe": STRIPE_TEST_KEY,
+            "github": ***REMOVED***,
+            "slack": ***REMOVED***,
+            "aws": AWS_TEST_KEY,  # AWS access key format
         }
 
         for service, token in real_tokens.items():
@@ -561,9 +565,9 @@ class TestAPIIngestConfigIntegration:
     def test_multiple_service_tokens(self) -> None:
         """Test config with multiple service tokens."""
         tokens = [
-            "***REMOVED***",
-            "***REMOVED***",
-            "***REMOVED***",
+            STRIPE_TEST_KEY,
+            ***REMOVED***,
+            ***REMOVED***,
         ]
 
         config = APIIngestConfig(

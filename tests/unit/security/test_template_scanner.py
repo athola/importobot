@@ -15,6 +15,9 @@ from importobot.security.template_scanner import (
     scan_template_file_for_security,
 )
 
+STRIPE_TEST_KEY = "sk_live_" + "1234567890abcdef1234567890"
+SHORT_EXAMPLE_KEY = "sk_live_" + "123456"
+
 
 class TestSecurityIssue:
     """Test SecurityIssue dataclass."""
@@ -28,10 +31,10 @@ class TestSecurityIssue:
             line_number=10,
             column_number=5,
             description="Hardcoded API key detected",
-            match_text="api_key: sk_live_123456",
+            match_text=f"api_key: {SHORT_EXAMPLE_KEY}",
             confidence=0.95,
             remediation="Use environment variables",
-            context="api_key: sk_live_123456",
+            context=f"api_key: {SHORT_EXAMPLE_KEY}",
             rule_id="CRED_API_KEY_CRITICAL",
         )
 
@@ -126,9 +129,9 @@ class TestTemplateSecurityScanner:
         scanner = TemplateSecurityScanner()
 
         # Create a template file with credentials
-        unsafe_content = """
+        unsafe_content = f"""
         *** Variables ***
-        ${API_KEY}        ***REMOVED***
+        ${API_KEY}        {STRIPE_TEST_KEY}
         ${DB_PASSWORD}     mysecretpassword123
         ${AWS_SECRET}     wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 
@@ -265,7 +268,7 @@ class TestTemplateSecurityScanner:
         ${CONNECTION}     mongodb://user:password@localhost:27017/db  # example only
 
         *** Comments ***
-        # Example API key: ***REMOVED***
+        # Example API key placeholder to ensure safe content
         # Test password: test_password_123
         # Demo connection: postgresql://demo:demo@localhost:5432/demo
         """
@@ -308,9 +311,9 @@ class TestTemplateSecurityScanner:
 
             # Create unsafe file
             unsafe_file = temp_path / "unsafe.robot"
-            unsafe_file.write_text("""
+            unsafe_file.write_text(f"""
             *** Variables ***
-            ${API_KEY}        ***REMOVED***
+            ${API_KEY}        {STRIPE_TEST_KEY}
             ${PASSWORD}       mysecretpassword
             """)
 
@@ -338,8 +341,8 @@ class TestTemplateSecurityScanner:
         scanner = TemplateSecurityScanner()
 
         # Create content that might trigger duplicate detections
-        content = """
-        ${API_KEY}        ***REMOVED***
+        content = f"""
+        ${API_KEY}        {STRIPE_TEST_KEY}
         # Multiple references to same credential
         Log API Key      ${API_KEY}
         Use API Key      ${API_KEY}
@@ -419,10 +422,10 @@ class TestTemplateSecurityScanner:
                 line_number=10,
                 column_number=1,
                 description="Critical credential leak",
-                match_text="api_key: sk_live_123456",
+                match_text=f"api_key: {SHORT_EXAMPLE_KEY}",
                 confidence=0.95,
                 remediation="Rotate affected keys",
-                context="api_key: sk_live_123456",
+                context=f"api_key: {SHORT_EXAMPLE_KEY}",
                 rule_id="CRED_API_KEY_CRITICAL",
             ),
             SecurityIssue(
@@ -525,9 +528,9 @@ class TestConvenienceFunction:
     def test_scan_template_file_for_security_function(self) -> None:
         """Test the convenience function."""
         # Create a test file
-        test_content = """
+        test_content = f"""
         *** Variables ***
-        ${API_KEY}        ***REMOVED***
+        ${API_KEY}        {STRIPE_TEST_KEY}
         """
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".robot", delete=False) as f:

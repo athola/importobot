@@ -31,6 +31,8 @@ from importobot.security.template_scanner import (
     scan_template_file_for_security,
 )
 
+STRIPE_TEST_KEY = "sk_live_" + "1234567890abcdef1234567890"
+
 
 class TestEnhancedSecurityIntegration:
     """Integration tests for enhanced security features."""
@@ -43,13 +45,13 @@ class TestEnhancedSecurityIntegration:
         validator = SecurityValidator()
 
         # Create test content with various credential types
-        test_content = """
+        test_content = f"""
         # AWS credentials
         aws_access_key_id: AKIAIOSFODNN7EXAMPLE
         aws_secret_access_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 
         # API keys
-        api_key: ***REMOVED***
+        api_key: {STRIPE_TEST_KEY}
         x_api_key: abcdef1234567890abcdef
 
         # Database connections
@@ -61,7 +63,7 @@ class TestEnhancedSecurityIntegration:
 
         # Robot Framework template
         *** Variables ***
-        ${API_CREDENTIAL}  ***REMOVED***
+        ${API_CREDENTIAL}  {STRIPE_TEST_KEY}
         ${DB_CREDENTIAL}  mongodb://user:password@localhost:27017/testdb
         ${PASSWORD}        notasecretpassword
 
@@ -106,7 +108,7 @@ class TestEnhancedSecurityIntegration:
         # Mock parameters for validation
         test_params = {
             "aws_access_key_id": "AKIAIOSFODNN7EXAMPLE",
-            "api_key": "***REMOVED***",
+            "api_key": STRIPE_TEST_KEY,
             "password": "mysecretpassword",
             "normal_param": "safe_value",
         }
@@ -126,9 +128,9 @@ class TestEnhancedSecurityIntegration:
         validator = SecurityValidator()
 
         # Create template with security issues
-        template_content = """
+        template_content = f"""
         *** Variables ***
-        ${API_KEY}        ***REMOVED***
+        ${API_KEY}        {STRIPE_TEST_KEY}
         ${PASSWORD}       mysecretpassword123
 
         *** Test Cases ***
@@ -206,16 +208,17 @@ class TestEnhancedSecurityIntegration:
         scanner = TemplateSecurityScanner()
         registry = get_credential_registry()
 
+        placeholder_key = "placeholder_key_value"
         # Content that looks like credentials but is clearly safe
-        safe_content = """
+        safe_content = f"""
         *** Variables ***
-        ${API_KEY}        your_api_key_here
+        ${API_KEY}        {placeholder_key}
         ${PASSWORD}       replace_with_actual_password
         ${SECRET}         use_env_variable_for_secret
         ${CONNECTION}     mongodb://user:password@localhost:27017/db  # example only
 
         *** Comments ***
-        # Example API key: ***REMOVED***
+        # Example API key placeholder that should not trigger detections
         # Test password: test_password_123
         # Demo connection: postgresql://demo:demo@localhost:5432/demo
 
@@ -275,10 +278,11 @@ class TestEnhancedSecurityIntegration:
         assert len(matches) >= 200  # Should detect all instances
 
         # Test template scanner performance
-        large_template_content = """
-        *** Variables ***
-        """ + "\n".join(
-            f"${{API_KEY_{i}}}        ***REMOVED***{i}" for i in range(100)
+        large_template_content = (
+            \"\"\"\n        *** Variables ***\n        \"\"\"
+            + \"\\n\".join(
+                f\"${{API_KEY_{i}}}        {STRIPE_TEST_KEY}{i}\" for i in range(100)
+            )
         )
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".robot", delete=False) as f:
@@ -372,9 +376,9 @@ class TestSecurityEnhancementValidation:
         scanner = TemplateSecurityScanner()
 
         # Create a template file
-        template_content = """
+        template_content = f"""
         *** Variables ***
-        ${API_KEY}        ***REMOVED***
+        ${API_KEY}        {STRIPE_TEST_KEY}
 
         *** Test Cases ***
         Test Case

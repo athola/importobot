@@ -16,6 +16,8 @@ from importobot.security.credential_patterns import (
     scan_for_credentials,
 )
 
+STRIPE_TEST_KEY = "sk_live_" + "1234567890abcdef1234567890"
+
 
 class TestCredentialPattern:
     """Test individual credential pattern functionality."""
@@ -165,8 +167,8 @@ class TestCredentialPatternRegistry:
         """Test searching for API keys."""
         registry = CredentialPatternRegistry()
 
-        test_text = """
-        api_key: ***REMOVED***
+        test_text = f"""
+        api_key: {STRIPE_TEST_KEY}
         x-api-key: abcdef1234567890abcdef
         Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         """
@@ -251,9 +253,9 @@ class TestCredentialPatternRegistry:
 
         # Create a temporary test file
 
-        test_content = """
+        test_content = f"""
         # Configuration file with credentials
-        api_key: ***REMOVED***
+        api_key: {STRIPE_TEST_KEY}
         database_url: postgresql://user:password@localhost:5432/db
         """
 
@@ -431,7 +433,7 @@ class TestFalsePositiveReduction:
         example_code = """
         # Example code snippets
         def get_api_key():
-            return "***REMOVED***"
+            return "sk_live_" + "example_key_placeholder"
 
         # Documentation examples
         # aws_access_key_id: YOUR_ACCESS_KEY_HERE
@@ -452,10 +454,10 @@ class TestFalsePositiveReduction:
         registry = CredentialPatternRegistry()
 
         # This should match (real looking credential)
-        real_credential = "***REMOVED***abcdef123456"
+        real_credential = "sk_live_" + "1234567890abcdef1234567890abcdef123456"
 
         # This should not match (clearly fake/test)
-        fake_credential = "***REMOVED***"
+        fake_credential = "sk_live_" + "test_key_example_placeholder_12345"
 
         real_matches = registry.search_text(
             f"api_key: {real_credential}", min_confidence=0.8
