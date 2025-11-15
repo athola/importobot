@@ -12,7 +12,7 @@ V = TypeVar("V")
 
 
 class EvictionPolicy(Enum):
-    """Enumerates available cache eviction strategies."""
+    """Enumerate available cache eviction strategies."""
 
     LRU = "lru"
     FIFO = "fifo"
@@ -21,7 +21,7 @@ class EvictionPolicy(Enum):
 
 @dataclass(frozen=True)
 class CacheConfig:
-    """Represents a unified cache configuration."""
+    """Represent a unified cache configuration."""
 
     max_size: int = 1000
     ttl_seconds: float | None = None
@@ -31,7 +31,7 @@ class CacheConfig:
 
 
 class CacheStrategy(ABC, Generic[K, V]):
-    """Abstract base class for all cache implementations."""
+    """Provide an abstract base class for all cache implementations."""
 
     @abstractmethod
     def get(self, key: K) -> V | None:
@@ -54,7 +54,7 @@ class CacheStrategy(ABC, Generic[K, V]):
         """Retrieve cache statistics."""
 
     def contains(self, key: K) -> bool:
-        """Check if a key exists in the cache."""
+        """Check whether a key exists in the cache."""
         return self.get(key) is not None
 
 

@@ -23,7 +23,7 @@ from importobot.utils.logging import get_logger
 
 
 class ConversionStrategy(ABC):
-    """Abstract base class for conversion strategies."""
+    """Provide an abstract base class for conversion strategies."""
 
     @abstractmethod
     def validate_args(self, args: Any) -> None:
@@ -251,7 +251,7 @@ class ImprovedConversionStrategy(ConversionStrategy):
 
 
 def get_strategy(args: Any) -> ConversionStrategy:
-    """Get the appropriate conversion strategy based on arguments."""
+    """Return the appropriate conversion strategy based on arguments."""
     if args.suggestions_only:
         return SuggestionsOnlyStrategy()
     if args.improved:

@@ -12,7 +12,7 @@ _MULTI_TEST_CONTAINER_KEY = "testCases"
 
 
 def load_json_file(json_file_path: str | None) -> dict[str, Any]:
-    """Load JSON data from file.
+    """Load JSON data from a file.
 
     Args:
         json_file_path: Path to the JSON file to load
@@ -64,7 +64,7 @@ def _validate_file_path_input(json_file_path: str | None) -> str:
 
 
 def _check_file_exists(file_path: str) -> None:
-    """Check if the file exists.
+    """Check whether the file exists.
 
     Args:
         file_path: Path to check
@@ -77,7 +77,7 @@ def _check_file_exists(file_path: str) -> None:
 
 
 def _load_and_process_json_data(file_path: str) -> dict[str, Any]:
-    """Load JSON data from file and process it.
+    """Load JSON data from a file and process it.
 
     Args:
         file_path: Path to JSON file
@@ -110,7 +110,7 @@ def _load_and_process_json_data(file_path: str) -> dict[str, Any]:
 
 
 def _read_json_file(file_path: str) -> Any:
-    """Read raw JSON data from file.
+    """Read raw JSON data from a file.
 
     Args:
         file_path: Path to JSON file

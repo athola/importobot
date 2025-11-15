@@ -3,15 +3,21 @@
 from __future__ import annotations
 
 import os
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from importlib import import_module
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
 from importobot import exceptions
 from importobot.cli.constants import FETCHABLE_FORMATS, SUPPORTED_FETCH_FORMATS
 from importobot.medallion.interfaces.enums import SupportedFormat
+from importobot.security.secure_memory import (
+    SecureString,
+    SecurityError,
+    create_secure_string,
+)
 from importobot.utils.logging import get_logger
 
 # Module-level logger for configuration warnings
@@ -193,17 +199,199 @@ BRONZE_LAYER_IN_MEMORY_TTL_SECONDS = _int_from_env(
 
 @dataclass(slots=True)
 class APIIngestConfig:
-    """Hold configuration for the API ingestion workflow."""
+    """Hold configuration for the API ingestion workflow with secure token management.
+
+    Configuration includes API endpoints, authentication tokens, and workflow
+    settings.
+    """
 
     fetch_format: SupportedFormat
     api_url: str
-    tokens: list[str]
+    tokens: list[SecureString] | list[str]  # Accept strings, convert in __post_init__
     user: str | None
     project_name: str | None
     project_id: int | None
     output_dir: Path
     max_concurrency: int | None
     insecure: bool
+
+    def __post_init__(self) -> None:
+        """Post-initialization security validation and token conversion."""
+        # Convert non-secure tokens to SecureString for backward compatibility
+        if self.tokens:
+            converted_tokens: list[SecureString] = []
+            for token in self.tokens:
+                if isinstance(token, SecureString):
+                    converted_tokens.append(token)
+                else:
+                    converted_tokens.append(create_secure_string(str(token)))
+            self.tokens = converted_tokens
+
+        # Immediate security validation
+        self._validate_token_security()
+
+    @property
+    def secure_tokens(self) -> list[SecureString]:
+        """Return tokens as `SecureString` (guaranteed after `__post_init__`)."""
+        return cast(list[SecureString], self.tokens)
+
+    def _validate_token_security(self) -> None:
+        """Perform immediate security validation on tokens."""
+        for position, token in enumerate(self.secure_tokens, start=1):
+            self._validate_single_token(token, position)
+
+    def _validate_single_token(self, token: SecureString, position: int) -> None:
+        """Validate a single token, isolating error handling from the main loop."""
+        try:
+            token_value = token.value
+            token_lower = token_value.lower()
+
+            # Reject obvious placeholder tokens (e.g., "token", "api_token")
+            normalized_token = token_lower.replace("-", "").replace("_", "")
+            placeholder_tokens = {"token", "apitoken", "bearertoken"}
+            if normalized_token in placeholder_tokens:
+                raise SecurityError(
+                    "Token "
+                    f"{position} appears to use a placeholder value '{token_value}'"
+                )
+
+            # Check minimum token length
+            if len(token_value) < 16:
+                raise SecurityError(
+                    f"Token {position} too short (min 16 chars, got {len(token_value)})"
+                )
+
+            # Check for insecure token patterns
+            self._validate_insecure_indicators(token_value, token_lower, position)
+
+            # Check for repeating characters (indicates weak token)
+            if len(set(token_value)) < 4:
+                raise SecurityError(
+                    f"Token {position} has insufficient entropy "
+                    f"(too few unique characters)"
+                )
+
+        except SecurityError:
+            # Security errors propagate naturally - they already have clear messages
+            raise
+        except Exception as exc:
+            raise SecurityError(f"Failed to validate token {position}: {exc}") from exc
+
+    def get_token(self, index: int) -> str:
+        """Securely retrieve a token by index.
+
+        Args:
+            index: Index of token to retrieve
+
+        Returns:
+            Token value as string
+
+        Raises:
+            IndexError: If index out of range
+            SecurityError: If token access fails
+        """
+        secure_tokens = self.secure_tokens
+        if index >= len(secure_tokens):
+            raise IndexError(
+                f"Token index {index} out of range (0-{len(secure_tokens) - 1})"
+            )
+
+        return secure_tokens[index].value
+
+    def get_all_tokens(self) -> list[str]:
+        """Retrieve all tokens securely.
+
+        Returns:
+            List of token values
+
+        Warning:
+            Use with caution - returned strings remain in memory
+        """
+        return [token.value for token in self.secure_tokens]
+
+    def add_token(self, token: str) -> None:
+        """Add a new token securely.
+
+        Args:
+            token: Token value to add
+
+        Raises:
+            SecurityError: If token validation fails
+        """
+        secure_token = create_secure_string(token)
+
+        secure_tokens = self.secure_tokens
+        try:
+            self._validate_single_token(secure_token, len(secure_tokens) + 1)
+        except SecurityError:
+            secure_token.zeroize()
+            raise
+
+        # If validation passes, add to existing tokens
+        secure_tokens_list = self.secure_tokens
+        secure_tokens_list.append(secure_token)
+        self.tokens = secure_tokens_list  # Update the reference
+
+    def __del__(self) -> None:
+        """Cleanup tokens on destruction."""
+        try:
+            secure_tokens = getattr(self, "secure_tokens", [])
+            for token in secure_tokens:
+                if hasattr(token, "zeroize"):
+                    token.zeroize()
+        except Exception as exc:
+            logger.error("APIIngestConfig cleanup failed: %s", exc)
+
+    @staticmethod
+    def _indicator_has_boundary(token: str, indicator: str) -> bool:
+        """Return True when indicator appears as a separate token segment."""
+        pattern = rf"(?:^|[^a-z0-9]){re.escape(indicator)}(?:[^a-z0-9]|$)"
+        return re.search(pattern, token) is not None
+
+    def _validate_insecure_indicators(
+        self, token_value: str, token_lower: str, position: int
+    ) -> None:
+        """Raise when token contains insecure indicators."""
+        insecure_indicators = [
+            "password",
+            "secret",
+            "token",
+            "key",
+            "test",
+            "demo",
+            "example",
+            "sample",
+            "default",
+            "temp",
+            "temporary",
+        ]
+        boundary_indicators = {"key"}
+        uppercase_only_indicators = {"token"}
+
+        for indicator in insecure_indicators:
+            if indicator in boundary_indicators:
+                if self._indicator_has_boundary(token_lower, indicator):
+                    raise SecurityError(
+                        f"Token {position} contains insecure indicator '{indicator}'"
+                    )
+                continue
+
+            if indicator in uppercase_only_indicators:
+                matches = [
+                    match.start() for match in re.finditer(indicator, token_lower)
+                ]
+                if any(
+                    token_value[idx : idx + len(indicator)].isupper() for idx in matches
+                ):
+                    raise SecurityError(
+                        f"Token {position} contains insecure indicator '{indicator}'"
+                    )
+                continue
+
+            if indicator in token_lower:
+                raise SecurityError(
+                    f"Token {position} contains insecure indicator '{indicator}'"
+                )
 
 
 def _split_tokens(raw_tokens: str | None) -> list[str]:
@@ -213,11 +401,16 @@ def _split_tokens(raw_tokens: str | None) -> list[str]:
     return [token.strip() for token in raw_tokens.split(",") if token.strip()]
 
 
-def _mask(tokens: list[str] | None) -> str:
+def _mask(
+    tokens: list[str] | list[SecureString] | list[str | SecureString] | None,
+) -> str:
     """Return a masked representation of tokens for logging."""
     if not tokens:
         return "***"
-    return ", ".join("***" for _ in tokens)
+
+    # Handle both string and SecureString tokens
+    count = len(tokens)
+    return ", ".join("***" for _ in range(count))
 
 
 def _resolve_output_dir(cli_path: str | None) -> Path:
@@ -311,7 +504,7 @@ class _ProjectReferenceArgs(Protocol):
 
     @property
     def project(self) -> str | None:
-        """The project identifier from CLI arguments."""
+        """Return the project identifier from CLI arguments."""
         ...
 
 
@@ -413,7 +606,8 @@ def resolve_api_ingest_config(args: Any) -> APIIngestConfig:
 
     api_url = getattr(args, "api_url", None) or fetch_env(f"{prefix}_API_URL")
     cli_tokens = getattr(args, "api_tokens", None)
-    tokens = (
+    # Explicit type annotation for type checker
+    tokens: list[str] = (
         list(cli_tokens) if cli_tokens else _split_tokens(fetch_env(f"{prefix}_TOKENS"))
     )
     api_user = getattr(args, "api_user", None) or fetch_env(f"{prefix}_API_USER")

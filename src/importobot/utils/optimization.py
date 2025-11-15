@@ -1,6 +1,6 @@
-"""Optimization algorithms and mathematical utilities for Importobot.
+"""Provide optimization algorithms and mathematical utilities for Importobot.
 
-Provide advanced optimization algorithms for improving test conversion processes.
+Improve test conversion processes with advanced optimization algorithms.
 """
 
 from __future__ import annotations
@@ -35,9 +35,9 @@ class AnnealingConfig:
 
 
 class GradientDescentOptimizer:
-    """Gradient descent optimizer for parameter tuning and function optimization.
+    """Optimize parameters and functions using gradient descent.
 
-    This class implements gradient descent with various enhancements including:
+    Implement gradient descent with various enhancements, including:
     - Adaptive learning rates
     - Momentum-based optimization
     - Regularization to prevent overfitting
@@ -212,7 +212,7 @@ class GradientDescentOptimizer:
         return current_learning_rate
 
     def _check_convergence(self, iteration: int) -> bool:
-        """Check if optimization has converged."""
+        """Check whether optimization has converged."""
         if iteration > 10:
             recent_values = self.convergence_history[-10:]
             return max(recent_values) - min(recent_values) < self.config.tolerance
@@ -269,9 +269,9 @@ class GradientDescentOptimizer:
 
 
 class GeneticAlgorithmOptimizer:  # pylint: disable=too-many-positional-arguments
-    """Genetic algorithm optimizer for complex parameter spaces.
+    """Optimize complex parameter spaces using a genetic algorithm.
 
-    This class implements a genetic algorithm with:
+    Implement a genetic algorithm with:
     - Tournament selection
     - Crossover and mutation operations
     - Elitism to preserve best solutions
@@ -402,7 +402,7 @@ class GeneticAlgorithmOptimizer:  # pylint: disable=too-many-positional-argument
         return best_individual, best_fitness
 
     def _check_genetic_convergence(self, generation: int) -> bool:
-        """Check if genetic algorithm has converged."""
+        """Check whether genetic algorithm has converged."""
         if generation > 20:
             recent_fitness = self.fitness_history[-20:]
             return max(recent_fitness) - min(recent_fitness) < 1e-6

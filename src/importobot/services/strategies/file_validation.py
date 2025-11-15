@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from importobot.utils.security import SecurityValidator
+from importobot.security.security_validator import SecurityValidator
 from importobot.utils.validation import (
     ValidationError,
     validate_file_path,

@@ -13,11 +13,11 @@ from pathlib import Path
 import pytest
 
 from importobot.core.engine import GenericConversionEngine
-from importobot.utils.file_operations import load_json_file as load_json
-from importobot.utils.security import (
+from importobot.security.security_validator import (
     get_ssh_security_guidelines,
     validate_test_security,
 )
+from importobot.utils.file_operations import load_json_file as load_json
 from tests.shared_test_data import SSH_SECURITY_TOPICS
 
 

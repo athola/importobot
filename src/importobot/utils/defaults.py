@@ -61,7 +61,7 @@ class FileDefaults:
 
 
 class DataDefaults:
-    """Organized default values for test data generation."""
+    """Organize default values for test data generation."""
 
     def __init__(self, **kwargs: Any) -> None:
         """Initialize defaults with optional overrides."""

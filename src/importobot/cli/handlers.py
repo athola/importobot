@@ -344,7 +344,7 @@ def _create_api_client(config: Any) -> Any:
     return get_api_client(
         config.fetch_format,
         api_url=config.api_url,
-        tokens=config.tokens,
+        tokens=config.get_all_tokens(),
         user=config.user,
         project_name=config.project_name,
         project_id=config.project_id,

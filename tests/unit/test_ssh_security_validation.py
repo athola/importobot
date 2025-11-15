@@ -5,7 +5,7 @@ from typing import Any
 import pytest
 
 from importobot.core.keywords_registry import IntentRecognitionEngine
-from importobot.utils.security import SecurityValidator
+from importobot.security.security_validator import SecurityValidator
 
 
 class TestSSHSecurityValidation:

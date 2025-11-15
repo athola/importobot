@@ -71,10 +71,10 @@ class CategoryTestParams:
 
 class TestSuiteGenerator:
     """
-    Test generator for Robot Framework test suites.
+    Generate Robot Framework test suites.
 
-    Generates realistic test cases with appropriate metadata for different
-    business domains. The generator handles template processing, data extraction,
+    Generate realistic test cases with appropriate metadata for different
+    business domains. Handle template processing, data extraction,
     and step formatting.
     """
 
@@ -840,7 +840,7 @@ class TestSuiteGenerator:
     def _get_keyword_generator_map(
         self, test_data: dict[str, str]
     ) -> dict[str, dict[str, Any]]:
-        """Get keyword generator mapping for test data generation."""
+        """Return keyword generator mapping for test data generation."""
         return {
             "browser": {
                 "patterns": KEYWORD_PATTERNS.browser_patterns,
@@ -981,7 +981,7 @@ class TestSuiteGenerator:
         distribution: DistributionDict | None = None,
         weights: WeightsDict | None = None,
     ) -> DistributionDict:
-        """Get test distribution (delegate to DistributionManager)."""
+        """Return test distribution (delegate to DistributionManager)."""
         # Validate category names if weights are provided as strings
         if weights is not None:
             valid_categories = {member.value for member in CategoryEnum}
@@ -1023,5 +1023,5 @@ class TestSuiteGenerator:
         )
 
     def _get_category_scenarios(self) -> dict[str, dict[str, list[str]]]:
-        """Get available scenarios by category."""
+        """Return available scenarios by category."""
         return self.template_manager.get_available_scenarios()

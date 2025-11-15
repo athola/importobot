@@ -13,6 +13,14 @@ from importobot.config import resolve_api_ingest_config
 from importobot.exceptions import ConfigurationError
 from importobot.medallion.interfaces.enums import SupportedFormat
 
+
+def _normalize_token(raw: str) -> str:
+    sanitized = raw.replace(",", "").replace(" ", "").replace("\t", "")
+    if not sanitized:
+        sanitized = "token"
+    return f"{sanitized}_secure_value_123456"
+
+
 token_strategy = st.text(
     alphabet=st.characters(
         blacklist_characters=[",", " ", "\t"],
@@ -21,7 +29,7 @@ token_strategy = st.text(
     ),
     min_size=1,
     max_size=12,
-)
+).map(_normalize_token)
 
 
 # pylint: disable=too-many-positional-arguments
@@ -71,7 +79,7 @@ def test_token_resolution_precedence(
     original_cli = list(cli_tokens)
     config = resolve_api_ingest_config(args)
 
-    assert config.tokens == expected_tokens
+    assert config.get_all_tokens() == expected_tokens
     if use_cli_tokens and cli_tokens:
         assert cli_tokens == original_cli
 

@@ -75,7 +75,7 @@ class LazyModule:
 
 
 class OptionalDependency:
-    """Manages optional dependencies with graceful defaults."""
+    """Manage optional dependencies with graceful defaults."""
 
     def __init__(
         self,
@@ -99,7 +99,7 @@ class OptionalDependency:
 
     @property
     def available(self) -> bool:
-        """Check if the dependency is available."""
+        """Check whether the dependency is available."""
         if not self._checked:
             self._check_availability()
         return self._available
@@ -112,7 +112,7 @@ class OptionalDependency:
         return self._module  # type: ignore
 
     def _check_availability(self) -> None:
-        """Check if the dependency can be imported."""
+        """Check whether the dependency can be imported."""
         try:
             self._module = importlib.import_module(self.module_name)
             self._available = True
@@ -159,7 +159,7 @@ PANDAS = OptionalDependency(
 
 
 class LazyDataLoader:
-    """Efficient loader for large data structures with caching."""
+    """Load large data structures efficiently with caching."""
 
     @staticmethod
     @lru_cache(maxsize=32)

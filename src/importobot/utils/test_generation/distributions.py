@@ -8,7 +8,7 @@ DistributionDict = dict[str, int]
 
 
 class DistributionManager:
-    """Manages test distribution calculations and normalization."""
+    """Manage test distribution calculations and normalization."""
 
     @staticmethod
     def get_test_distribution(
@@ -16,7 +16,7 @@ class DistributionManager:
         distribution: DistributionDict | None = None,
         weights: WeightsDict | None = None,
     ) -> DistributionDict:
-        """Get normalized test distribution from weights or absolute counts."""
+        """Return normalized test distribution from weights or absolute counts."""
         if distribution is not None:
             return DistributionManager.process_absolute_distribution(
                 total_tests, distribution

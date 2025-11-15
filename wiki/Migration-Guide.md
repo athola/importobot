@@ -2,6 +2,63 @@
 
 This guide details the changes and necessary steps when migrating between different versions of Importobot.
 
+## 0.1.4 to 0.1.5
+
+Version 0.1.5 adds a first-class security package without breaking the existing public API, but you must wire up the new defaults if you want encrypted credentials or SIEM forwarding.
+
+### Required When Using `importobot.security`
+1. **Install cryptography**: `uv sync` already pulls `cryptography>=42.0.0`. If you deploy from a trimmed image, run `pip install cryptography`.
+2. **Export a Fernet key**: `CredentialManager` fails closed unless `IMPORTOBOT_ENCRYPTION_KEY` contains a 32-byte key.
+
+```bash
+export IMPORTOBOT_ENCRYPTION_KEY="$(openssl rand -base64 32)"
+```
+
+### Opting Into the New Modules
+
+#### Credential Encryption
+
+```python
+from importobot.security import CredentialManager
+
+manager = CredentialManager()
+encrypted = manager.encrypt_credential(os.environ["ZEPHYR_TOKEN"])
+store(encrypted.ciphertext)
+```
+
+- Reason: the old `importobot.utils.security` helpers are now thin re-exports of this package; migrate to avoid future deprecation.
+
+#### Template Security Checks
+
+```python
+from importobot.security import TemplateSecurityScanner
+
+report = TemplateSecurityScanner().scan_template_file("templates/login.robot")
+if not report.is_safe:
+    fail_build(report.issues)
+```
+
+- Use before `--robot-template` conversions so credential leaks and suspicious variables fail fast.
+
+#### SIEM / Compliance Hooks
+
+```python
+from importobot.security import create_splunk_connector, get_siem_manager
+
+manager = get_siem_manager()
+manager.add_connector(create_splunk_connector(
+    host="https://splunk.example.com",
+    token=os.environ["SPLUNK_HEC_TOKEN"],
+))
+manager.start()
+```
+
+- Connectors exist for Splunk, Elastic, and Sentinel; each enforces TLS and logs failures with context.
+
+### Validation Checklist
+- Run `UV_CACHE_DIR=.uv-cache uv run pytest --collect-only --quiet` to confirm the security-focused tests (13 new modules) load on your platform.
+- Verify that CI/CD logs include the new `security` logger entries so audit teams can trace template scans, credential decryptions, and SIEM forwarding attempts.
+
 ## 0.1.3 to 0.1.4
 
 Version 0.1.4 focused on improving code quality, refactoring internal module architecture, and enhancing type safety. This release includes some breaking changes due to the removal of deprecated APIs.
@@ -47,7 +104,7 @@ from importobot.integrations.clients.zephyr import ZephyrClient
 
 ### Improvements
 - **Test Suite**: The test suite now uses 55 named constants, replacing magic numbers, and adopts modern pytest patterns for improved readability and maintainability.
-- **Type Safety**: Mypy now performs comprehensive type checking across the entire test suite, ensuring consistent code quality.
+- **Type Safety**: Mypy now checks types across the entire test suite, which helps maintain code quality.
 - **Performance**: Lazy loading of modules has improved import speed by 3x.
 - **Documentation**: The project documentation has been enhanced with more factual and technical descriptions.
 

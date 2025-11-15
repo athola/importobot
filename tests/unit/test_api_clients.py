@@ -20,6 +20,9 @@ from importobot.integrations.clients import (
 )
 from importobot.medallion.interfaces.enums import SupportedFormat
 
+VALID_TOKEN = "api-token-abcdef1234567890"
+VALID_TOKEN_2 = "api-token-2-abcdef123456"
+
 
 class DummyResponse:
     """Minimal response object compatible with requests."""
@@ -116,7 +119,7 @@ def test_factory_returns_expected_client() -> None:
     """Factory should map supported formats to concrete clients."""
     config: dict[str, Any] = {
         "api_url": "https://example/api",
-        "tokens": ["token"],
+        "tokens": [VALID_TOKEN],
         "user": "user",
         "project_name": "PRJ",
         "project_id": None,
@@ -191,7 +194,7 @@ def test_auth_failure_logs_warning(caplog: pytest.LogCaptureFixture) -> None:
 
     client = ZephyrClient(
         api_url="https://jira.example/rest",
-        tokens=["token"],
+        tokens=[VALID_TOKEN],
         user=None,
         project_name="PRJ",
         project_id=None,
@@ -234,7 +237,7 @@ def test_client_uses_honest_user_agent(monkeypatch: pytest.MonkeyPatch) -> None:
 
     JiraXrayClient(
         api_url="https://jira.example/rest/api/2/search",
-        tokens=["token"],
+        tokens=[VALID_TOKEN],
         user=None,
         project_name="PRJ",
         project_id=None,
@@ -276,7 +279,7 @@ def test_jira_xray_client_paginates(monkeypatch: pytest.MonkeyPatch) -> None:
 
     client = JiraXrayClient(
         api_url="https://jira.example/rest/api/2/search",
-        tokens=["token"],
+        tokens=[VALID_TOKEN],
         user=None,
         project_name="PRJ",
         project_id=None,
@@ -307,7 +310,7 @@ def test_jira_xray_client_accepts_project_id(monkeypatch: pytest.MonkeyPatch) ->
 
     client = JiraXrayClient(
         api_url="https://jira.example/rest/api/2/search",
-        tokens=["token"],
+        tokens=[VALID_TOKEN],
         user=None,
         project_name=None,
         project_id=321,
@@ -350,7 +353,7 @@ def test_client_retries_on_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
 
     client = JiraXrayClient(
         api_url="https://jira.example/rest/api/2/search",
-        tokens=["token"],
+        tokens=[VALID_TOKEN],
         user=None,
         project_name="PRJ",
         project_id=None,
@@ -385,7 +388,7 @@ def test_client_raises_after_retry_budget(monkeypatch: pytest.MonkeyPatch) -> No
 
     client = JiraXrayClient(
         api_url="https://jira.example/rest/api/2/search",
-        tokens=["token"],
+        tokens=[VALID_TOKEN],
         user=None,
         project_name="PRJ",
         project_id=None,
@@ -493,7 +496,7 @@ def test_zephyr_client_supports_multiple_auth_strategies() -> None:
 
     client_dual = ZephyrClient(
         api_url="https://api.zephyr.example",
-        tokens=["token1", "token2"],
+        tokens=[VALID_TOKEN, VALID_TOKEN_2],
         user=None,
         project_name="ZEPHYR",
         project_id=None,
@@ -806,7 +809,7 @@ def test_emoji_in_test_case_names(monkeypatch: pytest.MonkeyPatch) -> None:
 
     client = JiraXrayClient(
         api_url="https://jira.example/rest/api/2/search",
-        tokens=["token"],
+        tokens=[VALID_TOKEN],
         user=None,
         project_name="PROJ",
         project_id=None,
@@ -928,7 +931,7 @@ class TestCircuitBreaker:
 
         client = JiraXrayClient(
             api_url="https://jira.example/rest/api/2/search",
-            tokens=["token"],
+            tokens=[VALID_TOKEN],
             user=None,
             project_name="PRJ",
             project_id=None,
@@ -972,7 +975,7 @@ class TestCircuitBreaker:
 
         client = JiraXrayClient(
             api_url="https://jira.example/rest/api/2/search",
-            tokens=["token"],
+            tokens=[VALID_TOKEN],
             user=None,
             project_name="PRJ",
             project_id=None,
@@ -1011,7 +1014,7 @@ class TestCircuitBreaker:
 
         client = JiraXrayClient(
             api_url="https://jira.example/rest/api/2/search",
-            tokens=["token"],
+            tokens=[VALID_TOKEN],
             user=None,
             project_name="PRJ",
             project_id=None,
@@ -1052,7 +1055,7 @@ class TestCustomErrorHandlers:
 
         client = JiraXrayClient(
             api_url="https://jira.example/rest/api/2/search",
-            tokens=["token"],
+            tokens=[VALID_TOKEN],
             user=None,
             project_name="PRJ",
             project_id=None,
@@ -1091,7 +1094,7 @@ class TestCustomErrorHandlers:
 
         client = JiraXrayClient(
             api_url="https://jira.example/rest/api/2/search",
-            tokens=["token"],
+            tokens=[VALID_TOKEN],
             user=None,
             project_name="PRJ",
             project_id=None,
@@ -1131,7 +1134,7 @@ class TestCustomErrorHandlers:
 
         client = JiraXrayClient(
             api_url="https://jira.example/rest/api/2/search",
-            tokens=["token"],
+            tokens=[VALID_TOKEN],
             user=None,
             project_name="PRJ",
             project_id=None,

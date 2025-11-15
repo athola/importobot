@@ -106,6 +106,17 @@ Users can verify package authenticity by:
 2. Comparing PyPI and GitHub Packages checksums
 3. Reviewing the automated publishing workflow logs
 
+### Runtime Security Dependencies
+- `cryptography>=42.0.0` ships with the base wheel to enable Fernet encryption for `importobot.security.CredentialManager`. Installing from PyPI automatically provides the wheel; no extra extras are needed.
+- Importobot will raise `SecurityError` if `cryptography` is missing. Install it manually with `pip install cryptography` only if building from minimal environments.
+- Security modules expect a 32-byte Fernet key in `IMPORTOBOT_ENCRYPTION_KEY`. Generate one once and export it before running CI/CD jobs:
+
+```bash
+export IMPORTOBOT_ENCRYPTION_KEY="$(openssl rand -base64 32)"
+```
+
+- Tests and local tooling can reuse the same key; avoid committing it to `.env` files.
+
 ## Support
 
 For package distribution issues:

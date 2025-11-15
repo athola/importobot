@@ -1,6 +1,6 @@
 """Gateway service for optimization algorithms.
 
-This service provides a thin integration layer between the mathematical
+Provide a thin integration layer between the mathematical
 optimization utilities in :mod:`importobot.utils.optimization` and the rest of
 Importobot's architecture. It will be used by the upcoming Gold layer to tune
 conversion heuristics and performance levers while keeping the optimizer
@@ -29,7 +29,7 @@ AlgorithmName = str
 
 @dataclass
 class OptimizationScenario:
-    """Container describing an optimization problem instance."""
+    """Container for an optimization problem instance."""
 
     objective_function: Callable[[dict[str, float]], float]
     initial_parameters: dict[str, float]
@@ -41,7 +41,7 @@ class OptimizationScenario:
 
 @dataclass
 class OptimizationOutcome:
-    """Normalized representation of an optimization result."""
+    """Container for a normalized optimization result."""
 
     algorithm: AlgorithmName
     parameters: dict[str, float]

@@ -1,6 +1,6 @@
-"""Manages Robot Framework keyword registry and library mappings.
+"""Manage Robot Framework keyword registry and library mappings.
 
-This module centralizes keyword definitions, library patterns, and intent recognition
+Centralize keyword definitions, library patterns, and intent recognition
 for Robot Framework conversion operations.
 """
 
@@ -8,11 +8,14 @@ import re
 from typing import Any, ClassVar, cast
 
 from importobot.core.pattern_matcher import IntentType, PatternMatcher
-from importobot.utils.security import SSH_SECURITY_GUIDELINES, extract_security_warnings
+from importobot.security.security_validator import (
+    SSH_SECURITY_GUIDELINES,
+    extract_security_warnings,
+)
 
 
 class RobotFrameworkKeywordRegistry:
-    """A centralized registry of Robot Framework keywords across major libraries."""
+    """Centralize Robot Framework keywords across major libraries."""
 
     # Comprehensive Robot Framework library coverage
     KEYWORD_LIBRARIES: ClassVar[dict[str, Any]] = {
@@ -627,7 +630,7 @@ class RobotFrameworkKeywordRegistry:
 
     @classmethod
     def validate_registry_integrity(cls) -> list[str]:
-        """Validate that all intent mappings reference valid keywords.
+        """Validate all intent mappings reference valid keywords.
 
         Returns:
             A list of validation errors found in the registry.
@@ -696,13 +699,13 @@ class RobotFrameworkKeywordRegistry:
 
 
 class IntentRecognitionEngine:
-    """Provides centralized intent recognition capabilities using `PatternMatcher`."""
+    """Provide centralized intent recognition capabilities using `PatternMatcher`."""
 
     _pattern_matcher: ClassVar[PatternMatcher] = PatternMatcher()
 
     @classmethod
     def recognize_intent(cls, text: str) -> IntentType | None:
-        """Recognizes the intent from a text description using `PatternMatcher`.
+        """Recognize the intent from a text description using `PatternMatcher`.
 
         Returns:
             An `IntentType` enum if an intent is detected, otherwise `None`.

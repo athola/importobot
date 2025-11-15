@@ -20,7 +20,7 @@ The Importobot test suite is structured to provide comprehensive coverage:
 
 For a detailed breakdown of test types and their locations, see the [Test Structure](How-to-Navigate-this-Codebase.md#test-structure) section in the codebase navigation guide.
 
-Current status: 1,946 tests across modules with 0 skips.
+Current status: 2,644 collected tests (`UV_CACHE_DIR=.uv-cache uv run pytest --collect-only --quiet`) with 0 skips.
 
 ## Invariant Tests
 
@@ -47,7 +47,7 @@ Validate end-to-end workflows and component interactions:
 
 ### Key Integration Tests
 
-**Full Pipeline Tests** (`test_conversion_process.py`)
+**Full Pipeline Tests** ([`test_conversion_process.py`](../../tests/integration/test_conversion_process.py))
 ```python
 def test_end_to_end_conversion(tmp_path):
     """Test complete JSON to Robot Framework conversion."""
@@ -64,7 +64,7 @@ def test_end_to_end_conversion(tmp_path):
     assert "*** Test Cases ***" in output_file.read_text()
 ```
 
-**Selenium Execution** (`test_selenium_execution.py`)
+**Selenium Execution** ([`test_selenium_execution.py`](../../tests/integration/test_selenium_execution.py))
 ```python
 def test_json_to_robot_selenium_execution(tmp_path, mock_server):
     """Full integration: JSON → Robot → Selenium execution."""
@@ -74,10 +74,10 @@ def test_json_to_robot_selenium_execution(tmp_path, mock_server):
     # 4. Verify results
 ```
 
-**Security Workflows** (`test_security_validation_cicd.py`)
-- These tests validate security controls within CI/CD environments.
-- They verify that dangerous operations are correctly blocked.
-- They also ensure that safe operations pass through as expected.
+**Security Workflows** ([`tests/integration/security/`](../../tests/integration/security))
+- `test_enhanced_security_integration.py` verifies credential scanning, secure memory cleanup, and `SecurityGateway` rate limiting in one flow.
+- `test_enterprise_security_workflows.py` chains the security monitor → SIEM connectors (Splunk, Elastic, Sentinel) → compliance reports to mirror enterprise deployments.
+- `test_security_validation_cicd.py` ensures CI/CD jobs block unsafe payloads while allowing sanitized data.
 
 ## Running Tests
 
@@ -107,16 +107,19 @@ pytest tests/integration/ -v
 pytest tests/invariant/ -v
 
 # Run a specific test file
-pytest tests/unit/core/test_converter.py -v
+pytest [`tests/unit/test_json_converter.py`](../../tests/unit/test_json_converter.py) -v
 
 # Run a single test class
-pytest tests/unit/core/test_converter.py::TestConverter -v
+pytest [`tests/unit/test_json_converter.py`](../../tests/unit/test_json_converter.py)::TestConverter -v
 
 # Run a single test method
-pytest tests/unit/core/test_converter.py::TestConverter::test_convert_file -v
+pytest [`tests/unit/test_json_converter.py`](../../tests/unit/test_json_converter.py)::TestConverter::test_convert_file -v
 
 # Run tests with a name matching a keyword
 pytest -k "security" -v
+
+# Collect without executing (fast health check)
+UV_CACHE_DIR=.uv-cache uv run pytest --collect-only --quiet
 ```
 
 ### Advanced Options

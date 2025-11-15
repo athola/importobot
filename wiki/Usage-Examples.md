@@ -1,6 +1,6 @@
 # Usage Examples
 
-This page presents common usage examples for Importobot, demonstrating how to perform various conversion tasks.
+This page provides common usage examples for various conversion tasks.
 
 ## Command-Line Interface (CLI)
 
@@ -18,7 +18,7 @@ uv run importobot --batch ./exports ./robot-output
 
 ## Python API
 
-For programmatic use, Importobot provides a Python API.
+You can also use Importobot programmatically through its Python API.
 
 ```python
 from importobot.api import converters
@@ -73,3 +73,44 @@ client = get_api_client(
 for page in client.fetch_all():
     process_page(page)
 ```
+
+## Security Examples
+
+### Encrypt a Token Before Storing It
+
+```python
+from importobot.security import CredentialManager
+
+manager = CredentialManager()
+encrypted = manager.encrypt_credential(os.environ["ZEPHYR_TOKEN"])
+save_bytes(encrypted.ciphertext)  # Write to your secret store
+restored_token = manager.decrypt_credential(encrypted)
+```
+
+### Scan a Template Before Passing It to `--robot-template`
+
+```python
+from importobot.security import TemplateSecurityScanner
+
+scanner = TemplateSecurityScanner()
+report = scanner.scan_template_file("templates/login.robot")
+if not report.is_safe:
+    raise RuntimeError(report.issues)
+```
+
+### Forward Security Events to Splunk
+
+```python
+import os
+from importobot.security import create_splunk_connector, get_siem_manager
+
+splunk = create_splunk_connector(
+    host="https://splunk.example.com",
+    token=os.environ["SPLUNK_HEC_TOKEN"],
+)
+manager = get_siem_manager()
+manager.add_connector(splunk)
+manager.start()
+```
+
+- Repeat the same pattern with `create_elastic_connector()` or `create_sentinel_connector()` (see [SIEM Integration](SIEM-Integration.md) for full scripts).

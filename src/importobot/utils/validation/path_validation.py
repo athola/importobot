@@ -9,7 +9,7 @@ from .core import validate_not_empty, validate_type
 
 
 def validate_safe_path(file_path: str, base_dir: str | None = None) -> str:
-    """Validate path is safe and within allowed directory.
+    """Validate that the path is safe and within the allowed directory.
 
     Args:
         file_path: The file path to validate

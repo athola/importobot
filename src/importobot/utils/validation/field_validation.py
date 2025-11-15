@@ -23,7 +23,7 @@ class FieldValidator:
     def check_test_case_fields(
         self, test_case: dict[str, Any], case_num: int, suggestions: list[str]
     ) -> None:
-        """Check if test case has required fields."""
+        """Check whether the test case has required fields."""
         # Check for test case name using field definitions
         if not has_field(test_case, TEST_NAME_FIELDS):
             suggestions.append(f"Test case {case_num}: Add test case name")
@@ -42,7 +42,7 @@ class FieldValidator:
         test_index: int,
         changes_made: list[dict[str, Any]],
     ) -> None:
-        """Add a default name to test case if missing."""
+        """Add a default name to the test case if missing."""
         if not has_field(test_case, TEST_NAME_FIELDS):
             name_field, original_name = TEST_NAME_FIELDS.find_first(test_case)
             if not name_field:
@@ -86,7 +86,7 @@ class FieldValidator:
         test_index: int,
         changes_made: list[dict[str, Any]],
     ) -> None:
-        """Add a default description to test case if missing."""
+        """Add a default description to the test case if missing."""
         if not has_field(test_case, TEST_DESCRIPTION_FIELDS):
             desc_field, original_desc = TEST_DESCRIPTION_FIELDS.find_first(test_case)
             if not desc_field:

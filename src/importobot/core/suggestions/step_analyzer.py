@@ -39,7 +39,7 @@ class StepAnalyzer:
     def check_step_ordering(
         self, steps: list[dict[str, Any]], case_num: int, suggestions: list[str]
     ) -> None:
-        """Check if steps have proper sequential ordering."""
+        """Check whether steps have proper sequential ordering."""
         if len(steps) < 2:
             return
 
@@ -144,7 +144,7 @@ class StepAnalyzer:
         step_num: int,
         suggestions: list[str],
     ) -> None:
-        """Check if step has required fields."""
+        """Check whether step has required fields."""
         # Check for action/description field
         has_action = any(field in step for field in STEP_DESCRIPTION_FIELD_NAMES)
         if not has_action:

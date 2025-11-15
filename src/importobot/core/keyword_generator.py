@@ -1,4 +1,4 @@
-"""Implementation of keyword generation components."""
+"""Generate Robot Framework keywords from analyzed test steps."""
 
 import re
 from collections.abc import Callable
@@ -37,7 +37,7 @@ from importobot.utils.step_processing import (
 
 
 class GenericKeywordGenerator(BaseKeywordGenerator):
-    """Generic keyword generator for Robot Framework conversion."""
+    """Generate Robot Framework keywords from test steps."""
 
     def __init__(self) -> None:
         """Initialize the generator with specialized generators."""
@@ -61,17 +61,7 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
         self.library_context = libraries
 
     def _get_library_aware_verification(self, content: str) -> str:
-        """Get library-aware verification keyword for ambiguous patterns.
-
-        This method delegates to the web generator's library-aware verification
-        to ensure consistent behavior across all verification keyword generation.
-
-        Args:
-            content: Placeholder content (e.g., "${container}    ${item}")
-
-        Returns:
-            Library-prefixed verification keyword for the current context
-        """
+        """Return a library-aware verification keyword for ambiguous patterns."""
         if not self.library_context:
             # Fallback to standard verification if no library context
             return f"Should Contain    {content}"
@@ -141,7 +131,7 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
         return LibraryDetector.detect_libraries_from_steps(steps, json_data)
 
     def _get_parser(self) -> GenericTestFileParser:
-        """Get parser instance."""
+        """Return a parser instance."""
         return GenericTestFileParser()
 
     def _extract_field(self, data: dict[str, Any], field_names: list[str]) -> str:
@@ -392,7 +382,7 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
         return "No Operation"
 
     def _is_ssh_context(self, description: str, test_data: str) -> bool:
-        """Check if the operation is in SSH context."""
+        """Check whether the operation is in SSH context."""
         combined = f"{description} {test_data}".lower()
         # Combine shared SSH patterns with additional local indicators
         additional_indicators = [
@@ -410,7 +400,7 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
         return any(indicator in combined for indicator in ssh_indicators)
 
     def _has_email_indicator(self, description: str, test_data: str) -> bool:
-        """Detect if the content refers to an email field specifically."""
+        """Detect whether the content refers to an email field specifically."""
         combined = f"{description} {test_data}".lower()
         email_indicators = [
             "email",
@@ -573,15 +563,7 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
         return self.ssh_generator.generate_logging_keyword(test_data, "enable")
 
     def _generate_credential_input_keywords(self) -> list[str]:
-        """Generate multiple keywords for credential composite intent.
-
-        When user says 'Enter credentials' without explicit testData,
-        intelligently decompose into username and password input steps
-        using Robot Framework variables for better test maintainability.
-
-        Returns:
-            List of Robot Framework keywords for credential input
-        """
+        """Generate multiple keywords for a composite credential input intent."""
         # For credentials, default to SeleniumLibrary unless mobile context is detected
         prefix = LibraryDetector.get_keyword_prefix_for_library(
             RobotFrameworkLibrary.SELENIUM_LIBRARY
@@ -603,11 +585,7 @@ class GenericKeywordGenerator(BaseKeywordGenerator):
     def _detect_ambiguous_cases(
         self, description: str, test_data: str, expected: str
     ) -> list[str]:
-        """Detect cases where multiple keywords could be appropriate.
-
-        Analyze the provided description and test data to identify cases where
-        multiple Robot Framework keywords could be appropriate and return suggestions.
-        """
+        """Detect cases where multiple keywords could be appropriate."""
         # expected parameter is kept for interface consistency
         # but not used in this implementation
         _ = expected  # Mark as intentionally unused

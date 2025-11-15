@@ -1,6 +1,6 @@
-"""Context analyzer for cross-step analysis and intelligent suggestions.
+"""Analyze context for cross-step analysis and intelligent suggestions.
 
-This module analyzes multiple test steps to identify patterns and suggest
+Analyze multiple test steps to identify patterns and suggest
 missing setup, cleanup, or verification steps.
 """
 
@@ -15,7 +15,7 @@ from importobot.utils.ssh_patterns import (
 
 
 class ContextAnalyzer:
-    """Analyzer for detecting patterns and missing steps across multiple test steps."""
+    """Detect patterns and missing steps across multiple test steps."""
 
     def __init__(self) -> None:
         """Initialize the context analyzer."""
@@ -271,7 +271,7 @@ class ContextAnalyzer:
         return extract_field(data, field_names)
 
     def _is_ssh_context(self, description: str, test_data: str) -> bool:
-        """Check if the operation is in SSH context."""
+        """Check whether the operation is in SSH context."""
         combined = f"{description} {test_data}".lower()
 
         # Check for strong indicators first
@@ -294,7 +294,7 @@ class ContextAnalyzer:
         )
 
     def _is_database_context(self, description: str, test_data: str) -> bool:
-        """Check if the operation is in database context."""
+        """Check whether the operation is in database context."""
         combined = f"{description} {test_data}".lower()
         db_indicators = [
             "database",
@@ -312,7 +312,7 @@ class ContextAnalyzer:
         return any(indicator in combined for indicator in db_indicators)
 
     def _is_database_modification(self, description: str, test_data: str) -> bool:
-        """Check if the operation modifies database data."""
+        """Check whether the operation modifies database data."""
         combined = f"{description} {test_data}".upper()
         modification_indicators = ["INSERT", "UPDATE", "DELETE"]
         return any(indicator in combined for indicator in modification_indicators)

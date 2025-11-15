@@ -942,11 +942,11 @@ wheels = [
 
 [[package]]
 name = "importobot"
-version = "0.1.4"
+version = "0.1.5"
 source = { editable = "." }
 dependencies = [
-    { name = "asv" },
     { name = "bleach" },
+    { name = "cryptography" },
     { name = "psutil" },
     { name = "robotframework" },
     { name = "robotframework-databaselibrary" },
@@ -988,6 +988,7 @@ viz = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "asv" },
     { name = "bandit" },
     { name = "black" },
     { name = "coverage" },
@@ -1017,8 +1018,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "asv", specifier = ">=0.6.5" },
     { name = "bleach", specifier = ">=6.3.0" },
+    { name = "cryptography", specifier = ">=42.0.0" },
     { name = "matplotlib", marker = "extra == 'all'", specifier = ">=3.10.7" },
     { name = "matplotlib", marker = "extra == 'demo'", specifier = ">=3.10.7" },
     { name = "matplotlib", marker = "extra == 'viz'", specifier = ">=3.10.7" },
@@ -1042,6 +1043,7 @@ provides-extras = ["viz", "analytics", "demo", "advanced", "medallion", "enterpr
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "asv", specifier = ">=0.6.5" },
     { name = "bandit", specifier = ">=1.7.0" },
     { name = "black", specifier = ">=25.9.0" },
     { name = "coverage", specifier = ">=7.11.0" },

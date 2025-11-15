@@ -1,36 +1,36 @@
 """Parse customer documentation to extract test data schema information.
 
-This module enables users to provide documentation (e.g., SOPs, READMEs) that
-describes their test data format, thereby enhancing parsing quality and suggestions.
+This module allows users to provide documentation (e.g., SOPs, READMEs) that
+describes their test data format, to improve parsing quality and suggestions.
 
 Security Considerations
 -----------------------
-Schema files are considered untrusted user input and must undergo rigorous validation
+Schema files are considered untrusted user input and require validation
 before processing:
 
-1.  **File Size Limits**: Files restricted to `MAX_SCHEMA_FILE_SIZE_BYTES`
-    (default: 1MB, configurable via `IMPORTOBOT_MAX_SCHEMA_BYTES`). For extensive
+1.  **File Size Limits**: Restrict files to `MAX_SCHEMA_FILE_SIZE_BYTES`
+    (default: 1MB, configurable via `IMPORTOBOT_MAX_SCHEMA_BYTES`). For large
     documentation, split into multiple files and register
     each one; the `SchemaRegistry` merges fields from all registered schemas.
 
-2.  **Content Length Validation**: Content is validated and truncated prior to parsing
+2.  **Content Length Validation**: Validate and truncate content prior to parsing
     to prevent memory exhaustion attacks.
 
-3.  **File Type Restrictions**: Only text-based formats are accepted
+3.  **File Type Restrictions**: Accept only text-based formats
     (e.g., `.md`, `.markdown`, `.rst`, `.txt`, `.json`, `.yaml`, `.yml`).
 
-4.  **Symlink Protection**: Symlinks rejected to prevent path traversal vulnerabilities.
+4.  **Symlink Protection**: Reject symlinks to prevent path traversal vulnerabilities.
 
-5.  **Character Sanitization**: Control characters (excluding newline and tab) are
-    stripped to prevent injection attacks.
+5.  **Character Sanitization**: Strip control characters (excluding newline
+    and tab) to prevent injection attacks.
 
-6.  **Section Limits**: A maximum of `MAX_SCHEMA_SECTIONS` (256) sections is enforced
+6.  **Section Limits**: Enforce a maximum of `MAX_SCHEMA_SECTIONS` (256) sections
     to prevent algorithmic complexity attacks.
 
 Multiple File Support
 ---------------------
-Large schemas should be organized into multiple files for improved structure
-and to adhere to size limitations:
+Organize large schemas into multiple files for better structure
+and to meet size limitations:
 
     ```python
     from importobot.core.schema_parser import register_schema_file
@@ -58,7 +58,7 @@ logger = get_logger()
 
 @dataclass
 class FieldSchema:
-    """Represents schema information for a specific field."""
+    """Represent schema information for a specific field."""
 
     name: str
     aliases: list[str] = field(default_factory=list)
@@ -70,7 +70,7 @@ class FieldSchema:
 
 @dataclass
 class SchemaDocument:
-    """Represents a parsed schema document."""
+    """Represent a parsed schema document."""
 
     fields: dict[str, FieldSchema] = field(default_factory=dict)
     source_file: str = ""
@@ -205,8 +205,8 @@ class SchemaParser:
             `ValidationError`: If the content exceeds reasonable security limits.
 
         Note:
-            Content is automatically sanitized and truncated if necessary. However,
-            extremely large inputs (exceeding 10 times the limit) are rejected
+            Automatically sanitize and truncate content if necessary. However,
+            reject extremely large inputs (exceeding 10 times the limit)
             outright to prevent memory exhaustion attacks.
         """
         # Reject pathologically large inputs before any processing
@@ -235,7 +235,7 @@ class SchemaParser:
         return doc
 
     def _sanitize_content(self, content: str) -> str:
-        """Sanitizes raw content to mitigate malicious inputs."""
+        """Sanitize raw content to mitigate malicious inputs."""
         if len(content) > MAX_SCHEMA_CONTENT_LENGTH:
             logger.warning(
                 "Schema content exceeds max length (%d bytes); truncating",
@@ -252,7 +252,11 @@ class SchemaParser:
         )
 
     def _is_allowed_schema_file(self, path: Path) -> bool:
-        """Check if the file has an allowed schema extension or appears text-like."""
+        """Check whether the file has an allowed schema extension or appears text-like.
+
+        Determines if a file should be processed as a schema document based on
+        its extension and content characteristics.
+        """
         suffix = path.suffix.lower()
         if suffix in ALLOWED_SCHEMA_SUFFIXES:
             return True
@@ -268,7 +272,7 @@ class SchemaParser:
 
     @staticmethod
     def _looks_textual(sample: bytes) -> bool:
-        """Determine if a byte sample appears to be text."""
+        """Determine whether a byte sample appears to be text."""
         if not sample:
             return True
         control_bytes = sum(1 for b in sample if b < 32 and b not in (9, 10, 13))
@@ -305,7 +309,7 @@ class SchemaParser:
         return sections
 
     def _is_likely_header(self, text: str) -> bool:
-        """Check if the provided text is likely a section header."""
+        """Check whether the provided text is likely a section header."""
         # Skip common non-header patterns
         if text.startswith(("Ex:", "Example:", "e.g.", "For example")):
             return False
@@ -450,7 +454,7 @@ class SchemaParser:
 
 
 class SchemaRegistry:
-    """A registry for storing and retrieving schema information."""
+    """Store and retrieve schema information."""
 
     def __init__(self) -> None:
         """Initialize a new schema registry."""
@@ -502,7 +506,7 @@ def register_schema_file(file_path: str | Path) -> SchemaDocument:
 
 
 def get_schema_registry() -> SchemaRegistry:
-    """Get the global schema registry."""
+    """Return the global schema registry."""
     return _SCHEMA_REGISTRY
 
 

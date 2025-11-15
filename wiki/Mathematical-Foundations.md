@@ -4,17 +4,15 @@ This document details the mathematical principles underpinning Importobot's form
 
 ## Motivation
 
-Importobot requires reliable identification of diverse test export formats (e.g., Zephyr, TestRail) from various JSON structures. Traditional methods, such as string searches or `if/else` cascades, are brittle and difficult to maintain. Consequently, we employ Bayesian confidence scoring to infer the format based on observed evidence within the file.
+Importobot needs to reliably identify different test export formats (e.g., Zephyr, TestRail) from various JSON structures. Simple methods like string searches or `if/else` logic are brittle and hard to maintain. We use Bayesian confidence scoring to determine the format based on evidence in the file.
 
-This probabilistic approach offers several advantages:
+This probabilistic approach has several benefits:
 
--   **Ambiguity Handling**: When multiple formats are plausible, the Bayesian scorer assigns a probability to each, enabling selection of the most likely candidate or flagging for manual review.
--   **Adaptability**: The model can be updated with new export examples to enhance accuracy over time.
--   **Diagnostic Feedback**: Instead of generic errors, the system provides insights into the probabilistic basis of its format predictions.
+-   **Handles Ambiguity**: If a file could be multiple formats, the scorer assigns a probability to each. This allows for selecting the most likely format or flagging the file for manual review.
+-   **Adaptable**: The model can be updated with new examples to improve its accuracy.
+-   **Provides Diagnostics**: The system can explain the probabilistic basis for its choice, which is more helpful than a generic error.
 
-Furthermore, optimization algorithms are utilized to refine the conversion process, aiming for accurate and efficient generation of Robot Framework code.
-
-Importobot uses Bayesian confidence scoring to detect test management formats. The current implementation handles two-stage classification: first validating that input is test data, then discriminating between specific formats like Zephyr vs TestRail.
+The current implementation uses a two-stage classification: first, it validates that the input is test data, and then it identifies the specific format (e.g., Zephyr vs. TestRail).
 
 ## Overview
 
@@ -30,29 +28,29 @@ Importobot uses Bayesian confidence scoring to detect test management formats. T
 
 ## Core Mathematical Framework
 
-Importobot's format detection relies on a Bayesian scorer. This section elucidates its fundamental concepts.
+Importobot's format detection uses a Bayesian scorer. This section explains the basic concepts.
 
 ### Bayesian Confidence Scoring
 
-Rather than employing a complex rule-based system for format identification, we leverage probabilistic inference. The central concept involves calculating the probability of a file belonging to a specific format, conditioned on the observed evidence within the file. This is formally expressed by Bayes' theorem:
+Instead of using a complex rule-based system for format identification, we use probabilistic inference. The main idea is to calculate the probability of a file belonging to a specific format, given the observed evidence within the file. This is expressed with Bayes' theorem:
 
 `P(Format | Evidence) = [P(Evidence | Format) * P(Format)] / P(Evidence)`
 
-- `P(Format | Evidence)` represents the **posterior probability**: the probability that the file corresponds to a specific `Format` given the `Evidence`.
-- `P(Evidence | Format)` denotes the **likelihood**: the probability of observing the given `Evidence` assuming the file *is* of that `Format`.
-- `P(Format)` signifies the **prior probability**: our initial assessment of the prevalence of a particular `Format`.
-- `P(Evidence)` serves as a **normalization factor**.
+- `P(Format | Evidence)` is the **posterior probability**: the probability that the file has a specific `Format` given the `Evidence`.
+- `P(Evidence | Format)` is the **likelihood**: the probability of seeing the `Evidence` if the file *is* that `Format`.
+- `P(Format)` is the **prior probability**: our initial belief about how common a `Format` is.
+- `P(Evidence)` is a **normalization factor**.
 
-This framework is implemented in `src/importobot/medallion/bronze/confidence_calculator.py`, where the `calculate_confidence()` method computes the posterior probability for each supported format based on collected evidence.
+This is implemented in `src/importobot/medallion/bronze/confidence_calculator.py`. The `calculate_confidence()` method calculates the posterior probability for each supported format based on collected evidence.
 
 ### Two-Stage Classification
 
-To optimize computational efficiency, a two-stage classification process is employed, avoiding full Bayesian analysis on every input:
+To be more efficient, we use a two-stage classification process to avoid running a full Bayesian analysis on every input:
 
-1.  **Test Data Validation Gate**: An initial, rapid assessment determines if the file exhibits characteristics of a test export (e.g., presence of common keywords and structures). If this preliminary check fails, further processing is halted.
-2.  **Format-Specific Discrimination**: If the file passes the first stage, a comprehensive Bayesian analysis is performed to identify the specific format (e.g., Zephyr, TestRail).
+1.  **Test Data Validation Gate**: A quick initial check determines if the file looks like a test export (e.g., contains common keywords and structures). If not, processing stops.
+2.  **Format-Specific Discrimination**: If the file passes the first stage, a full Bayesian analysis is run to identify the specific format (e.g., Zephyr, TestRail).
 
-This strategy, implemented in `src/importobot/medallion/bronze/format_detector.py`, significantly enhances performance by minimizing computation on irrelevant files.
+This strategy, implemented in `src/importobot/medallion/bronze/format_detector.py`, improves performance by doing less work on irrelevant files.
 
 ## Empirical Validation & Benchmarks
 
@@ -146,23 +144,26 @@ W_adjusted = W_base × coverage_ratio
 
 A sigmoid transformation is applied for smooth, theoretically justified confidence adjustments.
 
-## Optimization Algorithms
+## Optimization Algorithms (Experimental)
 
-Beyond format detection, Importobot employs optimization algorithms to refine the conversion process. The objective is to generate Robot Framework code that is syntactically correct, efficient, and idiomatic. This remains an experimental area of the codebase, with the described algorithms used to explore various approaches to this problem.
+Beyond format detection, Importobot uses optimization algorithms to improve the conversion process. The goal is to generate Robot Framework code that is syntactically correct, efficient, and idiomatic. **This is an experimental area of the codebase.** The algorithms described here are used to explore different approaches to this problem.
 
 ### Gradient Descent
 
-Gradient descent is a widely used optimization algorithm for finding the minimum of a function. In this context, it is applied to tune the parameters of the conversion engine, minimizing a "cost function" that quantifies the quality of the generated code. This might involve penalizing deprecated keywords or rewarding more efficient ones.
+Gradient descent is a common optimization algorithm for finding the minimum of a function. Here, it is used to tune the parameters of the conversion engine by minimizing a "cost function" that measures the quality of the generated code. This could involve penalizing deprecated keywords or rewarding better ones.
+(See Appendix for [convergence proof](#convergence-proof-for-gradient-descent)).
 
-The implementation is located in `src/importobot/services/optimization_service.py`.
+The implementation is in `src/importobot/services/optimization_service.py`.
 
 ### Genetic Algorithms
 
-Genetic algorithms, inspired by natural selection, are effective for exploring large search spaces of potential solutions. We utilize a genetic algorithm to experiment with various combinations of conversion strategies and identify those that yield optimal results.
+Genetic algorithms are inspired by natural selection and are effective for exploring large sets of possible solutions. We use a genetic algorithm to experiment with different combinations of conversion strategies to find which ones produce the best results.
+(See Appendix for [convergence proof](#genetic-algorithm-convergence)).
 
 ### Simulated Annealing
 
-Simulated annealing is an optimization technique adept at escaping local minima. It is employed within our experimental optimization service to explore the solution space more comprehensively than gradient descent alone.
+Simulated annealing is an optimization technique that is good at escaping local minima. It is used in our experimental optimization service to explore more possible solutions than gradient descent alone.
+(See Appendix for [convergence proof](#simulated-annealing-convergence)).
 
 
 ## Statistical Methods & Validation
@@ -182,7 +183,7 @@ for fold in range(k_folds):
 
 **Properties**:
 -   **Unbiased Estimation**: Provides lower variance compared to hold-out validation.
--   **Efficiency**: Utilizes all available data for both training and validation.
+-   **Efficiency**: Uses all available data for both training and validation.
 -   **Complexity**: O(k×m×n), where k represents the number of folds, m the number of strategies, and n the data size.
 
 ### Bootstrap Confidence Intervals
@@ -198,7 +199,7 @@ confidence_interval = percentile(bootstrap_statistics, [2.5, 97.5])
 ```
 
 **Properties**:
--   **Consistency**: The method converges to the true parameter as the sample size n approaches infinity.
+-   **Consistency**: The method converges to the true parameter as the sample size n approaches infinity. (See Appendix for [consistency theorem](#bootstrap-consistency-theorem)).
 -   **Coverage**: Provides approximately 95% coverage for large samples.
 -   **Complexity**: O(b×n), where b is the number of bootstrap samples and n is the data size.
 
@@ -232,7 +233,7 @@ def stable_weighted_average(values, weights):
 **Benefits**:
 -   **Error Bound**: The error is bounded by |error| ≤ 2ε × Σ|values|, where ε is machine epsilon.
 -   **Stability**: Compensates for lost low-order bits during summation.
--   **Accuracy**: Provides significantly better accuracy compared to naive summation.
+-   **Accuracy**: Is more accurate compared to naive summation.
 
 ### Division by Zero Protection
 
@@ -243,9 +244,9 @@ if abs(total_weight) < 1e-10:
 ```
 
 **Benefits**:
--   **Numerical Safety**: Prevents division by extremely small numbers.
--   **Threshold**: Employs a machine epsilon-scaled threshold.
--   **Error Handling**: Generates meaningful error messages.
+-   **Numerical Safety**: Prevents division by very small numbers.
+-   **Threshold**: Uses a machine epsilon-scaled threshold.
+-   **Error Handling**: Generates clear error messages.
 
 ### Floating Point Precision Management
 
@@ -261,8 +262,8 @@ statistical_score = (
 ```
 
 **Benefits**:
--   **Operator Precedence**: Correct parentheses ensure proper evaluation order.
--   **Conditional Evaluation**: Provides safe handling of edge cases.
+-   **Operator Precedence**: Correct parentheses ensure correct evaluation order.
+-   **Conditional Evaluation**: Safely handles edge cases.
 -   **Bounded Outputs**: All terms are bounded to prevent numerical overflow.
 
 ## Performance Characteristics
@@ -324,80 +325,11 @@ statistical_score = (
 
 #### Space-Efficient
 
--   **Streaming Processing**: Processes data without requiring full in-memory storage.
--   **Generators**: Utilizes lazy evaluation for large datasets.
+-   **Streaming Processing**: Processes data without loading the entire file into memory.
+-   **Generators**: Uses lazy evaluation for large datasets.
 -   **Compression**: Reduces the memory footprint for cached data.
 
-## Mathematical Proofs & Theorems
 
-### Convergence Proof for Gradient Descent
-
-#### Theorem
-
-For a convex function f: ℝⁿ → ℝ with a Lipschitz continuous gradient ∇f, gradient descent with a learning rate α ≤ 1/L (where L is the Lipschitz constant) converges to the global minimum.
-
-#### Proof Sketch
-
-1.  **Lipschitz Continuity**: ||∇f(x) - ∇f(y)|| ≤ L||x - y||
-2.  **Descent Lemma**: f(y) ≤ f(x) + ∇f(x)ᵀ(y-x) + (L/2)||y-x||²
-3.  **Update Rule**: x_{k+1} = x_k - α∇f(x_k)
-4.  **Convergence**: f(x_k) - f(x*) ≤ (||x₀ - x*||²)/(2αk)
-
-#### Application in Importobot
-
-The conversion-quality objective is approximated as convex within the experimental optimization service (`src/importobot/services/optimization_service.py`). Step sizes are truncated using Lipschitz estimates from the same module, but can revert to a conservative default when the bound is unknown. The formal convergence claim serves as guidance for future tuning rather than a strict guarantee. Production deployments facilitate gathering more data for the hand-tuned heuristic.
-
-### Bootstrap Consistency Theorem
-
-#### Theorem
-
-The bootstrap distribution of a statistic θ̂* converges in probability to the true sampling distribution of θ̂ as the sample size n → ∞, under generic regularity conditions.
-
-#### Proof Sketch
-
-1.  **Empirical Distribution**: F̂_n converges to the true distribution F.
-2.  **Functional Delta Method**: θ̂ = φ(F̂_n), θ̂* = φ(F̂_n*).
-3.  **Convergence**: ||F̂_n* - F|| → 0 in probability.
-4.  **Consistency**: θ̂* converges to θ̂ in distribution.
-
-#### Application in Importobot
-
-Bootstrap summaries remain optional due to the amplified computational cost with large test suites. For data analysis improvements, particularly in offline analysis notebooks, the fixtures contain hundreds of cases, making asymptotic properties relevant. The improvements to data quality results should be evaluated against the performance cost. TODO: Capture concrete coverage numbers from those notebooks before recommending this approach for day-to-day use.
-
-### Genetic Algorithm Convergence
-
-#### Theorem
-
-A genetic algorithm with elitism and a mutation rate p_m > 0 converges to the global optimum with probability 1 as the number of generations g → ∞.
-
-#### Proof Sketch
-
-1.  **Markov Chain**: Population states form a Markov chain.
-2.  **Irreducibility**: A positive mutation rate ensures all states remain reachable.
-3.  **Positive Recurrence**: Elitism prevents the loss of optimal solutions.
-4.  **Convergence**: The stationary distribution concentrates on the optimum.
-
-#### Application in Importobot
-Our prototype genetic optimizer maintains an elite subset of the population and enforces a non-zero mutation rate, aligning with theoretical assumptions. However, the Gold layer currently prioritizes gradient descent due to a lack of benchmarking on real customer data. This proof serves as a theoretical justification for retaining the implementation while its practical value is further assessed.
-
-### Simulated Annealing Convergence
-
-#### Theorem
-
-Simulated annealing with a logarithmic cooling schedule T_k = T₀/log(k+1) converges to the global optimum with probability 1 as k → ∞.
-
-#### Proof Sketch
-
-1.  **Inhomogeneous Markov Chain**: Characterized by temperature-dependent transition probabilities.
-2.  **Detailed Balance**: π(x)P(x→y) = π(y)P(y→x) for the stationary distribution.
-3.  **Cooling Schedule**: The logarithmic schedule provides the formal convergence guarantee.
-4.  **Weak Convergence**: The algorithm converges to a delta distribution at the optimum.
-
-#### Application in Importobot
-
--   **Temperature Schedule**: Employs exponential cooling for practical convergence.
--   **Acceptance Probability**: Balances exploration and exploitation of the search space.
--   **Global Optimization**: Facilitates escaping local minima in the parameter space.
 
 ## Performance Results
 
@@ -467,3 +399,75 @@ Simulated annealing with a logarithmic cooling schedule T_k = T₀/log(k+1) conv
 ## Summary
 
 Importobot's mathematical components solve specific format detection and conversion problems. The Bayesian confidence scorer identifies file formats using probability theory, while the optimization algorithms enable different conversion strategies. All mathematical implementations are tested for correctness and performance.
+
+---
+## Appendix: Mathematical Proofs & Theorems
+
+### Convergence Proof for Gradient Descent
+
+#### Theorem
+
+For a convex function f: ℝⁿ → ℝ with a Lipschitz continuous gradient ∇f, gradient descent with a learning rate α ≤ 1/L (where L is the Lipschitz constant) converges to the global minimum.
+
+#### Proof Sketch
+
+1.  **Lipschitz Continuity**: ||∇f(x) - ∇f(y)|| ≤ L||x - y||
+2.  **Descent Lemma**: f(y) ≤ f(x) + ∇f(x)ᵀ(y-x) + (L/2)||y-x||²
+3.  **Update Rule**: x_{k+1} = x_k - α∇f(x_k)
+4.  **Convergence**: f(x_k) - f(x*) ≤ (||x₀ - x*||²)/(2αk)
+
+#### Application in Importobot
+
+The conversion-quality objective is approximated as convex within the experimental optimization service (`src/importobot/services/optimization_service.py`). Step sizes are truncated using Lipschitz estimates from the same module, but can revert to a conservative default when the bound is unknown. The formal convergence claim serves as guidance for future tuning rather than a strict guarantee. Production deployments facilitate gathering more data for the hand-tuned heuristic.
+
+### Bootstrap Consistency Theorem
+
+#### Theorem
+
+The bootstrap distribution of a statistic θ̂* converges in probability to the true sampling distribution of θ̂ as the sample size n → ∞, under generic regularity conditions.
+
+#### Proof Sketch
+
+1.  **Empirical Distribution**: F̂_n converges to the true distribution F.
+2.  **Functional Delta Method**: θ̂ = φ(F̂_n), θ̂* = φ(F̂_n*).
+3.  **Convergence**: ||F̂_n* - F|| → 0 in probability.
+4.  **Consistency**: θ̂* converges to θ̂ in distribution.
+
+#### Application in Importobot
+
+Bootstrap summaries remain optional due to the amplified computational cost with large test suites. For data analysis improvements, particularly in offline analysis notebooks, the fixtures contain hundreds of cases, making asymptotic properties relevant. The improvements to data quality results should be evaluated against the performance cost. TODO: Capture concrete coverage numbers from those notebooks before recommending this approach for day-to-day use.
+
+### Genetic Algorithm Convergence
+
+#### Theorem
+
+A genetic algorithm with elitism and a mutation rate p_m > 0 converges to the global optimum with probability 1 as the number of generations g → ∞.
+
+#### Proof Sketch
+
+1.  **Markov Chain**: Population states form a Markov chain.
+2.  **Irreducibility**: A positive mutation rate ensures all states remain reachable.
+3.  **Positive Recurrence**: Elitism prevents the loss of optimal solutions.
+4.  **Convergence**: The stationary distribution concentrates on the optimum.
+
+#### Application in Importobot
+Our prototype genetic optimizer maintains an elite subset of the population and enforces a non-zero mutation rate, aligning with theoretical assumptions. However, the Gold layer currently prioritizes gradient descent due to a lack of benchmarking on real customer data. This proof serves as a theoretical justification for retaining the implementation while its practical value is further assessed.
+
+### Simulated Annealing Convergence
+
+#### Theorem
+
+Simulated annealing with a logarithmic cooling schedule T_k = T₀/log(k+1) converges to the global optimum with probability 1 as k → ∞.
+
+#### Proof Sketch
+
+1.  **Inhomogeneous Markov Chain**: Characterized by temperature-dependent transition probabilities.
+2.  **Detailed Balance**: π(x)P(x→y) = π(y)P(y→x) for the stationary distribution.
+3.  **Cooling Schedule**: The logarithmic schedule provides the formal convergence guarantee.
+4.  **Weak Convergence**: The algorithm converges to a delta distribution at the optimum.
+
+#### Application in Importobot
+
+-   **Temperature Schedule**: Employs exponential cooling for practical convergence.
+-   **Acceptance Probability**: Balances exploration and exploitation of the search space.
+-   **Global Optimization**: Facilitates escaping local minima in the parameter space.

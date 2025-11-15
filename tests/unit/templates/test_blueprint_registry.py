@@ -121,6 +121,19 @@ def test_configure_template_sources_rejects_binary_file(tmp_path: Path) -> None:
     assert registry.get_template("binary") is None
 
 
+def test_configure_template_sources_fails_on_security_scan(tmp_path: Path) -> None:
+    insecure_template = tmp_path / "secrets.robot"
+    insecure_template.write_text(
+        "*** Test Cases ***\nCase\n    Log    password: hunter2\n", encoding="utf-8"
+    )
+
+    with pytest.raises(registry.TemplateSecurityViolation) as excinfo:
+        registry.configure_template_sources([str(insecure_template)])
+
+    assert "password" in str(excinfo.value).lower()
+    assert registry.get_template("secrets") is None
+
+
 def test_configure_template_sources_rejects_outside_cwd(tmp_path: Path) -> None:
     outside = tmp_path.parent / "outside.robot"
     content = "*** Test Cases ***\nCase\n    Log    Outside\n"
@@ -169,7 +182,10 @@ def test_configure_template_sources_handles_unreadable_file(
         registry.configure_template_sources([str(template_file)])
 
     assert registry.get_template("unreadable") is None
-    assert any("Failed to read template" in message for message in caplog.messages)
+    assert any(
+        "Failed to read template" in message or "Security scan failed" in message
+        for message in caplog.messages
+    )
 
 
 def test_configure_template_sources_rejects_inline_python(tmp_path: Path) -> None:

@@ -1,6 +1,6 @@
 """Quality assessment service extracted from RawDataProcessor.
 
-Handles data quality metrics calculation and validation reporting.
+Handle data quality metrics calculation and validation reporting.
 """
 
 from __future__ import annotations
@@ -19,8 +19,8 @@ logger = get_logger()
 def stable_weighted_average(values: list[float], weights: list[float]) -> float:
     """Calculate weighted average with numerical stability.
 
-    Uses Kahan summation algorithm to minimize floating-point errors
-    and includes proper validation for edge cases.
+    Use Kahan summation algorithm to minimize floating-point errors
+    and include proper validation for edge cases.
 
     Args:
         values: List of values to average
@@ -64,7 +64,7 @@ def stable_weighted_average(values: list[float], weights: list[float]) -> float:
 
 
 class QualityAssessmentService:
-    """Service for assessing data quality and calculating metrics."""
+    """Assess data quality and calculate metrics."""
 
     def __init__(
         self,

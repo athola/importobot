@@ -1,22 +1,23 @@
 # How to Navigate this Codebase
 
-This guide explains the Importobot codebase, its layered architecture, and key modules. The project exposes core functionality through a small public API and keeps internal modules private to ensure stability.
+This guide provides a map of the Importobot codebase, its layered architecture, and key modules. The project's public API is kept small to limit breaking changes.
 
 ```
 src/importobot/
-├── __init__.py              # Public API for library usage.
-├── api/                     # Stable API for external integrations.
-├── core/                    # Internal conversion logic.
-├── medallion/               # Medallion data cleaning pipeline.
-├── utils/                   # General utility functions.
-├── services/                # Connects different services and modules.
-├── cli/                     # CLI entry point and logic.
-└── exceptions.py            # Custom exception classes.
+├── __init__.py              # Public API
+├── api/                     # Stable API for integrations
+├── core/                    # Internal conversion logic
+├── medallion/               # Data cleaning pipeline
+├── utils/                   # Utility functions
+├── services/                # Connects modules
+├── cli/                     # CLI logic
+├── security/                # Credential mgr, SIEM, compliance
+└── exceptions.py            # Custom exceptions
 ```
 
 ## Public API
 
-The public API is the intended entry point for using Importobot as a Python library.
+The public API is the main entry point for using Importobot as a Python library.
 
 ### `src/importobot/__init__.py`
 
@@ -28,7 +29,7 @@ This module provides a stable, documented API for deeper integrations, like CI/C
 
 ## Core Conversion Engine
 
-The `core/` directory holds the internal conversion logic. Its modules are not considered part of the public API and may change between releases.
+The `core/` directory contains the internal conversion logic. Its modules are not considered part of the public API and may change between releases.
 
 - `engine.py`: Assembles and executes the steps of the conversion process.
 - `parsers.py`: Parses different JSON export formats into a standardized internal model.
@@ -36,29 +37,31 @@ The `core/` directory holds the internal conversion logic. Its modules are not c
 
 ## Medallion Architecture
 
-This architecture was adopted from data engineering patterns to manage inconsistent and messy data from different test management tools. It processes data in three sequential layers:
+This architecture processes data in three sequential layers to handle inconsistent data from different test management tools.
 
 - **Bronze Layer (Ingestion):** Ingests the raw JSON export and detects its format (e.g., Zephyr, Xray).
-- **Silver Layer (Standardization):** Cleans the raw data and transforms it into a single, consistent internal format.
+- **Silver Layer (Standardization):** Cleans the raw data and transforms it into a consistent internal format.
 - **Gold Layer (Generation):** Generates the final `.robot` test suite from the standardized data.
 
-This layered approach isolates the logic for handling each source format, making the system easier to maintain and extend.
+This isolates the parsing logic for each source format.
 
 ## Other Key Directories
 
-- **`utils/`**: Contains shared helper functions, such as file I/O and data manipulation routines, used across multiple modules.
-- **`services/`**: Implements specific, high-level features by connecting different parts of the application. For example, `services/conversion_service.py` might use the `core` engine and `medallion` pipeline to perform a full conversion.
-- **`cli/`**: Implements the command-line interface using Python's `argparse`. This is the entry point for the `importobot` command.
-- **`exceptions.py`**: Defines custom exception classes, allowing for specific error handling throughout the application.
+- **`security/`**: Houses CredentialManager, TemplateSecurityScanner, SecureMemory, HSM connectors, SIEM forwarding, compliance reports, and monitoring. Anything touching secrets moves here first to keep `utils/` lean.
+- **`utils/`**: Shared helper functions for file I/O, data manipulation, and other low-level tasks.
+- **`services/`**: Coordinates high-level features. For example, a service might take a raw file, pass it through the medallion pipeline, and feed the result to the core conversion engine.
+- **`cli/`**: Defines the command-line interface available as the `importobot` command.
+- **`exceptions.py`**: Custom exception classes used for specific error handling.
 
 ## Test Structure
 
-The `tests/` directory is organized by testing type. The tests serve as living documentation for how components are expected to behave.
+The `tests/` directory is organized by testing type.
 
 - **`unit/`**: Tests for individual functions and classes in isolation.
 - **`integration/`**: Tests that verify workflows between multiple components, such as converting a file and checking the output.
 - **`performance/`**: Benchmarks for critical code paths, tracked with `asv`.
 - **`generative/`**: Property-based tests using the Hypothesis library to find edge cases.
+- **`unit/security/`**: Dedicated to the 0.1.5 security modules (CredentialManager, HSM, monitoring, SIEM, template scanning).
 
 ## Learning the Codebase
 

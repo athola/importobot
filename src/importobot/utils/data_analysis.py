@@ -37,7 +37,7 @@ def count_data_fields(data: Any) -> int:
 
 
 def get_data_types(data: Any) -> dict[str, int]:
-    """Get count of different data types in the data.
+    """Return count of different data types in the data.
 
     Args:
         data: The data structure to analyze

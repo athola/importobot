@@ -1,4 +1,4 @@
-"""Importobot - A tool for converting test cases from JSON to Robot Framework format.
+"""Importobot: A tool for converting test cases from JSON to Robot Framework format.
 
 Importobot automates the conversion of test management frameworks (Atlassian Zephyr,
 JIRA/Xray, TestLink, etc.) into Robot Framework format with bulk processing capabilities
@@ -89,7 +89,7 @@ __all__ = [
     "exceptions",
 ]
 
-__version__ = "0.1.4"
+__version__ = "0.1.5"
 
 # Clean up namespace - remove internal imports from dir()
 del _config, _exceptions, _api

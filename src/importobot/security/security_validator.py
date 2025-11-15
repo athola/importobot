@@ -2,12 +2,21 @@
 
 import json
 import logging
+import os
 import re
+import secrets
 import time
 from datetime import datetime, timezone
 from typing import Any, ClassVar
 
-from importobot.utils.credential_manager import CredentialManager, EncryptedCredential
+from importobot.security.credential_manager import (
+    CredentialManager,
+    EncryptedCredential,
+)
+from importobot.security.credential_patterns import (
+    CredentialPattern,
+    get_credential_registry,
+)
 from importobot.utils.logging import get_logger
 from importobot.utils.string_cache import data_to_lower_cached
 
@@ -101,7 +110,7 @@ class SecurityValidator:
             dangerous_patterns: Custom dangerous command patterns to override defaults
             sensitive_paths: Custom sensitive path patterns to override defaults
             security_level: Security level determining validation strictness:
-                - 'strict': Maximum security for enterprise/production environments
+                - 'strict': Maximum security for production and other hardened environments
                 - 'standard': Balanced security for general development and testing
                   (default)
                 - 'permissive': Relaxed security for trusted development environments
@@ -115,7 +124,12 @@ class SecurityValidator:
         self.enable_audit_logging = enable_audit_logging
         self.audit_logger = get_logger(f"{__name__}.audit")
 
-        self.credential_manager = CredentialManager()
+        env_key = os.getenv("IMPORTOBOT_ENCRYPTION_KEY")
+        if env_key:
+            self.credential_manager = CredentialManager()
+        else:
+            ephemeral_key = secrets.token_bytes(32)
+            self.credential_manager = CredentialManager(key=ephemeral_key)
 
         # Set up audit logger with specific formatting if enabled
         if self.enable_audit_logging:
@@ -321,6 +335,10 @@ class SecurityValidator:
         credential_warnings = self._check_hardcoded_credentials(parameters)
         warnings.extend(credential_warnings)
 
+        # Check for sensitive file paths and path traversal before mutation
+        path_warnings = self._check_sensitive_paths(parameters)
+        warnings.extend(path_warnings)
+
         # Check for exposed credential patterns in parameter values
         pattern_warnings = self._check_credential_patterns(parameters)
         warnings.extend(pattern_warnings)
@@ -332,10 +350,6 @@ class SecurityValidator:
         # Check for injection patterns in all parameter values
         injection_warnings = self._check_injection_patterns(parameters)
         warnings.extend(injection_warnings)
-
-        # Check for sensitive file paths and path traversal
-        path_warnings = self._check_sensitive_paths(parameters)
-        warnings.extend(path_warnings)
 
         # Check for production indicators
         production_warnings = self._check_production_indicators(parameters)
@@ -413,56 +427,132 @@ class SecurityValidator:
 
     def _check_credential_patterns(self, parameters: dict[str, Any]) -> list[str]:
         """Check for exposed credential patterns in parameter values."""
-        warnings = []
-        credential_patterns = [
-            r"password.*[:\s]+\w{6,}",  # password: something
-            r"secret.*[:\s]+\w{6,}",  # secret: something
-            r"token.*[:\s]+\w{10,}",  # token: something
-            r"key.*[:\s]+[\w/]{10,}",  # key: something
-            r"hardcoded.*secret",  # hardcoded_secret_123
-        ]
+        warnings: list[str] = []
+
+        # Get enhanced pattern registry
+        registry = get_credential_registry()
+        patterns_to_check = registry.get_patterns_by_confidence(
+            0.8
+        )  # High confidence only
 
         for key, value in parameters.items():
-            if isinstance(value, EncryptedCredential):
+            if self._should_skip_credential_check(value):
                 continue
 
-            if isinstance(value, str) and "password" in key.lower():
-                try:
-                    parameters[key] = self.credential_manager.encrypt_credential(value)
-                    warnings.append(f"✓ {key} encrypted in memory to reduce exposure")
-                except Exception as exc:  # pragma: no cover - encryption failed
-                    logger.warning(
-                        "Failed to encrypt credential parameter %s: %s",
-                        key,
-                        exc,
-                    )
+            if self._try_encrypt_password_parameter(parameters, key, value, warnings):
                 continue
 
-            if isinstance(value, str):
-                for pattern in credential_patterns:
-                    if re.search(pattern, value, re.IGNORECASE):
-                        warning_msg = (
-                            f"WARNING: Potential hardcoded credential exposure "
-                            f"detected in {key}"
-                        )
-                        warnings.append(warning_msg)
+            if not isinstance(value, str):
+                continue
 
-                        # Log audit event for credential pattern detection
-                        self._log_security_event(
-                            "CREDENTIAL_PATTERN_DETECTED",
-                            {
-                                "parameter": key,
-                                "pattern": pattern,
-                                "value_preview": (
-                                    value[:20] + "..." if len(value) > 20 else value
-                                ),
-                                "risk_level": "MEDIUM",
-                            },
-                            "WARNING",
-                        )
-                        break
+            found_patterns = [
+                pattern for pattern in patterns_to_check if pattern.matches(value)
+            ]
+            warnings.extend(self._build_pattern_warnings(key, found_patterns))
+
+            if not found_patterns:
+                continue
+
+            highest_confidence = max(found_patterns, key=lambda p: p.confidence)
+            self._auto_encrypt_high_confidence_match(
+                parameters, key, value, highest_confidence, warnings
+            )
+            self._log_pattern_detection_event(key, value, highest_confidence)
 
         return warnings
+
+    @staticmethod
+    def _should_skip_credential_check(value: Any) -> bool:
+        """Return True when a parameter value should be skipped."""
+        return isinstance(value, EncryptedCredential)
+
+    def _try_encrypt_password_parameter(
+        self,
+        parameters: dict[str, Any],
+        key: str,
+        value: Any,
+        warnings: list[str],
+    ) -> bool:
+        """Auto-encrypt obvious password parameters."""
+        if isinstance(value, str) and "password" in key.lower():
+            message = f"[ENCRYPTED] {key} encrypted in memory to reduce exposure"
+            return self._encrypt_parameter(parameters, key, value, warnings, message)
+        return False
+
+    def _build_pattern_warnings(
+        self, key: str, found_patterns: list[CredentialPattern]
+    ) -> list[str]:
+        """Build user-facing warnings for detected credential patterns."""
+        return [
+            (
+                "[DETECTED] "
+                f"{pattern_obj.credential_type.value.title()} detected in {key}: "
+                f"{pattern_obj.description}"
+            )
+            for pattern_obj in found_patterns
+        ]
+
+    def _auto_encrypt_high_confidence_match(
+        self,
+        parameters: dict[str, Any],
+        key: str,
+        value: str,
+        match: CredentialPattern,
+        warnings: list[str],
+    ) -> None:
+        """Auto-encrypt the parameter when the detection is high confidence."""
+        should_encrypt = match.confidence >= 0.9 and match.severity in [
+            "high",
+            "critical",
+        ]
+        if not should_encrypt:
+            return
+
+        warning_msg = (
+            f"[AUTO-ENCRYPTED] {key} auto-encrypted due to "
+            f"{match.credential_type.value} detection"
+        )
+        self._encrypt_parameter(parameters, key, value, warnings, warning_msg)
+
+    def _encrypt_parameter(
+        self,
+        parameters: dict[str, Any],
+        key: str,
+        value: str,
+        warnings: list[str],
+        warning_message: str,
+    ) -> bool:
+        """Encrypt a parameter value and append the corresponding warning."""
+        try:
+            parameters[key] = self.credential_manager.encrypt_credential(value)
+            warnings.append(warning_message)
+            return True
+        except Exception as exc:  # pragma: no cover - encryption failed
+            logger.warning(
+                "Failed to encrypt credential parameter %s: %s",
+                key,
+                exc,
+            )
+            return False
+
+    def _log_pattern_detection_event(
+        self, key: str, value: str, match: CredentialPattern
+    ) -> None:
+        """Log a credential pattern detection event for auditing."""
+        self._log_security_event(
+            "CREDENTIAL_PATTERN_DETECTED",
+            {
+                "parameter": key,
+                "credential_type": match.credential_type.value,
+                "confidence": match.confidence,
+                "severity": match.severity,
+                "pattern": match.description,
+                "value_preview": value[:20] + "..." if len(value) > 20 else value,
+                "risk_level": match.severity.upper(),
+                "remediation": match.remediation,
+            },
+            "WARNING" if match.severity in ["high", "critical"] else "INFO",
+        )
 
     def _check_dangerous_commands(self, parameters: dict[str, Any]) -> list[str]:
         """Check for dangerous command patterns."""
@@ -545,12 +635,23 @@ class SecurityValidator:
         warnings = []
 
         for key, value in parameters.items():
-            if isinstance(value, str) and (
-                "path" in key.lower() or key in ["source_path", "destination_path"]
-            ):
-                # Check for path traversal using validate_file_operations
-                file_warnings = self.validate_file_operations(value, "access")
-                warnings.extend(file_warnings)
+            if isinstance(value, str):
+                looks_like_path = (
+                    "/" in value
+                    or value.startswith(("~", "\\"))
+                    or re.search(r"[a-zA-Z]:\\", value) is not None
+                )
+                if (
+                    looks_like_path
+                    or "path" in key.lower()
+                    or key
+                    in [
+                        "source_path",
+                        "destination_path",
+                    ]
+                ):
+                    file_warnings = self.validate_file_operations(value, "access")
+                    warnings.extend(file_warnings)
 
             if isinstance(value, str):
                 for pattern in self.sensitive_paths:
@@ -861,7 +962,7 @@ def validate_test_security(test_case: dict[str, Any]) -> dict[str, list[str]]:
                 test_data = step.get("test_data", "")
                 ssh_params = {}
 
-                # Extract various SSH parameters using comprehensive patterns
+                # Extract various SSH parameters using targeted patterns
                 parameter_patterns = {
                     "password": r"password:\s*([^,\n\s]+)",
                     "username": r"username:\s*([^,\n\s]+)",

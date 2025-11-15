@@ -5,7 +5,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from importobot.utils.security import SecurityValidator, validate_test_security
+from importobot.security.security_validator import (
+    SecurityValidator,
+    validate_test_security,
+)
 
 
 class TestSecurityAuditLogging:  # pylint: disable=attribute-defined-outside-init
@@ -276,7 +279,9 @@ class TestSecurityAuditLogging:  # pylint: disable=attribute-defined-outside-ini
         }
 
         # Capture logs from actual audit logger
-        with patch("importobot.utils.security.SecurityValidator") as mock_validator:
+        with patch(
+            "importobot.security.security_validator.SecurityValidator"
+        ) as mock_validator:
             # Configure mock to use our validator with mocked logger
             mock_validator.return_value = self.validator
 

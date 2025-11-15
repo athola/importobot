@@ -142,7 +142,7 @@ def require_valid_input(*param_validations: Any) -> Callable[..., Any]:
 
 
 class ValidationContext:
-    """Context manager for batch validation operations."""
+    """Manage batch validation operations as a context."""
 
     def __init__(self) -> None:
         """Initialize validation context."""
@@ -178,7 +178,7 @@ class ValidationContext:
         return self
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        """Exit validation context and raise if there were errors."""
+        """Exit validation context and raise `ValidationError` if errors occurred."""
         if self.errors:
             error_message = "Validation failed:\n" + "\n".join(
                 f"  - {error}" for error in self.errors
@@ -187,7 +187,7 @@ class ValidationContext:
 
 
 class ValidationPipeline:
-    """Composable validation pipeline for reusable validation flows."""
+    """Provide a composable validation pipeline for reusable validation flows."""
 
     def __init__(self, name: str | None = None) -> None:
         """Create a pipeline with an optional display name."""
@@ -208,7 +208,7 @@ class ValidationPipeline:
         return self
 
     def validate(self, data: Any) -> ValidationResult:
-        """Run all validators against ``data`` and collate results."""
+        """Run all validators against `data` and collate results."""
         results = [validator(data) for validator in self._validators]
         return merge_validation_results(results, pipeline_name=self.name)
 
@@ -216,7 +216,7 @@ class ValidationPipeline:
 def merge_validation_results(
     results: Iterable[ValidationResult], *, pipeline_name: str | None = None
 ) -> ValidationResult:
-    """Merge multiple ValidationResult objects into a single roll-up result."""
+    """Merge multiple `ValidationResult` objects into a single roll-up result."""
     results = list(results)
     if not results:
         return create_validation_result(
@@ -267,7 +267,7 @@ def merge_validation_results(
 
 
 def _severity_rank(severity: ValidationSeverity | QualitySeverity) -> int:
-    """Get the numerical rank of a validation severity."""
+    """Return the numerical rank of a validation severity."""
     order = {
         "info": 0,
         "low": 1,

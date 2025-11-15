@@ -9,7 +9,7 @@ from importobot.utils.logging import get_logger
 
 
 class ProgressReporter:
-    """Utility class for consistent progress reporting across operations."""
+    """Provide consistent progress reporting across operations."""
 
     def __init__(
         self, logger: logging.Logger | None = None, operation_name: str = "operation"
@@ -94,7 +94,7 @@ class BatchProgressReporter(ProgressReporter):
         self.batch_interval = PROGRESS_CONFIG.file_write_progress_interval
 
     def should_report_batch_progress(self, batch_size: int, current_index: int) -> bool:
-        """Determine if batch progress should be reported.
+        """Determine whether batch progress should be reported.
 
         Args:
             batch_size: Total size of the batch

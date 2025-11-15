@@ -1,6 +1,6 @@
 """Test framework converter.
 
-Entry point for importobot CLI. Handles argument parsing and dispatches
+Entry point for the `importobot` CLI. Handle argument parsing and dispatch
 to appropriate conversion functions.
 """
 
@@ -24,7 +24,7 @@ logger = get_logger("importobot-cli")
 
 
 def _check_conversion_flags(args: Any) -> bool:
-    """Check if any conversion-related flags are present."""
+    """Check whether any conversion-related flags are present."""
     return any(
         [
             bool(getattr(args, "input", None)),
@@ -39,7 +39,7 @@ def _check_conversion_flags(args: Any) -> bool:
 def _handle_api_ingest_logic(
     args: Any, _parser: Any, had_conversion_flags: bool
 ) -> bool:
-    """Handle API ingest logic if needed."""
+    """Handle API ingest logic."""
     saved_payload_path = handle_api_ingest(args)
 
     if not getattr(args, "input", None):
