@@ -17,7 +17,7 @@ TelemetryExporter = Callable[[str, TelemetryPayload], None]
 
 
 def _flag_from_env(var_name: str, default: bool = False) -> bool:
-    """Retrieve a boolean flag from an environment variable."""
+    """Get a boolean flag from an environment variable."""
     raw = os.getenv(var_name)
     if raw is None:
         return default
@@ -25,7 +25,7 @@ def _flag_from_env(var_name: str, default: bool = False) -> bool:
 
 
 def _float_from_env(var_name: str, default: float) -> float:
-    """Retrieve a float value from an environment variable."""
+    """Get a float value from an environment variable."""
     raw = os.getenv(var_name)
     if raw is None:
         return default
@@ -36,7 +36,7 @@ def _float_from_env(var_name: str, default: float) -> float:
 
 
 def _int_from_env(var_name: str, default: int) -> int:
-    """Retrieve an integer value from an environment variable."""
+    """Get an integer value from an environment variable."""
     raw = os.getenv(var_name)
     if raw is None:
         return default

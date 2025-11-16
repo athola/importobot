@@ -90,7 +90,7 @@ class OperatingSystemKeywordGenerator(BaseKeywordGenerator):
         return self._choose_command_library(command)
 
     def _check_known_keywords(self, command_lower: str) -> str | None:
-        """Check whether the command is a known Robot Framework keyword."""
+        """Check if the command is a known Robot Framework keyword."""
         known_keywords = [
             "should be equal",
             "should contain",
@@ -185,7 +185,7 @@ class OperatingSystemKeywordGenerator(BaseKeywordGenerator):
         return None
 
     def _handle_simple_commands(self, command: str, first_word: str) -> str | None:
-        """Check whether it is a known simple command."""
+        """Check if it's a known simple command."""
         simple_commands = [
             "echo",
             "pwd",

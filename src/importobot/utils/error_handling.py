@@ -131,7 +131,7 @@ def create_validation_error_message(
 
 
 class EnhancedErrorLogger:
-    """Provide consistent error logging."""
+    """Utility class for consistent error logging."""
 
     def __init__(
         self, logger: logging.Logger | None = None, component_name: str = "component"
@@ -212,7 +212,7 @@ def safe_json_load(
     logger: logging.Logger | None = None,
     component_name: str = "component",
 ) -> dict[str, Any] | None:
-    """Safely load a JSON file.
+    """Safely load JSON file.
 
     Args:
         file_path: Path to JSON file
@@ -249,7 +249,7 @@ def safe_file_operation(
     component_name: str = "component",
     operation_name: str = "file operation",
 ) -> Any | None:
-    """Safely perform a file operation.
+    """Safely perform file operation.
 
     Args:
         operation_func: Function to perform the file operation

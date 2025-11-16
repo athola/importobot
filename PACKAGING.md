@@ -77,47 +77,6 @@ Both PyPI and GitHub Packages distributions:
 - Include the same dependencies and optional extras
 - Provide the same CLI interface and API
 
-## Enterprise Package Split
-
-Enterprise-only helpers (HSM, SIEM, compliance, key rotation) have been moved
-into the `importobot_enterprise` namespace so the default wheel can remain
-lightweight. The shared distribution exposes both packages, and the
-`publish-packages` workflow smoke-tests their extras before uploading:
-
-```bash
-pip install 'importobot[enterprise]'
-python - <<'PY'
-from importobot_enterprise import SIEMManager
-print(SIEMManager.__name__)
-PY
-```
-
-This split keeps optional analytics/cloud dependencies out of the base install
-while giving regulated teams a documented import path for enterprise features.
-
-## Key Management & Rotation
-
-The `security` extra bundles `cryptography` and `keyring` so Importobot can
-store Fernet keys in the operating system instead of plain environment
-variables. Use the helper methods when provisioning or rotating keys:
-
-```python
-from importobot.security import CredentialManager
-
-# Generate + store a key directly in the OS keyring
-CredentialManager.store_key_in_keyring(
-    service="importobot-ci",
-    username="automation",
-    overwrite=True,
-)
-
-# Later, rotate ciphertext without decrypting everything by hand
-from importobot_enterprise.key_rotation import rotate_credentials
-```
-
-For full runbooks (CI snippets, HSM mirroring, rollback guidance) see
-[wiki/Key-Rotation.md](wiki/Key-Rotation.md).
-
 ## Development Setup
 
 For developers working with the package:
@@ -146,17 +105,6 @@ Users can verify package authenticity by:
 1. Checking the GitHub repository source
 2. Comparing PyPI and GitHub Packages checksums
 3. Reviewing the automated publishing workflow logs
-
-### Runtime Security Dependencies
-- `cryptography>=42.0.0` ships with the base wheel to enable Fernet encryption for `importobot.security.CredentialManager`. Installing from PyPI automatically provides the wheel; no extra extras are needed.
-- Importobot will raise `SecurityError` if `cryptography` is missing. Install it manually with `pip install cryptography` only if building from minimal environments.
-- Security modules expect a 32-byte Fernet key in `IMPORTOBOT_ENCRYPTION_KEY`. Generate one once and export it before running CI/CD jobs:
-
-```bash
-export IMPORTOBOT_ENCRYPTION_KEY="$(openssl rand -base64 32)"
-```
-
-- Tests and local tooling can reuse the same key; avoid committing it to `.env` files.
 
 ## Support
 

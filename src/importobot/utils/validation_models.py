@@ -50,7 +50,7 @@ class QualitySeverity(Enum):
 
 @dataclass
 class ValidationResult:
-    """Provide a unified validation result for operational and data quality validation.
+    """Unified validation result for operational and data quality validation.
 
     Supports both use cases:
     - Operational validation (services): uses messages and context
@@ -104,7 +104,7 @@ def create_validation_result(
     issues: list[str] | None = None,
     details: dict[str, Any] | None = None,
 ) -> ValidationResult:
-    """Create a `ValidationResult` with consistent pattern.
+    """Create a ValidationResult with consistent pattern.
 
     Supports both message-based and count-based validation patterns.
 
@@ -201,6 +201,7 @@ def create_basic_validation_result(
     return create_validation_result(
         severity=severity,
         error_count=error_count,
+        warning_count=warning_count,
         issues=issues or [],
         details={},
     )

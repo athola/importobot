@@ -377,7 +377,7 @@ class BuiltInKeywordGenerator(
         return match.group(1) if match else ""
 
     def _is_valid_test_data(self, test_data: str, description: str) -> bool:
-        """Check whether test_data contains valid structured data for given description.
+        """Check if test_data contains valid structured data for given description.
 
         Validate whether the provided test_data contains meaningful structured data
         that is appropriate for the given description context.

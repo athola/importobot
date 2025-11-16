@@ -3,13 +3,13 @@
 import re
 from pathlib import Path
 
-from importobot.exceptions import ConfigurationError, FileNotFound, ValidationError
+from importobot import exceptions
 
 from .core import validate_not_empty, validate_type
 
 
 def validate_safe_path(file_path: str, base_dir: str | None = None) -> str:
-    """Validate that the path is safe and within the allowed directory.
+    """Validate path is safe and within allowed directory.
 
     Args:
         file_path: The file path to validate
@@ -23,16 +23,16 @@ def validate_safe_path(file_path: str, base_dir: str | None = None) -> str:
         exceptions.ConfigurationError: If file_path is not a string
     """
     if not isinstance(file_path, str):
-        raise ConfigurationError(
+        raise exceptions.ConfigurationError(
             f"File path must be a string, got {type(file_path).__name__}"
         )
 
     if not file_path.strip():
-        raise ValidationError("File path cannot be empty or whitespace")
+        raise exceptions.ValidationError("File path cannot be empty or whitespace")
 
     # Check for directory traversal in original path before resolving
     if ".." in file_path:
-        raise ValidationError("Directory traversal detected in path")
+        raise exceptions.ValidationError("Directory traversal detected in path")
 
     # Resolve the path to catch any directory traversal attempts
     path = Path(file_path).resolve()
@@ -41,7 +41,7 @@ def validate_safe_path(file_path: str, base_dir: str | None = None) -> str:
     if base_dir:
         base = Path(base_dir).resolve()
         if not str(path).startswith(str(base)):
-            raise ValidationError("Path outside allowed directory")
+            raise exceptions.ValidationError("Path outside allowed directory")
 
     # Additional security checks
     path_str = str(path)
@@ -56,7 +56,7 @@ def validate_safe_path(file_path: str, base_dir: str | None = None) -> str:
 
     for pattern in dangerous_patterns:
         if re.search(pattern, path_str, re.IGNORECASE):
-            raise ValidationError("Path contains unsafe components")
+            raise exceptions.ValidationError("Path contains unsafe components")
 
     return path_str
 
@@ -81,7 +81,7 @@ def validate_file_path(path: str, must_exist: bool = False) -> Path:
     path_obj = Path(path).resolve()
 
     if must_exist and not path_obj.exists():
-        raise FileNotFound(f"File not found: {path}")
+        raise exceptions.FileNotFound(f"File not found: {path}")
 
     return path_obj
 
@@ -107,8 +107,8 @@ def validate_directory_path(path: str, must_exist: bool = False) -> Path:
 
     if must_exist:
         if not path_obj.exists():
-            raise FileNotFound(f"Directory not found: {path}")
+            raise exceptions.FileNotFound(f"Directory not found: {path}")
         if not path_obj.is_dir():
-            raise ValidationError(f"Path is not a directory: {path}")
+            raise exceptions.ValidationError(f"Path is not a directory: {path}")
 
     return path_obj

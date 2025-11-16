@@ -12,9 +12,6 @@ from importobot.config import _mask, resolve_api_ingest_config
 from importobot.integrations.clients import BaseAPIClient
 from importobot.medallion.interfaces.enums import SupportedFormat
 
-VALID_TEST_TOKEN = "cli-token-abcdef1234567890"
-VALID_ENV_TOKEN = "env-token-abcdef1234567890"
-
 
 class _FakeResponse:
     """Minimal response object simulating requests.Response."""
@@ -101,7 +98,7 @@ def _make_args(**overrides: object) -> Namespace:
     defaults: dict[str, object] = {
         "fetch_format": SupportedFormat.TESTRAIL,
         "api_url": "https://testrail.example/api",
-        "api_tokens": [VALID_TEST_TOKEN],
+        "api_tokens": ["token"],
         "api_user": "cli-user",
         "project": "PRJ",
         "input_dir": None,
@@ -124,7 +121,7 @@ def test_insecure_flag_requires_explicit_opt_in(
 ) -> None:
     """Non-whitelisted values must not disable TLS verification."""
     monkeypatch.setenv("IMPORTOBOT_TESTRAIL_API_URL", "https://env.example/api")
-    monkeypatch.setenv("IMPORTOBOT_TESTRAIL_TOKENS", VALID_ENV_TOKEN)
+    monkeypatch.setenv("IMPORTOBOT_TESTRAIL_TOKENS", "env-token")
     monkeypatch.setenv("IMPORTOBOT_TESTRAIL_API_USER", "env-user")
     monkeypatch.setenv("IMPORTOBOT_TESTRAIL_INSECURE", "definitely-not-true")
 
@@ -142,7 +139,7 @@ def test_request_rejects_http_method_injection(monkeypatch: pytest.MonkeyPatch) 
     )
     client = _DummyClient(
         api_url="https://api.example",
-        tokens=[VALID_TEST_TOKEN],
+        tokens=["token"],
         user=None,
         project_name=None,
         project_id=None,
@@ -168,7 +165,7 @@ def test_rate_limiter_blocks_request_bypass(monkeypatch: pytest.MonkeyPatch) -> 
     )
     client = _DummyClient(
         api_url="https://api.example",
-        tokens=[VALID_TEST_TOKEN],
+        tokens=["token"],
         user=None,
         project_name=None,
         project_id=None,

@@ -1,18 +1,17 @@
 # API Reference
 
-This document is the reference for Importobot's public API. All components described here are officially supported. Modules under `importobot.core.*` or `importobot.medallion.*` are internal and subject to change.
+This document serves as the reference for Importobot's public API. All components described here are officially supported; modules under `importobot.core.*` or `importobot.medallion.*` are considered internal and private.
 
-For practical examples, see [API Examples](API-Examples.md).
+For practical demonstrations, refer to [API Examples](API-Examples.md), which illustrates detailed usage patterns for the latest features.
 
 ## API Overview
 
-Importobot's API has three primary layers:
+Importobot's API is structured into two primary layers:
 
-1.  **`importobot`**: The main package, containing the `JsonToRobotConverter` class, global configuration, and custom exceptions.
-2.  **`importobot.api`**: Modules for advanced use cases like CI/CD integration, custom validation, and experimental features.
-3.  **`importobot.security`**: New in 0.1.5; houses credential encryption, template scanning, HSM integration, SIEM connectors, and automated compliance helpers.
+1.  **`importobot`**: The core package, encompassing the main `JsonToRobotConverter` class, global configuration settings, and custom exceptions.
+2.  **`importobot.api`**: A collection of modules tailored for advanced use cases, including CI/CD integration, custom validation, and experimental features.
 
-The public API is stable across releases. Internal modules (e.g., `core`, `medallion`) are subject to change. All public APIs include type hints for IDE support.
+The public API surface maintains stability across releases. Internal modules (e.g., `core`, `medallion`) are subject to change. All public APIs include comprehensive type hints for enhanced IDE support.
 
 ## Primary Interface
 
@@ -66,7 +65,7 @@ converter = converters.JsonToRobotConverter()
 #### Classes
 
 **`GenericConversionEngine`**
--   A low-level conversion engine with many configuration options.
+-   A low-level conversion engine offering extensive configuration options.
 -   Supports custom keyword mapping and various format options.
 -   Used internally by `JsonToRobotConverter`.
 
@@ -92,7 +91,8 @@ validation.validate_safe_path(output_path)
 -   Checks for required fields and correct data types.
 
 **`validate_safe_path(path: str) -> str`**
--   Validates file paths to prevent directory traversal attacks.
+-   Prevents directory traversal attacks.
+-   Validates the security of file paths.
 -   Returns a sanitized path.
 
 **`ValidationError`**
@@ -167,73 +167,15 @@ except ValueError as config_err:
 
 > Tip: Only disable TLS verification (`verify_ssl=False`) in trusted development environments. Importobot logs a warning whenever verification is turned off.
 
-## Security Package (`importobot.security`)
-
-The new security namespace keeps all security-critical components together.
-
-### Credential Manager
-
-```python
-from importobot.security import CredentialManager
-
-manager = CredentialManager()  # Requires cryptography + IMPORTOBOT_ENCRYPTION_KEY
-encrypted = manager.encrypt_credential("super-secret-token")
-token = manager.decrypt_credential(encrypted)
-```
-
-- Raises `SecurityError` if `cryptography` is missing or if it cannot fingerprint the configured key.
-
-### Template Security Scanner
-
-```python
-from importobot.security import TemplateSecurityScanner
-
-scanner = TemplateSecurityScanner()
-report = scanner.scan_template_file("templates/smoke.robot")
-if not report.is_safe:
-    handle(report.issues)
-```
-
-- `report.issues` include line numbers, severity, and remediation strings to drive CI decisions.
-
-### SIEM Connectors
-
-```python
-from importobot.security import create_splunk_connector, get_siem_manager
-
-splunk = create_splunk_connector(
-    host="https://splunk.example.com",
-    token=os.environ["SPLUNK_HEC_TOKEN"],
-)
-manager = get_siem_manager()
-manager.add_connector(splunk)
-manager.start()
-manager.send_security_event(security_event)
-```
-
-- Elastic and Microsoft Sentinel connectors expose the same interface; see `importobot/security/siem_integration.py`.
-
-### Compliance Engine
-
-```python
-from importobot.security import get_compliance_engine, ComplianceStandard
-
-engine = get_compliance_engine()
-report = engine.assess_compliance(standard=ComplianceStandard.SOC_2)
-report.export_csv("compliance/soc2.csv")
-```
-
-- Each report contains control-level scores, evidence references, and next-assessment timestamps stored under `~/.importobot/compliance/`.
-
 
 ## Version Stability Promise
 
-Importobot follows a versioning model similar to Pandas:
+Importobot adheres to a Pandas-style API evolution model:
 
--   **Public API Stability**: The public API (`importobot.*` and `importobot.api.*`) is stable.
--   **Internal Implementation**: Core modules may change between releases.
--   **Deprecation Warnings**: Breaking changes are announced with deprecation warnings and migration instructions.
--   **Semantic Versioning**: Versioning follows the Major.Minor.Patch convention.
+-   **Public API Stability**: Modules under `importobot.*` and `importobot.api.*` are guaranteed stable.
+-   **Internal Implementation**: Core modules may be refactored without impacting the public API.
+-   **Deprecation Warnings**: Breaking changes are accompanied by deprecation warnings and migration guidance.
+-   **Semantic Versioning**: Versioning follows Major.Minor.Patch conventions, providing clear upgrade paths.
 
 ## Environment Variables
 
@@ -266,7 +208,7 @@ validation.validate_json_dict(data)
 
 ## Type Hints & IDE Support
 
-The API includes type hints for IDE support and static analysis:
+The API includes comprehensive type hints for enhanced IDE support and static analysis:
 
 ```python
 from typing import TYPE_CHECKING
@@ -281,8 +223,8 @@ engine: suggestions.GenericSuggestionEngine = ...
 
 ## Performance Considerations
 
--   **Bulk Operations**: Use `convert_directory()` for processing many files.
--   **Memory Management**: File size limits are used to prevent high memory usage.
--   **Parallel Processing**: Directory conversion is parallelized by processing files in batches.
--   **Error Recovery**: An error on a single file does not halt a batch conversion.
--   **Bayesian Calculations**: Confidence scoring is O(1) per evaluation. Monte Carlo sampling is available for uncertainty quantification.
+-   **Bulk Operations**: For processing hundreds or thousands of files, use `convert_directory()`.
+-   **Memory Management**: Large files are processed within defined size limits to prevent excessive memory consumption.
+-   **Parallel Processing**: Directory conversion leverages efficient batching for parallel processing.
+-   **Error Recovery**: Individual file failures do not halt batch processing, ensuring robust operation.
+-   **Bayesian Calculations**: Confidence scoring is O(1) per evaluation, with optional Monte Carlo sampling available for uncertainty quantification.

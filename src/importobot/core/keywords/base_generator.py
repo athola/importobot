@@ -106,7 +106,7 @@ class BaseKeywordGenerator(KeywordGenerator, ABC):
         return {lib.value for lib in detected_libs}
 
     def _get_parser(self) -> GenericTestFileParser:
-        """Return the test file parser."""
+        """Get the test file parser."""
         return GenericTestFileParser()
 
     def _extract_field(self, data: dict[str, Any], field_names: list[str]) -> str:
@@ -264,7 +264,7 @@ class BaseKeywordGenerator(KeywordGenerator, ABC):
         return match.group(1) if match else ""
 
     def _contains_sql(self, text: str) -> bool:
-        """Check whether text contains SQL keywords using compiled regex."""
+        """Check if text contains SQL keywords using compiled regex."""
         return bool(_SQL_PATTERN.search(text))
 
     def _get_test_data_fields(self, step: dict[str, Any]) -> str:

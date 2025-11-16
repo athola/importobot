@@ -1,6 +1,6 @@
-"""Cache regex compilation for improved performance.
+"""Regex compilation cache for improved performance.
 
-Provide a centralized cache for compiled regex patterns
+This module provides a centralized cache for compiled regex patterns
 to avoid repeated compilation of the same patterns.
 """
 
@@ -114,7 +114,7 @@ def clear_cache() -> None:
 
 
 def get_cache_info() -> dict[str, int | None]:
-    """Return cache statistics.
+    """Get cache statistics.
 
     Returns:
         Dictionary with cache statistics

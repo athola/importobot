@@ -4,15 +4,15 @@ import json
 from pathlib import Path
 from typing import Any
 
-from importobot.security.security_validator import extract_security_warnings
 from importobot.utils.defaults import LIBRARY_MAPPING
 from importobot.utils.logging import get_logger
+from importobot.utils.security import extract_security_warnings
 
 logger = get_logger()
 
 
 class KeywordLibraryLoader:
-    """Manage loading keyword libraries from external JSON configuration files."""
+    """Manages loading keyword libraries from external JSON configuration files."""
 
     def __init__(self) -> None:
         """Initialize the loader with the keywords data directory."""

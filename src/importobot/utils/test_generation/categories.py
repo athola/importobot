@@ -23,7 +23,7 @@ class CategoryEnum(Enum):
 
     @classmethod
     def get_default_weights(cls) -> dict["CategoryEnum", float]:
-        """Return default distribution weights."""
+        """Get default distribution weights."""
         return {
             cls.REGRESSION: 0.3125,  # 31.25%
             cls.SMOKE: 0.1875,  # 18.75%
@@ -33,7 +33,7 @@ class CategoryEnum(Enum):
 
     @classmethod
     def from_string(cls, category_str: str) -> "CategoryEnum":
-        """Convert a string to a `CategoryEnum` enum."""
+        """Convert string to CategoryEnum enum."""
         for category in cls:
             if category.value == category_str:
                 return category
@@ -41,5 +41,5 @@ class CategoryEnum(Enum):
 
     @classmethod
     def get_all_values(cls) -> list[str]:
-        """Return all category values as strings."""
+        """Get all category values as strings."""
         return [category.value for category in cls]

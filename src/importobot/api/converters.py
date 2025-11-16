@@ -1,7 +1,7 @@
-"""Public converter interfaces.
+"""Public converter interfaces for enterprise integration.
 
-This module exposes the core conversion functionality for converting JSON
-to Robot Framework.
+This module exposes the core conversion functionality needed for
+bulk JSON to Robot Framework conversion in enterprise pipelines.
 """
 
 from __future__ import annotations

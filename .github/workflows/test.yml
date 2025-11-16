@@ -59,7 +59,7 @@ jobs:
       run: make test-all
 
     - name: Upload test results
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: test-results-${{ matrix.python-version }}
@@ -101,7 +101,7 @@ jobs:
   performance:
     name: Performance Regression
     runs-on: ubuntu-latest
-    needs: [test, extras]
+    needs: test
 
     steps:
     - uses: actions/checkout@v5
@@ -131,48 +131,12 @@ jobs:
         cd scripts && uv run python -m importobot_scripts.benchmarks.run_bronze_benchmark --output performance-metrics/bronze_benchmark.json
 
     - name: Upload benchmark metrics
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: bronze-benchmark-metrics
         path: performance-metrics/bronze_benchmark.json
         retention-days: 7
-
-    - name: Minimize uv cache
-      run: uv cache prune --ci
-
-  extras:
-    name: Extras Matrix
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        extra: ["security", "enterprise"]
-
-    steps:
-    - uses: actions/checkout@v5
-
-    - name: Install uv
-      uses: astral-sh/setup-uv@v7
-      with:
-        version: "latest"
-        enable-cache: true
-
-    - name: Set up Python 3.12
-      uses: actions/setup-python@v6
-      with:
-        python-version: "3.12"
-
-    - name: Install extra dependencies
-      run: uv sync --dev --extra ${{ matrix.extra }}
-
-    - name: Run targeted tests
-      run: |
-        if [ "${{ matrix.extra }}" = "security" ]; then
-          uv run pytest tests/unit/security/test_credential_manager_security.py -k keyring
-        else
-          uv run pytest tests/unit/enterprise
-        fi
 
     - name: Minimize uv cache
       run: uv cache prune --ci

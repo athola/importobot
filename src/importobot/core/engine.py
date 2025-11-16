@@ -1,7 +1,8 @@
-"""Core engine for transforming dictionary data into Robot Framework suites."""
+"""Core conversion engine implementation."""
 
 from typing import Any
 
+from importobot import exceptions
 from importobot.core.field_definitions import (
     TEST_DESCRIPTION_FIELDS,
     TEST_TAG_FIELDS,
@@ -11,7 +12,6 @@ from importobot.core.keyword_generator import GenericKeywordGenerator
 from importobot.core.parsers import GenericTestFileParser
 from importobot.core.pattern_matcher import LibraryDetector
 from importobot.core.templates.blueprints import render_with_blueprints
-from importobot.exceptions import ValidationError
 from importobot.utils.logging import get_logger
 from importobot.utils.validation import (
     convert_parameters_to_robot_variables,
@@ -22,7 +22,7 @@ logger = get_logger()
 
 
 class GenericConversionEngine(ConversionEngine):
-    """Transform dictionary-based test data into a Robot Framework test suite."""
+    """Conversion engine that transforms test data into Robot Framework format."""
 
     def __init__(self) -> None:
         """Initialize the parser and keyword generator components."""
@@ -33,7 +33,11 @@ class GenericConversionEngine(ConversionEngine):
         self,
         json_data: dict[str, Any],
     ) -> str:  # pylint: disable=unused-argument
-        """Convert JSON test data to Robot Framework format."""
+        """Convert JSON test data to Robot Framework format.
+
+        Args:
+            json_data: The JSON data to convert
+        """
         specialized = render_with_blueprints(json_data)
         if specialized is not None:
             return specialized
@@ -66,7 +70,7 @@ class GenericConversionEngine(ConversionEngine):
             available_keys = (
                 list(json_data.keys()) if isinstance(json_data, dict) else []
             )
-            raise ValidationError(
+            raise exceptions.ValidationError(
                 f"No test cases found in input data. "
                 f"Expected structures like {{'testCase': {{...}}}}, "
                 f"{{'tests': [...]}}, "

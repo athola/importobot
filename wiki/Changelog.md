@@ -8,13 +8,6 @@
 - Verify that any new assets you reference here are committed and versioned with the matching release tag.
 - Trim or archive bullets once their supporting docs become obsolete to keep this page focused.
 
-## 0.1.5 (2025-11-14)
-- Documented the entire `importobot.security` package (CredentialManager, TemplateSecurityScanner, HSM adapters, SIEM connectors) across [Security Standards](Security-Standards.md), [User Guide](User-Guide.md#security-controls), and new usage examples so contributors know where each module lives.
-- Added playbooks for SOC 2 / ISO 27001 reporting in [Release Notes](Release-Notes.md#security-features) and [Migration Guide](Migration-Guide.md#015-to-015) describing how to opt into the stronger defaults (`IMPORTOBOT_ENCRYPTION_KEY`, Splunk/Sentinel setup).
-- Captured test coverage changes in [Testing](Testing.md) with exact file counts (9 unit + 4 integration/config security modules) and updated the top-level [Home](Home.md) status block to reflect the 2,644 collected tests.
-- Updated CLI documentation to reflect that `--robot-template` now runs `TemplateSecurityScanner` automatically and halts when a template reports `is_safe=False`.
-- Published a dedicated [SIEM Integration](SIEM-Integration.md) runbook covering Splunk, Elastic, and Microsoft Sentinel connectors (env vars, health checks, and monitor subscriptions).
-
 ## 0.1.4 (2025-11-09)
 - Comprehensive test suite quality improvements with 55 named constants organized into 9 logical categories
 - Modern pytest patterns with `tmp_path` fixtures and comprehensive type annotations

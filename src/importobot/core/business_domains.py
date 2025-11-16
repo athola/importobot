@@ -1,4 +1,4 @@
-"""Provide business domain templates and enterprise scenarios for test generation."""
+"""Provides business domain templates and enterprise scenarios for test generation."""
 
 import random
 from typing import Any, ClassVar
@@ -7,7 +7,7 @@ from importobot.utils.lazy_loader import LazyDataLoader
 
 
 class BusinessDomainTemplates:
-    """Manage business domain templates for test scenarios."""
+    """Manages business domain templates for test scenarios."""
 
     @property
     def enterprise_scenarios(self) -> dict[str, Any]:
@@ -137,7 +137,7 @@ class BusinessDomainTemplates:
 
 
 class TestCaseTemplates:
-    """Provide template structures for test case generation."""
+    """Provides template structures for test case generation."""
 
     JSON_STRUCTURES: ClassVar[list[str]] = [
         "zephyr",

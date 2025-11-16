@@ -1,6 +1,6 @@
 # User Guide
 
-This guide covers key features for handling API data, custom fields, and other advanced conversion tasks. For a complete list of commands and examples, see the [API Reference](API-Reference.md) and [Usage Examples](Usage-Examples.md).
+This guide details some of Importobot's key features and how to use them. For a complete list of commands and examples, see the [API Reference](API-Reference.md) and [Usage Examples](Usage-Examples.md).
 
 ## Supported Input Formats
 
@@ -32,12 +32,14 @@ uv run importobot \
 ### Programmatic Usage
 
 ```python
+import os
 from importobot.integrations.clients import get_api_client, SupportedFormat
 
-# See the API Reference for detailed examples
 client = get_api_client(
     SupportedFormat.ZEPHYR,
     api_url="https://zephyr.example.com",
+    tokens=[os.environ["ZEPHYR_TOKEN"]],
+    project_name="ENG-QA",
 )
 
 for page in client.fetch_all():
@@ -48,76 +50,26 @@ for page in client.fetch_all():
 
 If your export file uses custom field names (e.g., `Test_Title` instead of `name`), you can provide a schema file to map your custom names to the standard fields Importobot recognizes.
 
-### Example Schema File (`field_mapping.json`)
+### Example Schema File (`docs/field_guide.md`)
 
-```json
-{
-  "Test_Title": "name",
-  "Description": "description",
-  "Steps": "steps"
-}
+```markdown
+# Field Guide
+
+- **Title**: Maps to `name`
+- **Description**: Maps to `description`
+- **Steps**: Maps to `steps`
 ```
 
 ### CLI Usage
 
 ```bash
 uv run importobot \
-  --input-schema field_mapping.json \
+  --input-schema docs/field_guide.md \
   custom_export.json \
   converted.robot
 ```
 
-## Automation Features
+## Other Features
 
-- **Automatic Library Imports**: Detects keywords in test steps and adds the corresponding `Library` statements to the generated Robot Framework file.
-- **Automatic Format Detection**: Automatically detects the format of input files (e.g., Zephyr, Xray), so you don't have to specify it manually.
-
-## Security Controls
-
-Version 0.1.5 added a first-class security package. Use it when wiring Importobot into CI/CD:
-
-### Encrypting Long-Lived Tokens
-
-```python
-from importobot.security import CredentialManager
-
-manager = CredentialManager()  # Requires IMPORTOBOT_ENCRYPTION_KEY
-encrypted = manager.encrypt_credential(os.environ["ZEPHYR_TOKEN"])
-store(encrypted.ciphertext)
-
-# Later
-zephyr_token = manager.decrypt_credential(encrypted)
-```
-
-- `CredentialManager` fails fast if `cryptography` is missing or the Fernet key is absent/incorrect.
-
-### Scanning Robot Templates
-
-```python
-from importobot.security import TemplateSecurityScanner
-
-report = TemplateSecurityScanner().scan_template_file("templates/smoke.robot")
-if not report.is_safe:
-    raise RuntimeError(report.issues[0].description)
-```
-
-- Use this before invoking `--robot-template` so compromised templates never reach the converter.
-- The CLI now performs this scan automatically when `--robot-template` is supplied and will terminate if any template fails.
-
-### Shipping Alerts to SIEM
-
-```python
-from importobot.security import create_splunk_connector, get_siem_manager
-
-splunk = create_splunk_connector(
-    host="https://siem.example.com",
-    token=os.environ["SPLUNK_HEC_TOKEN"],
-)
-manager = get_siem_manager()
-manager.add_connector(splunk)
-manager.start()
-manager.send_security_event(security_event)
-```
-
-- Splunk, Elastic, and Sentinel connectors share the same `SIEMEvent` payload, so one integration feeds multiple tools.
-- See the dedicated [SIEM Integration](SIEM-Integration.md) guide for full scripts (environment variables, verification steps, and monitor wiring).
+- **Automatic Library Imports**: Importobot detects keywords in test steps (e.g., `Open Browser`, `Execute Command`) and automatically adds the corresponding `Library` statements (e.g., `SeleniumLibrary`, `SSHLibrary`) to the generated Robot Framework file.
+- **Automatic Format Detection**: When you provide a file, Importobot automatically detects its format (e.g., Zephyr, Xray). This means you don't have to specify the format manually for file-based conversions.

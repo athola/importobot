@@ -61,12 +61,12 @@ def generate_random_test_json(
 
 
 def get_available_structures() -> list[str]:
-    """Return a list of available test structures for generation."""
+    """Get list of available test structures for generation."""
     return ["zephyr", "jira", "testlink", "generic"]
 
 
 def get_required_libraries_for_keywords(keywords: list[dict[str, Any]]) -> set[str]:
-    """Return required Robot Framework libraries for given keywords."""
+    """Get required Robot Framework libraries for given keywords."""
     # Create steps using the same process as the actual test conversion
     generator = TestSuiteGenerator()
     test_data = generator.generate_realistic_test_data()

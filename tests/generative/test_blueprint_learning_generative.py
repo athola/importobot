@@ -128,5 +128,5 @@ def test_configure_template_sources_generative(
     assert "\ufeff" not in sanitized
     assert all(ch.isprintable() or ch in {"\n", "\t"} for ch in sanitized)
 
-    pattern = registry.find_step_pattern(command_token=command_token.lower())
+    pattern = registry.find_step_pattern("cli", command_token.lower())
     assert pattern is not None

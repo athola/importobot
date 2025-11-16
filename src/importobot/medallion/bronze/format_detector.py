@@ -1,4 +1,4 @@
-"""Detect the format of a test data export file."""
+"""Modular format detection facade coordinating specialized detection modules."""
 
 from __future__ import annotations
 
@@ -27,10 +27,10 @@ logger = get_logger()
 
 
 class FormatDetector:
-    """Detect the format of test data using a modular, evidence-based approach."""
+    """Main facade for format detection using modular components."""
 
     def __init__(self, *, cache: DetectionCache | None = None) -> None:
-        """Initialize the format detector and its components."""
+        """Initialize modular format detector with Bayesian evidence accumulation."""
         self.format_registry = FormatRegistry()
         self.detection_cache = cache or DetectionCache()
         self.evidence_collector = EvidenceCollector(self.format_registry)
@@ -134,7 +134,7 @@ class FormatDetector:
                 return SupportedFormat.UNKNOWN
 
     def _quick_format_detection(self, data: dict[str, Any]) -> SupportedFormat:
-        """Compare format candidates quickly using relative scoring."""
+        """Quickly compare format candidates using Bayesian relative scoring."""
         # First, check for strong format indicators (same as fast path)
         strong_indicators = {
             SupportedFormat.JIRA_XRAY: ["testExecutions", "testInfo", "evidences"],
@@ -200,7 +200,7 @@ class FormatDetector:
         return SupportedFormat.UNKNOWN
 
     def _full_format_detection(self, data: dict[str, Any]) -> SupportedFormat:
-        """Run the full format detection using the hierarchical classifier."""
+        """Full format detection algorithm using hierarchical classifier."""
         # Use hierarchical classifier for proper two-stage detection
         result = self.hierarchical_classifier.classify(data)
 
@@ -263,7 +263,7 @@ class FormatDetector:
     def get_format_confidence(
         self, data: dict[str, Any], format_type: SupportedFormat
     ) -> float:
-        """Calculate a confidence estimate using multi-class Bayesian normalization.
+        """Return confidence estimate using proper multi-class Bayesian normalization.
 
         This method implements mathematically correct multi-class classification:
         1. Evaluates evidence against ALL format hypotheses
@@ -284,7 +284,7 @@ class FormatDetector:
         return all_confidences.get(format_type.name, 0.0)
 
     def get_all_format_confidences(self, data: dict[str, Any]) -> dict[str, float]:
-        """Calculate normalized confidence scores for all supported formats.
+        """Calculate properly normalized confidence scores for ALL formats.
 
         Uses two-stage hierarchical Bayesian classification:
         1. Stage 1: Validate input represents test management data

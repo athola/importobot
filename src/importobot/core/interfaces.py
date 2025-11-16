@@ -5,7 +5,7 @@ from typing import Any
 
 
 class TestFileParser(ABC):
-    """Provide an interface for parsing test files in various formats."""
+    """Interface for parsing test files in various formats."""
 
     @abstractmethod
     def find_tests(self, data: dict[str, Any]) -> list[dict[str, Any]]:
@@ -19,7 +19,7 @@ class TestFileParser(ABC):
 
 
 class KeywordGenerator(ABC):
-    """Provide an interface for generating Robot Framework keywords."""
+    """Interface for generating Robot Framework keywords."""
 
     @abstractmethod
     def generate_test_case(self, test_data: dict[str, Any]) -> list[str]:
@@ -38,7 +38,7 @@ class KeywordGenerator(ABC):
 
 
 class SuggestionEngine(ABC):
-    """Provide an interface for generating improvement suggestions for test files."""
+    """Interface for generating improvement suggestions for test files."""
 
     @abstractmethod
     def get_suggestions(self, json_data: dict[str, Any] | list[Any] | Any) -> list[str]:
@@ -54,7 +54,7 @@ class SuggestionEngine(ABC):
 
 
 class ConversionEngine(ABC):
-    """Provide an interface for orchestrating the conversion process."""
+    """Interface for orchestrating the conversion process."""
 
     @abstractmethod
     def convert(self, json_data: dict[str, Any]) -> str:

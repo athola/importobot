@@ -37,7 +37,6 @@ class Blueprint:
     def _prepare_inputs(
         self, data: Any
     ) -> tuple[list[dict[str, Any]], list[list[Step]], list[MatchContext]] | None:
-        """Prepare inputs for blueprint rendering."""
         test_cases = extract_test_cases(data)
         if not test_cases:
             return None
@@ -89,7 +88,6 @@ class Blueprint:
         return None
 
     def _build_match_context(self, steps: list[Step]) -> MatchContext:
-        """Return a match context from a list of steps."""
         context: MatchContext = {}
         for step in steps:
             aggregate = " ".join(iter_step_text(step))

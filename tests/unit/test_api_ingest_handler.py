@@ -7,11 +7,9 @@ from typing import Any
 
 import pytest
 
-from importobot.cli.handlers import _create_api_client, handle_api_ingest
+from importobot.cli.handlers import handle_api_ingest
 from importobot.config import APIIngestConfig
 from importobot.medallion.interfaces.enums import SupportedFormat
-
-VALID_TEST_TOKEN = "cli-token-abcdef1234567890"
 
 
 class DummyClient:
@@ -37,7 +35,7 @@ def make_args(**overrides: object) -> Namespace:
     defaults: dict[str, object] = {
         "fetch_format": SupportedFormat.JIRA_XRAY,
         "api_url": "https://jira.example/rest",
-        "api_tokens": [VALID_TEST_TOKEN],
+        "api_tokens": ["token"],
         "api_user": "jira-user",
         "project": "JIRA",
         "input_dir": None,
@@ -59,7 +57,7 @@ def fake_config(monkeypatch: pytest.MonkeyPatch) -> APIIngestConfig:
     config = APIIngestConfig(
         fetch_format=SupportedFormat.JIRA_XRAY,
         api_url="https://jira.example/rest",
-        tokens=[VALID_TEST_TOKEN],
+        tokens=["token"],
         user="jira-user",
         project_name="JIRA",
         project_id=None,
@@ -182,35 +180,3 @@ def test_handle_api_ingest_returns_path(
 
     assert args.input == path
     assert Path(path).exists()
-
-
-def test_create_api_client_unwraps_secure_tokens(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """_create_api_client should pass raw string tokens to the client factory."""
-
-    captured: dict[str, Any] = {}
-
-    def fake_get_api_client(
-        fetch_format: SupportedFormat, **kwargs: Any
-    ) -> DummyClient:
-        captured.update(kwargs)
-        return DummyClient(payloads=[])
-
-    monkeypatch.setattr("importobot.cli.handlers.get_api_client", fake_get_api_client)
-
-    config = APIIngestConfig(
-        fetch_format=SupportedFormat.ZEPHYR,
-        api_url="https://api.example.com",
-        tokens=["cli-token-abcdef123456"],
-        user="user",
-        project_name="Project",
-        project_id=None,
-        output_dir=Path("/tmp"),
-        max_concurrency=None,
-        insecure=False,
-    )
-
-    _create_api_client(config)
-
-    assert captured["tokens"] == ["cli-token-abcdef123456"]

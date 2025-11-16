@@ -49,7 +49,6 @@ Roadmap of upcoming features, parked items, and ideas requiring proof-of-concept
 **Schema integration**: The schema parser works, but it's a separate step from the conversion pipeline. We want to automatically apply organization-specific field mappings without requiring users to remember the `--input-schema` flag every time.
 
 **Performance**: Template ingestion takes ~50ms per file, which becomes noticeable with 50+ template directories. We need to optimize the pattern matching algorithm and add better caching.
-
 **MongoDB Library Modernization**: Replace the inadequate `robot-mongodb-library` with a proper Robot Framework-compatible MongoDB library. The current library causes warnings and provides standalone functions instead of proper keywords. GitHub issue #82 tracks this work.
 
 **Specific customer requests**:

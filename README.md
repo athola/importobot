@@ -10,10 +10,14 @@
 
 </div>
 
-Importobot converts test case exports from Zephyr, TestRail, Xray, and TestLink into runnable Robot Framework suites. Use it to automate the migration of large, manual test libraries.
+Importobot is a Python package for converting test case exports from Zephyr, TestRail, Xray, and TestLink into runnable Robot Framework suites. It was built to automate the tedious process of manually migrating large test libraries.
 
-## Recent Updates
+## What's new
 
+**Recent Improvements:**
+- **MongoDB Library Support**: Fixed MongoDB library integration by replacing broken `robotframework-mongodblibrary` with modern `robot-mongodb-library`
+- **Type Safety**: Enhanced type checking and fixed enum conversion issues
+- **Code Quality**: Improved linting compliance and code organization
 - **Security Modules**: Added `src/importobot/security/` with credential management, HSM adapters, SIEM connectors, template scanning, and compliance reporting so the CLI no longer needs miscellaneous helpers scattered under `utils/`.
 - **Encrypted Credentials**: `CredentialManager` now enforces Fernet encryption via the optional `security` extra (`pip install 'importobot[security]'`) and the `IMPORTOBOT_ENCRYPTION_KEY` environment variable (32-byte key or `openssl rand -base64 32` output).
 - **Security Regression Suite**: 13 new security-focused test modules lift the total test count to 2,644 (`UV_CACHE_DIR=.uv-cache uv run pytest --collect-only --quiet`), covering SIEM forwarding, SOC 2 scoring, template scanning, and secure memory cleanup paths.
@@ -26,6 +30,7 @@ For end-users, install from PyPI:
 ```sh
 pip install importobot
 ```
+<<<<<<< HEAD
 Optional security features (encryption, secure memory helpers) live in an extra:
 ```sh
 pip install 'importobot[security]'
@@ -158,6 +163,14 @@ Project documentation is in the [wiki](https://github.com/athola/importobot/wiki
 
 For questions and discussions, please use the [GitHub issue tracker](https://github.com/athola/importobot/issues).
 
+## Documentation
+
+Project documentation is in the [wiki](https://github.com/athola/importobot/wiki).
+
+- **[Getting Started](https://github.com/athola/importobot/wiki/Getting-Started)**: Install the tool and run a conversion.
+- **[User Guide](https://github.com/athola/importobot/wiki/User-Guide)**: Learn common conversion commands and see detailed examples.
+- **[How to Navigate this Codebase](https://github.com/athola/importobot/wiki/How-to-Navigate-this-Codebase)**: A developer's guide to the project structure and architecture.
+- **[SIEM Integration](https://github.com/athola/importobot/wiki/SIEM-Integration)**: Configure Splunk, Elastic Security, or Microsoft Sentinel connectors for security event forwarding.
 ## Contributing
 
 Contributions are welcome. Please see the [Contributing Guide](https://github.com/athola/importobot/wiki/Contributing) for more information.

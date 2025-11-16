@@ -1,4 +1,4 @@
-"""Match patterns for intent-based keyword generation."""
+"""Pattern matching engine for intent-based keyword generation."""
 
 import re
 from dataclasses import dataclass
@@ -15,7 +15,7 @@ from importobot.utils.step_processing import combine_step_text
 
 
 class RobotFrameworkLibrary(str, Enum):
-    """Enumerate Robot Framework libraries for extensible library management."""
+    """Robot Framework library enumeration for extensible library management."""
 
     # Web automation libraries
     SELENIUM_LIBRARY = "SeleniumLibrary"
@@ -47,7 +47,7 @@ class RobotFrameworkLibrary(str, Enum):
     @classmethod
     def get_conflict_groups(cls) -> dict[str, set["RobotFrameworkLibrary"]]:
         """
-        Return groups of libraries that have keyword conflicts.
+        Get groups of libraries that have keyword conflicts.
 
         Returns:
             Dictionary mapping conflict group names to sets of conflicting libraries
@@ -61,7 +61,7 @@ class RobotFrameworkLibrary(str, Enum):
     @classmethod
     def get_conflict_prone_libraries(cls) -> set["RobotFrameworkLibrary"]:
         """
-        Return libraries that commonly have keyword conflicts requiring prefixes.
+        Get libraries that commonly have keyword conflicts requiring prefixes.
 
         Returns:
             Set of libraries that need explicit prefixes for disambiguation
@@ -75,7 +75,7 @@ class RobotFrameworkLibrary(str, Enum):
     @classmethod
     def from_string(cls, library_name: str) -> "RobotFrameworkLibrary":
         """
-        Convert a string library name to its enum value.
+        Convert string library name to enum value.
 
         Args:
             library_name: Library name as string
@@ -98,7 +98,7 @@ class RobotFrameworkLibrary(str, Enum):
 
 
 class IntentType(Enum):
-    """Enumerate intent types detectable in test steps."""
+    """Types of intents that can be detected in test steps."""
 
     COMMAND_EXECUTION = "command"
     FILE_EXISTS = "file_exists"
@@ -171,7 +171,7 @@ class IntentType(Enum):
 
 @dataclass(frozen=True)
 class IntentPattern:
-    """Represent a pattern for detecting an intent."""
+    """Represents a pattern for detecting an intent."""
 
     intent_type: IntentType
     pattern: str
@@ -181,7 +181,7 @@ class IntentPattern:
     _compiled: Pattern[str] | None = None
 
     def compiled_pattern(self) -> Pattern[str]:
-        """Return the compiled regex pattern."""
+        """Get compiled regex pattern."""
         # Initialize cache if needed
         # Using instance-level caching without lru_cache decorator
         if not hasattr(self, "_compiled") or self._compiled is None:
@@ -191,12 +191,12 @@ class IntentPattern:
         return self._compiled
 
     def matches(self, text: str) -> bool:
-        """Check whether pattern matches text."""
+        """Check if pattern matches text."""
         return bool(self.compiled_pattern().search(text))
 
 
 class PatternMatcher:
-    """Match patterns efficiently for intent detection."""
+    """Efficient pattern matching for intent detection."""
 
     def __init__(self) -> None:
         """Initialize with intent patterns sorted by priority."""
@@ -789,7 +789,7 @@ class DataExtractor:
 
 
 class LibraryDetector:
-    """Detect libraries based on text patterns."""
+    """Unified library detection based on text patterns."""
 
     # Library detection patterns using enum for extensibility
     LIBRARY_PATTERNS: ClassVar[dict[RobotFrameworkLibrary, str]] = {
@@ -900,10 +900,10 @@ class LibraryDetector:
         json_data: dict[str, Any] | None = None,
     ) -> set[RobotFrameworkLibrary]:
         """
-        Resolve library conflicts using Bayesian evidence collection.
+        Resolve conflicts between libraries using Bayesian evidence collection.
 
         For library coverage scenarios (indicated by 'library_coverage' label),
-        skip conflict resolution to allow full coverage testing of all libraries.
+        skips conflict resolution to allow full coverage testing of all libraries.
         """
         # Skip conflict resolution for library coverage scenarios
         # Check for explicit library_coverage label in test data
@@ -921,11 +921,7 @@ class LibraryDetector:
 
     @classmethod
     def _is_library_coverage_scenario(cls, json_data: dict[str, Any] | None) -> bool:
-        """Check whether this is a library coverage scenario.
-
-        Args:
-            json_data: Test data to check for library coverage labels
-        """
+        """Check if this is a library coverage scenario based on test data labels."""
         if not json_data:
             return False
 
@@ -967,7 +963,7 @@ class LibraryDetector:
 
     @classmethod
     def _has_library_coverage_label(cls, labels: list[str]) -> bool:
-        """Check whether any label indicates a library coverage scenario."""
+        """Check if any label indicates a library coverage scenario."""
         return any("library_coverage" in label.lower() for label in labels)
 
     @classmethod
@@ -977,7 +973,7 @@ class LibraryDetector:
         """
         Resolve SeleniumLibrary vs AppiumLibrary conflict using Bayesian evidence.
 
-        Create library-specific evidence items and apply Bayesian inference
+        Creates library-specific evidence items and applies Bayesian inference
         principles to determine whether the automation context is web-based
         or mobile-based.
         """
@@ -1115,9 +1111,9 @@ class LibraryDetector:
     @classmethod
     def get_keyword_prefix_for_library(cls, library: RobotFrameworkLibrary) -> str:
         """
-        Return the appropriate keyword prefix for disambiguation.
+        Get the appropriate keyword prefix for disambiguation.
 
-        When libraries have conflicting keywords, return the library name
+        When libraries have conflicting keywords, this returns the library name
         to use as a prefix (e.g., "SeleniumLibrary.Input Text").
         """
         # Use the enum's built-in conflict detection

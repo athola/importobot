@@ -4,7 +4,7 @@ import json
 import os
 from typing import Any
 
-from importobot.exceptions import FileAccessError, ValidationError
+from importobot import exceptions
 from importobot.services.performance_cache import get_performance_cache
 from importobot.utils.validation import validate_safe_path
 
@@ -12,7 +12,7 @@ _MULTI_TEST_CONTAINER_KEY = "testCases"
 
 
 def load_json_file(json_file_path: str | None) -> dict[str, Any]:
-    """Load JSON data from a file.
+    """Load JSON data from file.
 
     Args:
         json_file_path: Path to the JSON file to load
@@ -64,7 +64,7 @@ def _validate_file_path_input(json_file_path: str | None) -> str:
 
 
 def _check_file_exists(file_path: str) -> None:
-    """Check whether the file exists.
+    """Check if the file exists.
 
     Args:
         file_path: Path to check
@@ -77,7 +77,7 @@ def _check_file_exists(file_path: str) -> None:
 
 
 def _load_and_process_json_data(file_path: str) -> dict[str, Any]:
-    """Load JSON data from a file and process it.
+    """Load JSON data from file and process it.
 
     Args:
         file_path: Path to JSON file
@@ -102,15 +102,15 @@ def _load_and_process_json_data(file_path: str) -> dict[str, Any]:
             e.pos,
         ) from e
     except PermissionError as e:
-        raise FileAccessError(
+        raise exceptions.FileAccessError(
             f"Permission denied accessing file: {file_path}"
         ) from e
     except OSError as e:
-        raise FileAccessError(f"Error reading file {file_path}: {e}") from e
+        raise exceptions.FileAccessError(f"Error reading file {file_path}: {e}") from e
 
 
 def _read_json_file(file_path: str) -> Any:
-    """Read raw JSON data from a file.
+    """Read raw JSON data from file.
 
     Args:
         file_path: Path to JSON file
@@ -137,10 +137,10 @@ def _process_json_structure(data: dict[str, Any] | list[Any]) -> dict[str, Any]:
     # Handle case where JSON is an array with one or more test cases
     if isinstance(data, list):
         if not data:
-            raise ValidationError("JSON array cannot be empty.")
+            raise exceptions.ValidationError("JSON array cannot be empty.")
 
         if not all(isinstance(item, dict) for item in data):
-            raise ValidationError(
+            raise exceptions.ValidationError(
                 "JSON array must contain only test case dictionaries."
             )
 
@@ -148,14 +148,14 @@ def _process_json_structure(data: dict[str, Any] | list[Any]) -> dict[str, Any]:
             single_item = data[0]
             if isinstance(single_item, dict):
                 return single_item
-            raise ValidationError(
+            raise exceptions.ValidationError(
                 "Single item in JSON array must be a dictionary."
             )
 
         return {_MULTI_TEST_CONTAINER_KEY: data}
 
     if not isinstance(data, dict):
-        raise ValidationError("JSON content must be a dictionary or array.")
+        raise exceptions.ValidationError("JSON content must be a dictionary or array.")
 
     return data
 

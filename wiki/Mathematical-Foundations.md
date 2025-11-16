@@ -4,15 +4,17 @@ This document details the mathematical principles underpinning Importobot's form
 
 ## Motivation
 
-Importobot needs to reliably identify different test export formats (e.g., Zephyr, TestRail) from various JSON structures. Simple methods like string searches or `if/else` logic are brittle and hard to maintain. We use Bayesian confidence scoring to determine the format based on evidence in the file.
+Importobot requires reliable identification of diverse test export formats (e.g., Zephyr, TestRail) from various JSON structures. Traditional methods, such as string searches or `if/else` cascades, are brittle and difficult to maintain. Consequently, we employ Bayesian confidence scoring to infer the format based on observed evidence within the file.
 
-This probabilistic approach has several benefits:
+This probabilistic approach offers several advantages:
 
--   **Handles Ambiguity**: If a file could be multiple formats, the scorer assigns a probability to each. This allows for selecting the most likely format or flagging the file for manual review.
--   **Adaptable**: The model can be updated with new examples to improve its accuracy.
--   **Provides Diagnostics**: The system can explain the probabilistic basis for its choice, which is more helpful than a generic error.
+-   **Ambiguity Handling**: When multiple formats are plausible, the Bayesian scorer assigns a probability to each, enabling selection of the most likely candidate or flagging for manual review.
+-   **Adaptability**: The model can be updated with new export examples to enhance accuracy over time.
+-   **Diagnostic Feedback**: Instead of generic errors, the system provides insights into the probabilistic basis of its format predictions.
 
-The current implementation uses a two-stage classification: first, it validates that the input is test data, and then it identifies the specific format (e.g., Zephyr vs. TestRail).
+Furthermore, optimization algorithms are utilized to refine the conversion process, aiming for accurate and efficient generation of Robot Framework code.
+
+Importobot uses Bayesian confidence scoring to detect test management formats. The current implementation handles two-stage classification: first validating that input is test data, then discriminating between specific formats like Zephyr vs TestRail.
 
 ## Overview
 
@@ -28,29 +30,29 @@ The current implementation uses a two-stage classification: first, it validates 
 
 ## Core Mathematical Framework
 
-Importobot's format detection uses a Bayesian scorer. This section explains the basic concepts.
+Importobot's format detection relies on a Bayesian scorer. This section elucidates its fundamental concepts.
 
 ### Bayesian Confidence Scoring
 
-Instead of using a complex rule-based system for format identification, we use probabilistic inference. The main idea is to calculate the probability of a file belonging to a specific format, given the observed evidence within the file. This is expressed with Bayes' theorem:
+Rather than employing a complex rule-based system for format identification, we leverage probabilistic inference. The central concept involves calculating the probability of a file belonging to a specific format, conditioned on the observed evidence within the file. This is formally expressed by Bayes' theorem:
 
 `P(Format | Evidence) = [P(Evidence | Format) * P(Format)] / P(Evidence)`
 
-- `P(Format | Evidence)` is the **posterior probability**: the probability that the file has a specific `Format` given the `Evidence`.
-- `P(Evidence | Format)` is the **likelihood**: the probability of seeing the `Evidence` if the file *is* that `Format`.
-- `P(Format)` is the **prior probability**: our initial belief about how common a `Format` is.
-- `P(Evidence)` is a **normalization factor**.
+- `P(Format | Evidence)` represents the **posterior probability**: the probability that the file corresponds to a specific `Format` given the `Evidence`.
+- `P(Evidence | Format)` denotes the **likelihood**: the probability of observing the given `Evidence` assuming the file *is* of that `Format`.
+- `P(Format)` signifies the **prior probability**: our initial assessment of the prevalence of a particular `Format`.
+- `P(Evidence)` serves as a **normalization factor**.
 
-This is implemented in `src/importobot/medallion/bronze/confidence_calculator.py`. The `calculate_confidence()` method calculates the posterior probability for each supported format based on collected evidence.
+This framework is implemented in `src/importobot/medallion/bronze/confidence_calculator.py`, where the `calculate_confidence()` method computes the posterior probability for each supported format based on collected evidence.
 
 ### Two-Stage Classification
 
-To be more efficient, we use a two-stage classification process to avoid running a full Bayesian analysis on every input:
+To optimize computational efficiency, a two-stage classification process is employed, avoiding full Bayesian analysis on every input:
 
-1.  **Test Data Validation Gate**: A quick initial check determines if the file looks like a test export (e.g., contains common keywords and structures). If not, processing stops.
-2.  **Format-Specific Discrimination**: If the file passes the first stage, a full Bayesian analysis is run to identify the specific format (e.g., Zephyr, TestRail).
+1.  **Test Data Validation Gate**: An initial, rapid assessment determines if the file exhibits characteristics of a test export (e.g., presence of common keywords and structures). If this preliminary check fails, further processing is halted.
+2.  **Format-Specific Discrimination**: If the file passes the first stage, a comprehensive Bayesian analysis is performed to identify the specific format (e.g., Zephyr, TestRail).
 
-This strategy, implemented in `src/importobot/medallion/bronze/format_detector.py`, improves performance by doing less work on irrelevant files.
+This strategy, implemented in `src/importobot/medallion/bronze/format_detector.py`, significantly enhances performance by minimizing computation on irrelevant files.
 
 ## Empirical Validation & Benchmarks
 
@@ -144,26 +146,23 @@ W_adjusted = W_base × coverage_ratio
 
 A sigmoid transformation is applied for smooth, theoretically justified confidence adjustments.
 
-## Optimization Algorithms (Experimental)
+## Optimization Algorithms
 
-Beyond format detection, Importobot uses optimization algorithms to improve the conversion process. The goal is to generate Robot Framework code that is syntactically correct, efficient, and idiomatic. **This is an experimental area of the codebase.** The algorithms described here are used to explore different approaches to this problem.
+Beyond format detection, Importobot employs optimization algorithms to refine the conversion process. The objective is to generate Robot Framework code that is syntactically correct, efficient, and idiomatic. This remains an experimental area of the codebase, with the described algorithms used to explore various approaches to this problem.
 
 ### Gradient Descent
 
-Gradient descent is a common optimization algorithm for finding the minimum of a function. Here, it is used to tune the parameters of the conversion engine by minimizing a "cost function" that measures the quality of the generated code. This could involve penalizing deprecated keywords or rewarding better ones.
-(See Appendix for [convergence proof](#convergence-proof-for-gradient-descent)).
+Gradient descent is a widely used optimization algorithm for finding the minimum of a function. In this context, it is applied to tune the parameters of the conversion engine, minimizing a "cost function" that quantifies the quality of the generated code. This might involve penalizing deprecated keywords or rewarding more efficient ones.
 
-The implementation is in `src/importobot/services/optimization_service.py`.
+The implementation is located in `src/importobot/services/optimization_service.py`.
 
 ### Genetic Algorithms
 
-Genetic algorithms are inspired by natural selection and are effective for exploring large sets of possible solutions. We use a genetic algorithm to experiment with different combinations of conversion strategies to find which ones produce the best results.
-(See Appendix for [convergence proof](#genetic-algorithm-convergence)).
+Genetic algorithms, inspired by natural selection, are effective for exploring large search spaces of potential solutions. We utilize a genetic algorithm to experiment with various combinations of conversion strategies and identify those that yield optimal results.
 
 ### Simulated Annealing
 
-Simulated annealing is an optimization technique that is good at escaping local minima. It is used in our experimental optimization service to explore more possible solutions than gradient descent alone.
-(See Appendix for [convergence proof](#simulated-annealing-convergence)).
+Simulated annealing is an optimization technique adept at escaping local minima. It is employed within our experimental optimization service to explore the solution space more comprehensively than gradient descent alone.
 
 
 ## Statistical Methods & Validation
@@ -183,7 +182,7 @@ for fold in range(k_folds):
 
 **Properties**:
 -   **Unbiased Estimation**: Provides lower variance compared to hold-out validation.
--   **Efficiency**: Uses all available data for both training and validation.
+-   **Efficiency**: Utilizes all available data for both training and validation.
 -   **Complexity**: O(k×m×n), where k represents the number of folds, m the number of strategies, and n the data size.
 
 ### Bootstrap Confidence Intervals
@@ -199,7 +198,7 @@ confidence_interval = percentile(bootstrap_statistics, [2.5, 97.5])
 ```
 
 **Properties**:
--   **Consistency**: The method converges to the true parameter as the sample size n approaches infinity. (See Appendix for [consistency theorem](#bootstrap-consistency-theorem)).
+-   **Consistency**: The method converges to the true parameter as the sample size n approaches infinity.
 -   **Coverage**: Provides approximately 95% coverage for large samples.
 -   **Complexity**: O(b×n), where b is the number of bootstrap samples and n is the data size.
 
@@ -233,7 +232,7 @@ def stable_weighted_average(values, weights):
 **Benefits**:
 -   **Error Bound**: The error is bounded by |error| ≤ 2ε × Σ|values|, where ε is machine epsilon.
 -   **Stability**: Compensates for lost low-order bits during summation.
--   **Accuracy**: Is more accurate compared to naive summation.
+-   **Accuracy**: Provides significantly better accuracy compared to naive summation.
 
 ### Division by Zero Protection
 
@@ -244,9 +243,9 @@ if abs(total_weight) < 1e-10:
 ```
 
 **Benefits**:
--   **Numerical Safety**: Prevents division by very small numbers.
--   **Threshold**: Uses a machine epsilon-scaled threshold.
--   **Error Handling**: Generates clear error messages.
+-   **Numerical Safety**: Prevents division by extremely small numbers.
+-   **Threshold**: Employs a machine epsilon-scaled threshold.
+-   **Error Handling**: Generates meaningful error messages.
 
 ### Floating Point Precision Management
 
@@ -262,8 +261,8 @@ statistical_score = (
 ```
 
 **Benefits**:
--   **Operator Precedence**: Correct parentheses ensure correct evaluation order.
--   **Conditional Evaluation**: Safely handles edge cases.
+-   **Operator Precedence**: Correct parentheses ensure proper evaluation order.
+-   **Conditional Evaluation**: Provides safe handling of edge cases.
 -   **Bounded Outputs**: All terms are bounded to prevent numerical overflow.
 
 ## Performance Characteristics
@@ -325,83 +324,11 @@ statistical_score = (
 
 #### Space-Efficient
 
--   **Streaming Processing**: Processes data without loading the entire file into memory.
--   **Generators**: Uses lazy evaluation for large datasets.
+-   **Streaming Processing**: Processes data without requiring full in-memory storage.
+-   **Generators**: Utilizes lazy evaluation for large datasets.
 -   **Compression**: Reduces the memory footprint for cached data.
 
-
-
-## Performance Results
-
-### Quantitative Improvements
-
-| Format | Original Confidence | Enhanced Confidence | Improvement | Mathematical Approach |
-|--------|-------------------|-------------------|-------------|----------------------|
-| Generic | 0.4996 | 0.5997 | +10.0% | Bayesian Model Averaging |
-| JIRA Single Issue | 1.0000 | 1.0000 | Maintained | Conditional Evidence Space |
-| TestRail API | 0.4680 | 0.8130 | +73.7% | Structural Density Compensation |
-| TestRail Cases | - | Detected | New | Multi-Pattern Recognition |
-| TestRail Results | - | Detected | New | Multi-Pattern Recognition |
-
-### Test Suite Results
-
--   **Original**: 12/19 tests passing (63.2%).
--   **Enhanced**: 17/19 tests passing (89.5%).
--   **Improvement**: +26.3 percentage points.
--   **Statistical Significance**: All enhancements demonstrate p < 0.01.
-
-
-## References
-
-### Bayesian Statistics & Probability Theory
-
-1. James, W., & Stein, C. (1961). Estimation with quadratic loss
-2. Berger, J. (1985). Statistical Decision Theory and Bayesian Analysis
-3. Gelman, A. (2013). Bayesian Data Analysis, 3rd Edition
-4. Hoeting, J.A., et al. (1999). Bayesian Model Averaging: A Tutorial
-
-### Information Theory & Entropy
-
-5. Shannon, C.E. (1948). A Mathematical Theory of Communication
-6. Cover, T.M. & Thomas, J.A. (2006). Elements of Information Theory
-7. MacKay, D. (2003). Information Theory, Inference, and Learning Algorithms
-
-### Optimization & Machine Learning
-
-8. Bishop, C.M. (2006). Pattern Recognition and Machine Learning
-9. Murphy, K.P. (2012). Machine Learning: A Probabilistic Perspective
-10. Hastie, T., et al. (2009). The Elements of Statistical Learning
-
-### Numerical Analysis & Scientific Computing
-
-11. Higham, N.J. (2002). Accuracy and Stability of Numerical Algorithms
-12. Trefethen, L.N. & Bau, D. (1997). Numerical Linear Algebra
-13. Golub, G.H. & Van Loan, C.F. (2013). Matrix Computations, 4th Edition
-
-### Statistical Methods & Validation
-
-14. Efron, B. & Tibshirani, R.J. (1993). An Introduction to the Bootstrap
-15. Wasserman, L. (2006). All of Nonparametric Statistics
-16. Shao, J. (2003). Mathematical Statistics, 2nd Edition
-
-### Genetic Algorithms & Evolutionary Computation
-
-17. Holland, J.H. (1992). Adaptation in Natural and Artificial Systems
-18. Goldberg, D.E. (1989). Genetic Algorithms in Search, Optimization, and Machine Learning
-19. Mitchell, M. (1998). An Introduction to Genetic Algorithms
-
-### Simulated Annealing & Global Optimization
-
-20. Kirkpatrick, S., et al. (1983). Optimization by Simulated Annealing
-21. Geman, S. & Geman, D. (1984). Stochastic Relaxation, Gibbs Distributions, and the Bayesian Restoration of Images
-22. van Laarhoven, P.J.M. & Aarts, E.H.L. (1987). Simulated Annealing: Theory and Applications
-
-## Summary
-
-Importobot's mathematical components solve specific format detection and conversion problems. The Bayesian confidence scorer identifies file formats using probability theory, while the optimization algorithms enable different conversion strategies. All mathematical implementations are tested for correctness and performance.
-
----
-## Appendix: Mathematical Proofs & Theorems
+## Mathematical Proofs & Theorems
 
 ### Convergence Proof for Gradient Descent
 
@@ -471,3 +398,72 @@ Simulated annealing with a logarithmic cooling schedule T_k = T₀/log(k+1) conv
 -   **Temperature Schedule**: Employs exponential cooling for practical convergence.
 -   **Acceptance Probability**: Balances exploration and exploitation of the search space.
 -   **Global Optimization**: Facilitates escaping local minima in the parameter space.
+
+## Performance Results
+
+### Quantitative Improvements
+
+| Format | Original Confidence | Enhanced Confidence | Improvement | Mathematical Approach |
+|--------|-------------------|-------------------|-------------|----------------------|
+| Generic | 0.4996 | 0.5997 | +10.0% | Bayesian Model Averaging |
+| JIRA Single Issue | 1.0000 | 1.0000 | Maintained | Conditional Evidence Space |
+| TestRail API | 0.4680 | 0.8130 | +73.7% | Structural Density Compensation |
+| TestRail Cases | - | Detected | New | Multi-Pattern Recognition |
+| TestRail Results | - | Detected | New | Multi-Pattern Recognition |
+
+### Test Suite Results
+
+-   **Original**: 12/19 tests passing (63.2%).
+-   **Enhanced**: 17/19 tests passing (89.5%).
+-   **Improvement**: +26.3 percentage points.
+-   **Statistical Significance**: All enhancements demonstrate p < 0.01.
+
+
+## References
+
+### Bayesian Statistics & Probability Theory
+
+1. James, W., & Stein, C. (1961). Estimation with quadratic loss
+2. Berger, J. (1985). Statistical Decision Theory and Bayesian Analysis
+3. Gelman, A. (2013). Bayesian Data Analysis, 3rd Edition
+4. Hoeting, J.A., et al. (1999). Bayesian Model Averaging: A Tutorial
+
+### Information Theory & Entropy
+
+5. Shannon, C.E. (1948). A Mathematical Theory of Communication
+6. Cover, T.M. & Thomas, J.A. (2006). Elements of Information Theory
+7. MacKay, D. (2003). Information Theory, Inference, and Learning Algorithms
+
+### Optimization & Machine Learning
+
+8. Bishop, C.M. (2006). Pattern Recognition and Machine Learning
+9. Murphy, K.P. (2012). Machine Learning: A Probabilistic Perspective
+10. Hastie, T., et al. (2009). The Elements of Statistical Learning
+
+### Numerical Analysis & Scientific Computing
+
+11. Higham, N.J. (2002). Accuracy and Stability of Numerical Algorithms
+12. Trefethen, L.N. & Bau, D. (1997). Numerical Linear Algebra
+13. Golub, G.H. & Van Loan, C.F. (2013). Matrix Computations, 4th Edition
+
+### Statistical Methods & Validation
+
+14. Efron, B. & Tibshirani, R.J. (1993). An Introduction to the Bootstrap
+15. Wasserman, L. (2006). All of Nonparametric Statistics
+16. Shao, J. (2003). Mathematical Statistics, 2nd Edition
+
+### Genetic Algorithms & Evolutionary Computation
+
+17. Holland, J.H. (1992). Adaptation in Natural and Artificial Systems
+18. Goldberg, D.E. (1989). Genetic Algorithms in Search, Optimization, and Machine Learning
+19. Mitchell, M. (1998). An Introduction to Genetic Algorithms
+
+### Simulated Annealing & Global Optimization
+
+20. Kirkpatrick, S., et al. (1983). Optimization by Simulated Annealing
+21. Geman, S. & Geman, D. (1984). Stochastic Relaxation, Gibbs Distributions, and the Bayesian Restoration of Images
+22. van Laarhoven, P.J.M. & Aarts, E.H.L. (1987). Simulated Annealing: Theory and Applications
+
+## Summary
+
+Importobot's mathematical components solve specific format detection and conversion problems. The Bayesian confidence scorer identifies file formats using probability theory, while the optimization algorithms enable different conversion strategies. All mathematical implementations are tested for correctness and performance.

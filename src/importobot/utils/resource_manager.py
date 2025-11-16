@@ -44,7 +44,7 @@ class ResourceOperation:
 
 
 class ResourceManager:
-    """Manage and enforce resource limits for test generation operations."""
+    """Manages and enforces resource limits for test generation operations."""
 
     _instance = None
     _initialized = False
@@ -182,7 +182,7 @@ class ResourceManager:
         return operation_id
 
     def check_operation_limits(self, operation_id: str) -> None:
-        """Check whether operation is within resource limits."""
+        """Check if operation is within resource limits."""
         start_time = self._operation_start_times.get(operation_id)
         if start_time is None:
             return
@@ -281,7 +281,7 @@ class ResourceManager:
             )
 
     def get_resource_stats(self) -> dict[str, Any]:
-        """Return current resource usage statistics."""
+        """Get current resource usage statistics."""
         try:
             memory = psutil.virtual_memory()
             disk = psutil.disk_usage("/")
@@ -338,7 +338,7 @@ class ResourceManager:
 
 
 def get_resource_manager() -> ResourceManager:
-    """Return the singleton resource manager instance."""
+    """Get the singleton resource manager instance."""
     return ResourceManager()
 
 

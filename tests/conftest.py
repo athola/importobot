@@ -5,7 +5,6 @@ across all test modules in the Importobot project. It follows pytest best
 practices for organizing test utilities and fixtures.
 """
 
-import os
 import shutil
 import tempfile
 import time
@@ -223,32 +222,3 @@ def business_requirements() -> dict[str, Any]:
             "max_memory_usage_large_dataset": br.MAX_MEMORY_USAGE_LARGE_DATASET,
         },
     }
-
-
-@pytest.fixture(autouse=True)
-def isolate_importobot_home(
-    tmp_path_factory: pytest.TempPathFactory,
-) -> Generator[Path, None, None]:
-    """Provide a writable IMPORTOBOT_HOME directory for tests."""
-    state_root = tmp_path_factory.mktemp("importobot_home")
-    runtime_root = state_root / ".importobot"
-    runtime_root.mkdir(parents=True, exist_ok=True)
-
-    original_home = os.environ.get("IMPORTOBOT_HOME")
-    original_state_dir = os.environ.get("IMPORTOBOT_STATE_DIR")
-
-    os.environ["IMPORTOBOT_HOME"] = str(runtime_root)
-    os.environ["IMPORTOBOT_STATE_DIR"] = str(runtime_root)
-
-    try:
-        yield runtime_root
-    finally:
-        if original_home is not None:
-            os.environ["IMPORTOBOT_HOME"] = original_home
-        else:
-            os.environ.pop("IMPORTOBOT_HOME", None)
-
-        if original_state_dir is not None:
-            os.environ["IMPORTOBOT_STATE_DIR"] = original_state_dir
-        else:
-            os.environ.pop("IMPORTOBOT_STATE_DIR", None)

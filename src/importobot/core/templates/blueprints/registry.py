@@ -60,10 +60,6 @@ from importobot.core.templates.blueprints.storage import (
     TemplateRegistry,
     _validate_template_content,
 )
-from importobot.security.template_scanner import (
-    TemplateSecurityReport,
-    TemplateSecurityScanner,
-)
 from importobot.utils.logging import get_logger
 
 MAX_TEMPLATE_FILES = 512
@@ -79,68 +75,6 @@ ALLOWED_TEMPLATE_SUFFIXES = (
 )
 
 TEMPLATE_CACHE_VERSION = 1
-
-
-class TemplateSecurityViolation(TemplateIngestionError):
-    """Raised when the template security scan detects unsafe content."""
-
-
-class _TemplateSecurityManager:
-    """Manager for template security scanner with lazy initialization."""
-
-    def __init__(self) -> None:
-        self._scanner: TemplateSecurityScanner | None = None
-
-    def get_scanner(self) -> TemplateSecurityScanner:
-        """Get or create the security scanner instance."""
-        if self._scanner is None:
-            self._scanner = TemplateSecurityScanner()
-        return self._scanner
-
-
-# Module-level instance
-_template_security_manager = _TemplateSecurityManager()
-
-
-def _get_template_security_scanner() -> TemplateSecurityScanner:
-    """Get the template security scanner instance."""
-    return _template_security_manager.get_scanner()
-
-
-def _summarize_security_issues(
-    report: TemplateSecurityReport, *, limit: int = 3
-) -> str:
-    issues = report.issues[:limit]
-    if not issues:
-        return "security scan returned no issue details"
-
-    summary_parts: list[str] = []
-    for issue in issues:
-        location = f"line {issue.line_number}" if issue.line_number else "unknown line"
-        summary_parts.append(
-            f"{issue.severity.upper()} {issue.issue_type} at {location}: "
-            f"{issue.description}"
-        )
-
-    remaining = max(0, report.total_issues - len(issues))
-    if remaining:
-        summary_parts.append(f"{remaining} additional issue(s) not shown")
-    return "; ".join(summary_parts)
-
-
-def _enforce_template_security(path: Path) -> None:
-    report = _get_template_security_scanner().scan_template_file(path)
-    if not report.is_safe:
-        if not report.issues:
-            error_detail = report.statistics.get("error", "unknown failure")
-            raise TemplateIngestionError(
-                f"Security scan failed for {path}: {error_detail}"
-            )
-        summary = _summarize_security_issues(report)
-        raise TemplateSecurityViolation(
-            f"Template {path} failed security scan: {summary}. "
-            "Remove sensitive content or exclude this file from --robot-template."
-        )
 
 
 def _is_path_within_root(candidate: Path, root: Path) -> bool:
@@ -228,8 +162,6 @@ def configure_template_sources(entries: Sequence[str]) -> None:
             if limit_hit:
                 TEMPLATE_STATE["enabled"] = ingested_files > 0
                 return
-        except TemplateSecurityViolation:
-            raise
         except TemplateIngestionError as err:
             logger.warning("Skipping template source %s: %s", candidate, err)
     TEMPLATE_STATE["enabled"] = ingested_files > 0
@@ -309,9 +241,18 @@ def find_step_pattern(
     command_token: str | None = None,
 ) -> StepPattern | None:
     """Look up a learned step pattern by library+keyword or command token."""
-    return KNOWLEDGE_BASE.find_pattern(
+    pattern = KNOWLEDGE_BASE.find_pattern(
         library=library, keyword=keyword, command_token=command_token
     )
+    if pattern is not None:
+        return pattern
+
+    # Backwards compatibility: older call sites pass the command token as the
+    # second positional argument (`keyword`) without naming `command_token`.
+    if command_token is None and keyword:
+        return KNOWLEDGE_BASE.find_pattern(command_token=keyword)
+
+    return None
 
 
 def get_resource_imports() -> list[str]:
@@ -381,8 +322,6 @@ def _register_template(path: Path, key_override: str | None) -> None:
         stat = path.stat()
     except OSError as exc:
         raise TemplateIngestionError(f"Failed to stat template {path}: {exc}") from exc
-
-    _enforce_template_security(path)
 
     cache_payload = _load_template_cache(path, stat)
     if cache_payload is not None:
@@ -1041,7 +980,6 @@ __all__ = [
     "SandboxedTemplate",
     "StepPattern",
     "TemplateRegistry",
-    "TemplateSecurityViolation",
     "configure_template_sources",
     "find_step_pattern",
     "get_resource_imports",

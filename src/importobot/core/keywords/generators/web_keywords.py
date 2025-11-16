@@ -3,7 +3,7 @@
 import re
 from typing import Any
 
-from importobot.config import CHROME_OPTIONS, TEST_LOGIN_URL
+from importobot import config
 from importobot.core.keywords.base_generator import BaseKeywordGenerator
 from importobot.core.keywords_registry import RobotFrameworkKeywordRegistry
 from importobot.core.pattern_matcher import LibraryDetector, RobotFrameworkLibrary
@@ -44,10 +44,10 @@ class WebKeywordGenerator(BaseKeywordGenerator):
                 "web_open"
             )
             url_match = _URL_PATTERN.search(test_data)
-            url = url_match.group(0) if url_match else TEST_LOGIN_URL
+            url = url_match.group(0) if url_match else config.TEST_LOGIN_URL
             # Add Chrome options to prevent session conflicts in CI/testing environments
             chrome_options = "; ".join(
-                f"add_argument('{option}')" for option in CHROME_OPTIONS
+                f"add_argument('{option}')" for option in config.CHROME_OPTIONS
             )
             return f"{keyword_name}    {url}    chrome    options={chrome_options}"
 

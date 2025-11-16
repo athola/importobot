@@ -5,39 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Added
-- Added `CredentialManager.store_key_in_keyring()` so rotation runbooks can
-  generate and persist Fernet keys directly in the OS keyring without invoking
-  platform-specific CLIs; documented the workflow in README, SECURITY, and
-  wiki/Key-Rotation.md.
-
-### Changed
-- Replaced the `globals()` cache in `importobot.__init__` with explicit
-  `functools.lru_cache` loaders, which removes global state, improves import
-  determinism, and fixes the lingering Pyright `__all__` warning for
-  `JsonToRobotConverter`.
-
-## [0.1.5] - 2025-11-14
-
-### Added
-- Shipped `src/importobot/security/` with purpose-built modules for credential management, HSM access, template scanning, SIEM forwarding, compliance reporting, and secure memory so security logic is no longer buried in `utils/`.
-- Introduced `CredentialManager` (Fernet-based) plus `SecureMemory` to enforce encrypted storage of API tokens; requires `cryptography>=42.0.0` and a 32-byte `IMPORTOBOT_ENCRYPTION_KEY` (generate with `openssl rand -base64 32`).
-- Added operational tooling: `TemplateSecurityScanner` blocks unsafe `--robot-template` inputs, `SIEMManager` ships Splunk/Elastic/Sentinel connectors, and `KeyRotator` automates 90-day, usage-based, and compliance-driven key rotations.
-- Logged security activity through the new monitoring subsystem (`security.monitoring`) and surfaced SOC 2 / ISO 27001 controls via `ComplianceEngine`, including CSV/JSON export helpers for audit packets.
-- Added 13 security-focused test modules (9 unit, 2 integration, 2 config/security regression) which raise the suite to 2,644 collected tests (`UV_CACHE_DIR=.uv-cache uv run pytest --collect-only --quiet`).
-
-### Security
-- Enforce encrypted credential flows: plaintext storage now raises `SecurityError`, and decrypts only succeed when the ciphertext fingerprint matches the active key.
-- Bundled a software HSM provider plus adapters for Splunk HEC, Elastic SIEM, and Microsoft Sentinel so enterprise teams wire Importobot events into existing SOC pipelines without building glue code.
-- The template scanner now reports issue type, line number, remediation guidance, and file hashes to match incident tickets back to the source artifact.
-- Compliance reports include scoring per control, automatic next-assessment scheduling, and audit trail exports stored under `~/.importobot/compliance/`.
-
-### Changed
-- Replaced the previous `importobot.utils.security` helpers with dedicated modules (still re-exported for backward compatibility) to keep imports stable while isolating high-risk code paths.
-- Refreshed documentation and packaging metadata to describe the new runtime dependency (`cryptography`) and to explain how to opt into the stronger security defaults.
-
 ## [0.1.4] - 2025-11-11
 
 ### Fixed
@@ -67,7 +34,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Consistent Type Safety**: Enforced mypy type checking across the entire test suite by removing test overrides.
 
 ### Changed
-- **Template Security Enforcement**: `configure_template_sources()` now scans every `--robot-template` input using `TemplateSecurityScanner` and raises a `TemplateSecurityViolation` when `report.is_safe` is false, causing the CLI to exit instead of silently ingesting risky templates.
 - **Client Module Refactoring**: Split `importobot.integrations.clients` into focused modules (base.py, jira_xray.py, testlink.py, testrail.py, zephyr.py) to enhance maintainability while retaining full backward compatibility.
 - **Documentation Refinement**: Replaced subjective marketing language with factual, technical descriptions throughout the documentation.
 - **API Client Modularity**: Implemented lazy loading for API clients, resulting in a 3x improvement in import speed while preserving all existing import paths.
@@ -214,11 +180,11 @@ stats = detection_cache.get_stats()
 - Configuration terminology guide in the README, clarifying the shift from "fallback" to "default/secondary" helpers.
 - Pyright static analysis in CI for cross-checking mypy/ty results.
 - **API Retrieval Integration** for Zephyr, TestRail, JIRA/Xray, and TestLink platforms, featuring:
-  - A Zephyr client with automatic API discovery and adaptive authentication.
+  - An enhanced Zephyr client with automatic API discovery and adaptive authentication.
   - Multi-platform support for various APIs.
   - Flexible authentication (Bearer, API keys, Basic auth, dual-token).
   - Adaptive pagination with auto-detection of optimal page sizes.
-  - Payload handling for diverse endpoint response structures.
+  - Robust payload handling for diverse endpoint response structures.
   - Detailed progress reporting during large fetch operations.
   - Environment variable configuration for format-specific credentials.
   - Container and Kubernetes deployment examples.
@@ -277,7 +243,7 @@ stats = detection_cache.get_stats()
 
 ### Added
 - **Medallion Architecture**: Implemented with bronze layer data processing for JSON ingestion, validation, and enrichment.
-- **Bayesian Confidence Scoring**: For format detection, including mathematical foundations.
+- **Advanced Bayesian Confidence Scoring**: For format detection, including mathematical foundations.
 - **Multi-Format Support**: For Zephyr, Xray, TestLink, TestRail, and Generic test formats.
 - **Validation Service**: With quality assessment and security gateway.
 - **Invariant Testing**: Framework with 34 property-based tests using Hypothesis.
@@ -328,16 +294,16 @@ stats = detection_cache.get_stats()
 - **Initial release** of Importobot - a Test Framework Converter.
 - **Core conversion engine** for transforming JSON test cases to Robot Framework.
 - **Automated bulk processing** for hundreds or thousands of test cases.
-- **Field mapping** with automatic detection of test steps, results, tags, and priorities.
+- **Intelligent field mapping** with automatic detection of test steps, results, tags, and priorities.
 - **Pandas-inspired API** with `JsonToRobotConverter` as the primary interface.
 - **Toolkit** via `importobot.api` for validation, converters, and suggestions.
 - **CLI interface** with the `importobot` command-line tool.
 - **Security validation** including SSH parameter extraction and compliance checks.
-- **Interactive demo system**.
+- **Interactive demo system** with business case visualization and ROI calculations.
 - **Performance benchmarking** infrastructure for large-scale validation.
 - **Modular architecture** with an extensible design for new input formats.
-- **Test suite** with over 1150 tests and complete coverage.
-- **API reference and usage examples**.
+- **Quality assurance** with 1153+ tests achieving complete coverage.
+- **Documentation** with a complete API reference and usage examples.
 
 ### Technical Features
 - **Multi-format support** for Zephyr, JIRA/Xray, and TestLink.

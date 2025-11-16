@@ -4,6 +4,7 @@ import json
 from abc import ABC, abstractmethod
 from typing import Any
 
+from importobot import exceptions
 from importobot.core.converter import (
     apply_conversion_suggestions,
     convert_directory,
@@ -11,7 +12,6 @@ from importobot.core.converter import (
     convert_multiple_files,
     get_conversion_suggestions,
 )
-from importobot.exceptions import ImportobotError, ValidationError
 from importobot.utils.file_operations import (
     ConversionContext,
     convert_with_temp_file,
@@ -23,7 +23,7 @@ from importobot.utils.logging import get_logger
 
 
 class ConversionStrategy(ABC):
-    """Provide an abstract base class for conversion strategies."""
+    """Abstract base class for conversion strategies."""
 
     @abstractmethod
     def validate_args(self, args: Any) -> None:
@@ -42,7 +42,7 @@ class SingleFileStrategy(ConversionStrategy):
     def validate_args(self, args: Any) -> None:
         """Validate single file conversion arguments."""
         if not args.output_file:
-            raise ValidationError(
+            raise exceptions.ValidationError(
                 "Output file required for single file input"
             )
 
@@ -81,7 +81,7 @@ class SingleFileStrategy(ConversionStrategy):
         except (FileNotFoundError, json.JSONDecodeError):
             print("Cannot read input file for suggestions.")
             return
-        except ImportobotError as error:
+        except exceptions.ImportobotError as error:
             print(f"Could not generate suggestions: {error}")
             return
         except Exception as error:  # pragma: no cover - defensive logging
@@ -100,7 +100,7 @@ class MultipleFileStrategy(ConversionStrategy):
     def validate_args(self, args: Any) -> None:
         """Validate multiple file conversion arguments."""
         if not args.output_file:
-            raise ValidationError(
+            raise exceptions.ValidationError(
                 "Output file required for multiple file input"
             )
 
@@ -124,7 +124,7 @@ class DirectoryStrategy(ConversionStrategy):
 
         output_target = output_dir or output_file
         if not output_target:
-            raise ValidationError(
+            raise exceptions.ValidationError(
                 "Output directory required for directory input"
             )
 
@@ -147,7 +147,7 @@ class DirectoryStrategy(ConversionStrategy):
             print("Warning: --apply-suggestions only supported for single files.")
 
         if output_target is None:
-            raise ValidationError(
+            raise exceptions.ValidationError(
                 "Output directory required for directory input"
             )
 
@@ -191,7 +191,7 @@ class ImprovedConversionStrategy(ConversionStrategy):
     def validate_args(self, args: Any) -> None:
         """Validate improved conversion arguments."""
         if not args.output_file:
-            raise ValidationError(
+            raise exceptions.ValidationError(
                 "Output file required for improved conversion"
             )
 
@@ -251,7 +251,7 @@ class ImprovedConversionStrategy(ConversionStrategy):
 
 
 def get_strategy(args: Any) -> ConversionStrategy:
-    """Return the appropriate conversion strategy based on arguments."""
+    """Get the appropriate conversion strategy based on arguments."""
     if args.suggestions_only:
         return SuggestionsOnlyStrategy()
     if args.improved:

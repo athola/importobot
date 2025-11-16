@@ -28,7 +28,7 @@ V = TypeVar("V")
 
 @dataclass(frozen=True)
 class SecurityPolicy:
-    """Define security constraints for cache operations."""
+    """Defines security constraints for cache operations."""
 
     max_content_size: int = 50000
     max_collision_chain: int = 3
@@ -36,7 +36,7 @@ class SecurityPolicy:
 
 @dataclass(frozen=True)
 class _HeapEntry:
-    """Represent a heap entry used for expiration tracking."""
+    """Represents a heap entry used for expiration tracking."""
 
     expire_time: float
     key_hash: str  # Use hash to avoid key type issues in heap
@@ -47,7 +47,7 @@ class _HeapEntry:
 
 @dataclass
 class CacheEntry(Generic[V]):
-    """Represent a cache entry, including its associated metadata."""
+    """Represents a cache entry, including its associated metadata."""
 
     value: V
     timestamp: float
@@ -56,7 +56,7 @@ class CacheEntry(Generic[V]):
 
 
 class LRUCache(CacheStrategy[K, V]):
-    """Implement a unified LRU cache with TTL and security enhancements."""
+    """A unified LRU cache implementation with TTL and security enhancements."""
 
     TELEMETRY_BATCH_SIZE = 20
     TELEMETRY_FLUSH_SECONDS = 5.0
@@ -197,7 +197,7 @@ class LRUCache(CacheStrategy[K, V]):
         self._record_metric_event()
 
     def contains(self, key: K) -> bool:
-        """Check whether a key exists in the cache and if its entry has not expired.
+        """Check if a key exists in the cache and if its entry has not expired.
 
         Returns:
             `True` if the key exists and is not expired, `False` otherwise.
@@ -227,7 +227,7 @@ class LRUCache(CacheStrategy[K, V]):
                     del self._collision_chains[key_hash]
 
     def clear(self) -> None:
-        """Clear all cache entries and reset associated statistics."""
+        """Clear all cache entries and resets associated statistics."""
         self._cache.clear()
         self._collision_chains.clear()
         self._expiration_heap.clear()
@@ -282,14 +282,14 @@ class LRUCache(CacheStrategy[K, V]):
         # Instead, we'll handle stale entries during cleanup
 
     def _evict_lru(self) -> None:
-        """Evict the least recently used entry from the cache."""
+        """Evicts the least recently used entry from the cache."""
         if self._cache:
             oldest_key = next(iter(self._cache))
             self.delete(oldest_key)
             self._evictions += 1
 
     def _is_expired(self, timestamp: float) -> bool:
-        """Check whether an entry has expired based on its Time-To-Live (TTL)."""
+        """Check if an entry has expired based on its Time-To-Live (TTL)."""
         if self.config.ttl_seconds is None or self.config.ttl_seconds <= 0:
             return False
         return (time.monotonic() - timestamp) > self.config.ttl_seconds

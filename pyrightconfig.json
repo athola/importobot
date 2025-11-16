@@ -3,6 +3,5 @@
   "pythonVersion": "3.10",
   "typeCheckingMode": "basic",
   "reportMissingTypeStubs": "none",
-  "reportUnknownMemberType": "none",
-  "reportUnsupportedDunderAll": "none"
+  "reportUnknownMemberType": "none"
 }

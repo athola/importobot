@@ -1,6 +1,6 @@
 """Tests for security utilities."""
 
-from importobot.security.security_validator import (
+from importobot.utils.security import (
     SecurityValidator,
     extract_security_warnings,
     get_ssh_security_guidelines,

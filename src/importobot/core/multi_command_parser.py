@@ -1,7 +1,7 @@
-"""Parse multiple commands for Robot Framework conversion.
+"""Provides multi-command parsing for Robot Framework conversion.
 
-Convert single JSON test steps into multiple Robot Framework commands
-to enable more sophisticated test automation scenarios.
+This module facilitates the conversion of single JSON test steps into multiple
+Robot Framework commands, enabling more sophisticated test automation scenarios.
 """
 
 import re
@@ -12,7 +12,11 @@ from importobot.core.pattern_matcher import LibraryDetector, RobotFrameworkLibra
 
 
 class MultiCommandParser:
-    """Generate multiple Robot Framework commands from a single JSON step."""
+    """Generate multiple Robot Framework commands from a single JSON step.
+
+    This parser converts single JSON test steps into multiple Robot Framework commands,
+    thereby enabling more sophisticated test automation scenarios.
+    """
 
     def parse_test_data(self, test_data: str) -> dict[str, str]:
         """Parse a test data string into key-value pairs."""
@@ -47,12 +51,7 @@ class MultiCommandParser:
     def should_generate_multiple_commands(
         self, description: str, parsed_data: dict[str, str]
     ) -> bool:
-        """Determine whether multiple commands should be generated.
-
-        Args:
-            description: The test description
-            parsed_data: The parsed data from the test step
-        """
+        """Determine if multiple commands should be generated from the parsed data."""
         # Check for form filling scenarios
         form_indicators = ["fill", "enter", "input", "form", "details", "credentials"]
         if any(indicator in description.lower() for indicator in form_indicators):
@@ -137,7 +136,7 @@ class MultiCommandParser:
     def _is_form_filling_operation(
         self, description: str, parsed_data: dict[str, str]
     ) -> bool:
-        """Check whether the operation is a form-filling action."""
+        """Check if the operation is a form-filling action."""
         # parsed_data parameter is kept for interface consistency
         # but not used in this implementation
         _ = parsed_data  # Mark as intentionally unused
@@ -145,17 +144,17 @@ class MultiCommandParser:
         return any(indicator in description.lower() for indicator in form_indicators)
 
     def _is_database_operation(self, description: str) -> bool:
-        """Check whether the operation is a database interaction."""
+        """Check if the operation is a database interaction."""
         return "query" in description.lower() and "verify" in description.lower()
 
     def _is_api_operation(self, description: str) -> bool:
-        """Check whether the operation is an API call."""
+        """Check if the operation is an API call."""
         return "api" in description.lower() or (
             "request" in description.lower() and "validate" in description.lower()
         )
 
     def _is_file_upload_operation(self, description: str) -> bool:
-        """Check whether the operation is a file upload."""
+        """Check if the operation is a file upload."""
         return "upload" in description.lower() and "verify" in description.lower()
 
     def _is_hash_comparison_operation(

@@ -1,26 +1,18 @@
 """Tests for credential management utilities."""
 
-import base64
-
 import pytest
 
-from importobot.security.credential_manager import (
-    CredentialManager,
-    EncryptedCredential,
-    SecurityError,
-)
+from importobot.utils.credential_manager import CredentialManager, EncryptedCredential
 
 
 @pytest.fixture(autouse=True)
-def configure_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    deterministic_key = base64.urlsafe_b64encode(b"A" * 32).decode("ascii")
-    monkeypatch.setenv("IMPORTOBOT_ENCRYPTION_KEY", deterministic_key)
+def clear_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("IMPORTOBOT_ENCRYPTION_KEY", raising=False)
 
 
 def test_encrypt_decrypt_roundtrip(monkeypatch: pytest.MonkeyPatch) -> None:
     # Use deterministic key for reproducibility
-    deterministic_key = base64.urlsafe_b64encode(b"A" * 32).decode("ascii")
-    monkeypatch.setenv("IMPORTOBOT_ENCRYPTION_KEY", deterministic_key)
+    monkeypatch.setenv("IMPORTOBOT_ENCRYPTION_KEY", "A" * 44)
     manager = CredentialManager()
 
     encrypted = manager.encrypt_credential("s3cr3t!")
@@ -32,10 +24,12 @@ def test_encrypt_decrypt_roundtrip(monkeypatch: pytest.MonkeyPatch) -> None:
     assert decrypted == "s3cr3t!"
 
 
-def test_fail_closed_when_library_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_uses_base64_when_library_missing(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("IMPORTOBOT_ENCRYPTION_KEY", raising=False)
-    with pytest.raises(SecurityError, match="Strong encryption unavailable"):
-        CredentialManager()
+    manager = CredentialManager()
+    encrypted = manager.encrypt_credential("secondary-secret")
+    assert encrypted.length == len("secondary-secret")
+    assert encrypted.reveal() == "secondary-secret"
 
 
 def test_reject_empty_credentials() -> None:

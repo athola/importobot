@@ -1,6 +1,8 @@
 # Getting Started
 
-This guide shows how to install Importobot and convert your first test export. For a deeper look at the project's design, see [How to Navigate this Codebase](How-to-Navigate-this-Codebase.md).
+This guide walks through installing Importobot and converting your first test export.
+
+> If you are new to the codebase, read [How to Navigate this Codebase](How-to-Navigate-this-Codebase.md) to understand the architecture and code organization.
 
 ## Prerequisites
 
@@ -9,7 +11,7 @@ This guide shows how to install Importobot and convert your first test export. F
 
 ## Installing uv
 
-Importobot uses [uv](https://github.com/astral-sh/uv) for package and project management. Install it with one of the following commands.
+Importobot uses [uv](https://github.com/astral-sh/uv) for package and project management. The official documentation recommends the following installation methods.
 
 ### macOS/Linux:
 ```bash
@@ -42,7 +44,7 @@ uv sync --dev
 uv run pytest
 ```
 
-## Converting Tests
+## Basic Usage
 
 To convert a single file, provide the input and output paths:
 ```bash
@@ -67,7 +69,7 @@ robot --dryrun automated_suite.robot
 robot automated_suite.robot
 ```
 
-## Environment Variables
+## Configuration
 
 Importobot can be configured with environment variables. For example:
 
@@ -79,16 +81,6 @@ export IMPORTOBOT_TEST_SERVER_PORT="8080"
 # Run browser tests in headless mode
 export IMPORTOBOT_HEADLESS_BROWSER="True"
 ```
-
-### Enabling the New Security Modules
-
-- Generate a Fernet key for the credential manager once and keep it outside version control:
-
-```bash
-export IMPORTOBOT_ENCRYPTION_KEY="$(openssl rand -base64 32)"
-```
-
-- Ensure `cryptography>=42.0.0` is installed (pulled automatically by `uv sync`, or install manually via `pip install cryptography`) so `importobot.security.CredentialManager` can decrypt stored secrets.
 
 Run `uv run importobot --help` to see all available options.
 

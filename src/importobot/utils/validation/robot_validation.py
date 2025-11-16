@@ -10,7 +10,7 @@ from importobot.core.constants import ROBOT_FRAMEWORK_ARGUMENT_SEPARATOR
 def convert_parameters_to_robot_variables(
     text: str, parameters: list[dict[str, Any]] | None = None
 ) -> str:
-    """Convert parameter placeholders `{param}` to Robot Framework variables `${param}`.
+    """Convert parameter placeholders {param} to Robot Framework variables ${param}.
 
     Args:
         text: Text containing parameter placeholders

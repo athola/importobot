@@ -1,4 +1,4 @@
-"""Implement the Bronze layer for raw data ingestion with minimal processing."""
+"""Bronze layer implementation for raw data ingestion with minimal processing."""
 
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ class _FilterContext:
 
 
 class BronzeLayer(BaseMedallionLayer):
-    """Implement the Bronze layer for raw data ingestion with minimal processing."""
+    """Bronze layer for raw data ingestion with minimal processing."""
 
     _FILTER_DISPATCH_MAP: ClassVar[dict[str, str]] = {
         "record_id": "_filter_record_id",
@@ -349,7 +349,7 @@ class BronzeLayer(BaseMedallionLayer):
         )
 
     def get_record_metadata(self, record_id: str) -> RecordMetadata | None:
-        """Retrieve metadata for a specific record.
+        """Retrieve enhanced metadata for a specific record.
 
         Args:
             record_id: The unique identifier for the record
@@ -397,7 +397,7 @@ class BronzeLayer(BaseMedallionLayer):
         )
 
     def get_record_lineage(self, record_id: str) -> DataLineage | None:
-        """Retrieve lineage information for a specific record.
+        """Retrieve comprehensive lineage information for a specific record.
 
         Args:
             record_id: The unique identifier for the record

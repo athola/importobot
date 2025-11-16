@@ -1,4 +1,4 @@
-"""Provide Zephyr-specific parsers and analyzers for enhanced test case processing."""
+"""Zephyr-specific parsers and analyzers for enhanced test case processing."""
 
 import re
 from typing import Any, ClassVar
@@ -7,14 +7,14 @@ from typing import Any, ClassVar
 class PlatformCommandParser:
     """Parse platform-specific commands with schema-driven configuration.
 
-    Provide platform keywords via --input-schema. The default is empty to avoid
-    customer-specific assumptions.
+    Platform keywords should be provided via --input-schema.
+    Default is empty to avoid customer-specific assumptions.
     """
 
     DEFAULT_PLATFORM_KEYWORDS: ClassVar[dict[str, list[str]]] = {}
 
     def __init__(self) -> None:
-        """Initialize platform keyword mapping from module defaults."""
+        """Initialise platform keyword mapping from module defaults."""
         self._platform_keywords: dict[str, list[str]] = {
             platform: keywords.copy()
             for platform, keywords in self.DEFAULT_PLATFORM_KEYWORDS.items()
@@ -33,7 +33,7 @@ class PlatformCommandParser:
     def parse_platform_commands(self, test_data: str) -> dict[str, list[str]]:
         """Extract platform-specific command variations.
 
-        Handle platform-agnostic format:
+        Handles platform-agnostic format:
         PLATFORM1: command for primary platform
         PLATFORM2: command for alternative platform
         PLATFORM3: command for embedded platform
@@ -82,7 +82,7 @@ class PlatformCommandParser:
         stripped_line: str,
         current_platform: str | None,
     ) -> tuple[bool, str | None]:
-        """Check whether line contains a platform indicator and process it."""
+        """Check if line contains a platform indicator and process it."""
         for platform, keywords in self.PLATFORM_KEYWORDS.items():
             for keyword in keywords:
                 keyword_upper = keyword.upper()
@@ -128,9 +128,9 @@ class PlatformCommandParser:
 class ZephyrTestLevelClassifier:
     """Classify tests using industry-standard QA terminology.
 
-    Use generic test classification levels based on publicly available
-    software testing best practices. Provide customer-specific classification
-    criteria via --input-schema.
+    Uses generic test classification levels based on publicly available
+    software testing best practices. Customer-specific classification
+    criteria should be provided via --input-schema.
     """
 
     TEST_LEVELS: ClassVar[dict[str, int]] = {
@@ -143,7 +143,7 @@ class ZephyrTestLevelClassifier:
     def classify_test(self, test_data: dict[str, Any]) -> tuple[str, int]:
         """Determine test level based on content and metadata.
 
-        Use generic industry-standard classification:
+        Uses generic industry-standard classification:
         - Smoke: Critical, basic functionality
         - Sanity: Requirement-linked validation
         - Edge Case: Boundary, negative, error handling
@@ -165,9 +165,9 @@ class ZephyrTestLevelClassifier:
         return ("Regression", 3)
 
     def _has_requirement_links(self, test_data: dict[str, Any]) -> bool:
-        """Check whether test case has requirement or traceability links.
+        """Check if test case has requirement or traceability links.
 
-        Use generic patterns from industry-standard test management:
+        Uses generic patterns from industry-standard test management:
         - HTTP/HTTPS URLs in requirement/traceability fields
         - Common JIRA-style keys (XXX-123) in traceability fields
         """
@@ -245,8 +245,8 @@ class ZephyrTestLevelClassifier:
 class ZephyrPreconditionAnalyzer:
     """Analyze and structure test preconditions.
 
-    Provide generic parsing for precondition text using industry-standard
-    formats (numbered lists, bulleted lists, etc.). Do not assume specific
+    Provides generic parsing for precondition text using industry-standard
+    formats (numbered lists, bulleted lists, etc.). Does not assume specific
     infrastructure or setup requirements.
     """
 
@@ -304,7 +304,7 @@ class ZephyrPreconditionAnalyzer:
         return steps
 
     def _has_formatting(self, lines: list[str]) -> bool:
-        """Check whether the text has formatting (numbering or bullets)."""
+        """Check if the text has formatting (numbering or bullets)."""
         for line in lines:
             stripped_line = line.strip()
             if (

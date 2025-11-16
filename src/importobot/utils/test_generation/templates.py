@@ -7,7 +7,7 @@ from importobot.utils.logging import get_logger
 
 
 class TemplateManager:
-    """Manage test case templates and scenarios for generation."""
+    """Manages test case templates and scenarios for generation."""
 
     def __init__(self) -> None:
         """Initialize template manager with cached templates."""
@@ -78,7 +78,7 @@ class TemplateManager:
         ]
 
     def get_templates_for_scenario(self, category: str, scenario: str) -> list[str]:
-        """Return templates for a specific scenario with caching."""
+        """Get templates for a specific scenario with caching."""
         cache_key = f"{category}_{scenario}"
 
         if cache_key in self._scenario_cache:
@@ -108,7 +108,7 @@ class TemplateManager:
     def get_optimized_random_templates(
         self, category: str, scenario: str, count: int
     ) -> list[str]:
-        """Return random templates."""
+        """Get random templates."""
         available_templates = self.get_templates_for_scenario(category, scenario)
 
         if not available_templates:
@@ -149,7 +149,7 @@ class TemplateManager:
         return selected
 
     def get_scenario_complexity(self, scenario: str) -> str:
-        """Return complexity level for a scenario."""
+        """Get complexity level for a scenario."""
         complexity_map = {
             "user_authentication": "low",
             "microservices_integration": "high",
@@ -165,7 +165,7 @@ class TemplateManager:
     def get_scenario_steps_range(
         self, scenario: str, complexity: str
     ) -> tuple[int, int]:
-        """Return the steps range for a scenario and complexity."""
+        """Get the steps range for a scenario and complexity."""
         base_ranges = {
             "user_authentication": (3, 6),
             "microservices_integration": (5, 10),
@@ -194,7 +194,7 @@ class TemplateManager:
     def get_scenario_info(
         self, category: str, scenario: str, complexity_override: str | None = None
     ) -> dict[str, Any]:
-        """Return scenario information."""
+        """Get scenario information."""
         complexity = complexity_override or self.get_scenario_complexity(scenario)
         min_steps, max_steps = self.get_scenario_steps_range(scenario, complexity)
         templates = self.get_templates_for_scenario(category, scenario)
@@ -218,7 +218,7 @@ class TemplateManager:
         self._build_template_cache()
 
     def get_available_scenarios(self) -> dict[str, dict[str, list[str]]]:
-        """Return all available scenarios organized by category."""
+        """Get all available scenarios organized by category."""
         return {
             "regression": {
                 "web_automation": ["user_authentication", "e2e_workflow"],
@@ -248,7 +248,7 @@ class TemplateManager:
         }
 
     def validate_scenario(self, category: str, scenario: str) -> bool:
-        """Validate whether a scenario exists in the given category."""
+        """Validate if a scenario exists in the given category."""
         scenarios = self.get_available_scenarios()
         return category in scenarios and any(
             scenario in scenario_list for scenario_list in scenarios[category].values()

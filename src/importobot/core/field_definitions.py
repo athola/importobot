@@ -1,4 +1,4 @@
-"""Centralize field definitions for test case parsing and conversion."""
+"""Centralizes field definitions for test case parsing and conversion."""
 
 from dataclasses import dataclass
 from typing import Any
@@ -8,17 +8,17 @@ from importobot.core.constants import EXPECTED_RESULT_FIELD_NAMES, TEST_DATA_FIE
 
 @dataclass(frozen=True)
 class FieldGroup:
-    """Represent a collection of field names serving a common purpose."""
+    """Represents a collection of field names serving a common purpose."""
 
     fields: tuple[str, ...]
     description: str
 
     def __contains__(self, item: str) -> bool:
-        """Check whether a given field name exists within this group."""
+        """Check if a given field name exists within this group."""
         return item.lower() in (f.lower() for f in self.fields)
 
     def find_first(self, data: dict[str, Any]) -> tuple[str | None, Any]:
-        """Find the first matching field in data and return its name and value."""
+        """Find the first matching field in data and returns its name and value."""
         for field in self.fields:
             if data.get(field):
                 return field, data[field]
@@ -190,7 +190,7 @@ def get_field_value(data: dict[str, Any], field_group: FieldGroup) -> str:
 
 
 def has_field(data: dict[str, Any], field_group: FieldGroup) -> bool:
-    """Check whether the provided data contains any field from the specified group."""
+    """Check if the provided data contains any field from the specified group."""
     return any(field in data and data[field] for field in field_group.fields)
 
 
@@ -214,14 +214,14 @@ ZEPHYR_TEST_INDICATORS = frozenset(
 
 
 def is_test_case(data: Any) -> bool:
-    """Determine whether the provided data resembles a test case structure."""
+    """Determine if the provided data resembles a test case structure."""
     if not isinstance(data, dict):
         return False
     return bool(TEST_INDICATORS & {key.lower() for key in data})
 
 
 def is_zephyr_test_case(data: Any) -> bool:
-    """Determine whether the provided data adheres to the Zephyr test case structure."""
+    """Determine if the provided data adheres to the Zephyr test case structure."""
     if not isinstance(data, dict):
         return False
 

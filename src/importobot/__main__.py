@@ -1,6 +1,6 @@
 """Test framework converter.
 
-Entry point for the `importobot` CLI. Handle argument parsing and dispatch
+Entry point for importobot CLI. Handles argument parsing and dispatches
 to appropriate conversion functions.
 """
 
@@ -8,6 +8,7 @@ import json
 import sys
 from typing import Any
 
+from importobot import exceptions
 from importobot.cli.handlers import (
     handle_api_ingest,
     handle_directory_conversion,
@@ -17,14 +18,13 @@ from importobot.cli.handlers import (
 from importobot.cli.parser import create_parser
 from importobot.core.schema_parser import register_schema_file
 from importobot.core.templates import configure_template_sources
-from importobot.exceptions import ImportobotError
 from importobot.utils.logging import get_logger, log_exception
 
 logger = get_logger("importobot-cli")
 
 
 def _check_conversion_flags(args: Any) -> bool:
-    """Check whether any conversion-related flags are present."""
+    """Check if any conversion-related flags are present."""
     return any(
         [
             bool(getattr(args, "input", None)),
@@ -39,7 +39,7 @@ def _check_conversion_flags(args: Any) -> bool:
 def _handle_api_ingest_logic(
     args: Any, _parser: Any, had_conversion_flags: bool
 ) -> bool:
-    """Handle API ingest logic."""
+    """Handle API ingest logic if needed."""
     saved_payload_path = handle_api_ingest(args)
 
     if not getattr(args, "input", None):
@@ -88,7 +88,7 @@ def _determine_conversion_action(args: Any, parser: Any) -> None:
 
 def _handle_error(e: Exception) -> None:
     """Handle different types of exceptions."""
-    if isinstance(e, ImportobotError):
+    if isinstance(e, exceptions.ImportobotError):
         logger.error(str(e))
         sys.exit(1)
     elif isinstance(e, json.JSONDecodeError):

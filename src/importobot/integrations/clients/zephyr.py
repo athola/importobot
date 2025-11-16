@@ -171,11 +171,13 @@ class ZephyrClient(BaseAPIClient):
     def _extract_results(payload: Any) -> list[dict[str, Any]]:
         """Normalize payloads into a list of result dictionaries.
 
-        Supports modern Zephyr endpoint response structures:
+        Supports various Zephyr endpoint response structures, including:
         - Standard: `{"results": [...]}`
         - Alternative: `{"data": [...]}`
         - Direct list: `[...]`
         - Nested: `{"testCases": [...]}` or `{"cases": [...]}`
+        - Wrapped: `{"value": {"results": [...]}}`
+        - Legacy: `{"items": [...]}`
         """
         if isinstance(payload, list):
             return payload
@@ -184,10 +186,19 @@ class ZephyrClient(BaseAPIClient):
             return []
 
         # Try common result containers
-        for key in ["results", "data", "testCases", "cases"]:
+        for key in ["results", "data", "testCases", "cases", "items", "values"]:
             results = payload.get(key)
             if isinstance(results, list):
                 return results
+
+        # Try nested structures (e.g., {"value": {"results": [...]}})
+        for key in ["value", "response", "content"]:
+            nested = payload.get(key)
+            if isinstance(nested, dict):
+                for nested_key in ["results", "data", "testCases", "cases", "items"]:
+                    nested_results = nested.get(nested_key)
+                    if isinstance(nested_results, list):
+                        return nested_results
 
         # Try single item wrapped in dict
         if any(key in payload for key in ["key", "id", "name", "testScript"]):
@@ -198,7 +209,7 @@ class ZephyrClient(BaseAPIClient):
     @staticmethod
     def _get_total_from_dict(payload: dict[str, Any]) -> int | None:
         """Extract the total count from a dictionary."""
-        for key in ["total", "totalCount"]:
+        for key in ["total", "totalCount", "count", "size", "length"]:
             total = payload.get(key)
             if isinstance(total, int):
                 return total
@@ -228,7 +239,13 @@ class ZephyrClient(BaseAPIClient):
             return total
 
         total = ZephyrClient._get_total_from_nested_dict(
-            payload, ["pagination", "paging"]
+            payload, ["pagination", "paging", "meta", "info"]
+        )
+        if total is not None:
+            return total
+
+        total = ZephyrClient._get_total_from_nested_dict(
+            payload, ["value", "response", "content"]
         )
         if total is not None:
             return total

@@ -1,4 +1,4 @@
-"""Provide a unified caching system for Importobot.
+"""Provides a unified caching system for Importobot.
 
 This module consolidates multiple scattered cache implementations into a single,
 coherent hierarchy.

@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from importobot import exceptions
 from importobot.config import resolve_api_ingest_config
 from importobot.core.converter import (
     convert_directory,
@@ -20,7 +21,6 @@ from importobot.core.converter import (
     convert_multiple_files,
     get_conversion_suggestions,
 )
-from importobot.exceptions import ImportobotError
 from importobot.integrations.clients import get_api_client
 from importobot.utils.file_operations import (
     display_suggestion_changes,
@@ -191,7 +191,7 @@ def display_suggestions(json_file_path: str, no_suggestions: bool = False) -> No
         filtered_suggestions = filter_suggestions(all_suggestions)
         print_suggestions(filtered_suggestions)
 
-    except ImportobotError as e:
+    except exceptions.ImportobotError as e:
         logger.warning("Could not generate suggestions: %s", str(e))
     except Exception as e:
         logger.warning("Could not generate suggestions: %s", str(e))
@@ -344,7 +344,7 @@ def _create_api_client(config: Any) -> Any:
     return get_api_client(
         config.fetch_format,
         api_url=config.api_url,
-        tokens=config.get_all_tokens(),
+        tokens=config.tokens,
         user=config.user,
         project_name=config.project_name,
         project_id=config.project_id,

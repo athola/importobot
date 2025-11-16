@@ -115,9 +115,9 @@ def display_suggestion_changes(changes_made: list[dict[str, Any]], args: Any) ->
 def temporary_json_file(
     data: dict[str, Any] | list[Any],
 ) -> Generator[str, None, None]:
-    """Create a temporary JSON file with the provided data.
+    """Create a temporary JSON file with the given data.
 
-    Set restrictive permissions (0600 - owner read/write only)
+    Security: Sets restrictive permissions (0600 - owner read/write only)
     to prevent unauthorized access to potentially sensitive test data.
     """
     with tempfile.NamedTemporaryFile(
@@ -147,7 +147,7 @@ def convert_with_temp_file(
     convert_file_func: Callable[[str, str], None],
     context: ConversionContext | None = None,
 ) -> None:
-    """Convert data using a temporary file; optionally display changes.
+    """Convert data using a temporary file and optionally display changes.
 
     Args:
         conversion_data: Data to convert
@@ -267,7 +267,7 @@ def restore_file(backup_path: str | Path, original_path: str | Path) -> None:
 
 
 def load_json_with_default(file_path: str | Path) -> dict[str, Any] | list[Any]:
-    """Load a JSON file.
+    """Load JSON file.
 
     Args:
         file_path: Path to the JSON file

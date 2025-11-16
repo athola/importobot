@@ -3,10 +3,10 @@
 import copy
 from typing import Any
 
+from importobot import exceptions
 from importobot.core.constants import TEST_CONTAINER_FIELD_NAMES
 from importobot.core.interfaces import SuggestionEngine
 from importobot.core.parsers import GenericTestFileParser
-from importobot.exceptions import ImportobotError
 from importobot.utils.logging import get_logger
 from importobot.utils.validation import FieldValidator
 
@@ -95,7 +95,7 @@ class GenericSuggestionEngine(SuggestionEngine):
 
             test_cases = self._extract_test_cases_for_improvement(improved_data)
             if isinstance(test_cases, str):
-                raise ImportobotError(test_cases)
+                raise exceptions.ImportobotError(test_cases)
 
             for i, test_case in enumerate(test_cases):
                 if not isinstance(test_case, dict):
@@ -127,7 +127,7 @@ class GenericSuggestionEngine(SuggestionEngine):
 
         except Exception as e:
             logger.error("Error applying suggestions: %s", e)
-            raise ImportobotError(
+            raise exceptions.ImportobotError(
                 f"Failed to apply suggestions: {e!s}"
             ) from e
 

@@ -1,4 +1,4 @@
-"""Provide components for parsing test files from different formats."""
+"""Implements components for parsing test files."""
 
 from typing import Any
 
@@ -19,7 +19,7 @@ logger = get_logger()
 
 
 class GenericTestFileParser(TestFileParser):
-    """Parse various JSON test formats to extract test cases and steps."""
+    """A generic parser to handle various JSON test formats programmatically."""
 
     def __init__(self) -> None:
         """Initialize the parser with a cached set of step field names."""

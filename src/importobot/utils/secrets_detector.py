@@ -10,7 +10,7 @@ from typing import Any
 
 @dataclass(frozen=True)
 class SecretFinding:
-    """Represent a potential secret discovered during scanning."""
+    """Represents a potential secret discovered during scanning."""
 
     secret_type: str
     preview: str

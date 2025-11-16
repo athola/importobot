@@ -13,8 +13,6 @@ from importobot.cli.parser import create_parser
 from importobot.config import APIIngestConfig
 from importobot.medallion.interfaces.enums import SupportedFormat
 
-VALID_TEST_TOKEN = "cli-token-abcdef1234567890"
-
 
 class DummyClient:
     """Simple client streaming predefined payloads."""
@@ -39,7 +37,7 @@ def make_args(tmp_path: Path) -> Namespace:
     return Namespace(
         fetch_format=SupportedFormat.TESTRAIL,
         api_url="https://testrail.example/api/v2/get_runs/1",
-        api_tokens=[VALID_TEST_TOKEN],
+        api_tokens=["token"],
         api_user="testrail-user",
         project="TR",
         input_dir=str(tmp_path),
@@ -141,7 +139,7 @@ def test_ingest_metadata_tracks_payloads(
     args = Namespace(
         fetch_format=SupportedFormat.ZEPHYR,
         api_url="https://zephyr.example/rest/api/testcase",
-        api_tokens=[VALID_TEST_TOKEN],
+        api_tokens=["primary-token"],
         api_user=None,
         project=project_name,
         input_dir=str(output_dir),

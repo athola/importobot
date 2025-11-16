@@ -82,7 +82,7 @@ class ComparisonAnalyzer:
         return comparable
 
     def _is_comparison_candidate(self, content: str, step: dict[str, Any]) -> bool:
-        """Determine whether a step looks like a comparison-type command."""
+        """Determine if a step looks like a comparison-type command."""
         keywords = ["hash", "checksum", "digest", "compare", "diff", "verify"]
         if any(token in content for token in keywords):
             return True

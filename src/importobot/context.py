@@ -26,10 +26,7 @@ logger = get_logger()
 
 
 class ApplicationContext:
-    """Provide a testable registry for application-level dependencies and state.
-
-    Provide thread-safe access to application-wide services and configuration.
-    """
+    """A central, testable registry for application-level dependencies and state."""
 
     def __init__(self) -> None:
         """Initialize the application context."""
@@ -38,7 +35,7 @@ class ApplicationContext:
 
     @property
     def performance_cache(self) -> PerformanceCache:
-        """Return the performance cache instance.
+        """Get the performance cache instance.
 
         Returns:
             The performance cache for string/JSON operations.
@@ -50,7 +47,7 @@ class ApplicationContext:
 
     @property
     def telemetry_client(self) -> TelemetryClient:
-        """Return the telemetry client instance.
+        """Get the telemetry client instance.
 
         Returns:
             The telemetry client for metrics and logging.
@@ -176,7 +173,7 @@ class CleanupPerformanceTracker:
             )
 
     def get_stats(self) -> CleanupStats:
-        """Return a copy of the current performance statistics.
+        """Get a copy of the current performance statistics.
 
         Returns:
             A dictionary containing all performance metrics.
@@ -285,7 +282,7 @@ def _cleanup_stale_contexts_locked() -> None:
 
 
 def get_context() -> ApplicationContext:
-    """Return the application context for the current thread.
+    """Get the application context for the current thread.
 
     A new context is created if one does not already exist for the current thread.
 
@@ -334,7 +331,7 @@ def cleanup_stale_contexts() -> int:
 
 
 def get_registry_stats() -> dict[str, int | list[str]]:
-    """Return statistics about the context registry.
+    """Get statistics about the context registry.
 
     Returns:
         A dictionary containing registry statistics.
@@ -353,7 +350,7 @@ def get_registry_stats() -> dict[str, int | list[str]]:
 
 
 def get_cleanup_performance_stats() -> CleanupStats:
-    """Return performance statistics for context registry cleanup operations.
+    """Get performance statistics for context registry cleanup operations.
 
     Returns:
         A dictionary containing cleanup performance statistics.

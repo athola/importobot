@@ -1,32 +1,5 @@
 # Release Notes
 
-## v0.1.5 (November 2025)
-
-Version 0.1.5 focuses on the security stack. Code previously scattered through `importobot.utils` now lives under `src/importobot/security/`, and the CLI enforces encrypted secret handling.
-
-### Highlights
-
-- **Dedicated security package**: CredentialManager, TemplateSecurityScanner, SecureMemory, HSM adapters, SIEM connectors, and ComplianceEngine live under one namespace with explicit exports from `importobot.security`.
-- **Fernet enforcement**: `CredentialManager` refuses to operate unless `cryptography>=42.0.0` is installed and `IMPORTOBOT_ENCRYPTION_KEY` points to a 32-byte key.
-- **Security regression suite**: Added 13 targeted test modules (`tests/unit/security/*.py`, `tests/integration/security/*.py`, `tests/unit/test_config_security.py`) increasing the collected test count to 2,644.
-
-### Security Features
-
-| Feature | Location | Notes |
-| --- | --- | --- |
-| Credential encryption | `security/credential_manager.py` | Uses Fernet, fingerprints the active key, and emits actionable error strings |
-| Template scanning | `security/template_scanner.py` | Produces per-issue severity, remediation text, and SHA-256 file hashes before `--robot-template` runs |
-| SIEM connectors | `security/siem_integration.py` | Splunk/Elastic/Sentinel connectors enforce HTTPS and structured payloads |
-| Key rotation | `security/key_rotation.py` | Supports 90-day, usage-based, and compliance-driven rotation policies with persisted metadata |
-| Compliance + monitoring | `security/compliance.py`, `security/monitoring.py` | Generates SOC 2 / ISO 27001 reports, tracks audit trails, streams events into SIEM |
-| Secure memory | `security/secure_memory.py` | Performs multi-pass zeroization and checksum verification |
-
-### Technical Changes
-
-- Moved the `SecurityValidator` and credential pattern registry into the security package, keeping re-exports for older imports to avoid breaking consumers.
-- Added `importobot.utils.runtime_paths.get_runtime_subdir()` to keep persistent artifacts (HSM keys, compliance reports, SIEM queues) under `~/.importobot/`.
-- Documented deployment steps (env vars, connector setup, compliance exports) across the wiki so ops teams can replicate the configuration without reverse-engineering tests.
-
 ## v0.1.4 (November 2025)
 
 This release focuses on test suite improvements, client module architecture refactoring, and enhanced type safety.
