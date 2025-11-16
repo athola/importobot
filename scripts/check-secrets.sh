@@ -16,7 +16,7 @@ FILES=$(git ls-files && git ls-files --others --exclude-standard | sort -u)
 if [ -f .secrets.baseline ]; then
     echo "Using existing .secrets.baseline for validation..."
     # Scan with baseline - only flag NEW secrets
-    if echo "$FILES" | xargs -r uv run detect-secrets scan --baseline .secrets.baseline --force-use-all-plugins; then
+if echo "$FILES" | xargs -r uv run python scripts/detect_secrets_cli.py -c 1 scan --baseline .secrets.baseline --force-use-all-plugins; then
         echo "PASS: No new secrets detected"
         exit 0
     else
@@ -26,7 +26,7 @@ if [ -f .secrets.baseline ]; then
 else
     echo "No baseline found. Creating .secrets.baseline..."
     # Create baseline file
-    echo "$FILES" | xargs -r uv run detect-secrets scan --force-use-all-plugins > .secrets.baseline
+echo "$FILES" | xargs -r uv run python scripts/detect_secrets_cli.py -c 1 scan --force-use-all-plugins > .secrets.baseline
     echo "PASS: Created .secrets.baseline - please review and commit it"
     exit 0
 fi

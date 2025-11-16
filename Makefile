@@ -116,7 +116,7 @@ format:
 .PHONY: typecheck
 typecheck:
 	$(info $(NEWLINE)==================== Running type checking ====================$(NEWLINE))
-	uv run ty check .
+	uv run ty check src/importobot
 	uv run pyright
 	uv run mypy -p importobot
 	uv run mypy tests

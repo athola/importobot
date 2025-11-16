@@ -5,9 +5,15 @@ import os
 from pathlib import Path
 from typing import Any
 
-from importobot import exceptions
 from importobot.core.engine import GenericConversionEngine
 from importobot.core.suggestions import GenericSuggestionEngine
+from importobot.exceptions import (
+    ConversionError,
+    FileAccessError,
+    ImportobotError,
+    ParseError,
+    ValidationError,
+)
 from importobot.services.performance_cache import cached_string_lower
 from importobot.utils.json_utils import load_json_file
 from importobot.utils.logging import get_logger
@@ -48,7 +54,7 @@ class JsonToRobotConverter:
         try:
             json_data = json.loads(json_string)
         except json.JSONDecodeError as e:
-            raise exceptions.ParseError(
+            raise ParseError(
                 f"Invalid JSON at line {e.lineno}: {e.msg}"
             ) from e
 
@@ -58,7 +64,7 @@ class JsonToRobotConverter:
             return self.conversion_engine.convert(json_data)
         except Exception as e:
             logger.exception("Error during conversion")
-            raise exceptions.ConversionError(
+            raise ConversionError(
                 f"Failed to convert JSON to Robot Framework: {e!s}"
             ) from e
 
@@ -71,7 +77,7 @@ class JsonToRobotConverter:
             return self.conversion_engine.convert(json_data)
         except Exception as e:
             logger.exception("Error during conversion")
-            raise exceptions.ConversionError(
+            raise ConversionError(
                 f"Failed to convert JSON to Robot Framework: {e!s}"
             ) from e
 
@@ -99,7 +105,7 @@ def apply_conversion_suggestions(
     suggestion_engine = GenericSuggestionEngine()
     try:
         return suggestion_engine.apply_suggestions(json_data)
-    except exceptions.ImportobotError:
+    except ImportobotError:
         # For invalid JSON structures, return the original data with no changes
         return json_data, []
 
@@ -151,7 +157,7 @@ def convert_multiple_files(input_files: list[str], output_dir: str) -> None:
         os.makedirs(output_dir, exist_ok=True)
     except Exception as e:
         logger.exception("Error creating output directory")
-        raise exceptions.FileAccessError(
+        raise FileAccessError(
             f"Could not create output directory: {e!s}"
         ) from e
 
@@ -177,26 +183,24 @@ def convert_directory(input_dir: str, output_dir: str) -> None:
     try:
         _validate_directory_args(input_dir, output_dir)
         json_files = _find_json_files_in_directory(input_dir)
-    except exceptions.ImportobotError:
-        # Re-raise Importobot-specific exceptions
+    except ImportobotError:
         raise
     except Exception as e:
         logger.exception("Error validating directory arguments")
-        raise exceptions.ValidationError(f"Invalid directory arguments: {e!s}") from e
+        raise ValidationError(f"Invalid directory arguments: {e!s}") from e
 
     if not json_files:
-        raise exceptions.ValidationError(
+        raise ValidationError(
             f"No JSON files found in directory: {input_dir}"
         )
 
     try:
         convert_multiple_files(json_files, output_dir)
-    except exceptions.ImportobotError:
-        # Re-raise Importobot-specific exceptions
+    except ImportobotError:
         raise
     except Exception as e:
         logger.exception("Error converting directory")
-        raise exceptions.ConversionError(f"Failed to convert directory: {e!s}") from e
+        raise ConversionError(f"Failed to convert directory: {e!s}") from e
 
 
 def _convert_file_with_error_handling(input_file: str, output_dir: str) -> None:
@@ -205,11 +209,11 @@ def _convert_file_with_error_handling(input_file: str, output_dir: str) -> None:
         output_filename = Path(input_file).stem + ".robot"
         output_path = Path(output_dir) / output_filename
         convert_file(input_file, str(output_path))
-    except exceptions.ImportobotError:
+    except ImportobotError:
         raise
     except Exception as e:
         logger.exception("Error converting file %s", input_file)
-        raise exceptions.ConversionError(
+        raise ConversionError(
             f"Failed to convert file {input_file}: {e!s}"
         ) from e
 

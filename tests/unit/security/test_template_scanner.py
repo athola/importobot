@@ -15,6 +15,17 @@ from importobot.security.template_scanner import (
     scan_template_file_for_security,
 )
 
+API_KEY = "api_key_secret_value_1234567890"
+DB_PASSWORD = "mysecretpassword123"
+PASSWORD = "mysecretpassword"
+AWS_SECRET = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+USERNAME = "example_user"
+BASE_URL = "https://example.com"
+TIMEOUT = "30s"
+CONNECTION = "mongodb://user:password@localhost:27017/db"
+JWT_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+SSH_KEY = "-----BEGIN RSA PRIVATE KEY-----"
+SECRET = "use_env_variable_for_secret"
 STRIPE_TEST_KEY = "sk_live_" + "1234567890abcdef1234567890"
 SHORT_EXAMPLE_KEY = "sk_live_" + "123456"
 
@@ -94,15 +105,15 @@ class TestTemplateSecurityScanner:
         Library           SeleniumLibrary
 
         *** Variables ***
-        ${USERNAME}       example_user
-        ${BASE_URL}       https://example.com
-        ${TIMEOUT}        30s
+        ${{USERNAME}}       example_user
+        ${{BASE_URL}}       https://example.com
+        ${{TIMEOUT}}        30s
 
         *** Test Cases ***
         Example Test
             [Documentation]    This is a safe example test
             [Tags]    example    safe
-            Open Browser    ${BASE_URL}
+            Open Browser    ${{BASE_URL}}
         """
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".robot", delete=False) as f:
@@ -131,15 +142,15 @@ class TestTemplateSecurityScanner:
         # Create a template file with credentials
         unsafe_content = f"""
         *** Variables ***
-        ${API_KEY}        {STRIPE_TEST_KEY}
-        ${DB_PASSWORD}     mysecretpassword123
-        ${AWS_SECRET}     wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+        ${{API_KEY}}        {STRIPE_TEST_KEY}
+        ${{DB_PASSWORD}}     {DB_PASSWORD}
+        ${{AWS_SECRET}}     {AWS_SECRET}
 
         *** Test Cases ***
         Test With Credentials
-            Connect To API    ${API_KEY}
-            Database Query    ${DB_PASSWORD}
-            AWS S3 Action    ${AWS_SECRET}
+            Connect To API    ${{API_KEY}}
+            Database Query    ${{DB_PASSWORD}}
+            AWS S3 Action    ${{AWS_SECRET}}
         """
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".robot", delete=False) as f:
@@ -530,7 +541,7 @@ class TestConvenienceFunction:
         # Create a test file
         test_content = f"""
         *** Variables ***
-        ${API_KEY}        {STRIPE_TEST_KEY}
+        ${{API_KEY}}        {STRIPE_TEST_KEY}
         """
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".robot", delete=False) as f:

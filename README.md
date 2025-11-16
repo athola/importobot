@@ -15,7 +15,7 @@ Importobot converts test case exports from Zephyr, TestRail, Xray, and TestLink 
 ## Recent Updates
 
 - **Security Modules**: Added `src/importobot/security/` with credential management, HSM adapters, SIEM connectors, template scanning, and compliance reporting so the CLI no longer needs miscellaneous helpers scattered under `utils/`.
-- **Encrypted Credentials**: `CredentialManager` now enforces Fernet encryption via `cryptography>=42.0.0` and the `IMPORTOBOT_ENCRYPTION_KEY` environment variable (32-byte key or `openssl rand -base64 32` output).
+- **Encrypted Credentials**: `CredentialManager` now enforces Fernet encryption via the optional `security` extra (`pip install 'importobot[security]'`) and the `IMPORTOBOT_ENCRYPTION_KEY` environment variable (32-byte key or `openssl rand -base64 32` output).
 - **Security Regression Suite**: 13 new security-focused test modules lift the total test count to 2,644 (`UV_CACHE_DIR=.uv-cache uv run pytest --collect-only --quiet`), covering SIEM forwarding, SOC 2 scoring, template scanning, and secure memory cleanup paths.
 
 See the [changelog](CHANGELOG.md) for a full list of changes.
@@ -25,6 +25,10 @@ See the [changelog](CHANGELOG.md) for a full list of changes.
 For end-users, install from PyPI:
 ```sh
 pip install importobot
+```
+Optional security features (encryption, secure memory helpers) live in an extra:
+```sh
+pip install 'importobot[security]'
 ```
 For developers contributing to the project, see the [Project Setup](https://github.com/athola/importobot/wiki/Getting-Started#project-setup) instructions.
 
@@ -47,10 +51,14 @@ result = converter.convert_directory("./exports", "./converted")
 
 Security-sensitive deployments now opt into the dedicated security package.
 
-- **Encrypt credentials**. Set a strong Fernet key and persist an encrypted blob instead of a plain string:
+- **Encrypt credentials**. Install the `security` extra, set a strong Fernet key, and persist an encrypted blob instead of a plain string:
 
 ```bash
+pip install 'importobot[security]'
 export IMPORTOBOT_ENCRYPTION_KEY="$(openssl rand -base64 32)"
+# Optional: fetch the key from the OS keyring instead of env vars
+export IMPORTOBOT_KEYRING_SERVICE="importobot-ci"
+export IMPORTOBOT_KEYRING_USERNAME="automation"
 ```
 
 ```python
@@ -60,6 +68,20 @@ manager = CredentialManager()
 encrypted = manager.encrypt_credential(os.environ["ZEPHYR_TOKEN"])
 # Store encrypted.ciphertext somewhere safe; decrypt only when needed
 zephyr_token = manager.decrypt_credential(encrypted)
+```
+
+- **Let Importobot handle the keyring.** Skip manual key generation by letting
+  `CredentialManager` create and store a Fernet key directly in the system
+  keyring:
+
+```python
+from importobot.security import CredentialManager
+
+CredentialManager.store_key_in_keyring(
+    service="importobot-ci",
+    username="automation",
+    overwrite=True,        # optional, set when rotating keys
+)
 ```
 
 - **Scan Robot templates**. Block obvious credential leaks before invoking `--robot-template`:
@@ -76,22 +98,52 @@ if not report.is_safe:
 
 - The CLI now runs this scan automatically when you pass `--robot-template` and exits if any template reports `report.is_safe == False`.
 
-- **Forward alerts to SIEM**. Reuse the built-in connectors instead of re-implementing Splunk or Sentinel clients:
+- **Legacy token compatibility**. `APIIngestConfig.tokens` now stores `SecureString` instances by default. Prefer `config.get_token()` or `config.secure_tokens` in new code. If you still need plaintext lists temporarily, call `config.plaintext_tokens` (emits a `DeprecationWarning`) and plan to migrate those callers to the secure APIs.
+- **Rotate Fernet keys**. Follow the [Key Rotation Guide](wiki/Key-Rotation.md) and use
+  `importobot_enterprise.key_rotation.rotate_credentials()` to re-wrap ciphertexts when
+  replacing `IMPORTOBOT_ENCRYPTION_KEY`.
 
-```python
-from importobot.security import create_splunk_connector, get_siem_manager
+### Token Validation Settings
 
-splunk = create_splunk_connector(
-    host="https://siem.internal",
-    token=os.environ["SPLUNK_HEC_TOKEN"],
-)
-siem_manager = get_siem_manager()
-siem_manager.add_connector(splunk)
-siem_manager.start()
-siem_manager.send_security_event(security_event)
+| Environment Variable | Purpose |
+| --- | --- |
+| `IMPORTOBOT_MIN_TOKEN_LENGTH` | Override the default 12-character minimum (hard floor of 8). |
+| `IMPORTOBOT_TOKEN_PLACEHOLDERS` | Comma-separated list of exact placeholder tokens (normalized by stripping `-`/`_`). |
+| `IMPORTOBOT_TOKEN_INDICATORS` | Comma-separated list of substrings that cause immediate rejection (matched case-insensitively). |
+| `IMPORTOBOT_SKIP_TOKEN_VALIDATION` | Set to `1` only in trusted benchmarks to bypass validation entirely. |
+| `IMPORTOBOT_KEYRING_SERVICE` / `IMPORTOBOT_KEYRING_USERNAME` | Load encryption keys from the OS keyring when the security extra is installed. |
+
+### Enterprise Add-ons
+
+Enterprise customers can install the optional package components that live under
+`importobot_enterprise`:
+
+```sh
+pip install 'importobot[enterprise]'
 ```
 
-Each of these modules records structured audit data so Compliance teams can pull SOC 2 / ISO 27001 reports without reverse-engineering the conversion pipeline.
+This exposes:
+
+- `SoftwareHSM` – an in-memory HSM adapter backed by `SecureString`
+- `SIEMManager` plus Splunk/Elastic connectors – ship audit events to SOC tooling
+- `EnterpriseComplianceEngine` – score SOC2/ISO27001 controls for audits
+- `rotate_credentials()` – rewrap stored ciphertexts using new keys
+
+### Performance Considerations
+
+The security module adds minimal overhead:
+
+- **Import time**: ~56ms for the top-level `import importobot` path (< 100ms target)
+- **Token validation**: ~18 microseconds per config creation (negligible)
+- **Memory**: SecureString adds ~200 bytes overhead per token
+
+For performance-critical scenarios where you create thousands of configs per second, you can disable token validation:
+
+```bash
+export IMPORTOBOT_SKIP_TOKEN_VALIDATION=1
+```
+
+**Note**: Disabling validation is NOT recommended for production use. Only use in trusted environments where tokens are pre-validated. The performance gain is minimal (~0.018ms/config).
 
 ## Documentation
 

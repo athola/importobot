@@ -173,7 +173,7 @@ class CredentialPatternRegistry:
                     description="API key in configuration",
                     remediation="Store in secure vault or environment variable",
                     examples=[
-                        "api_key: ***REMOVED***",
+                        "api_key: sk_live_example1234567890",
                         "x-api-key: abcdef123456789",
                         '"apikey":"1234567890abcdef"',
                     ],
@@ -287,7 +287,7 @@ class CredentialPatternRegistry:
                         r"(?i)(?:private[_-]?key|rsa[_-]?private)[\s\'\":=]+([^\s\'\"<>]{20,})",
                         re.IGNORECASE,
                     ),
-                    confidence=0.85,
+                    confidence=0.95,
                     context_keywords=["private_key", "privatekey", "rsa_private"],
                     description="Private key reference",
                     remediation="Move to HSM or key management service",
@@ -545,8 +545,26 @@ class CredentialPatternRegistry:
             for match in pattern_matches:
                 match_text = match.group(0)
                 confidence = pattern.confidence
-                if self._looks_like_placeholder(match_text):
-                    confidence = min(confidence, 0.4)
+
+                # Enhanced false positive reduction with context awareness
+                context_window = 100  # characters before and after
+                start = max(0, match.start() - context_window)
+                end = min(len(text), match.end() + context_window)
+                context = text[start:end].lower()
+
+                # Check both match text and broader context for placeholder indicators
+                if self._looks_like_placeholder(
+                    match_text
+                ) or self._looks_like_placeholder(context):
+                    confidence = min(confidence, 0.3)  # Lower confidence for context
+
+                # Additional context-specific reductions
+                if self._is_robot_framework_variable(
+                    match_text, text[: match.start()]
+                ):
+                    confidence = min(
+                        confidence, 0.2
+                    )  # Very low confidence for variable names
 
                 matches.append(
                     {
@@ -643,12 +661,47 @@ class CredentialPatternRegistry:
             "test_",
             "test-",
             "test ",
+            "demo ",
+            "demo_",
+            "demo-",
             "placeholder",
             "your_",
             "your-",
             "your ",
+            "replace_with",
+            "replace_with_actual",
+            "placeholder_key",
+            "placeholder_key_value",
+            "use_env_variable_for",
         )
         return any(token in text for token in placeholder_tokens)
+
+    @staticmethod
+    def _is_robot_framework_variable(match_text: str, preceding_text: str) -> bool:
+        """Return True if the match appears to be a Robot Framework variable name."""
+        # Check if this looks like a Robot Framework variable assignment
+        # Pattern: ${VARIABLE_NAME}    value
+        preceding_lower = preceding_text.strip().lower()
+
+        # Look for variable assignment patterns
+        if "${" in match_text and "}" in match_text:
+            # This is likely a variable name, not a credential value
+            return True
+
+        # Check if the preceding text looks like a variable declaration
+        if "*** variables ***" in preceding_lower:
+            return True
+
+        # Check for variable assignment patterns
+        lines_before = preceding_lower.split('\n')
+        if lines_before:
+            last_line = lines_before[-1].strip()
+            # If the last line contains variable indicators, this is likely a var name
+            indicators = ["${", "variables", "*** variables ***"]
+            if any(indicator in last_line for indicator in indicators):
+                return True
+
+        return False
 
 
 # Global registry instance

@@ -69,6 +69,102 @@ class TestCredentialManagerSecurity:
             manager = CredentialManager()
             assert manager is not None
 
+    def test_key_loaded_from_keyring_when_configured(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """CredentialManager pulls encryption key from keyring if configured."""
+
+        class DummyKeyring:
+            def get_password(self, service: str, username: str) -> str | None:
+                assert service == "importobot-ci"
+                assert username == "bot"
+                # Return a valid base64-encoded 32-byte key for testing
+                return "MwzwV7usXOinJbjLwmL_RyKwW9-D5nf3OnEU7cW1buY="
+
+        monkeypatch.delenv("IMPORTOBOT_ENCRYPTION_KEY", raising=False)
+        monkeypatch.setenv("IMPORTOBOT_KEYRING_SERVICE", "importobot-ci")
+        monkeypatch.setenv("IMPORTOBOT_KEYRING_USERNAME", "bot")
+        monkeypatch.setattr(
+            "importobot.security.credential_manager.keyring",
+            DummyKeyring(),
+        )
+
+        manager = CredentialManager()
+        assert manager is not None
+
+    def test_store_key_in_keyring_generates_new_key(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """CredentialManager.store_key_in_keyring writes a generated key to keyring."""
+
+        class DummyKeyring:
+            def __init__(self) -> None:
+                self.passwords: dict[tuple[str, str], str] = {}
+
+            def get_password(self, service: str, username: str) -> str | None:
+                return self.passwords.get((service, username))
+
+            def set_password(self, service: str, username: str, value: str) -> None:
+                self.passwords[(service, username)] = value
+
+        helper = DummyKeyring()
+        monkeypatch.setattr(
+            "importobot.security.credential_manager.keyring",
+            helper,
+        )
+
+        stored = CredentialManager.store_key_in_keyring(
+            service="importobot-ci", username="automation"
+        )
+
+        assert helper.get_password("importobot-ci", "automation") == stored
+        assert len(base64.urlsafe_b64decode(stored)) == 32
+
+    def test_store_key_in_keyring_honors_overwrite_flag(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Replacing an existing key requires overwrite=True."""
+
+        class DummyKeyring:
+            def __init__(self) -> None:
+                self.passwords: dict[tuple[str, str], str] = {
+                    ("svc", "bot"): CredentialManager.generate_key()
+                }
+
+            def get_password(self, service: str, username: str) -> str | None:
+                return self.passwords.get((service, username))
+
+            def set_password(self, service: str, username: str, value: str) -> None:
+                self.passwords[(service, username)] = value
+
+        helper = DummyKeyring()
+        monkeypatch.setattr(
+            "importobot.security.credential_manager.keyring",
+            helper,
+        )
+
+        with pytest.raises(SecurityError, match="already exists"):
+            CredentialManager.store_key_in_keyring(service="svc", username="bot")
+
+        rotated = CredentialManager.store_key_in_keyring(
+            service="svc", username="bot", overwrite=True
+        )
+        assert helper.get_password("svc", "bot") == rotated
+        assert len(base64.urlsafe_b64decode(rotated)) == 32
+
+    def test_store_key_in_keyring_requires_keyring_extra(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Helpful error when keyring dependency is missing."""
+
+        monkeypatch.setattr(
+            "importobot.security.credential_manager.keyring",
+            None,
+        )
+
+        with pytest.raises(SecurityError, match="System keyring integration"):
+            CredentialManager.store_key_in_keyring(service="svc")
+
     def test_encrypt_without_cryptography_fails(self) -> None:
         """Test that encryption fails without cryptography."""
         manager = CredentialManager(key=VALID_TEST_KEY)

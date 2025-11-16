@@ -139,6 +139,14 @@ class SecureMemory:
 
             self._secure_cleanup()
 
+    def __enter__(self) -> SecureMemory:
+        """Allow use as a context manager that zeroizes on exit."""
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        """Zeroize the protected buffer when leaving the context."""
+        self.zeroize()
+
     def _calculate_checksum(self) -> bytes:
         """Calculate BLAKE2b checksum for integrity verification.
 
@@ -338,6 +346,14 @@ class SecureString:
     def zeroize(self) -> None:
         """Immediately zeroize the string value."""
         self._memory.zeroize()
+
+    def __enter__(self) -> SecureString:
+        """Allow SecureString to participate in context manager blocks."""
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        """Zeroize the string contents when the context exits."""
+        self.zeroize()
 
     def __eq__(self, other: Any) -> bool:
         """Secure equality comparison using constant-time comparison.

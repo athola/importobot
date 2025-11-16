@@ -49,8 +49,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import ClassVar
 
-from importobot import exceptions
 from importobot.config import MAX_SCHEMA_FILE_SIZE_BYTES, MAX_SCHEMA_SECTIONS
+from importobot.exceptions import ValidationError
 from importobot.utils.logging import get_logger
 
 logger = get_logger()
@@ -211,7 +211,7 @@ class SchemaParser:
         """
         # Reject pathologically large inputs before any processing
         if len(content) > MAX_SCHEMA_FILE_SIZE_BYTES * 10:
-            raise exceptions.ValidationError(
+            raise ValidationError(
                 f"Schema content ({len(content)} bytes) exceeds maximum "
                 f"reasonable size ({MAX_SCHEMA_FILE_SIZE_BYTES * 10} bytes)"
             )

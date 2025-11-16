@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Added `CredentialManager.store_key_in_keyring()` so rotation runbooks can
+  generate and persist Fernet keys directly in the OS keyring without invoking
+  platform-specific CLIs; documented the workflow in README, SECURITY, and
+  wiki/Key-Rotation.md.
+
+### Changed
+- Replaced the `globals()` cache in `importobot.__init__` with explicit
+  `functools.lru_cache` loaders, which removes global state, improves import
+  determinism, and fixes the lingering Pyright `__all__` warning for
+  `JsonToRobotConverter`.
+
 ## [0.1.5] - 2025-11-14
 
 ### Added

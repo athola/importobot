@@ -8,7 +8,6 @@ import json
 import sys
 from typing import Any
 
-from importobot import exceptions
 from importobot.cli.handlers import (
     handle_api_ingest,
     handle_directory_conversion,
@@ -18,6 +17,7 @@ from importobot.cli.handlers import (
 from importobot.cli.parser import create_parser
 from importobot.core.schema_parser import register_schema_file
 from importobot.core.templates import configure_template_sources
+from importobot.exceptions import ImportobotError
 from importobot.utils.logging import get_logger, log_exception
 
 logger = get_logger("importobot-cli")
@@ -88,7 +88,7 @@ def _determine_conversion_action(args: Any, parser: Any) -> None:
 
 def _handle_error(e: Exception) -> None:
     """Handle different types of exceptions."""
-    if isinstance(e, exceptions.ImportobotError):
+    if isinstance(e, ImportobotError):
         logger.error(str(e))
         sys.exit(1)
     elif isinstance(e, json.JSONDecodeError):

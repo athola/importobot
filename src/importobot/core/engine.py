@@ -2,7 +2,6 @@
 
 from typing import Any
 
-from importobot import exceptions
 from importobot.core.field_definitions import (
     TEST_DESCRIPTION_FIELDS,
     TEST_TAG_FIELDS,
@@ -12,6 +11,7 @@ from importobot.core.keyword_generator import GenericKeywordGenerator
 from importobot.core.parsers import GenericTestFileParser
 from importobot.core.pattern_matcher import LibraryDetector
 from importobot.core.templates.blueprints import render_with_blueprints
+from importobot.exceptions import ValidationError
 from importobot.utils.logging import get_logger
 from importobot.utils.validation import (
     convert_parameters_to_robot_variables,
@@ -66,7 +66,7 @@ class GenericConversionEngine(ConversionEngine):
             available_keys = (
                 list(json_data.keys()) if isinstance(json_data, dict) else []
             )
-            raise exceptions.ValidationError(
+            raise ValidationError(
                 f"No test cases found in input data. "
                 f"Expected structures like {{'testCase': {{...}}}}, "
                 f"{{'tests': [...]}}, "

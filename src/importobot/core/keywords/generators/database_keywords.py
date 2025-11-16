@@ -3,8 +3,8 @@
 import re
 from typing import Any
 
-from importobot import exceptions
 from importobot.core.keywords.base_generator import BaseKeywordGenerator
+from importobot.exceptions import ValidationError
 from importobot.utils.step_comments import generate_step_comments
 from importobot.utils.step_processing import extract_step_information
 
@@ -68,7 +68,7 @@ def _validate_sql_query(sql: str) -> str:
                 "Potentially dangerous SQL pattern detected: "
                 f"{description}. Pattern: {pattern}."
             )
-            raise exceptions.ValidationError(message)
+            raise ValidationError(message)
 
     return sql
 

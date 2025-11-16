@@ -27,6 +27,21 @@ jobs:
     - name: Build package
       run: uv build
 
+    - name: Smoke test extras from wheel
+      run: |
+        WHEEL=$(ls dist/*.whl | head -n 1)
+        uv pip install --no-deps "$WHEEL[security]"
+        python - <<'PY'
+        from importobot.security.credential_manager import CredentialManager
+        print(CredentialManager)
+        PY
+        uv pip uninstall -y importobot
+        uv pip install --no-deps "$WHEEL[enterprise]"
+        python - <<'PY'
+        import importobot_enterprise.siem as siem
+        print(siem.SIEMManager)
+        PY
+
     - name: Detect PyPI token
       id: detect-token
       env:

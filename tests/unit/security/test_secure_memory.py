@@ -90,6 +90,14 @@ class TestSecureMemory:
         # Force zeroize should work even if locked
         secure_mem.zeroize(force=True)
 
+    def test_context_manager_zeroizes_memory(self) -> None:
+        """Using SecureMemory as a context manager should zeroize automatically."""
+        with SecureMemory(b"context data") as secure_mem:
+            assert not secure_mem.is_locked()
+            assert secure_mem.reveal() == b"context data"
+
+        assert secure_mem.is_locked()
+
     def test_memory_integrity_verification(self) -> None:
         """Test BLAKE2b integrity verification."""
         original_data = b"integrity test data"
@@ -193,6 +201,14 @@ class TestSecureString:
         """Test SecureString initialization with invalid type."""
         with pytest.raises(SecurityError, match="SecureString requires string input"):
             SecureString(123)  # type: ignore[arg-type]
+
+    def test_context_manager_zeroizes_string(self) -> None:
+        """SecureString context manager should zeroize on exit."""
+        with SecureString("temporary secret") as secure_str:
+            assert not secure_str.is_locked()
+            assert secure_str.value == "temporary secret"
+
+        assert secure_str.is_locked()
 
     def test_byte_length(self) -> None:
         """Test byte length calculation."""

@@ -4,10 +4,10 @@
 
 We release patches for security vulnerabilities for the following versions:
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.x     | :white_check_mark: |
-| < 1.0   | :x:                |
+| Version | Supported |
+| ------- | --------- |
+| 1.x     | Yes       |
+| < 1.0   | No        |
 
 ## Reporting a Vulnerability
 
@@ -43,6 +43,15 @@ For sensitive vulnerability reports, you can encrypt your message using our PGP 
 ### Response Expectations
 
 When you report a vulnerability, our security team typically acknowledges reports within 48 hours and completes validation within 5 business days. We coordinate fix timing with you and notify you when patches are released. Security credits are included in release notes unless you prefer to remain anonymous.
+
+### Responsible Disclosure Timeline
+
+| Severity | Triage SLA | Fix/Advisory Target | Notes |
+| --- | --- | --- | --- |
+| Critical (RCE, key compromise) | 24 hours | 7 days or coordinated release | Maintainers stay in daily contact until patched |
+| High (privilege escalation, data exfiltration) | 48 hours | 14 days | Hotfix branch prepared once repro confirmed |
+| Medium (DoS, information disclosure) | 72 hours | Next scheduled release (≤30 days) | Documented workarounds shared if fix slips |
+| Low (defense-in-depth gaps) | 5 business days | Backlog with quarterly review | Feedback folded into hardening roadmap |
 
 ## Security Considerations
 
@@ -198,6 +207,22 @@ wget url | bash
 - Always validate file paths to prevent directory traversal attacks
 - Reject paths containing `..` or `//` sequences
 - Implement allow-lists for accessible directories
+
+## Security Limitations
+
+Importobot's defenses are intentionally scoped so they remain understandable:
+
+- **CredentialManager** protects secrets in memory and in configuration files but does not replace a hardware security module (HSM) or an enterprise vault. Store ciphertext in a managed secret store and rotate `IMPORTOBOT_ENCRYPTION_KEY` regularly.
+- Use the [Key Rotation Guide](wiki/Key-Rotation.md) and the `importobot_enterprise.key_rotation` helpers to re-wrap ciphertexts when rotating Fernet keys.
+- **TemplateSecurityScanner** flags hard-coded credentials, suspicious variables, and dangerous Robot keywords. It cannot interpret custom Python code or Jinja-like templating embedded in `.robot` files. Review rendered templates in CI/CD before execution.
+- **SecurityValidator** governs commands Importobot emits. It does not police the downstream systems that eventually execute generated Robot suites. Continue to sandbox Robot test runs and restrict the accounts used for automation.
+- **Secrets scanning** relies on regex detectors via `detect-secrets`. It will miss proprietary credential formats unless you add custom patterns (see `IMPORTOBOT_TOKEN_INDICATORS` and `IMPORTOBOT_TOKEN_PLACEHOLDERS`).
+
+When you need to centralize encryption keys, set `IMPORTOBOT_KEYRING_SERVICE` and
+`IMPORTOBOT_KEYRING_USERNAME` to fetch the Fernet key from the system keyring (install
+the `security` extra to pull in the `keyring` dependency).
+
+Documenting these bounds up-front helps adopters layer Importobot with existing HSM, SIEM, or EDR tooling rather than assuming one tool mitigates every risk.
 - Use absolute paths when possible
 
 ** Sensitive File Protection:**
@@ -257,9 +282,334 @@ Log SSH connections and command executions to track test activities. Monitor for
 ** Compliance Considerations:**
 Test activities should align with your organization's security policies. Document test procedures for audit trails and implement approval workflows for high-risk test scenarios. Periodically review test permissions and access levels to maintain least privilege principles.
 
+## Comprehensive Security Assessment
+
+This section provides an in-depth analysis of Importobot's security module with identified strengths and documented limitations.
+
+### Security Strengths
+
+#### 1. Industry-Standard Encryption
+
+**Implementation:** Fernet (AES-128-CBC + HMAC) from `cryptography` library
+
+**Features:**
+- Symmetric encryption with authentication
+- Prevents tampering through HMAC-SHA256
+- Time-based token expiration support
+- Well-audited cryptographic primitives
+
+**Usage:**
+```python
+from importobot.security import CredentialManager
+
+manager = CredentialManager()
+encrypted = manager.encrypt_credential("sensitive_api_key")
+# Store encrypted.ciphertext safely
+decrypted = manager.decrypt_credential(encrypted)
+```
+
+#### 2. Secure Memory Management
+
+**Multi-Layer Protection:**
+- Three-pass zeroization (zeros → random → zeros)
+- SHA-256 integrity verification
+- Locked state with access controls
+- Context manager for automatic cleanup
+
+**Best Practice:**
+```python
+from importobot.config import APIIngestConfig
+
+# Recommended: Context manager ensures cleanup
+with APIIngestConfig(...) as config:
+    # Use config
+    pass
+# Tokens automatically zeroized
+```
+
+#### 3. Defense-in-Depth Validation
+
+**Token Validation (NOT a security boundary):**
+- Exact placeholder detection
+- Configurable length requirements (default: 12 chars, min: 8 chars)
+- Insecure indicator scanning
+- Entropy analysis with warnings
+
+**Note:** Validation catches obvious mistakes but can be bypassed. Use encryption as primary protection.
+
+### Known Limitations and Mitigations
+
+#### 1. Encryption Key Storage
+
+**LIMITATION:** Built-in key storage still depends on optional OS services.
+
+**CURRENT GUIDANCE:**
+```bash
+# Basic (insecure for production)
+export IMPORTOBOT_ENCRYPTION_KEY="$(openssl rand -base64 32)"
+```
+
+**RECOMMENDED: System Keyring Integration**
+
+For desktop/development environments:
+
+```bash
+# Install the security extra so keyring is available
+pip install 'importobot[security]'
+```
+
+```python
+from importobot.security import CredentialManager
+
+# One-liner: generate + store a Fernet key inside the OS keyring
+CredentialManager.store_key_in_keyring(
+    service="importobot-ci",
+    username="automation",
+    overwrite=False,
+)
+
+# Importobot automatically loads the key when
+# IMPORTOBOT_KEYRING_SERVICE / IMPORTOBOT_KEYRING_USERNAME are set.
+```
+
+**Supported Platforms:**
+- macOS: Keychain
+- Windows: Credential Locker
+- Linux: Secret Service (GNOME Keyring, KWallet)
+
+**RECOMMENDED: Cloud KMS (Production)**
+
+For production deployments, use managed key services:
+
+```python
+# AWS Secrets Manager
+import boto3
+client = boto3.client('secretsmanager')
+response = client.get_secret_value(SecretId='importobot/key')
+os.environ['IMPORTOBOT_ENCRYPTION_KEY'] = response['SecretString']
+
+# Azure Key Vault
+from azure.keyvault.secrets import SecretClient
+from azure.identity import DefaultAzureCredential
+client = SecretClient(vault_url="https://<vault>.vault.azure.net/",
+                      credential=DefaultAzureCredential())
+secret = client.get_secret("importobot-key")
+os.environ['IMPORTOBOT_ENCRYPTION_KEY'] = secret.value
+
+# Google Secret Manager
+from google.cloud import secretmanager
+client = secretmanager.SecretManagerServiceClient()
+name = "projects/<proj>/secrets/importobot-key/versions/latest"
+response = client.access_secret_version(request={"name": name})
+os.environ['IMPORTOBOT_ENCRYPTION_KEY'] = response.payload.data.decode()
+```
+
+**Key Rotation Procedure:**
+
+```python
+# 1. Generate new key
+new_key = Fernet.generate_key()
+
+# 2. Re-encrypt all credentials
+old_manager = CredentialManager()  # Uses current key
+os.environ['IMPORTOBOT_ENCRYPTION_KEY'] = new_key.decode()
+new_manager = CredentialManager()  # Uses new key
+
+for encrypted_cred in load_all_credentials():
+    plaintext = old_manager.decrypt_credential(encrypted_cred)
+    new_encrypted = new_manager.encrypt_credential(plaintext)
+    store_credential(new_encrypted)
+
+# 3. Update key reference in keyring/KMS
+# 4. Revoke old key
+```
+
+**Rotation Schedule:**
+- Production: Every 90 days
+- Development: Every 180 days
+- After breach: Immediately
+
+#### 2. Validation Bypasses
+
+**LIMITATION:** Regex-based validation can be circumvented.
+
+**What Validation Catches:**
+- Exact placeholders (`"token"`, `"bearer_token"`)
+- Test/demo indicators
+- Short tokens (< min length)
+- Very low entropy (warning)
+
+**What It Misses:**
+- Sophisticated fakes (`"sk_live_" + "0" * 32`)
+- Obfuscated patterns (`"t" + "oken"`)
+- Base64-encoded placeholders
+- Context-aware attacks
+
+**Security Model:**
+```
+┌─────────────────────────────────┐
+│ Token Validation                │ ← Defense in depth
+│ (Catches mistakes)              │   (NOT security boundary)
+├─────────────────────────────────┤
+│ Encryption at Rest              │ ← PRIMARY PROTECTION
+│ (Fernet + HMAC)                 │   (SECURITY BOUNDARY)
+├─────────────────────────────────┤
+│ Secure Memory                   │ ← Runtime protection
+│ (Zeroization)                   │   (Defense in depth)
+├─────────────────────────────────┤
+│ Access Controls                 │ ← Infrastructure
+│ (File perms, IAM)               │   (SECURITY BOUNDARY)
+└─────────────────────────────────┘
+```
+
+**Best Practices:**
+1. **Never rely on validation for security** - Use encryption
+2. **Assume validation can be bypassed** - Attackers will find edge cases
+3. **Use real credentials in tests** - Validation is for catching honest mistakes
+4. **Monitor token usage** - Audit logs, not validation, detect misuse
+
+#### 3. Template Scanning Limitations
+
+**LIMITATION:** Static analysis has inherent false negatives and positives.
+
+**False Negatives (Missed Secrets):**
+
+```robot
+# Obfuscated - Not detected
+*** Variables ***
+${PART1}    sk_live_
+${PART2}    abc123def456
+${TOKEN}    ${PART1}${PART2}
+
+# Dynamic - Not detected
+${token}=    Get Token From Vault
+
+# Encoded - Not detected
+${b64}=    c2tfbGl2ZV9hYmMxMjNkZWY=  # Base64
+
+# Low entropy - May not trigger
+${PASS}=    password123
+```
+
+**False Positives (Flagged Non-Secrets):**
+
+```robot
+# Example in comment
+# Example: sk_test_123 (not real)  # ← Flagged
+
+# Valid placeholder syntax
+${API_KEY}=    ${PLACEHOLDER}  # ← May flag
+```
+
+**Mitigation Strategies:**
+
+1. **Layered Detection:**
+```python
+from importobot.security import TemplateSecurityScanner
+
+scanner = TemplateSecurityScanner()
+report = scanner.scan_template_file("template.robot")
+
+# Risk-based decision
+critical = [i for i in report.issues if i.severity == "CRITICAL"]
+if critical:
+    raise SecurityError("Critical secrets detected")
+```
+
+2. **Entropy Analysis:**
+```python
+import math
+from collections import Counter
+
+def shannon_entropy(data: str) -> float:
+    if not data:
+        return 0.0
+    counter = Counter(data)
+    length = len(data)
+    return -sum((c/length) * math.log2(c/length) for c in counter.values())
+
+# Flag low entropy
+if shannon_entropy(token) < 3.0:
+    logger.warning(f"Low entropy credential: {shannon_entropy(token):.2f} bits/char")
+```
+
+3. **CI/CD Integration:**
+```yaml
+# .github/workflows/security.yml
+- name: External Secret Scan
+  uses: trufflesecurity/trufflehog@main
+
+- name: Importobot Template Scan
+  run: importobot scan-templates --dir ./templates/ --strict
+```
+
+### Security Checklist
+
+#### Development
+- [ ] Store keys in system keyring or secure file (chmod 600)
+- [ ] Enable token validation (default behavior)
+- [ ] Use SecureString for all credentials
+- [ ] Scan all Robot templates before use
+- [ ] Never commit keys to version control
+
+#### Production
+- [ ] Use cloud KMS for key storage
+- [ ] Rotate keys every 90 days
+- [ ] Enable comprehensive audit logging
+- [ ] Use context managers for cleanup
+- [ ] Integrate secret scanning in CI/CD
+- [ ] Document incident response procedures
+
+#### High-Security
+- [ ] Manual approval for template changes
+- [ ] Entropy-based detection
+- [ ] External scanners (TruffleHog, GitGuardian)
+- [ ] Regular credential audits
+- [ ] Principle of least privilege
+- [ ] Air-gapped key generation
+
+### Threat Model
+
+**In Scope:**
+1. Credential exposure via version control
+2. Memory disclosure attacks
+3. Encryption key compromise
+4. Template injection attacks
+
+**Out of Scope:**
+1. Physical access attacks
+2. Timing/side-channel attacks
+3. Advanced persistent threats (APTs)
+4. Hardware-level exploits
+
+**Risk Assessment:**
+
+| Threat | Likelihood | Impact | Mitigation |
+|--------|-----------|--------|------------|
+| Hardcoded secrets | High | High | Template scanning |
+| Memory disclosure | Medium | Medium | SecureString zeroization |
+| Key exposure | Medium | High | KMS + rotation |
+| Validation bypass | Low | Low | Defense-in-depth only |
+
+### Enterprise Bloat Removed
+
+**Previous security concerns that no longer apply:**
+
+We removed 4,497 lines of enterprise security features that were out of scope:
+
+- SIEM connectors (Splunk, Elastic, Sentinel) - No longer accept string credentials
+- HSM integration (AWS CloudHSM, Azure, Thales) - Removed unnecessary complexity
+- MITRE ATT&CK integration - Overkill for test conversion tool
+- Compliance frameworks - SOC 2, ISO 27001, etc. not needed
+- Key rotation automation - Users manage rotation manually
+
+**Impact:** Reduced attack surface, simpler codebase, fewer dependencies.
+
 ## Additional Security Resources
 
 - [GitHub Security Advisories](https://github.com/athola/importobot/security/advisories)
 - [GitHub Dependabot Alerts](https://github.com/athola/importobot/security/dependabot)
+- [OWASP Testing Guide](https://owasp.org/www-project-web-security-testing-guide/)
+- [CWE Top 25](https://cwe.mitre.org/top25/)
 
-For any security-related questions or concerns not covered in this policy, please either use GitHub's private advisory channel or contact security@importobot.com after verifying it is actively monitored.
+For security questions or concerns not covered in this policy, use GitHub's private advisory channel or contact security@importobot.com after verifying it is actively monitored.

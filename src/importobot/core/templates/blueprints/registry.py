@@ -85,14 +85,26 @@ class TemplateSecurityViolation(TemplateIngestionError):
     """Raised when the template security scan detects unsafe content."""
 
 
-_TEMPLATE_SECURITY_SCANNER: TemplateSecurityScanner | None = None
+class _TemplateSecurityManager:
+    """Manager for template security scanner with lazy initialization."""
+
+    def __init__(self) -> None:
+        self._scanner: TemplateSecurityScanner | None = None
+
+    def get_scanner(self) -> TemplateSecurityScanner:
+        """Get or create the security scanner instance."""
+        if self._scanner is None:
+            self._scanner = TemplateSecurityScanner()
+        return self._scanner
+
+
+# Module-level instance
+_template_security_manager = _TemplateSecurityManager()
 
 
 def _get_template_security_scanner() -> TemplateSecurityScanner:
-    global _TEMPLATE_SECURITY_SCANNER
-    if _TEMPLATE_SECURITY_SCANNER is None:
-        _TEMPLATE_SECURITY_SCANNER = TemplateSecurityScanner()
-    return _TEMPLATE_SECURITY_SCANNER
+    """Get the template security scanner instance."""
+    return _template_security_manager.get_scanner()
 
 
 def _summarize_security_issues(
@@ -106,7 +118,8 @@ def _summarize_security_issues(
     for issue in issues:
         location = f"line {issue.line_number}" if issue.line_number else "unknown line"
         summary_parts.append(
-            f"{issue.severity.upper()} {issue.issue_type} at {location}: {issue.description}"
+            f"{issue.severity.upper()} {issue.issue_type} at {location}: "
+            f"{issue.description}"
         )
 
     remaining = max(0, report.total_issues - len(issues))
@@ -296,18 +309,9 @@ def find_step_pattern(
     command_token: str | None = None,
 ) -> StepPattern | None:
     """Look up a learned step pattern by library+keyword or command token."""
-    pattern = KNOWLEDGE_BASE.find_pattern(
+    return KNOWLEDGE_BASE.find_pattern(
         library=library, keyword=keyword, command_token=command_token
     )
-    if pattern is not None:
-        return pattern
-
-    # Backwards compatibility: older call sites pass the command token as the
-    # second positional argument (`keyword`) without naming `command_token`.
-    if command_token is None and keyword:
-        return KNOWLEDGE_BASE.find_pattern(command_token=keyword)
-
-    return None
 
 
 def get_resource_imports() -> list[str]:

@@ -77,6 +77,47 @@ Both PyPI and GitHub Packages distributions:
 - Include the same dependencies and optional extras
 - Provide the same CLI interface and API
 
+## Enterprise Package Split
+
+Enterprise-only helpers (HSM, SIEM, compliance, key rotation) have been moved
+into the `importobot_enterprise` namespace so the default wheel can remain
+lightweight. The shared distribution exposes both packages, and the
+`publish-packages` workflow smoke-tests their extras before uploading:
+
+```bash
+pip install 'importobot[enterprise]'
+python - <<'PY'
+from importobot_enterprise import SIEMManager
+print(SIEMManager.__name__)
+PY
+```
+
+This split keeps optional analytics/cloud dependencies out of the base install
+while giving regulated teams a documented import path for enterprise features.
+
+## Key Management & Rotation
+
+The `security` extra bundles `cryptography` and `keyring` so Importobot can
+store Fernet keys in the operating system instead of plain environment
+variables. Use the helper methods when provisioning or rotating keys:
+
+```python
+from importobot.security import CredentialManager
+
+# Generate + store a key directly in the OS keyring
+CredentialManager.store_key_in_keyring(
+    service="importobot-ci",
+    username="automation",
+    overwrite=True,
+)
+
+# Later, rotate ciphertext without decrypting everything by hand
+from importobot_enterprise.key_rotation import rotate_credentials
+```
+
+For full runbooks (CI snippets, HSM mirroring, rollback guidance) see
+[wiki/Key-Rotation.md](wiki/Key-Rotation.md).
+
 ## Development Setup
 
 For developers working with the package:

@@ -265,11 +265,17 @@ class TemplateSecurityScanner:
                     issues_by_type.get(issue.issue_type, 0) + 1
                 )
 
-            # Determine if file is safe (no critical/high issues)
+            # Determine if file is safe
             critical_high_count = issues_by_severity.get(
                 "critical", 0
             ) + issues_by_severity.get("high", 0)
-            is_safe = critical_high_count == 0
+            credential_issues = issues_by_type.get("credential", 0)
+            hardcoded_issues = issues_by_type.get("hardcoded_value", 0)
+            is_safe = (
+                critical_high_count == 0
+                and credential_issues == 0
+                and hardcoded_issues == 0
+            )
 
             return TemplateSecurityReport(
                 file_path=str(file_path),
@@ -397,11 +403,20 @@ class TemplateSecurityScanner:
                 continue
 
             credential_type = match["credential_type"].upper()
-            severity = match.get("severity", "HIGH").upper()
+            base_severity = match.get("severity", "HIGH").upper()
+            confidence = match["confidence"]
+
+            # Adjust severity based on confidence (false positive reduction)
+            if confidence < 0.4:
+                adjusted_severity = "LOW"
+            elif confidence < 0.6:
+                adjusted_severity = "MEDIUM"
+            else:
+                adjusted_severity = base_severity
 
             issue = SecurityIssue(
                 issue_type="credential",
-                severity=match["severity"],
+                severity=adjusted_severity,
                 file_path=file_path,
                 line_number=match["line_number"],
                 column_number=match["start_pos"]
@@ -411,7 +426,7 @@ class TemplateSecurityScanner:
                 confidence=match["confidence"],
                 remediation=match["remediation"],
                 context=self._get_context(content, match["line_number"]),
-                rule_id=f"CRED_{credential_type}_{severity}",
+                rule_id=f"CRED_{credential_type}_{adjusted_severity}",
             )
             issues.append(issue)
 
@@ -447,13 +462,39 @@ class TemplateSecurityScanner:
 
                     # Check if variable name is suspicious
                     if self._is_suspicious_variable(var_name):
-                        # Check if the value suggests it's a false positive
+                        # Enhanced false positive reduction for variables
                         value_start = match.end()
                         remaining_line = line[value_start:]
-                        if self._contains_safe_keywords(remaining_line):
+
+                        # Check for false positive indicators in the context
+                        # Use more limited context to avoid false positives from section
+                        # headers
+                        context_lines = []
+                        # Add a few lines around, but avoid section headers
+                        for i in range(max(0, line_num-1), min(len(lines), line_num+2)):
+                            line_content = lines[i].strip()
+                            # Skip section headers (lines that start and end with ***)
+                            starts_with_stars = line_content.startswith('***')
+                            ends_with_stars = line_content.endswith('***')
+                            is_section_header = starts_with_stars and ends_with_stars
+                            if not is_section_header:
+                                context_lines.append(line_content)
+
+                        limited_context = " ".join(context_lines)
+                        if (
+                            self._contains_safe_keywords(remaining_line)
+                            or self._is_placeholder_context(limited_context)
+                        ):
                             continue
 
                         severity = self._get_variable_severity(var_name)
+
+                        # Reduce severity for likely placeholder variables
+                        if self._is_placeholder_context(limited_context):
+                            severity = "low"
+                            confidence = 0.3
+                        else:
+                            confidence = 0.8
 
                         issue = SecurityIssue(
                             issue_type="suspicious_variable",
@@ -463,7 +504,7 @@ class TemplateSecurityScanner:
                             column_number=match.start(),
                             description=f"Suspicious variable name: {var_name}",
                             match_text=match.group(0),
-                            confidence=0.8,
+                            confidence=confidence,
                             remediation=(
                                 "Use generic variable names or load from environment"
                             ),
@@ -603,6 +644,48 @@ class TemplateSecurityScanner:
         """
         text_lower = text.lower()
         return any(keyword in text_lower for keyword in self._safe_keywords)
+
+    def _is_placeholder_context(self, context: str) -> bool:
+        """Check if the context indicates placeholder/example content.
+
+        Args:
+            context: Text context around the match
+
+        Returns:
+            True if context suggests placeholder content
+        """
+        context_lower = context.lower()
+        placeholder_indicators = (
+            "example ",
+            "example_",
+            "example-",
+            "sample ",
+            "sample_",
+            "sample-",
+            "demo ",
+            "demo_",
+            "demo-",
+            "test ",
+            "test_",
+            "test-",
+            "fake ",
+            "fake_",
+            "fake-",
+            "dummy ",
+            "dummy_",
+            "dummy-",
+            "placeholder",
+            "replace_with",
+            "your_",
+            "placeholder_key",
+            "use_env_variable_for",
+            "# example",
+            "# test",
+            "# demo",
+            "example only",
+            "replace_with_actual",
+        )
+        return any(indicator in context_lower for indicator in placeholder_indicators)
 
     def _is_suspicious_variable(self, var_name: str) -> bool:
         """Determine whether a variable name is suspicious."""

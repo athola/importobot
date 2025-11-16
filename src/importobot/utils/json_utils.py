@@ -4,7 +4,7 @@ import json
 import os
 from typing import Any
 
-from importobot import exceptions
+from importobot.exceptions import FileAccessError, ValidationError
 from importobot.services.performance_cache import get_performance_cache
 from importobot.utils.validation import validate_safe_path
 
@@ -102,11 +102,11 @@ def _load_and_process_json_data(file_path: str) -> dict[str, Any]:
             e.pos,
         ) from e
     except PermissionError as e:
-        raise exceptions.FileAccessError(
+        raise FileAccessError(
             f"Permission denied accessing file: {file_path}"
         ) from e
     except OSError as e:
-        raise exceptions.FileAccessError(f"Error reading file {file_path}: {e}") from e
+        raise FileAccessError(f"Error reading file {file_path}: {e}") from e
 
 
 def _read_json_file(file_path: str) -> Any:
@@ -137,10 +137,10 @@ def _process_json_structure(data: dict[str, Any] | list[Any]) -> dict[str, Any]:
     # Handle case where JSON is an array with one or more test cases
     if isinstance(data, list):
         if not data:
-            raise exceptions.ValidationError("JSON array cannot be empty.")
+            raise ValidationError("JSON array cannot be empty.")
 
         if not all(isinstance(item, dict) for item in data):
-            raise exceptions.ValidationError(
+            raise ValidationError(
                 "JSON array must contain only test case dictionaries."
             )
 
@@ -148,14 +148,14 @@ def _process_json_structure(data: dict[str, Any] | list[Any]) -> dict[str, Any]:
             single_item = data[0]
             if isinstance(single_item, dict):
                 return single_item
-            raise exceptions.ValidationError(
+            raise ValidationError(
                 "Single item in JSON array must be a dictionary."
             )
 
         return {_MULTI_TEST_CONTAINER_KEY: data}
 
     if not isinstance(data, dict):
-        raise exceptions.ValidationError("JSON content must be a dictionary or array.")
+        raise ValidationError("JSON content must be a dictionary or array.")
 
     return data
 

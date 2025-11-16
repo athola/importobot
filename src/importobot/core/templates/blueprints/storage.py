@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from importobot import exceptions
+from importobot.exceptions import ImportobotError
 from importobot.utils.logging import get_logger
 
 logger = get_logger()
@@ -259,7 +259,7 @@ class KeywordLibrary:
             self._keywords.add(name.lower())
 
 
-class TemplateIngestionError(exceptions.ImportobotError):
+class TemplateIngestionError(ImportobotError):
     """Raised when template file ingestion encounters problems."""
 
 

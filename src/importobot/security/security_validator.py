@@ -110,7 +110,8 @@ class SecurityValidator:
             dangerous_patterns: Custom dangerous command patterns to override defaults
             sensitive_paths: Custom sensitive path patterns to override defaults
             security_level: Security level determining validation strictness:
-                - 'strict': Maximum security for production and other hardened environments
+                - 'strict': Maximum security for production and other hardened
+                  environments
                 - 'standard': Balanced security for general development and testing
                   (default)
                 - 'permissive': Relaxed security for trusted development environments

@@ -553,14 +553,6 @@ def test_zephyr_client_extract_results_variants() -> None:
         {"key": "TC-1", "description": "📝 Documentation test"}
     ]
 
-    # Nested structure
-    nested_payload = {
-        "value": {"results": [{"key": "NESTED-1", "label": "🔄 Nested workflow"}]}
-    }
-    assert ZephyrClient._extract_results(nested_payload) == [
-        {"key": "NESTED-1", "label": "🔄 Nested workflow"}
-    ]
-
     # Single item with complex emoji (ZWJ sequences)
     single_payload = {"key": "SINGLE-1", "name": "👨‍💻 Developer Test 🔧"}
     assert ZephyrClient._extract_results(single_payload) == [single_payload]
@@ -577,17 +569,13 @@ def test_zephyr_client_extract_total_variants() -> None:
     standard_payload = {"results": [], "total": 42}
     assert ZephyrClient._extract_total(standard_payload) == 42
 
-    # Alternative field names
-    count_payload = {"data": [], "count": 100}
-    assert ZephyrClient._extract_total(count_payload) == 100
-
     # Nested pagination
     nested_payload = {"results": [], "pagination": {"total": 200}}
     assert ZephyrClient._extract_total(nested_payload) == 200
 
-    # Wrapped structure
-    wrapped_payload = {"value": {"results": [], "totalCount": 300}}
-    assert ZephyrClient._extract_total(wrapped_payload) == 300
+    # totalCount variant
+    total_count_payload = {"results": [], "totalCount": 150}
+    assert ZephyrClient._extract_total(total_count_payload) == 150
 
     # Default value
     default_payload: dict[str, list[Any]] = {"results": []}

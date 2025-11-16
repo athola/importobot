@@ -9,6 +9,11 @@ import os
 from dataclasses import dataclass, field
 from typing import Any, cast
 
+try:  # Optional dependency provided via the "security" extra
+    import keyring
+except ImportError:  # pragma: no cover - optional dependency
+    keyring = None  # type: ignore[assignment]
+
 from importobot.exceptions import ImportobotError
 from importobot.utils.logging import get_logger
 
@@ -129,7 +134,8 @@ class CredentialManager:
         # SECURITY: Fail loudly instead of silently decrypting base64
         raise SecurityError(_DECRYPTION_ERROR_MESSAGE)
 
-    def _prepare_key(self, provided: bytes | str | None) -> bytes | None:
+    @staticmethod
+    def _prepare_key(provided: bytes | str | None) -> bytes | None:
         """Normalize the provided key into bytes."""
         if provided is None:
             return None
@@ -144,7 +150,66 @@ class CredentialManager:
         key = os.getenv("IMPORTOBOT_ENCRYPTION_KEY")
         if key:
             return key.encode("utf-8")
+        service = os.getenv("IMPORTOBOT_KEYRING_SERVICE")
+        if service:
+            username = os.getenv("IMPORTOBOT_KEYRING_USERNAME", "importobot")
+            if keyring is None:
+                logger.warning(
+                    "IMPORTOBOT_KEYRING_SERVICE is set but the 'keyring' package is "
+                    "missing; install the 'security' extra to enable key retrieval."
+                )
+            else:
+                stored = keyring.get_password(service, username)
+                if stored:
+                    logger.info(
+                        "Loaded encryption key from keyring service %s", service
+                    )
+                    return stored.encode("utf-8")
+                logger.warning(
+                    "Keyring service %s has no password for user %s", service, username
+                )
         return None
+
+    @classmethod
+    def generate_key(cls) -> str:
+        """Return a base64 Fernet key suitable for IMPORTOBOT_ENCRYPTION_KEY."""
+        return cls._normalized_key_text(None)
+
+    @classmethod
+    def store_key_in_keyring(
+        cls,
+        *,
+        service: str,
+        username: str = "importobot",
+        key: bytes | str | None = None,
+        overwrite: bool = False,
+    ) -> str:
+        """Generate or persist a Fernet key inside the system keyring."""
+        if keyring is None:
+            raise SecurityError(
+                "System keyring integration requires the 'security' extra. "
+                "Install it via `pip install \"importobot[security]\"`."
+            )
+        if not service:
+            raise ValueError("Keyring service name must be provided.")
+        if not username:
+            raise ValueError("Keyring username must be provided.")
+
+        normalized_text = cls._normalized_key_text(key)
+        existing = keyring.get_password(service, username)
+        if existing and not overwrite:
+            raise SecurityError(
+                "An encryption key already exists in the keyring. "
+                "Pass overwrite=True to rotate it."
+            )
+
+        keyring.set_password(service, username, normalized_text)
+        logger.info(
+            "Stored encryption key in keyring service %s for user %s",
+            service,
+            username,
+        )
+        return normalized_text
 
     def _build_cipher(self, key: bytes | None) -> Any | None:
         """Build the Fernet cipher from the provided key."""
@@ -202,6 +267,22 @@ class CredentialManager:
         """Return a stable fingerprint for the active key."""
         decoded = base64.urlsafe_b64decode(normalized_key)
         return hashlib.blake2b(decoded, digest_size=32).digest()
+
+    @classmethod
+    def _normalized_key_text(cls, key: bytes | str | None) -> str:
+        """Return a base64 text key suitable for storage or environment variables."""
+        raw = os.urandom(32) if key is None else cls._prepare_key(key)
+
+        if raw is None:
+            raise ValueError("Encryption key material cannot be empty.")
+
+        normalized = cls._normalize_key(raw)
+        if normalized is None:
+            raise ValueError(
+                "Encryption key must be 32 bytes or a base64-encoded 32-byte string."
+            )
+
+        return normalized.decode("utf-8")
 
 
 _ENCRYPTION_ERROR_MESSAGE = (

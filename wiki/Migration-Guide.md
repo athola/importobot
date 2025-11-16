@@ -6,6 +6,22 @@ This guide details the changes and necessary steps when migrating between differ
 
 Version 0.1.5 adds a first-class security package without breaking the existing public API, but you must wire up the new defaults if you want encrypted credentials or SIEM forwarding.
 
+### Dependency Changes
+- `cryptography` moved to an optional extra so lightweight installations stay slim. Install it explicitly when you need encryption:
+
+```bash
+pip install 'importobot[security]'
+export IMPORTOBOT_ENCRYPTION_KEY="$(openssl rand -base64 32)"
+```
+
+### Token Handling Changes
+- `APIIngestConfig.tokens` now stores `SecureString` instances instead of raw strings. Prefer `config.get_token(index)`, `config.get_all_tokens()`, or `config.secure_tokens`.
+- Temporarily accessing plaintext tokens is possible via `config.plaintext_tokens`, which emits a `DeprecationWarning` and keeps tokens zeroizable.
+- Set `IMPORTOBOT_MIN_TOKEN_LENGTH` (default `12`, hard minimum `8`), `IMPORTOBOT_TOKEN_PLACEHOLDERS`, or `IMPORTOBOT_TOKEN_INDICATORS` to tune validation rules, or `IMPORTOBOT_SKIP_TOKEN_VALIDATION=1` when running trusted benchmarks.
+- Enterprise-only modules (`importobot_enterprise.*`) are now distributed separately. Install
+  them with `pip install 'importobot[enterprise]'` to access SIEM connectors, the HSM helper,
+  and the key rotation utilities.
+
 ### Required When Using `importobot.security`
 1. **Install cryptography**: `uv sync` already pulls `cryptography>=42.0.0`. If you deploy from a trimmed image, run `pip install cryptography`.
 2. **Export a Fernet key**: `CredentialManager` fails closed unless `IMPORTOBOT_ENCRYPTION_KEY` contains a 32-byte key.

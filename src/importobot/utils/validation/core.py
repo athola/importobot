@@ -4,7 +4,7 @@ import functools
 from collections.abc import Callable, Iterable
 from typing import Any, TypeVar
 
-from importobot import exceptions
+from importobot.exceptions import ValidationError as _ValidationError
 from importobot.utils.validation_models import (
     QualitySeverity,
     ValidationResult,
@@ -14,8 +14,8 @@ from importobot.utils.validation_models import (
 
 T = TypeVar("T")
 
-# Re-export ValidationError for convenience
-ValidationError = exceptions.ValidationError
+# Re-export ValidationError for external callers
+ValidationError = _ValidationError
 
 
 def validate_type(value: Any, expected_type: type, param_name: str) -> None:

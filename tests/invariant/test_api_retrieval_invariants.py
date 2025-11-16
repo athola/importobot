@@ -17,7 +17,7 @@ from importobot.medallion.interfaces.enums import SupportedFormat
 def _normalize_token(raw: str) -> str:
     sanitized = raw.replace(",", "").replace(" ", "").replace("\t", "")
     if not sanitized:
-        sanitized = "token"
+        sanitized = "fallback"
     return f"{sanitized}_secure_value_123456"
 
 
