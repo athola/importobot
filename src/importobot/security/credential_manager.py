@@ -188,7 +188,7 @@ class CredentialManager:
         if keyring is None:
             raise SecurityError(
                 "System keyring integration requires the 'security' extra. "
-                "Install it via `pip install \"importobot[security]\"`."
+                'Install it via `pip install "importobot[security]"`.'
             )
         if not service:
             raise ValueError("Keyring service name must be provided.")

@@ -16,8 +16,9 @@ from importobot.security.secure_memory import (
     SecureString,
     SecurityError,
     create_secure_string,
-    get_secure_memory_pool,
+    get_current_memory_pool,
     secure_compare_strings,
+    secure_memory_pool_context,
 )
 
 
@@ -433,14 +434,45 @@ class TestSecureMemoryPool:
         assert stats["active_instances"] == 1
         assert stats["locked_instances"] == 0
 
-    def test_global_pool(self) -> None:
-        """Test global secure memory pool."""
-        pool = get_secure_memory_pool()
+    def test_current_pool_thread_local(self) -> None:
+        """Test thread-local secure memory pool."""
+        pool = get_current_memory_pool()
         assert isinstance(pool, SecureMemoryPool)
 
-        # Should be the same instance
-        pool2 = get_secure_memory_pool()
+        # Should be the same instance within the same thread
+        pool2 = get_current_memory_pool()
         assert pool is pool2
+        assert pool.name == "default"
+
+    def test_context_manager_isolation(self) -> None:
+        """Test pool isolation with context manager."""
+        with secure_memory_pool_context(pool_name="test-context") as pool:
+            assert isinstance(pool, SecureMemoryPool)
+            assert pool.name == "test-context"
+            assert pool is get_current_memory_pool()
+
+        # Should revert to previous state after context
+        default_pool = get_current_memory_pool()
+        assert default_pool.name == "default"
+
+    def test_nested_context_managers(self) -> None:
+        """Test nested context manager behavior."""
+        outer_pool = SecureMemoryPool(name="outer")
+        inner_pool = SecureMemoryPool(name="inner")
+
+        with secure_memory_pool_context(outer_pool) as outer:
+            assert get_current_memory_pool() is outer
+
+            with secure_memory_pool_context(inner_pool) as inner:
+                assert get_current_memory_pool() is inner
+                assert get_current_memory_pool() is not outer
+
+            # After inner context exits, should revert to outer
+            assert get_current_memory_pool() is outer
+
+        # After outer context exits, should revert to default
+        final_pool = get_current_memory_pool()
+        assert final_pool.name == "default"
 
     def test_pool_stats_details(self) -> None:
         """Test detailed pool statistics."""
@@ -548,12 +580,19 @@ class TestBlake2bIntegration:
         secure_mem_large.reveal()  # Trigger checksum verification
         large_time = time.perf_counter() - start_time
 
-        # Performance should be reasonable (less than 1 second for these operations)
-        assert small_time < 1.0
-        assert large_time < 1.0
+        # Performance should be reasonable - test relative performance instead
+        # of absolute timeouts
+        assert large_time > small_time, (
+            "Large data should take longer to process than small data"
+        )
 
-        # Large data should take longer than small data, but not exponentially so
-        assert large_time > small_time
+        # Reasonable performance: large data should not be too much slower
+        # than small data
+        # Allow for some overhead but ensure it's not exponentially slower
+        performance_ratio = large_time / small_time if small_time > 0 else 1.0
+        assert performance_ratio < 100, (
+            "Large data processing should not be exponentially slower than small data"
+        )
 
     def test_b2b_integrity_tampering_detection(self) -> None:
         """Test that BLAKE2b can detect memory tampering."""

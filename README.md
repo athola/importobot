@@ -30,7 +30,6 @@ For end-users, install from PyPI:
 ```sh
 pip install importobot
 ```
-<<<<<<< HEAD
 Optional security features (encryption, secure memory helpers) live in an extra:
 ```sh
 pip install 'importobot[security]'

@@ -15,8 +15,8 @@ import pytest
 from importobot.core.engine import GenericConversionEngine
 from importobot.utils.file_operations import load_json_file as load_json
 from importobot.utils.security import (
+    SecurityValidator,
     get_ssh_security_guidelines,
-    validate_test_security,
 )
 from tests.shared_test_data import SSH_SECURITY_TOPICS
 
@@ -193,7 +193,8 @@ class TestSecurityValidationCICD:
         json_data = load_json(str(production_test_data))
 
         # Validate the test case
-        results = validate_test_security(json_data["test_case"])
+        validator = SecurityValidator()
+        results = validator.validate_test_security(json_data["test_case"])
 
         # Should detect multiple security issues
         assert len(results["warnings"]) > 0, "Strict security should detect violations"
@@ -221,7 +222,8 @@ class TestSecurityValidationCICD:
         json_data = load_json(str(security_violation_test_data))
 
         # Validate security
-        results = validate_test_security(json_data["test_case"])
+        validator = SecurityValidator()
+        results = validator.validate_test_security(json_data["test_case"])
 
         # Should detect multiple severe security violations
         assert len(results["warnings"]) >= 5, (
@@ -253,7 +255,8 @@ class TestSecurityValidationCICD:
         json_data = load_json(str(safe_test_data))
 
         # Validate security
-        results = validate_test_security(json_data["test_case"])
+        validator = SecurityValidator()
+        results = validator.validate_test_security(json_data["test_case"])
 
         # Should have minimal or no warnings
         assert len(results["warnings"]) == 0, (
@@ -282,7 +285,8 @@ class TestSecurityValidationCICD:
         robot_content = engine.convert(json_data)
 
         # Security validation should still work
-        results = validate_test_security(json_data["test_case"])
+        validator = SecurityValidator()
+        results = validator.validate_test_security(json_data["test_case"])
 
         # Should detect security issues
         assert len(results["warnings"]) > 0, (
@@ -330,7 +334,8 @@ class TestSecurityValidationCICD:
         warning_counts = {}
 
         for level in security_levels:
-            results = validate_test_security(json_data["test_case"])
+            validator = SecurityValidator()
+            results = validator.validate_test_security(json_data["test_case"])
             warning_counts[level] = len(results["warnings"])
 
         # Strict should detect most issues
@@ -395,7 +400,8 @@ class TestSecurityValidationCICD:
 
         for test_file in test_files:
             json_data = load_json(str(test_file))
-            results = validate_test_security(json_data["test_case"])
+            validator = SecurityValidator()
+            results = validator.validate_test_security(json_data["test_case"])
             total_warnings += len(results["warnings"])
 
             if results["warnings"]:
@@ -459,7 +465,8 @@ class TestSecurityValidationCICD:
         json_data = load_json(str(test_file))
 
         start_time = time.time()
-        results = validate_test_security(json_data["test_case"])
+        validator = SecurityValidator()
+        results = validator.validate_test_security(json_data["test_case"])
         end_time = time.time()
 
         # Should complete in reasonable time
@@ -509,7 +516,8 @@ class TestSecurityValidationCICD:
         # Should handle malformed data gracefully
         try:
             json_data = load_json(str(test_file))
-            results = validate_test_security(json_data)
+            validator = SecurityValidator()
+            results = validator.validate_test_security(json_data)
             # Should not crash, even with malformed data
             assert isinstance(results, dict), (
                 "Should return results dict even with malformed data"
@@ -556,7 +564,8 @@ class TestSecurityValidationCICD:
 
         # Load and validate
         json_data = load_json(str(test_file))
-        results = validate_test_security(json_data["test_case"])
+        validator = SecurityValidator()
+        results = validator.validate_test_security(json_data["test_case"])
 
         # Should not flag environment variables as hardcoded credentials
         warning_text = " ".join(results["warnings"])
@@ -579,7 +588,8 @@ class TestSecurityValidationCICD:
         _ = ci_cd_environment
         # Load test data
         json_data = load_json(str(security_violation_test_data))
-        results = validate_test_security(json_data["test_case"])
+        validator = SecurityValidator()
+        results = validator.validate_test_security(json_data["test_case"])
 
         # Generate security report
         report = {

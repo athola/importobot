@@ -4,15 +4,21 @@ from __future__ import annotations
 
 import re
 import tempfile
+import threading
+import time
 from pathlib import Path
 
 import pytest
 
+from importobot.security import credential_patterns
 from importobot.security.credential_patterns import (
     CredentialPattern,
     CredentialPatternRegistry,
+    CredentialRegistryContext,
     CredentialType,
+    credential_registry_context,
     get_credential_registry,
+    get_current_registry,
     scan_for_credentials,
 )
 
@@ -472,3 +478,165 @@ class TestFalsePositiveReduction:
 
         # Fake credential should have lower or no matches
         assert len(fake_matches) == 0 or fake_matches[0]["confidence"] < 0.8
+
+
+class TestThreadLocalRegistryManagement:
+    """Test the new thread-local registry management system."""
+
+    def test_get_current_registry_creates_instance(self) -> None:
+        """Test that get_current_registry creates an instance when none exists."""
+        # Ensure we start with no registry in thread-local
+        if hasattr(credential_patterns._thread_local, "registry"):
+            delattr(credential_patterns._thread_local, "registry")
+
+        registry = get_current_registry()
+        assert isinstance(registry, CredentialPatternRegistry)
+
+        # Should have patterns loaded
+        stats = registry.get_statistics()
+        assert stats["total_patterns"] > 0
+
+    def test_get_current_registry_returns_same_instance(self) -> None:
+        """Test that get_current_registry returns the same instance
+        within the same thread."""
+        registry1 = get_current_registry()
+        registry2 = get_current_registry()
+
+        # Should return the same instance
+        assert registry1 is registry2
+        assert isinstance(registry1, CredentialPatternRegistry)
+
+    def test_credential_registry_context_manager(self) -> None:
+        """Test the credential_registry_context context manager."""
+        # Create a custom registry
+        custom_registry = CredentialPatternRegistry()
+
+        with credential_registry_context(custom_registry) as registry:
+            # Should be the custom registry we passed in
+            assert registry is custom_registry
+            assert get_current_registry() is custom_registry
+
+        # After context exits, should revert to previous state
+        # Note: If no previous registry existed, a new one is created
+        current_registry = get_current_registry()
+        assert current_registry is not custom_registry
+
+    def test_credential_registry_context_creates_default(self) -> None:
+        """Test that context manager creates default registry when none provided."""
+        with credential_registry_context() as registry:
+            assert isinstance(registry, CredentialPatternRegistry)
+            assert get_current_registry() is registry
+
+        # Should revert after context exits
+        new_registry = get_current_registry()
+        assert new_registry is not registry
+
+    def test_nested_context_managers(self) -> None:
+        """Test nested context manager behavior."""
+        outer_registry = CredentialPatternRegistry()
+        inner_registry = CredentialPatternRegistry()
+
+        with credential_registry_context(outer_registry):
+            assert get_current_registry() is outer_registry
+
+            with credential_registry_context(inner_registry):
+                assert get_current_registry() is inner_registry
+                assert get_current_registry() is not outer_registry
+
+            # After inner context exits, should revert to outer
+            assert get_current_registry() is outer_registry
+
+        # After outer context exits, should revert to original state
+        final_registry = get_current_registry()
+        assert final_registry is not outer_registry
+        assert final_registry is not inner_registry
+
+    def test_context_manager_with_none_registry(self) -> None:
+        """Test context manager behavior when None is passed."""
+        original_registry = get_current_registry()
+
+        with credential_registry_context(None) as registry:
+            # Should create a new default registry
+            assert isinstance(registry, CredentialPatternRegistry)
+            assert registry is not original_registry
+            assert get_current_registry() is registry
+
+        # Should revert to original
+        assert get_current_registry() is original_registry
+
+    def test_scan_for_credentials_with_custom_registry(self) -> None:
+        """Test scan_for_credentials with a custom registry."""
+        custom_registry = CredentialPatternRegistry()
+
+        test_text = "password: secret123"
+
+        # Test with custom registry
+        matches = scan_for_credentials(
+            test_text, min_confidence=0.7, registry=custom_registry
+        )
+        assert len(matches) >= 1
+        assert matches[0]["credential_type"] == "password"
+
+    def test_scan_for_credentials_uses_context_registry(self) -> None:
+        """Test that scan_for_credentials uses context registry when none specified."""
+        custom_registry = CredentialPatternRegistry()
+
+        with credential_registry_context(custom_registry):
+            test_text = "password: secret123"
+            matches = scan_for_credentials(test_text, min_confidence=0.7)
+
+            # Should have used the context registry
+            assert len(matches) >= 1
+
+    def test_backward_compatibility_get_credential_registry(self) -> None:
+        """Test that get_credential_registry still works for backward compatibility."""
+        # This should work without errors
+        registry = get_credential_registry()
+        assert isinstance(registry, CredentialPatternRegistry)
+
+        # Should be the same as get_current_registry
+        current_registry = get_current_registry()
+        assert registry is current_registry
+
+    def test_registry_context_class_direct_usage(self) -> None:
+        """Test direct usage of CredentialRegistryContext class."""
+        custom_registry = CredentialPatternRegistry()
+
+        context = CredentialRegistryContext(custom_registry)
+
+        with context as registry:
+            assert registry is custom_registry
+            assert get_current_registry() is custom_registry
+
+        # Should revert after context
+        assert get_current_registry() is not custom_registry
+
+    def test_thread_safety_isolated_registries(self) -> None:
+        """Test that different threads can have isolated registries."""
+
+        results = {}
+
+        def thread_worker(thread_id: int) -> None:
+            # Each thread gets its own registry
+            custom_registry = CredentialPatternRegistry()
+            with credential_registry_context(custom_registry):
+                time.sleep(0.1)  # Small delay to ensure threads overlap
+                current = get_current_registry()
+                results[thread_id] = id(current)  # Store object ID
+
+        # Create multiple threads
+        threads = []
+        for i in range(3):
+            thread = threading.Thread(target=thread_worker, args=(i,))
+            threads.append(thread)
+            thread.start()
+
+        # Wait for all threads to complete
+        for thread in threads:
+            thread.join()
+
+        # Each thread should have had its own registry
+        registry_ids = list(results.values())
+        assert len(registry_ids) == 3
+        # All IDs should be different (different registry instances)
+        assert len(set(registry_ids)) == 3

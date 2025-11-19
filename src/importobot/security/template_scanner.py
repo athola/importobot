@@ -13,7 +13,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from importobot.security.credential_patterns import get_credential_registry
+from importobot.security.credential_patterns import (
+    CredentialPatternRegistry,
+    get_current_registry,
+)
 from importobot.security.security_validator import SecurityValidator
 from importobot.utils.logging import get_logger
 
@@ -58,16 +61,34 @@ class TemplateSecurityScanner:
 
     Detects hard-coded credentials, suspicious variable names, insecure
     patterns, configuration issues, and authentication risks before conversion.
+
+    Features:
+    - Pattern-based credential detection
+    - Variable name security analysis
+    - Template structure validation
+    - Confidence scoring and prioritization
+    - Detailed security recommendations
+    - Configurable critical issue reporting limits
     """
 
-    def __init__(self, security_validator: SecurityValidator | None = None):
+    def __init__(
+        self,
+        security_validator: SecurityValidator | None = None,
+        credential_registry: CredentialPatternRegistry | None = None,
+        max_critical_issues: int = 10,
+    ):
         """Initialize the template security scanner.
 
         Args:
             security_validator: Optional security validator instance
+            credential_registry: Optional credential pattern registry instance.
+                If None, uses current thread-local registry.
+            max_critical_issues: Maximum number of critical issues to include
+                in summary reports (default: 10)
         """
-        self.credential_registry = get_credential_registry()
+        self.credential_registry = credential_registry or get_current_registry()
         self.security_validator = security_validator or SecurityValidator()
+        self.max_critical_issues = max_critical_issues
         self._suspicious_variables = self._load_suspicious_variables()
         self._hardcoded_patterns = self._load_hardcoded_patterns()
         self._safe_keywords = self._load_safe_keywords()
@@ -471,20 +492,21 @@ class TemplateSecurityScanner:
                         # headers
                         context_lines = []
                         # Add a few lines around, but avoid section headers
-                        for i in range(max(0, line_num-1), min(len(lines), line_num+2)):
+                        for i in range(
+                            max(0, line_num - 1), min(len(lines), line_num + 2)
+                        ):
                             line_content = lines[i].strip()
                             # Skip section headers (lines that start and end with ***)
-                            starts_with_stars = line_content.startswith('***')
-                            ends_with_stars = line_content.endswith('***')
+                            starts_with_stars = line_content.startswith("***")
+                            ends_with_stars = line_content.endswith("***")
                             is_section_header = starts_with_stars and ends_with_stars
                             if not is_section_header:
                                 context_lines.append(line_content)
 
                         limited_context = " ".join(context_lines)
-                        if (
-                            self._contains_safe_keywords(remaining_line)
-                            or self._is_placeholder_context(limited_context)
-                        ):
+                        if self._contains_safe_keywords(
+                            remaining_line
+                        ) or self._is_placeholder_context(limited_context):
                             continue
 
                         severity = self._get_variable_severity(var_name)
@@ -791,16 +813,27 @@ class TemplateSecurityScanner:
         return unique_issues
 
     def generate_summary_report(
-        self, reports: list[TemplateSecurityReport]
+        self,
+        reports: list[TemplateSecurityReport],
+        max_critical_issues: int | None = None,
     ) -> dict[str, Any]:
         """Generate a summary report from multiple scan reports.
 
         Args:
             reports: List of TemplateSecurityReport objects
+            max_critical_issues: Maximum number of critical issues to include
+                in the report (default: uses instance max_critical_issues)
 
         Returns:
             Summary report dictionary
         """
+        # Use provided parameter or fall back to instance setting
+        limit = (
+            max_critical_issues
+            if max_critical_issues is not None
+            else self.max_critical_issues
+        )
+
         total_files = len(reports)
         total_issues = sum(r.total_issues for r in reports)
         safe_files = sum(1 for r in reports if r.is_safe)
@@ -843,7 +876,7 @@ class TemplateSecurityScanner:
                 "by_severity": all_issues_by_severity,
                 "by_type": all_issues_by_type,
             },
-            "critical_issues": critical_issues[:10],  # Top 10 most critical
+            "critical_issues": critical_issues[:limit],  # Top X most critical
             "recommendations": self._generate_recommendations(all_issues_by_type),
         }
 

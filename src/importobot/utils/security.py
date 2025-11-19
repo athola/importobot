@@ -3,15 +3,49 @@
 import json
 import logging
 import re
+import subprocess
 import time
 from datetime import datetime, timezone
+from enum import Enum
 from typing import Any, ClassVar
 
+from importobot.services.security_types import SecurityLevel, SecurityPolicy
+from importobot.utils.command_security import (
+    CommandValidationResult,
+    CommandValidator,
+    validate_command_safely,
+)
 from importobot.utils.credential_manager import CredentialManager, EncryptedCredential
 from importobot.utils.logging import get_logger
 from importobot.utils.string_cache import data_to_lower_cached
 
 logger = get_logger()
+
+
+class SecuritySeverity(Enum):
+    """Security event severity levels for consistent logging and classification.
+
+    Provides type-safe severity levels with clear semantic meaning for
+    security-related events and audit logging.
+    """
+
+    ERROR = "ERROR"
+    """High severity security events that require immediate attention.
+
+    Examples: Security violations, credential exposure, policy breaches
+    """
+
+    WARNING = "WARNING"
+    """Medium severity security events that should be reviewed.
+
+    Examples: Suspicious patterns, potential misconfigurations, near-threshold
+    """
+
+    INFO = "INFO"
+    """Low severity security events for information purposes.
+
+    Examples: Routine security checks, policy compliance, configuration changes
+    """
 
 
 class SecurityValidator:
@@ -92,28 +126,38 @@ class SecurityValidator:
         self,
         dangerous_patterns: list[str] | None = None,
         sensitive_paths: list[str] | None = None,
-        security_level: str = "standard",
+        security_level: SecurityLevel = SecurityLevel.STANDARD,
         enable_audit_logging: bool = True,
+        command_security_policy: SecurityPolicy = SecurityPolicy.BLOCK,
     ):
         """Initialize security validator with configurable patterns.
 
         Args:
             dangerous_patterns: Custom dangerous command patterns to override defaults
             sensitive_paths: Custom sensitive path patterns to override defaults
-            security_level: Security level determining validation strictness:
-                - 'strict': Maximum security for enterprise/production environments
-                - 'standard': Balanced security for general development and testing
-                  (default)
-                - 'permissive': Relaxed security for trusted development environments
+            security_level: Security level determining validation strictness
             enable_audit_logging: Enable detailed audit logging for security events
+            command_security_policy: Policy for handling dangerous commands:
+                - BLOCK: Block any command with security issues (default)
+                - SANITIZE: Attempt to sanitize dangerous commands
+                - WARN: Allow dangerous commands with warnings
+                - ESCAPE: Escape dangerous characters (legacy behavior)
         """
         self.security_level = security_level
+        self.command_security_policy = command_security_policy
         self.dangerous_patterns = self._get_patterns(dangerous_patterns, security_level)
         self.sensitive_paths = self._get_sensitive_paths(
             sensitive_paths, security_level
         )
         self.enable_audit_logging = enable_audit_logging
         self.audit_logger = get_logger(f"{__name__}.audit")
+
+        # Initialize command validator
+        self.command_validator = CommandValidator(
+            security_level=security_level,
+            policy=command_security_policy,
+            enable_audit_logging=enable_audit_logging,
+        )
 
         self.credential_manager = CredentialManager()
 
@@ -134,7 +178,10 @@ class SecurityValidator:
             self.audit_logger.addHandler(handler)
 
     def _log_security_event(
-        self, event_type: str, details: dict[str, Any], severity: str = "WARNING"
+        self,
+        event_type: str,
+        details: dict[str, Any],
+        severity: SecuritySeverity = SecuritySeverity.WARNING,
     ) -> None:
         """Log a security event with structured audit information.
 
@@ -142,7 +189,7 @@ class SecurityValidator:
             event_type: Type of security event (e.g., 'DANGEROUS_COMMAND',
                            'SENSITIVE_PATH')
             details: Dictionary containing event details
-            severity: Severity level ('INFO', 'WARNING', 'ERROR')
+            severity: Severity level (SecuritySeverity enum value)
         """
         if not self.enable_audit_logging:
             return
@@ -151,19 +198,20 @@ class SecurityValidator:
         audit_entry = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "event_type": event_type,
-            "security_level": self.security_level,
-            "severity": severity,
+            "security_level": self.security_level.value,
+            "severity": severity.value,
             "details": details,
         }
 
         # Log as JSON for structured parsing
         log_message = json.dumps(audit_entry, default=str)
 
-        if severity == "ERROR":
+        # Use enum-based severity comparison
+        if severity == SecuritySeverity.ERROR:
             self.audit_logger.error(log_message)
-        elif severity == "WARNING":
+        elif severity == SecuritySeverity.WARNING:
             self.audit_logger.warning(log_message)
-        else:
+        else:  # SecuritySeverity.INFO
             self.audit_logger.info(log_message)
 
     def log_validation_start(
@@ -186,7 +234,7 @@ class SecurityValidator:
                 "patterns_count": len(self.dangerous_patterns),
                 "sensitive_paths_count": len(self.sensitive_paths),
             },
-            "INFO",
+            SecuritySeverity.INFO,
         )
 
     def log_validation_complete(
@@ -209,10 +257,12 @@ class SecurityValidator:
                 "warnings_count": warnings_count,
                 "duration_ms": duration_ms,
             },
-            "INFO",
+            SecuritySeverity.INFO,
         )
 
-    def _get_patterns(self, custom_patterns: list[str] | None, level: str) -> list[str]:
+    def _get_patterns(
+        self, custom_patterns: list[str] | None, level: SecurityLevel
+    ) -> list[str]:
         """Get dangerous patterns based on security level.
 
         Args:
@@ -232,7 +282,7 @@ class SecurityValidator:
         """
         base_patterns = custom_patterns or self.DEFAULT_DANGEROUS_PATTERNS
 
-        if level == "strict":
+        if level == SecurityLevel.STRICT:
             # Add stricter patterns for production environments
             strict_additions = [
                 r"cat\s+/proc/",  # Reading proc filesystem
@@ -244,7 +294,7 @@ class SecurityValidator:
                 r"wget\s+",  # External network requests
             ]
             return base_patterns + strict_additions
-        if level == "permissive":
+        if level == SecurityLevel.PERMISSIVE:
             # Remove some patterns for development environments
             permissive_removals = {r"curl\s+", r"wget\s+", r">\s*/dev/null"}
             return [p for p in base_patterns if p not in permissive_removals]
@@ -252,7 +302,7 @@ class SecurityValidator:
         return base_patterns
 
     def _get_sensitive_paths(
-        self, custom_paths: list[str] | None, level: str
+        self, custom_paths: list[str] | None, level: SecurityLevel
     ) -> list[str]:
         """Get sensitive paths based on security level.
 
@@ -274,7 +324,7 @@ class SecurityValidator:
         """
         base_paths = custom_paths or self.DEFAULT_SENSITIVE_PATHS
 
-        if level == "strict":
+        if level == SecurityLevel.STRICT:
             # Add more paths for production environments
             strict_additions = [
                 r"/proc/",
@@ -369,7 +419,7 @@ class SecurityValidator:
                     "has_value": bool(parameters.get("password")),
                     "recommendation": "Use key-based authentication",
                 },
-                "WARNING",
+                SecuritySeverity.WARNING,
             )
 
             # Also flag as credential exposure
@@ -388,7 +438,7 @@ class SecurityValidator:
                         "credential_length": len(password_value),
                         "risk_level": "HIGH",
                     },
-                    "ERROR",
+                    SecuritySeverity.ERROR,
                 )
 
             if isinstance(password_value, str):
@@ -404,7 +454,7 @@ class SecurityValidator:
                             "parameter": "password",
                             "credential_length": encrypted.length,
                         },
-                        "INFO",
+                        SecuritySeverity.INFO,
                     )
                 except Exception as exc:  # pragma: no cover - encryption failed
                     logger.warning("Failed to encrypt password parameter: %s", exc)
@@ -458,7 +508,7 @@ class SecurityValidator:
                                 ),
                                 "risk_level": "MEDIUM",
                             },
-                            "WARNING",
+                            SecuritySeverity.WARNING,
                         )
                         break
 
@@ -485,10 +535,10 @@ class SecurityValidator:
                             "command_preview": (
                                 command[:50] + "..." if len(command) > 50 else command
                             ),
-                            "security_level": self.security_level,
+                            "security_level": self.security_level.value,
                             "risk_level": "HIGH",
                         },
-                        "ERROR",
+                        SecuritySeverity.ERROR,
                     )
 
         return warnings
@@ -534,7 +584,7 @@ class SecurityValidator:
                                 "injection_type": "command_injection",
                                 "risk_level": "HIGH",
                             },
-                            "ERROR",
+                            SecuritySeverity.ERROR,
                         )
                         break
 
@@ -570,7 +620,7 @@ class SecurityValidator:
                                 ),
                                 "risk_level": "MEDIUM",
                             },
-                            "WARNING",
+                            SecuritySeverity.WARNING,
                         )
 
         return warnings
@@ -602,30 +652,132 @@ class SecurityValidator:
                     "risk_level": "MEDIUM",
                     "recommendation": "Ensure proper authorization for production",
                 },
-                "WARNING",
+                SecuritySeverity.WARNING,
             )
 
         return warnings
 
     def sanitize_command_parameters(self, command: Any) -> str:
-        """Sanitize command parameters to prevent injection attacks."""
+        """Sanitize command parameters using enterprise-grade security validation.
+
+        This method now uses a robust whitelist-based approach instead of simple
+        character escaping, providing much stronger security guarantees.
+
+        Args:
+            command: Command to validate and sanitize
+
+        Returns:
+            Sanitized command string if safe, empty string if rejected
+
+        Security Levels:
+            STRICT: Only production-safe commands allowed
+            STANDARD: Development commands with validation
+            PERMISSIVE: Most commands allowed with warnings
+
+        Security Policies:
+            BLOCK: Reject dangerous commands entirely (default)
+            SANITIZE: Attempt to make commands safe
+            WARN: Allow with security warnings
+            ESCAPE: Legacy character escaping behavior
+        """
         if not isinstance(command, str):
-            return str(command)
+            # Non-string commands are converted and validated
+            command = str(command)
 
-        # Remove potentially dangerous characters and patterns
-        sanitized = command
+        # Use the robust command validator
+        is_safe, processed_command, warnings = validate_command_safely(
+            command=command,
+            security_level=self.security_level,
+            policy=self.command_security_policy,
+            context={"method": "sanitize_command_parameters"},
+        )
 
-        # Escape shell metacharacters
-        dangerous_chars = ["|", "&", ";", "$(", "`", ">", "<", "*", "?", "[", "]"]
-        for char in dangerous_chars:
-            if char in sanitized:
-                logger.warning(
-                    "Potentially dangerous character '%s' found in command, escaping",
-                    char,
+        # Log any security warnings
+        if warnings and self.enable_audit_logging:
+            for warning in warnings:
+                self._log_security_event(
+                    "COMMAND_SANITIZATION_WARNING",
+                    {
+                        "command": command[:200],
+                        "warning": warning,
+                        "policy": self.command_security_policy.value,
+                    },
+                    SecuritySeverity.WARNING,
                 )
-                sanitized = sanitized.replace(char, f"\\{char}")
 
-        return sanitized
+        # Log the sanitization result
+        if self.enable_audit_logging:
+            self._log_security_event(
+                "COMMAND_SANITIZATION_RESULT",
+                {
+                    "original_command": command[:200],
+                    "processed_command": (
+                        processed_command[:200] if processed_command else ""
+                    ),
+                    "is_safe": is_safe,
+                    "warnings_count": len(warnings),
+                    "security_level": self.security_level.value,
+                    "policy": self.command_security_policy.value,
+                },
+                SecuritySeverity.INFO,
+            )
+
+        # Return empty string for rejected commands for backward compatibility
+        return processed_command if is_safe else ""
+
+    def validate_command_for_execution(
+        self,
+        command: str,
+        args: list[str] | None = None,
+        context: dict[str, Any] | None = None,
+    ) -> tuple[bool, str, list[str]]:
+        """Validate a command for safe execution using comprehensive security checks.
+
+        This method provides the full power of the CommandValidator for detailed
+        validation and reporting.
+
+        Args:
+            command: Command to validate
+            args: Optional command arguments (safer than command string)
+            context: Additional context for validation
+
+        Returns:
+            Tuple of (is_safe, processed_command, warnings)
+        """
+        if args is not None:
+            # Use argument-based validation (safer approach)
+            result, full_command, warnings = (
+                self.command_validator.validate_command_args(command, args)
+            )
+        else:
+            # Use string-based validation
+            result, full_command, warnings = self.command_validator.validate_command(
+                command, context
+            )
+
+        is_safe = result in [
+            CommandValidationResult.ALLOWED,
+            CommandValidationResult.MODIFIED,
+        ]
+        return is_safe, full_command, warnings
+
+    def create_safe_subprocess(
+        self, command: str, args: list[str] | None = None, **kwargs: Any
+    ) -> tuple[bool, subprocess.Popen[str] | None, list[str]]:
+        """Create a safe subprocess with comprehensive security validation.
+
+        This is the recommended method for executing external commands
+        with proper security controls.
+
+        Args:
+            command: Command to execute
+            args: Command arguments (safer than command string)
+            **kwargs: Additional arguments for subprocess.Popen
+
+        Returns:
+            Tuple of (success, process, warnings)
+        """
+        return self.command_validator.create_safe_process(command, args, **kwargs)
 
     def validate_file_operations(self, file_path: str, operation: str) -> list[str]:
         """Validate file operations for security concerns.
@@ -664,7 +816,7 @@ class SecurityValidator:
                     "traversal_patterns": ["..", "//"],
                     "risk_level": "HIGH",
                 },
-                "ERROR",
+                SecuritySeverity.ERROR,
             )
 
         # Check for sensitive file access
@@ -682,7 +834,7 @@ class SecurityValidator:
                         "matched_pattern": pattern,
                         "risk_level": "MEDIUM",
                     },
-                    "WARNING",
+                    SecuritySeverity.WARNING,
                 )
 
         # Warn about destructive operations
@@ -701,7 +853,7 @@ class SecurityValidator:
                     "risk_level": "MEDIUM",
                     "recommendation": "Ensure proper safeguards and authorization",
                 },
-                "WARNING",
+                SecuritySeverity.WARNING,
             )
 
         return warnings
@@ -787,11 +939,12 @@ class SecurityValidator:
         return recommendations
 
     def validate_test_security(self, test_case: dict[str, Any]) -> dict[str, list[str]]:
-        """Validate test case security.
+        """Validate test case security using this instance's security configuration.
 
-        Performs security validation of test cases:
+        Performs security validation of test cases using the SecurityValidator's
+        configured security level and policies:
         - Extracts and validates SSH parameters from test steps
-        - Applies security validation based on configured security level
+        - Applies security validation based on this instance's security level
         - Generates security recommendations for different test types
         - Provides structured results with warnings, recommendations, and errors
 
@@ -805,135 +958,102 @@ class SecurityValidator:
             - 'sanitized_errors': List of sanitized error messages
 
         Security Level Impact:
-            strict: Validation with expanded pattern matching
-            standard: Balanced validation suitable for most environments
-            permissive: Reduced validation to minimize false positives
+            Uses this SecurityValidator's security_level configuration:
+            - STRICT: Validation with expanded pattern matching
+            - STANDARD: Balanced validation suitable for most environments
+            - PERMISSIVE: Reduced validation to minimize false positives
         """
-        return validate_test_security(test_case)
+        start_time = time.time()
 
-
-def validate_test_security(test_case: dict[str, Any]) -> dict[str, list[str]]:
-    """Security validation for test cases.
-
-    Creates a SecurityValidator with standard security level and performs validation.
-
-    Args:
-        test_case: Test case dictionary containing steps and test data
-
-    Returns:
-        Dictionary with validation results:
-        - 'warnings': List of security warnings found
-        - 'recommendations': List of security recommendations
-        - 'sanitized_errors': List of sanitized error messages
-
-    Note:
-        Uses standard security level by default. For custom security levels,
-        create a SecurityValidator instance directly with the desired level.
-    """
-    start_time = time.time()
-    validator = SecurityValidator()
-
-    # Log validation start
-    validator.log_validation_start(
-        "TEST_CASE_SECURITY",
-        {
-            "test_case_keys": list(test_case.keys()),
-            "has_steps": "steps" in test_case,
-            "steps_count": len(test_case.get("steps", [])),
-        },
-    )
-
-    results: dict[str, list[str]] = {
-        "warnings": [],
-        "recommendations": [],
-        "sanitized_errors": [],
-    }
-
-    # Validate SSH operations
-    if "ssh" in data_to_lower_cached(test_case):
-        # Extract SSH parameters from test case steps
-        for step in test_case.get("steps", []):
-            if (
-                "ssh" in data_to_lower_cached(step)
-                or step.get("library") == "SSHLibrary"
-            ):
-                # Parse test_data for SSH parameters
-                test_data = step.get("test_data", "")
-                ssh_params = {}
-
-                # Extract various SSH parameters using comprehensive patterns
-                parameter_patterns = {
-                    "password": r"password:\s*([^,\n\s]+)",
-                    "username": r"username:\s*([^,\n\s]+)",
-                    "keyfile": r"keyfile:\s*([^,\n\s]+)",
-                    "command": r"command:\s*([^,\n]+)",
-                    "host": r"host:\s*([^,\n\s]+)",
-                    "source_path": r"source:\s*([^,\n]+)",
-                    "destination_path": r"destination:\s*([^,\n]+)",
-                    # Also extract parameters without colons for generic patterns
-                    "parameter": r"parameter:\s*([^,\n]+)",
-                }
-
-                for param_name, pattern in parameter_patterns.items():
-                    match = re.search(pattern, test_data)
-                    if match:
-                        ssh_params[param_name] = match.group(1).strip()
-
-                # Additional processing: ensure password detection includes the value
-                # for pattern matching
-                if "password:" in test_data and "password" not in ssh_params:
-                    ssh_params["password"] = True
-
-                ssh_warnings = validator.validate_ssh_parameters(ssh_params)
-                results["warnings"].extend(ssh_warnings)
-
-    # Generate security recommendations
-    recommendations = validator.generate_security_recommendations(test_case)
-    results["recommendations"].extend(recommendations)
-
-    # Log security analysis
-    if results["warnings"]:
-        logger.warning(
-            "Security warnings for test case: %d issues found", len(results["warnings"])
+        # Log validation start with this validator's configuration
+        self.log_validation_start(
+            "TEST_CASE_SECURITY",
+            {
+                "test_case_keys": list(test_case.keys()),
+                "has_steps": "steps" in test_case,
+                "steps_count": len(test_case.get("steps", [])),
+                "security_level": self.security_level.value,
+                "command_security_policy": self.command_security_policy.value,
+            },
         )
 
-    # Log validation completion
-    duration_ms = (time.time() - start_time) * 1000
-    validator.log_validation_complete(
-        "TEST_CASE_SECURITY", len(results["warnings"]), duration_ms
-    )
+        results: dict[str, list[str]] = {
+            "warnings": [],
+            "recommendations": [],
+            "sanitized_errors": [],
+        }
 
-    return results
+        # Validate SSH operations using this validator
+        if "ssh" in data_to_lower_cached(test_case):
+            # Extract SSH parameters from test case steps
+            for step in test_case.get("steps", []):
+                if (
+                    "ssh" in data_to_lower_cached(step)
+                    or step.get("library") == "SSHLibrary"
+                ):
+                    # Parse test_data for SSH parameters
+                    test_data = step.get("test_data", "")
+                    ssh_params = {}
+
+                    # Extract various SSH parameters using comprehensive patterns
+                    parameter_patterns = {
+                        "password": r"password:\s*([^,\n\s]+)",
+                        "username": r"username:\s*([^,\n\s]+)",
+                        "keyfile": r"keyfile:\s*([^,\n\s]+)",
+                        "command": r"command:\s*([^,\n]+)",
+                        "host": r"host:\s*([^,\n\s]+)",
+                        "source_path": r"source:\s*([^,\n]+)",
+                        "destination_path": r"destination:\s*([^,\n]+)",
+                        # Also extract parameters without colons for generic patterns
+                        "parameter": r"parameter:\s*([^,\n]+)",
+                    }
+
+                    for param_name, pattern in parameter_patterns.items():
+                        match = re.search(pattern, test_data)
+                        if match:
+                            ssh_params[param_name] = match.group(1).strip()
+
+                    # Additional processing: ensure password detection includes the
+                    # value for pattern matching
+                    if "password:" in test_data and "password" not in ssh_params:
+                        ssh_params["password"] = True
+
+                    # Use this validator's enhanced SSH parameter validation
+                    ssh_warnings = self.validate_ssh_parameters(ssh_params)
+                    results["warnings"].extend(ssh_warnings)
+
+        # Generate security recommendations using this validator
+        recommendations = self.generate_security_recommendations(test_case)
+        results["recommendations"].extend(recommendations)
+
+        # Log security analysis results
+        if results["warnings"]:
+            logger.warning(
+                "Security warnings for test case: %d issues found",
+                len(results["warnings"]),
+            )
+
+        # Log validation completion
+        duration_ms = (time.time() - start_time) * 1000
+        self.log_validation_complete(
+            "TEST_CASE_SECURITY", len(results["warnings"]), duration_ms
+        )
+
+        return results
 
 
 def get_ssh_security_guidelines() -> list[str]:
     """Get SSH security guidelines for test automation."""
-    return [
-        "SSH Security Guidelines:",
-        "• Use key-based authentication instead of passwords",
-        "• Implement connection timeouts (default: 30 seconds)",
-        "• Validate host key fingerprints",
-        "• Use dedicated test environments",
-        "• Limit SSH user privileges to minimum required",
-        "• Log all SSH operations for audit trails",
-        "• Never hardcode credentials in test scripts",
-        "• Use environment variables or secure vaults for secrets",
-        "• Implement proper error handling to avoid information disclosure",
-        "• Regular security audits of SSH configurations",
-        "• Monitor for unusual SSH activity patterns",
-        "• Implement continuous monitoring and alerting",
-        "• Restrict network access to SSH services",
-        "• Use strong encryption algorithms and key sizes",
-    ]
+    return SSH_SECURITY_GUIDELINES
 
 
 # Shared SSH security guidelines constant
 SSH_SECURITY_GUIDELINES = [
-    "SSH Security Guidelines for Test Automation:",
+    "SSH Security Guidelines:",
     "• Use key-based authentication instead of passwords",
     "• Implement connection timeouts (default: 30 seconds)",
-    "• Validate host key fingerprints in production",
-    "• Use dedicated test environments, not production systems",
+    "• Validate host key fingerprints",
+    "• Use dedicated test environments",
     "• Limit SSH user privileges to minimum required",
     "• Log all SSH operations for audit trails",
     "• Never hardcode credentials in test scripts",

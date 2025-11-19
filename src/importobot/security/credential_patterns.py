@@ -7,6 +7,9 @@ and other sensitive values while aiming to minimize false positives.
 from __future__ import annotations
 
 import re
+import threading
+from collections.abc import Generator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
 from re import Pattern
@@ -559,9 +562,7 @@ class CredentialPatternRegistry:
                     confidence = min(confidence, 0.3)  # Lower confidence for context
 
                 # Additional context-specific reductions
-                if self._is_robot_framework_variable(
-                    match_text, text[: match.start()]
-                ):
+                if self._is_robot_framework_variable(match_text, text[: match.start()]):
                     confidence = min(
                         confidence, 0.2
                     )  # Very low confidence for variable names
@@ -693,7 +694,7 @@ class CredentialPatternRegistry:
             return True
 
         # Check for variable assignment patterns
-        lines_before = preceding_lower.split('\n')
+        lines_before = preceding_lower.split("\n")
         if lines_before:
             last_line = lines_before[-1].strip()
             # If the last line contains variable indicators, this is likely a var name
@@ -704,34 +705,113 @@ class CredentialPatternRegistry:
         return False
 
 
-# Global registry instance
-_default_registry: CredentialPatternRegistry | None = None
+# Thread-local registry storage for context-based management
+_thread_local = threading.local()
 
 
+class CredentialRegistryContext:
+    """Context manager for credential pattern registry management.
+
+    Provides thread-safe registry instances without relying on global state.
+    Supports dependency injection while maintaining backward compatibility.
+    """
+
+    def __init__(self, registry: CredentialPatternRegistry | None = None):
+        """Initialize registry context.
+
+        Args:
+            registry: Optional registry instance. If None, creates default.
+        """
+        self.registry = registry or CredentialPatternRegistry()
+        self._has_context = hasattr(_thread_local, "registry")
+        self._previous_registry = getattr(_thread_local, "registry", None)
+
+    def __enter__(self) -> CredentialPatternRegistry:
+        """Enter context and set registry in thread-local storage."""
+        _thread_local.registry = self.registry
+        return self.registry
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        """Exit context and restore previous registry."""
+        if self._has_context:
+            _thread_local.registry = self._previous_registry
+        elif hasattr(_thread_local, "registry"):
+            # Remove the registry attribute entirely if we didn't have one before
+            delattr(_thread_local, "registry")
+
+
+@contextmanager
+def credential_registry_context(
+    registry: CredentialPatternRegistry | None = None,
+) -> Generator[CredentialPatternRegistry, None, None]:
+    """Context manager for credential pattern registry management.
+
+    Args:
+        registry: Optional registry instance. If None, creates default.
+
+    Yields:
+        CredentialPatternRegistry instance for use in the context
+
+    Example:
+        with credential_registry_context() as registry:
+            matches = registry.search_text(text, min_confidence=0.8)
+
+        # Registry is automatically cleaned up when context exits
+    """
+    with CredentialRegistryContext(registry) as reg:
+        yield reg
+
+
+def get_current_registry() -> CredentialPatternRegistry:
+    """Get the current thread-local credential pattern registry.
+
+    Returns:
+        Current CredentialPatternRegistry instance from thread-local context,
+        or creates a new default instance if none exists.
+
+    Note:
+        This replaces the global registry pattern while maintaining
+        backward compatibility for existing code.
+    """
+    if not hasattr(_thread_local, "registry") or _thread_local.registry is None:
+        _thread_local.registry = CredentialPatternRegistry()
+
+    # The type checker needs assurance that this is a CredentialPatternRegistry
+    # but thread-local storage can hold Any type, so we assert here
+    registry = _thread_local.registry
+    assert isinstance(registry, CredentialPatternRegistry)
+    return registry
+
+
+# Backward compatibility functions
 def get_credential_registry() -> CredentialPatternRegistry:
     """Get the default credential pattern registry.
 
     Returns:
         Default CredentialPatternRegistry instance
+
+    Note:
+        This function is maintained for backward compatibility.
+        New code should use get_current_registry() or credential_registry_context().
     """
-    global _default_registry  # noqa: PLW0603
-    if _default_registry is None:
-        _default_registry = CredentialPatternRegistry()
-    return _default_registry
+    return get_current_registry()
 
 
 def scan_for_credentials(
     text: str,
     min_confidence: float = 0.7,
+    registry: CredentialPatternRegistry | None = None,
 ) -> list[dict[str, Any]]:
     """Scan text for credentials.
 
     Args:
         text: Text to scan
         min_confidence: Minimum confidence threshold
+        registry: Optional registry instance. If None, uses current context registry.
 
     Returns:
         List of credential matches
     """
-    registry = get_credential_registry()
+    if registry is None:
+        registry = get_current_registry()
     return registry.search_text(text, min_confidence)

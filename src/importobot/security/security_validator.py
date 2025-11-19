@@ -7,6 +7,7 @@ import re
 import secrets
 import time
 from datetime import datetime, timezone
+from enum import Enum
 from typing import Any, ClassVar
 
 from importobot.security.credential_manager import (
@@ -15,12 +16,40 @@ from importobot.security.credential_manager import (
 )
 from importobot.security.credential_patterns import (
     CredentialPattern,
-    get_credential_registry,
+    CredentialPatternRegistry,
+    get_current_registry,
 )
+from importobot.services.security_types import SecurityLevel
 from importobot.utils.logging import get_logger
 from importobot.utils.string_cache import data_to_lower_cached
 
 logger = get_logger()
+
+
+class SecuritySeverity(Enum):
+    """Security event severity levels for consistent logging and classification.
+
+    Provides type-safe severity levels with clear semantic meaning for
+    security-related events and audit logging.
+    """
+
+    ERROR = "ERROR"
+    """High severity security events that require immediate attention.
+
+    Examples: Security violations, credential exposure, policy breaches
+    """
+
+    WARNING = "WARNING"
+    """Medium severity security events that should be reviewed.
+
+    Examples: Suspicious patterns, potential misconfigurations, near-threshold
+    """
+
+    INFO = "INFO"
+    """Low severity security events for information purposes.
+
+    Examples: Routine security checks, policy compliance, configuration changes
+    """
 
 
 class SecurityValidator:
@@ -101,8 +130,9 @@ class SecurityValidator:
         self,
         dangerous_patterns: list[str] | None = None,
         sensitive_paths: list[str] | None = None,
-        security_level: str = "standard",
+        security_level: SecurityLevel = SecurityLevel.STANDARD,
         enable_audit_logging: bool = True,
+        credential_registry: CredentialPatternRegistry | None = None,
     ):
         """Initialize security validator with configurable patterns.
 
@@ -116,6 +146,8 @@ class SecurityValidator:
                   (default)
                 - 'permissive': Relaxed security for trusted development environments
             enable_audit_logging: Enable detailed audit logging for security events
+            credential_registry: Optional credential pattern registry instance.
+                If None, uses current thread-local registry.
         """
         self.security_level = security_level
         self.dangerous_patterns = self._get_patterns(dangerous_patterns, security_level)
@@ -124,6 +156,7 @@ class SecurityValidator:
         )
         self.enable_audit_logging = enable_audit_logging
         self.audit_logger = get_logger(f"{__name__}.audit")
+        self.credential_registry = credential_registry or get_current_registry()
 
         env_key = os.getenv("IMPORTOBOT_ENCRYPTION_KEY")
         if env_key:
@@ -149,7 +182,10 @@ class SecurityValidator:
             self.audit_logger.addHandler(handler)
 
     def _log_security_event(
-        self, event_type: str, details: dict[str, Any], severity: str = "WARNING"
+        self,
+        event_type: str,
+        details: dict[str, Any],
+        severity: SecuritySeverity = SecuritySeverity.WARNING,
     ) -> None:
         """Log a security event with structured audit information.
 
@@ -157,7 +193,7 @@ class SecurityValidator:
             event_type: Type of security event (e.g., 'DANGEROUS_COMMAND',
                            'SENSITIVE_PATH')
             details: Dictionary containing event details
-            severity: Severity level ('INFO', 'WARNING', 'ERROR')
+            severity: Severity level (SecuritySeverity enum value)
         """
         if not self.enable_audit_logging:
             return
@@ -166,19 +202,20 @@ class SecurityValidator:
         audit_entry = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "event_type": event_type,
-            "security_level": self.security_level,
-            "severity": severity,
+            "security_level": self.security_level.value,
+            "severity": severity.value,
             "details": details,
         }
 
         # Log as JSON for structured parsing
         log_message = json.dumps(audit_entry, default=str)
 
-        if severity == "ERROR":
+        # Use enum-based severity comparison
+        if severity == SecuritySeverity.ERROR:
             self.audit_logger.error(log_message)
-        elif severity == "WARNING":
+        elif severity == SecuritySeverity.WARNING:
             self.audit_logger.warning(log_message)
-        else:
+        else:  # SecuritySeverity.INFO
             self.audit_logger.info(log_message)
 
     def log_validation_start(
@@ -201,7 +238,7 @@ class SecurityValidator:
                 "patterns_count": len(self.dangerous_patterns),
                 "sensitive_paths_count": len(self.sensitive_paths),
             },
-            "INFO",
+            SecuritySeverity.INFO,
         )
 
     def log_validation_complete(
@@ -224,10 +261,12 @@ class SecurityValidator:
                 "warnings_count": warnings_count,
                 "duration_ms": duration_ms,
             },
-            "INFO",
+            SecuritySeverity.INFO,
         )
 
-    def _get_patterns(self, custom_patterns: list[str] | None, level: str) -> list[str]:
+    def _get_patterns(
+        self, custom_patterns: list[str] | None, level: SecurityLevel
+    ) -> list[str]:
         """Get dangerous patterns based on security level.
 
         Args:
@@ -247,7 +286,7 @@ class SecurityValidator:
         """
         base_patterns = custom_patterns or self.DEFAULT_DANGEROUS_PATTERNS
 
-        if level == "strict":
+        if level == SecurityLevel.STRICT:
             # Add stricter patterns for production environments
             strict_additions = [
                 r"cat\s+/proc/",  # Reading proc filesystem
@@ -259,7 +298,7 @@ class SecurityValidator:
                 r"wget\s+",  # External network requests
             ]
             return base_patterns + strict_additions
-        if level == "permissive":
+        if level == SecurityLevel.PERMISSIVE:
             # Remove some patterns for development environments
             permissive_removals = {r"curl\s+", r"wget\s+", r">\s*/dev/null"}
             return [p for p in base_patterns if p not in permissive_removals]
@@ -267,7 +306,7 @@ class SecurityValidator:
         return base_patterns
 
     def _get_sensitive_paths(
-        self, custom_paths: list[str] | None, level: str
+        self, custom_paths: list[str] | None, level: SecurityLevel
     ) -> list[str]:
         """Get sensitive paths based on security level.
 
@@ -289,7 +328,7 @@ class SecurityValidator:
         """
         base_paths = custom_paths or self.DEFAULT_SENSITIVE_PATHS
 
-        if level == "strict":
+        if level == SecurityLevel.STRICT:
             # Add more paths for production environments
             strict_additions = [
                 r"/proc/",
@@ -384,7 +423,7 @@ class SecurityValidator:
                     "has_value": bool(parameters.get("password")),
                     "recommendation": "Use key-based authentication",
                 },
-                "WARNING",
+                SecuritySeverity.WARNING,
             )
 
             # Also flag as credential exposure
@@ -403,7 +442,7 @@ class SecurityValidator:
                         "credential_length": len(password_value),
                         "risk_level": "HIGH",
                     },
-                    "ERROR",
+                    SecuritySeverity.ERROR,
                 )
 
             if isinstance(password_value, str):
@@ -419,7 +458,7 @@ class SecurityValidator:
                             "parameter": "password",
                             "credential_length": encrypted.length,
                         },
-                        "INFO",
+                        SecuritySeverity.INFO,
                     )
                 except Exception as exc:  # pragma: no cover - encryption failed
                     logger.warning("Failed to encrypt password parameter: %s", exc)
@@ -431,8 +470,7 @@ class SecurityValidator:
         warnings: list[str] = []
 
         # Get enhanced pattern registry
-        registry = get_credential_registry()
-        patterns_to_check = registry.get_patterns_by_confidence(
+        patterns_to_check = self.credential_registry.get_patterns_by_confidence(
             0.8
         )  # High confidence only
 
@@ -552,7 +590,11 @@ class SecurityValidator:
                 "risk_level": match.severity.upper(),
                 "remediation": match.remediation,
             },
-            "WARNING" if match.severity in ["high", "critical"] else "INFO",
+            (
+                SecuritySeverity.WARNING
+                if match.severity in ["high", "critical"]
+                else SecuritySeverity.INFO
+            ),
         )
 
     def _check_dangerous_commands(self, parameters: dict[str, Any]) -> list[str]:
@@ -576,10 +618,10 @@ class SecurityValidator:
                             "command_preview": (
                                 command[:50] + "..." if len(command) > 50 else command
                             ),
-                            "security_level": self.security_level,
+                            "security_level": self.security_level.value,
                             "risk_level": "HIGH",
                         },
-                        "ERROR",
+                        SecuritySeverity.ERROR,
                     )
 
         return warnings
@@ -625,7 +667,7 @@ class SecurityValidator:
                                 "injection_type": "command_injection",
                                 "risk_level": "HIGH",
                             },
-                            "ERROR",
+                            SecuritySeverity.ERROR,
                         )
                         break
 
@@ -672,7 +714,7 @@ class SecurityValidator:
                                 ),
                                 "risk_level": "MEDIUM",
                             },
-                            "WARNING",
+                            SecuritySeverity.WARNING,
                         )
 
         return warnings
@@ -704,7 +746,7 @@ class SecurityValidator:
                     "risk_level": "MEDIUM",
                     "recommendation": "Ensure proper authorization for production",
                 },
-                "WARNING",
+                SecuritySeverity.WARNING,
             )
 
         return warnings
@@ -766,7 +808,7 @@ class SecurityValidator:
                     "traversal_patterns": ["..", "//"],
                     "risk_level": "HIGH",
                 },
-                "ERROR",
+                SecuritySeverity.ERROR,
             )
 
         # Check for sensitive file access
@@ -784,7 +826,7 @@ class SecurityValidator:
                         "matched_pattern": pattern,
                         "risk_level": "MEDIUM",
                     },
-                    "WARNING",
+                    SecuritySeverity.WARNING,
                 )
 
         # Warn about destructive operations
@@ -803,7 +845,7 @@ class SecurityValidator:
                     "risk_level": "MEDIUM",
                     "recommendation": "Ensure proper safeguards and authorization",
                 },
-                "WARNING",
+                SecuritySeverity.WARNING,
             )
 
         return warnings

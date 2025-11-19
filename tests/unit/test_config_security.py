@@ -39,8 +39,8 @@ class TestAPIIngestConfigSecurity:
         )
 
         assert len(config.tokens) == 2
-        assert config.tokens[0].value == VALID_TOKEN_A  # type: ignore
-        assert config.tokens[1].value == VALID_TOKEN_B  # type: ignore
+        assert config.tokens[0].value == VALID_TOKEN_A
+        assert config.tokens[1].value == VALID_TOKEN_B
 
     def test_init_with_string_tokens_conversion(self) -> None:
         """Test automatic conversion of string tokens to SecureString."""
@@ -348,7 +348,7 @@ class TestAPIIngestConfigSecurity:
         config = APIIngestConfig(
             fetch_format=SupportedFormat.ZEPHYR,
             api_url="https://example.com",
-            tokens=[legacy_token, secure_token],  # type: ignore[arg-type]
+            tokens=[legacy_token, secure_token],
             user=None,
             project_name=None,
             project_id=None,
@@ -359,9 +359,9 @@ class TestAPIIngestConfigSecurity:
 
         assert len(config.tokens) == 2
         # Legacy string should be converted into a SecureString with the same value
-        assert config.tokens[0].value == legacy_token  # type: ignore
+        assert config.tokens[0].value == legacy_token
         # Pre-existing SecureString should retain its original secret
-        assert config.tokens[1].value == secure_token.value  # type: ignore
+        assert config.tokens[1].value == secure_token.value
 
     def test_add_invalid_token(self) -> None:
         """Test adding an invalid token fails."""
@@ -385,7 +385,7 @@ class TestAPIIngestConfigSecurity:
 
         # Original token should still be there
         assert len(config.tokens) == 1
-        assert config.tokens[0].value == "valid_token_123456"  # type: ignore
+        assert config.tokens[0].value == "valid_token_123456"
 
     def test_explicit_cleanup(self) -> None:
         """Test explicit cleanup() method zeroizes tokens."""
@@ -458,7 +458,7 @@ class TestAPIIngestConfigSecurity:
         )
 
         # Tokens should not be locked initially
-        assert not config.tokens[0].is_locked()  # type: ignore
+        assert not config.tokens[0].is_locked()
 
         # Delete the config (trigger __del__)
         del config
@@ -755,7 +755,7 @@ class TestAPIIngestConfigIntegration:
             APIIngestConfig(
                 fetch_format=SupportedFormat.ZEPHYR,
                 api_url="https://example.com",
-                tokens=[ProblematicSecureString("token")],  # type: ignore[arg-type]
+                tokens=[ProblematicSecureString("token")],
                 user=None,
                 project_name=None,
                 project_id=None,

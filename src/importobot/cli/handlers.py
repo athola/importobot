@@ -11,7 +11,7 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from importobot import exceptions
 from importobot.config import resolve_api_ingest_config
@@ -120,9 +120,11 @@ def collect_suggestions(json_data: object) -> list[tuple[int, int, str]]:
     all_suggestions: list[tuple[int, int, str]] = []
 
     if isinstance(json_data, list):
-        test_cases = [case for case in json_data if isinstance(case, dict)]
+        test_cases: list[dict[str, Any]] = [
+            cast(dict[str, Any], case) for case in json_data if isinstance(case, dict)
+        ]
     elif isinstance(json_data, dict):
-        test_cases = [json_data]
+        test_cases = [cast(dict[str, Any], json_data)]
     else:
         logger.debug(
             "Skipping suggestion generation for unsupported JSON payload type: %s",
@@ -344,7 +346,7 @@ def _create_api_client(config: Any) -> Any:
     return get_api_client(
         config.fetch_format,
         api_url=config.api_url,
-        tokens=config.tokens,
+        tokens=config.get_all_tokens(),
         user=config.user,
         project_name=config.project_name,
         project_id=config.project_id,

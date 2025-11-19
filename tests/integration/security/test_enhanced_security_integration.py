@@ -290,11 +290,8 @@ class TestEnhancedSecurityIntegration:
         assert len(matches) >= 200  # Should detect all instances
 
         # Test template scanner performance
-        large_template_content = (
-            "*** Variables ***\n"
-            + "\n".join(
-                f"${{API_KEY_{i}}}        {STRIPE_TEST_KEY}{i}" for i in range(100)
-            )
+        large_template_content = "*** Variables ***\n" + "\n".join(
+            f"${{API_KEY_{i}}}        {STRIPE_TEST_KEY}{i}" for i in range(100)
         )
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".robot", delete=False) as f:
