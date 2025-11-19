@@ -13,6 +13,7 @@ import math
 import statistics
 from typing import Any, Protocol
 
+from importobot.services.security_types import SecurityLevel
 from importobot.services.strategies import (
     FileValidationStrategy,
     FormatValidationStrategy,
@@ -39,13 +40,18 @@ class ValidationService:
     - Domain-specific validation
     """
 
-    def __init__(self, security_level: str = "standard") -> None:
+    def __init__(
+        self, security_level: SecurityLevel | str = SecurityLevel.STANDARD
+    ) -> None:
         """Initialize validation service.
 
         Args:
-            security_level: Security level for validation (standard, strict, etc.)
+            security_level: Security level for validation (enum or string alias)
         """
-        self.security_level = security_level
+        if isinstance(security_level, SecurityLevel):
+            self.security_level: SecurityLevel = security_level
+        else:
+            self.security_level = SecurityLevel.from_string(security_level)
         self._strategy_cache: dict[str, ValidationStrategy] = {}
         self._register_default_strategies()
 

@@ -7,8 +7,8 @@ members = [".", "scripts"]
 
 [project]
 name = "importobot"
-version = "0.1.4"
-description = "Automated test framework converter for migrating test cases from Zephyr, JIRA/Xray, and TestLink to Robot Framework format with bulk processing capabilities"
+version = "0.1.5"
+description = "Converts test cases from Zephyr, JIRA/Xray, and TestLink to Robot Framework suites, with support for bulk processing and advanced security features."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "BSD-2-Clause"
@@ -44,7 +44,7 @@ dependencies = [
     "robotframework-databaselibrary>=2.3.2",
     "psutil>=7.1.3",
     "bleach>=6.3.0",
-    "asv>=0.6.5",
+  "asv>=0.6.5",
 ]
 
 [project.urls]
@@ -93,6 +93,10 @@ all = [
     "pandas>=2.3.3",
     # Medallion architecture included in 'all'
 ]
+security = [
+    "cryptography>=42.0.0",
+    "keyring>=24.3.0",
+]
 
 [project.scripts]
 importobot = "importobot.__main__:main"
@@ -105,7 +109,7 @@ dev = [
     "pytest-asyncio>=0.23.5",
     "coverage>=7.11.0",
     "ruff>=0.14.4",
-
+  "asv>=0.6.5",
     "pycodestyle>=2.11.0",
     "pydocstyle>=6.3.0",
     "black>=25.9.0",
@@ -123,6 +127,7 @@ dev = [
     "hypothesis>=6.142.4",
     "mutmut>=2.4.4",
     "pyright>=1.1.407",
+"keyring>=24.3.0",
 ]
 
 [tool.setuptools.packages.find]

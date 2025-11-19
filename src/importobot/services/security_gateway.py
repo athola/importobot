@@ -184,9 +184,7 @@ class SecurityGateway:
             self.security_level = SecurityLevel.from_string(security_level)
         else:
             self.security_level = security_level
-        self.security_validator = SecurityValidator(
-            security_level=self.security_level.value
-        )
+        self.security_validator = SecurityValidator(security_level=self.security_level)
         self.validation_service = ValidationService(
             security_level=self.security_level.value
         )

@@ -4,6 +4,8 @@ Roadmap of upcoming features, parked items, and ideas requiring proof-of-concept
 
 ### What we shipped in November 2025
 
+**Security Hardening**: Carved out `src/importobot/security/` to hold CredentialManager, SecureMemory, TemplateSecurityScanner, SIEM connectors, an SOC 2/ISO 27001 compliance engine, and automated key rotation backed by the new `runtime_paths` helpers. We now require `cryptography>=42.0.0` plus a 32-byte `IMPORTOBOT_ENCRYPTION_KEY`; without both, `CredentialManager` raises `SecurityError` and refuses to decrypt. Added 13 security-specific test modules (nine unit + four integration/config) so `UV_CACHE_DIR=.uv-cache uv run pytest --collect-only --quiet` reports 2,644 collected tests. Follow-up status: the CLI now halts `--robot-template` executions when `TemplateSecurityReport.is_safe` is false; remaining task is to publish SIEM connection examples for Splunk/Elastic/Sentinel.
+
 **Test Architecture Improvements**: Added 55 named constants organized into 9 categories to replace magic numbers throughout the test suite. Replaced `tempfile` usage with pytest's `tmp_path` fixture, added type annotations to all test functions, and documented Arrange-Act-Assert patterns. All 1,541 tests pass with enhanced mypy type checking.
 
 **Client Module Restructuring**: Split `importobot.integrations.clients` into separate modules (base.py, jira_xray.py, testlink.py, testrail.py, zephyr.py) while maintaining backward compatibility. Implemented lazy loading for 3x faster imports. Added ADR-0006 documenting architectural changes.
@@ -47,7 +49,6 @@ Roadmap of upcoming features, parked items, and ideas requiring proof-of-concept
 **Schema integration**: The schema parser works, but it's a separate step from the conversion pipeline. We want to automatically apply organization-specific field mappings without requiring users to remember the `--input-schema` flag every time.
 
 **Performance**: Template ingestion takes ~50ms per file, which becomes noticeable with 50+ template directories. We need to optimize the pattern matching algorithm and add better caching.
-
 **MongoDB Library Modernization**: Replace the inadequate `robot-mongodb-library` with a proper Robot Framework-compatible MongoDB library. The current library causes warnings and provides standalone functions instead of proper keywords. GitHub issue #82 tracks this work.
 
 **Specific customer requests**:

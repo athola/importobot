@@ -11,6 +11,8 @@ from importobot.cli.handlers import handle_api_ingest
 from importobot.config import APIIngestConfig
 from importobot.medallion.interfaces.enums import SupportedFormat
 
+SAMPLE_TOKEN = "alpha-access-hash-1234"
+
 
 class DummyClient:
     """Simple client that yields predefined payloads."""
@@ -35,7 +37,7 @@ def make_args(**overrides: object) -> Namespace:
     defaults: dict[str, object] = {
         "fetch_format": SupportedFormat.JIRA_XRAY,
         "api_url": "https://jira.example/rest",
-        "api_tokens": ["token"],
+        "api_tokens": [SAMPLE_TOKEN],
         "api_user": "jira-user",
         "project": "JIRA",
         "input_dir": None,
@@ -57,7 +59,7 @@ def fake_config(monkeypatch: pytest.MonkeyPatch) -> APIIngestConfig:
     config = APIIngestConfig(
         fetch_format=SupportedFormat.JIRA_XRAY,
         api_url="https://jira.example/rest",
-        tokens=["token"],
+        tokens=[SAMPLE_TOKEN],
         user="jira-user",
         project_name="JIRA",
         project_id=None,
