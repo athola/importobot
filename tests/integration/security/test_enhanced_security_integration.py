@@ -17,6 +17,7 @@ from pathlib import Path
 import pytest
 
 from importobot.config import APIIngestConfig
+from importobot.security.checkers import check_credential_patterns
 from importobot.security.credential_manager import CredentialManager
 from importobot.security.credential_patterns import (
     CredentialPatternRegistry,
@@ -117,7 +118,13 @@ class TestEnhancedSecurityIntegration:
             "normal_param": "safe_value",
         }
 
-        warnings = validator._check_credential_patterns(test_params.copy())
+        # Use the check_credential_patterns function from checkers module
+        warnings = check_credential_patterns(
+            test_params.copy(),
+            credential_registry=get_credential_registry(),
+            credential_manager=CredentialManager(),
+            audit_logger=validator.audit_logger,
+        )
 
         # Should detect and potentially encrypt credentials
         assert len(warnings) >= 1  # Should detect at least 1 issue
@@ -179,7 +186,12 @@ class TestEnhancedSecurityIntegration:
                         mock_params[var_name] = value
 
             # Test security validation
-            security_warnings = validator._check_credential_patterns(mock_params)
+            security_warnings = check_credential_patterns(
+                mock_params,
+                credential_registry=get_credential_registry(),
+                credential_manager=CredentialManager(),
+                audit_logger=validator.audit_logger,
+            )
 
             # Should detect issues
             assert len(security_warnings) > 0
