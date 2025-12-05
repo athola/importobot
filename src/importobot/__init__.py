@@ -22,9 +22,7 @@ from typing import Any
 # API toolkit (following pandas.api pattern)
 from importobot.core.converter import JsonToRobotConverter
 
-from . import api as _api
-from . import config as _config
-from . import exceptions as _exceptions
+from . import api, config, exceptions
 
 
 # Dependency validation following pandas pattern
@@ -52,25 +50,18 @@ def _check_dependencies() -> None:
 
 
 _check_dependencies()
-_config.validate_global_limits()
+config.validate_global_limits()
 
-# TYPE_CHECKING block removed - no future type exports currently needed
-
-# Expose through clean interface
-config = _config
-exceptions = _exceptions
-api = _api
-
-# Explicitly expose exception classes to ensure type checkers can access them
-ImportobotError = _exceptions.ImportobotError
-ConfigurationError = _exceptions.ConfigurationError
-ValidationError = _exceptions.ValidationError
-ConversionError = _exceptions.ConversionError
-FileNotFound = _exceptions.FileNotFound
-FileAccessError = _exceptions.FileAccessError
-ParseError = _exceptions.ParseError
-SuggestionError = _exceptions.SuggestionError
-SecurityError = _exceptions.SecurityError
+# Explicitly expose exception classes for convenient access
+ImportobotError = exceptions.ImportobotError
+ConfigurationError = exceptions.ConfigurationError
+ValidationError = exceptions.ValidationError
+ConversionError = exceptions.ConversionError
+FileNotFound = exceptions.FileNotFound
+FileAccessError = exceptions.FileAccessError
+ParseError = exceptions.ParseError
+SuggestionError = exceptions.SuggestionError
+SecurityError = exceptions.SecurityError
 
 
 def convert(payload: dict[str, Any] | str) -> str:
@@ -102,6 +93,3 @@ __all__ = [
 ]
 
 __version__ = "0.1.5"
-
-# Clean up namespace - remove internal imports from dir()
-del _config, _exceptions, _api

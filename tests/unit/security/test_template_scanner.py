@@ -8,6 +8,14 @@ from pathlib import Path
 
 import pytest
 
+from importobot.security.scanner_checks import (
+    scan_for_hardcoded_patterns,
+    scan_for_suspicious_variables,
+)
+from importobot.security.scanner_patterns import (
+    PLACEHOLDER_INDICATORS,
+    ScannerPatterns,
+)
 from importobot.security.template_scanner import (
     SecurityIssue,
     TemplateSecurityReport,
@@ -568,7 +576,9 @@ class TestPatternMatchingAccuracy:
 
     def test_robot_variable_detection(self) -> None:
         """Test Robot Framework variable detection."""
-        scanner = TemplateSecurityScanner()
+        # Use module-level functions with required parameters
+        suspicious_variables = ScannerPatterns.get_suspicious_variables()
+        safe_keywords = ScannerPatterns.get_safe_keywords()
 
         test_cases = [
             ("${password}", True),
@@ -582,8 +592,13 @@ class TestPatternMatchingAccuracy:
 
         for variable, should_detect in test_cases:
             content = f"*** Variables ***\n{variable}  some_value"
-            issues = scanner._scan_for_suspicious_variables(
-                content, "test.robot", content.split("\n")
+            issues = scan_for_suspicious_variables(
+                content,
+                "test.robot",
+                content.split("\n"),
+                suspicious_variables,
+                safe_keywords,
+                PLACEHOLDER_INDICATORS,
             )
 
             if should_detect:
@@ -597,7 +612,9 @@ class TestPatternMatchingAccuracy:
 
     def test_hardcoded_pattern_detection(self) -> None:
         """Test hardcoded pattern detection."""
-        scanner = TemplateSecurityScanner()
+        # Use module-level functions with required parameters
+        hardcoded_patterns = ScannerPatterns.get_hardcoded_patterns()
+        safe_keywords = ScannerPatterns.get_safe_keywords()
 
         test_cases = [
             ("password: secret123", True, "hardcoded_value"),
@@ -608,8 +625,12 @@ class TestPatternMatchingAccuracy:
         ]
 
         for content, should_detect, expected_type in test_cases:
-            issues = scanner._scan_for_hardcoded_patterns(
-                content, "test.robot", [content]
+            issues = scan_for_hardcoded_patterns(
+                content,
+                "test.robot",
+                [content],
+                hardcoded_patterns,
+                safe_keywords,
             )
 
             if should_detect:
@@ -620,7 +641,9 @@ class TestPatternMatchingAccuracy:
 
     def test_false_positive_prevention(self) -> None:
         """Test false positive prevention mechanisms."""
-        scanner = TemplateSecurityScanner()
+        # Use module-level functions with required parameters
+        suspicious_variables = ScannerPatterns.get_suspicious_variables()
+        safe_keywords = ScannerPatterns.get_safe_keywords()
 
         # These should not trigger detection
         safe_cases = [
@@ -638,8 +661,13 @@ class TestPatternMatchingAccuracy:
             # Test that suspicious variables with safe context are ignored
             content = "${safe_text}  some_value"
             lines: list[str] = list(content.split("\n"))
-            issues = scanner._scan_for_suspicious_variables(
-                content, "test.robot", lines
+            issues = scan_for_suspicious_variables(
+                content,
+                "test.robot",
+                lines,
+                suspicious_variables,
+                safe_keywords,
+                PLACEHOLDER_INDICATORS,
             )
 
             # Should not detect suspicious variables with safe context

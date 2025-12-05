@@ -232,6 +232,11 @@ FORMAT_DETECTION_CIRCUIT_RESET_SECONDS = _int_from_env(
     "IMPORTOBOT_DETECTION_CIRCUIT_RESET_SECONDS", 30, minimum=1
 )
 
+# Security scanning configuration
+CREDENTIAL_CONTEXT_WINDOW = _int_from_env(
+    "IMPORTOBOT_CREDENTIAL_CONTEXT_WINDOW", 100, minimum=10
+)
+
 # Bronze layer in-memory cache configuration.
 # Default is 1024 records, using about 1MB of memory.
 BRONZE_LAYER_MAX_IN_MEMORY_RECORDS = _int_from_env(
@@ -812,6 +817,7 @@ __all__ = [
     "CACHE_MIN_CLEANUP_INTERVAL",
     "CACHE_SHORT_TTL_THRESHOLD",
     "CHROME_OPTIONS",
+    "CREDENTIAL_CONTEXT_WINDOW",
     "DEFAULT_TEST_SERVER_URL",
     "DETECTION_CACHE_COLLISION_LIMIT",
     "DETECTION_CACHE_MAX_SIZE",

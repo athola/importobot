@@ -10,6 +10,7 @@ Enterprise-only helpers (HSM, SIEM, compliance, key rotation) now live under
 ``importobot_enterprise`` so production builds can omit them by default.
 """
 
+from importobot.security.audit import SecuritySeverity
 from importobot.security.credential_manager import (
     CredentialManager,
     SecurityError,
@@ -45,10 +46,7 @@ from importobot.security.secure_memory import (
     secure_memory_pool_context,
     validate_language_characters,
 )
-from importobot.security.security_validator import (
-    SecuritySeverity,
-    SecurityValidator,
-)
+from importobot.security.security_validator import SecurityValidator
 from importobot.security.template_scanner import (
     TemplateSecurityScanner,
     scan_template_file_for_security,

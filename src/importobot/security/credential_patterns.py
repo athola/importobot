@@ -15,6 +15,7 @@ from enum import Enum
 from re import Pattern
 from typing import Any, TypedDict
 
+from importobot import config as importobot_config
 from importobot.utils.logging import get_logger
 
 
@@ -550,7 +551,7 @@ class CredentialPatternRegistry:
                 confidence = pattern.confidence
 
                 # Enhanced false positive reduction with context awareness
-                context_window = 100  # characters before and after
+                context_window = importobot_config.CREDENTIAL_CONTEXT_WINDOW
                 start = max(0, match.start() - context_window)
                 end = min(len(text), match.end() + context_window)
                 context = text[start:end].lower()
@@ -705,8 +706,47 @@ class CredentialPatternRegistry:
         return False
 
 
-# Thread-local registry storage for context-based management
-_thread_local = threading.local()
+class _ThreadLocalRegistryStorage:
+    """Encapsulates thread-local storage for credential registries.
+
+    Uses lazy initialization to avoid creating threading.local() at module
+    import time. This improves testability and avoids potential issues with
+    module-level global state.
+    """
+
+    def __init__(self) -> None:
+        self._storage: threading.local | None = None
+
+    def _get_storage(self) -> threading.local:
+        """Lazily initialize and return the thread-local storage."""
+        if self._storage is None:
+            self._storage = threading.local()
+        return self._storage
+
+    def get_registry(self) -> CredentialPatternRegistry | None:
+        """Get the current thread's registry, if any."""
+        storage = self._get_storage()
+        return getattr(storage, "registry", None)
+
+    def set_registry(self, registry: CredentialPatternRegistry | None) -> None:
+        """Set the current thread's registry."""
+        storage = self._get_storage()
+        storage.registry = registry
+
+    def has_registry(self) -> bool:
+        """Check if the current thread has a registry set."""
+        storage = self._get_storage()
+        return hasattr(storage, "registry")
+
+    def clear_registry(self) -> None:
+        """Remove the registry from the current thread's storage."""
+        storage = self._get_storage()
+        if hasattr(storage, "registry"):
+            delattr(storage, "registry")
+
+
+# Single instance - the class encapsulates the lazy threading.local creation
+_registry_storage = _ThreadLocalRegistryStorage()
 
 
 class CredentialRegistryContext:
@@ -723,21 +763,20 @@ class CredentialRegistryContext:
             registry: Optional registry instance. If None, creates default.
         """
         self.registry = registry or CredentialPatternRegistry()
-        self._has_context = hasattr(_thread_local, "registry")
-        self._previous_registry = getattr(_thread_local, "registry", None)
+        self._has_context = _registry_storage.has_registry()
+        self._previous_registry = _registry_storage.get_registry()
 
     def __enter__(self) -> CredentialPatternRegistry:
         """Enter context and set registry in thread-local storage."""
-        _thread_local.registry = self.registry
+        _registry_storage.set_registry(self.registry)
         return self.registry
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Exit context and restore previous registry."""
         if self._has_context:
-            _thread_local.registry = self._previous_registry
-        elif hasattr(_thread_local, "registry"):
-            # Remove the registry attribute entirely if we didn't have one before
-            delattr(_thread_local, "registry")
+            _registry_storage.set_registry(self._previous_registry)
+        else:
+            _registry_storage.clear_registry()
 
 
 @contextmanager
@@ -773,13 +812,10 @@ def get_current_registry() -> CredentialPatternRegistry:
         This replaces the global registry pattern while maintaining
         backward compatibility for existing code.
     """
-    if not hasattr(_thread_local, "registry") or _thread_local.registry is None:
-        _thread_local.registry = CredentialPatternRegistry()
-
-    # The type checker needs assurance that this is a CredentialPatternRegistry
-    # but thread-local storage can hold Any type, so we assert here
-    registry = _thread_local.registry
-    assert isinstance(registry, CredentialPatternRegistry)
+    registry = _registry_storage.get_registry()
+    if registry is None:
+        registry = CredentialPatternRegistry()
+        _registry_storage.set_registry(registry)
     return registry
 
 

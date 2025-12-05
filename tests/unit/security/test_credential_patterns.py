@@ -485,9 +485,8 @@ class TestThreadLocalRegistryManagement:
 
     def test_get_current_registry_creates_instance(self) -> None:
         """Test that get_current_registry creates an instance when none exists."""
-        # Ensure we start with no registry in thread-local
-        if hasattr(credential_patterns._thread_local, "registry"):
-            delattr(credential_patterns._thread_local, "registry")
+        # Ensure we start with no registry in thread-local using the storage API
+        credential_patterns._registry_storage.clear_registry()
 
         registry = get_current_registry()
         assert isinstance(registry, CredentialPatternRegistry)
