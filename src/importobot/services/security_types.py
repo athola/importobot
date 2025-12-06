@@ -5,6 +5,31 @@ from __future__ import annotations
 from enum import Enum
 
 
+class SecurityPolicy(Enum):
+    """Security policies for command execution.
+
+    Determines how to handle commands with security issues:
+
+    Attributes:
+        BLOCK: Block any command with security issues
+        SANITIZE: Attempt to sanitize dangerous commands
+        WARN: Allow dangerous commands with warnings
+        ESCAPE: Escape dangerous characters (legacy behavior)
+    """
+
+    BLOCK = "block"
+    """Block any command with security issues."""
+
+    SANITIZE = "sanitize"
+    """Attempt to sanitize dangerous commands."""
+
+    WARN = "warn"
+    """Allow dangerous commands with warnings."""
+
+    ESCAPE = "escape"
+    """Escape dangerous characters (legacy behavior)."""
+
+
 class SecurityLevel(Enum):
     """Security levels for input validation and sanitization.
 

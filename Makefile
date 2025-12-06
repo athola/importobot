@@ -1,5 +1,7 @@
 # Development tasks
 
+# Force uv to use a repo-local cache to avoid permission issues in shared environments
+export UV_CACHE_DIR := $(abspath ./.uv-cache)
 # Define newline variable for use in info messages
 define NEWLINE
 

@@ -8,7 +8,10 @@ import re
 from typing import Any, ClassVar, cast
 
 from importobot.core.pattern_matcher import IntentType, PatternMatcher
-from importobot.utils.security import SSH_SECURITY_GUIDELINES, extract_security_warnings
+from importobot.security.recommendations import (
+    SSH_SECURITY_GUIDELINES,
+    extract_security_warnings,
+)
 
 
 class RobotFrameworkKeywordRegistry:

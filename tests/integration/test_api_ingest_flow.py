@@ -13,6 +13,8 @@ from importobot.cli.parser import create_parser
 from importobot.config import APIIngestConfig
 from importobot.medallion.interfaces.enums import SupportedFormat
 
+SAMPLE_TOKEN = "alpha-access-hash-1234"
+
 
 class DummyClient:
     """Simple client streaming predefined payloads."""
@@ -37,7 +39,7 @@ def make_args(tmp_path: Path) -> Namespace:
     return Namespace(
         fetch_format=SupportedFormat.TESTRAIL,
         api_url="https://testrail.example/api/v2/get_runs/1",
-        api_tokens=["token"],
+        api_tokens=[SAMPLE_TOKEN],
         api_user="testrail-user",
         project="TR",
         input_dir=str(tmp_path),
