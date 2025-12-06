@@ -43,7 +43,7 @@ class SecurityIssue:
 
 @dataclass
 class TemplateSecurityReport:
-    """Comprehensive security report for template scanning.
+    """Detailed security report for template scanning.
 
     Attributes:
         file_path: Path to the scanned file

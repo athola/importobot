@@ -521,22 +521,44 @@ def validate_file_operations(
     return warnings
 
 
-def sanitize_command_parameters(command: Any) -> str:
-    """Sanitize command parameters to prevent injection attacks.
+def sanitize_command_parameters(
+    command: Any,
+    dangerous_chars: list[str] | None = None,
+) -> str:
+    r"""Sanitize command parameters to prevent injection attacks.
 
     Args:
         command: Command string to sanitize
+        dangerous_chars: List of characters to escape. If None, uses
+            DEFAULT_DANGEROUS_CHARS from SecurityPatterns.
 
     Returns:
         Sanitized command string
+
+    Example:
+        >>> # Use default dangerous chars
+        >>> sanitize_command_parameters("echo hello | grep world")
+        'echo hello \\| grep world'
+        >>>
+        >>> # Use custom dangerous chars
+        >>> sanitize_command_parameters("echo | grep", dangerous_chars=["|"])
+        'echo \\| grep'
+        >>>
+        >>> # Disable escaping
+        >>> sanitize_command_parameters("echo hello | grep world", dangerous_chars=[])
+        'echo hello | grep world'
     """
     if not isinstance(command, str):
         return str(command)
 
     sanitized = command
 
-    dangerous_chars = ["|", "&", ";", "$(", "`", ">", "<", "*", "?", "[", "]"]
-    for char in dangerous_chars:
+    chars_to_escape = (
+        dangerous_chars
+        if dangerous_chars is not None
+        else SecurityPatterns.get_dangerous_chars()
+    )
+    for char in chars_to_escape:
         if char in sanitized:
             logger.warning(
                 "Potentially dangerous character '%s' found in command, escaping",

@@ -18,6 +18,8 @@ from typing import Any, TypedDict
 from importobot import config as importobot_config
 from importobot.utils.logging import get_logger
 
+logger = get_logger()
+
 
 class CredentialMatch(TypedDict, total=False):
     """TypedDict for credential match results."""
@@ -33,9 +35,6 @@ class CredentialMatch(TypedDict, total=False):
     remediation: str
     examples: list[str]
     file_path: str  # Optional, added for file scanning
-
-
-logger = get_logger()
 
 
 class CredentialStatistics(TypedDict):
@@ -817,20 +816,6 @@ def get_current_registry() -> CredentialPatternRegistry:
         registry = CredentialPatternRegistry()
         _registry_storage.set_registry(registry)
     return registry
-
-
-# Backward compatibility functions
-def get_credential_registry() -> CredentialPatternRegistry:
-    """Get the default credential pattern registry.
-
-    Returns:
-        Default CredentialPatternRegistry instance
-
-    Note:
-        This function is maintained for backward compatibility.
-        New code should use get_current_registry() or credential_registry_context().
-    """
-    return get_current_registry()
 
 
 def scan_for_credentials(

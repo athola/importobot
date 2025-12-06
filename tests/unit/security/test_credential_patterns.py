@@ -17,7 +17,6 @@ from importobot.security.credential_patterns import (
     CredentialRegistryContext,
     CredentialType,
     credential_registry_context,
-    get_credential_registry,
     get_current_registry,
     scan_for_credentials,
 )
@@ -298,10 +297,10 @@ class TestCredentialPatternRegistry:
 class TestConvenienceFunctions:
     """Test convenience functions for credential detection."""
 
-    def test_get_credential_registry(self) -> None:
+    def test_get_current_registry(self) -> None:
         """Test getting the global credential registry."""
-        registry1 = get_credential_registry()
-        registry2 = get_credential_registry()
+        registry1 = get_current_registry()
+        registry2 = get_current_registry()
 
         # Should return the same instance
         assert registry1 is registry2
@@ -586,16 +585,6 @@ class TestThreadLocalRegistryManagement:
 
             # Should have used the context registry
             assert len(matches) >= 1
-
-    def test_backward_compatibility_get_credential_registry(self) -> None:
-        """Test that get_credential_registry still works for backward compatibility."""
-        # This should work without errors
-        registry = get_credential_registry()
-        assert isinstance(registry, CredentialPatternRegistry)
-
-        # Should be the same as get_current_registry
-        current_registry = get_current_registry()
-        assert registry is current_registry
 
     def test_registry_context_class_direct_usage(self) -> None:
         """Test direct usage of CredentialRegistryContext class."""

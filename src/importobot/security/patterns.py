@@ -204,6 +204,44 @@ INJECTION_PATTERNS: list[str] = [
 ]
 
 # =============================================================================
+# DEFAULT DANGEROUS CHARACTERS FOR COMMAND SANITIZATION
+# =============================================================================
+# Characters that may enable shell injection when passed to command execution.
+# Used by sanitize_command_parameters to escape potentially dangerous chars.
+#
+# These are the characters that are escaped in command strings:
+#   |    - Pipe (command chaining)
+#   &    - Background execution / AND operator
+#   ;    - Command separator
+#   $(   - Command substitution start
+#   `    - Backtick command substitution
+#   >    - Output redirection
+#   <    - Input redirection
+#   *    - Glob wildcard
+#   ?    - Single char wildcard
+#   [    - Character class start
+#   ]    - Character class end
+#
+# To customize, pass your own list to sanitize_command_parameters:
+#   custom_chars = ["|", "&", ";"]  # Only escape these
+#   sanitize_command_parameters(cmd, dangerous_chars=custom_chars)
+# =============================================================================
+
+DEFAULT_DANGEROUS_CHARS: list[str] = [
+    "|",  # Pipe - command chaining
+    "&",  # Background execution / AND operator
+    ";",  # Command separator
+    "$(",  # Command substitution start
+    "`",  # Backtick command substitution
+    ">",  # Output redirection
+    "<",  # Input redirection
+    "*",  # Glob wildcard
+    "?",  # Single char wildcard
+    "[",  # Character class start
+    "]",  # Character class end
+]
+
+# =============================================================================
 # ERROR MESSAGE SANITIZATION PATTERNS
 # =============================================================================
 # Patterns for redacting sensitive information from error messages.
@@ -263,6 +301,7 @@ class SecurityPatterns:
     # Class variables reference module-level defaults for easy override
     DEFAULT_DANGEROUS_PATTERNS: ClassVar[list[str]] = DEFAULT_DANGEROUS_PATTERNS
     DEFAULT_SENSITIVE_PATHS: ClassVar[list[str]] = DEFAULT_SENSITIVE_PATHS
+    DEFAULT_DANGEROUS_CHARS: ClassVar[list[str]] = DEFAULT_DANGEROUS_CHARS
     STRICT_PATTERN_ADDITIONS: ClassVar[list[str]] = STRICT_DANGEROUS_PATTERN_ADDITIONS
     STRICT_PATH_ADDITIONS: ClassVar[list[str]] = STRICT_SENSITIVE_PATH_ADDITIONS
     ERROR_SANITIZATION_PATTERNS: ClassVar[list[tuple[str, str]]] = (
@@ -383,9 +422,45 @@ class SecurityPatterns:
             result = result + list(additional_patterns)
         return result
 
+    @classmethod
+    def get_dangerous_chars(
+        cls,
+        custom_chars: list[str] | None = None,
+        additional_chars: list[str] | None = None,
+    ) -> list[str]:
+        """Get dangerous characters for command sanitization.
+
+        Args:
+            custom_chars: Custom characters to use instead of defaults.
+                If provided, these completely replace the defaults.
+            additional_chars: Extra characters to append to the result.
+                Use this to extend defaults without replacing them.
+
+        Returns:
+            List of dangerous characters to escape in commands
+
+        Example:
+            >>> # Use defaults
+            >>> chars = SecurityPatterns.get_dangerous_chars()
+            >>>
+            >>> # Custom chars only
+            >>> chars = SecurityPatterns.get_dangerous_chars(custom_chars=["|", "&"])
+            >>>
+            >>> # Extend defaults
+            >>> chars = SecurityPatterns.get_dangerous_chars(additional_chars=["@"])
+        """
+        base_chars = (
+            custom_chars
+            if custom_chars is not None
+            else list(cls.DEFAULT_DANGEROUS_CHARS)
+        )
+
+        return base_chars + list(additional_chars) if additional_chars else base_chars
+
 
 # Export module-level constants for direct import
 __all__ = [
+    "DEFAULT_DANGEROUS_CHARS",
     "DEFAULT_DANGEROUS_PATTERNS",
     "DEFAULT_SENSITIVE_PATHS",
     "ERROR_SANITIZATION_PATTERNS",

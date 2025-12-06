@@ -22,7 +22,7 @@ from importobot.security.credential_manager import CredentialManager
 from importobot.security.credential_patterns import (
     CredentialPatternRegistry,
     CredentialType,
-    get_credential_registry,
+    get_current_registry,
 )
 from importobot.security.secure_memory import SecureString
 from importobot.security.security_validator import SecurityValidator
@@ -45,7 +45,7 @@ class TestEnhancedSecurityIntegration:
     def test_end_to_end_credential_detection(self) -> None:
         """Test end-to-end credential detection pipeline."""
         # Test that all components can work together
-        registry = get_credential_registry()
+        registry = get_current_registry()
         scanner = TemplateSecurityScanner()
         validator = SecurityValidator()
 
@@ -121,7 +121,7 @@ class TestEnhancedSecurityIntegration:
         # Use the check_credential_patterns function from checkers module
         warnings = check_credential_patterns(
             test_params.copy(),
-            credential_registry=get_credential_registry(),
+            credential_registry=get_current_registry(),
             credential_manager=CredentialManager(),
             audit_logger=validator.audit_logger,
         )
@@ -188,7 +188,7 @@ class TestEnhancedSecurityIntegration:
             # Test security validation
             security_warnings = check_credential_patterns(
                 mock_params,
-                credential_registry=get_credential_registry(),
+                credential_registry=get_current_registry(),
                 credential_manager=CredentialManager(),
                 audit_logger=validator.audit_logger,
             )
@@ -201,7 +201,7 @@ class TestEnhancedSecurityIntegration:
 
     def test_credential_patterns_statistics(self) -> None:
         """Test credential pattern statistics."""
-        registry = get_credential_registry()
+        registry = get_current_registry()
         stats = registry.get_statistics()
 
         # Verify basic statistics
@@ -230,7 +230,7 @@ class TestEnhancedSecurityIntegration:
     def test_false_positive_reduction(self) -> None:
         """Test that false positives are minimized."""
         scanner = TemplateSecurityScanner()
-        registry = get_credential_registry()
+        registry = get_current_registry()
 
         placeholder_key = "placeholder_key_value"
         # Content that looks like credentials but is clearly safe
@@ -281,7 +281,7 @@ class TestEnhancedSecurityIntegration:
 
     def test_performance_requirements(self) -> None:
         """Test that performance requirements are met."""
-        registry = get_credential_registry()
+        registry = get_current_registry()
         scanner = TemplateSecurityScanner()
 
         # Test pattern registry performance with large text
@@ -342,7 +342,7 @@ class TestErrorHandling:
 
     def test_registry_handles_invalid_patterns(self) -> None:
         """Test that registry handles pattern errors gracefully."""
-        registry = get_credential_registry()
+        registry = get_current_registry()
 
         # Test with malformed text (should not crash)
         malformed_text = "Malformed text with special characters: \x00\x01\x02"
@@ -423,7 +423,7 @@ class TestSecurityEnhancementValidation:
 
     def test_requirement_4_enhanced_detection_patterns(self) -> None:
         """Test that detection patterns are enhanced and comprehensive."""
-        registry = get_credential_registry()
+        registry = get_current_registry()
 
         # Should detect AWS credentials
         test_aws_text = "aws_access_key_id: AKIAIOSFODNN7EXAMPLE"
@@ -450,7 +450,7 @@ class TestSecurityEnhancementValidation:
     def test_requirement_5_bayesian_scoring_improvements(self) -> None:
         """Test that Bayesian scoring improvements are implemented."""
         # The new pattern registry should use confidence scoring
-        registry = get_credential_registry()
+        registry = get_current_registry()
 
         # All patterns should have confidence scores
         all_patterns = registry.get_all_patterns()
@@ -479,7 +479,7 @@ class TestSecurityEnhancementValidation:
         scanner = TemplateSecurityScanner()
         assert scanner is not None
 
-        registry = get_credential_registry()
+        registry = get_current_registry()
         assert registry is not None
 
         # Test basic functionality

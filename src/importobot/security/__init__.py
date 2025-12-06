@@ -21,7 +21,6 @@ from importobot.security.credential_patterns import (
     CredentialRegistryContext,
     CredentialType,
     credential_registry_context,
-    get_credential_registry,
     get_current_registry,
     scan_for_credentials,
 )
@@ -77,7 +76,6 @@ __all__ = [
     "create_secure_string",
     "credential_registry_context",
     "detect_string_encoding",
-    "get_credential_registry",
     "get_current_memory_pool",
     "get_current_registry",
     "normalize_unicode_string",

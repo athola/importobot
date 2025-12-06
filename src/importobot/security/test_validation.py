@@ -6,14 +6,25 @@ the various security checks for test automation scenarios.
 
 import re
 import time
-from typing import Any
+from importlib import import_module
+from typing import TYPE_CHECKING, Any, cast
 
 from importobot.security.recommendations import generate_security_recommendations
 from importobot.services.security_types import SecurityLevel
 from importobot.utils.logging import get_logger
 from importobot.utils.string_cache import data_to_lower_cached
 
+if TYPE_CHECKING:  # pragma: no cover - import cycle safe guard for typing only
+    from importobot.security.security_validator import SecurityValidator
+
 logger = get_logger()
+
+
+def _get_security_validator() -> type["SecurityValidator"]:
+    """Lazy-load SecurityValidator to avoid import cycles at module import time."""
+
+    module = import_module("importobot.security.security_validator")
+    return cast(type["SecurityValidator"], module.SecurityValidator)
 
 
 def validate_test_security(test_case: dict[str, Any]) -> dict[str, list[str]]:
@@ -34,12 +45,8 @@ def validate_test_security(test_case: dict[str, Any]) -> dict[str, list[str]]:
         Uses standard security level by default. For custom security levels,
         create a SecurityValidator instance directly with the desired level.
     """
-    from importobot.security.security_validator import (  # noqa: PLC0415
-        SecurityValidator,
-    )
-
     start_time = time.time()
-    validator = SecurityValidator(security_level=SecurityLevel.STANDARD)
+    validator = _get_security_validator()(security_level=SecurityLevel.STANDARD)
 
     validator.log_validation_start(
         "TEST_CASE_SECURITY",

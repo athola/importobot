@@ -9,6 +9,10 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, ClassVar
 
+from importobot.security.recommendations import (
+    extract_security_warnings,
+    get_ssh_security_guidelines,
+)
 from importobot.services.security_types import SecurityLevel, SecurityPolicy
 from importobot.utils.command_security import (
     CommandValidationResult,
@@ -18,6 +22,18 @@ from importobot.utils.command_security import (
 from importobot.utils.credential_manager import CredentialManager, EncryptedCredential
 from importobot.utils.logging import get_logger
 from importobot.utils.string_cache import data_to_lower_cached
+
+__all__ = [
+    "CommandValidationResult",
+    "CommandValidator",
+    "CredentialManager",
+    "EncryptedCredential",
+    "SecuritySeverity",
+    "SecurityValidator",
+    "extract_security_warnings",
+    "get_ssh_security_guidelines",
+    "validate_command_safely",
+]
 
 logger = get_logger()
 
@@ -1040,49 +1056,3 @@ class SecurityValidator:
         )
 
         return results
-
-
-def get_ssh_security_guidelines() -> list[str]:
-    """Get SSH security guidelines for test automation."""
-    return SSH_SECURITY_GUIDELINES
-
-
-# Shared SSH security guidelines constant
-SSH_SECURITY_GUIDELINES = [
-    "SSH Security Guidelines:",
-    "• Use key-based authentication instead of passwords",
-    "• Implement connection timeouts (default: 30 seconds)",
-    "• Validate host key fingerprints",
-    "• Use dedicated test environments",
-    "• Limit SSH user privileges to minimum required",
-    "• Log all SSH operations for audit trails",
-    "• Never hardcode credentials in test scripts",
-    "• Use environment variables or secure vaults for secrets",
-    "• Implement proper error handling to avoid information disclosure",
-    "• Regular security audits of SSH configurations",
-    "• Monitor for unusual SSH activity patterns",
-    "• Implement continuous monitoring and alerting",
-    "• Restrict network access to SSH services",
-    "• Use strong encryption algorithms and key sizes",
-]
-
-
-def extract_security_warnings(keyword_info: dict[str, Any]) -> list[str]:
-    """Extract security warnings from keyword information.
-
-    Args:
-        keyword_info: Dictionary containing keyword information
-
-    Returns:
-        List of security warnings and notes
-    """
-    warnings = []
-    if "security_warning" in keyword_info:
-        warnings.append(keyword_info["security_warning"])
-    if "security_note" in keyword_info:
-        warnings.append(keyword_info["security_note"])
-    return warnings
-
-
-# Internal utility - not part of public API
-__all__: list[str] = []

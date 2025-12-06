@@ -9,7 +9,7 @@ from typing import Any
 from importobot.utils.string_cache import data_to_lower_cached
 
 SSH_SECURITY_GUIDELINES = [
-    "SSH Security Guidelines for Test Automation:",
+    "SSH Security Guidelines:",
     "• Use key-based authentication instead of passwords",
     "• Implement connection timeouts (default: 30 seconds)",
     "• Validate host key fingerprints in production",
@@ -33,23 +33,7 @@ def get_ssh_security_guidelines() -> list[str]:
     Returns:
         List of SSH security guideline strings
     """
-    return [
-        "SSH Security Guidelines:",
-        "• Use key-based authentication instead of passwords",
-        "• Implement connection timeouts (default: 30 seconds)",
-        "• Validate host key fingerprints",
-        "• Use dedicated test environments",
-        "• Limit SSH user privileges to minimum required",
-        "• Log all SSH operations for audit trails",
-        "• Never hardcode credentials in test scripts",
-        "• Use environment variables or secure vaults for secrets",
-        "• Implement proper error handling to avoid information disclosure",
-        "• Regular security audits of SSH configurations",
-        "• Monitor for unusual SSH activity patterns",
-        "• Implement continuous monitoring and alerting",
-        "• Restrict network access to SSH services",
-        "• Use strong encryption algorithms and key sizes",
-    ]
+    return SSH_SECURITY_GUIDELINES
 
 
 def generate_security_recommendations(test_data: dict[str, Any]) -> list[str]:
