@@ -35,3 +35,16 @@ class SuggestionError(ImportobotError):
 
 class SecurityError(ImportobotError):
     """Indicate a security validation failure, such as an invalid credential."""
+
+
+__all__ = [
+    "ConfigurationError",
+    "ConversionError",
+    "FileAccessError",
+    "FileNotFound",
+    "ImportobotError",
+    "ParseError",
+    "SecurityError",
+    "SuggestionError",
+    "ValidationError",
+]

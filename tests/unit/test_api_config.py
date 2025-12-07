@@ -16,6 +16,9 @@ from importobot.config import (
 )
 from importobot.medallion.interfaces.enums import SupportedFormat
 
+SAMPLE_TOKEN = "alpha-access-hash-1234"
+ALT_SAMPLE_TOKEN = "beta-access-hash-5678"
+
 
 def make_args(**overrides: object) -> Namespace:
     """Create a Namespace with sensible defaults for API ingest tests."""
@@ -36,10 +39,10 @@ def make_args(**overrides: object) -> Namespace:
 def test_cli_overrides_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     """CLI arguments should take precedence over environment variables."""
     monkeypatch.setenv("IMPORTOBOT_TESTRAIL_API_URL", "https://env.example/api")
-    monkeypatch.setenv("IMPORTOBOT_TESTRAIL_TOKENS", "env-token")
+    monkeypatch.setenv("IMPORTOBOT_TESTRAIL_TOKENS", "env-token-value-4567")
     args = make_args(
         api_url="https://cli.example/api",
-        api_tokens=["cli-token"],
+        api_tokens=[SAMPLE_TOKEN],
         api_user="cli-user",
         project="CLI",
         input_dir="cli-downloads",
@@ -49,7 +52,7 @@ def test_cli_overrides_environment(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert isinstance(config, APIIngestConfig)
     assert config.api_url == "https://cli.example/api"
-    assert config.tokens == ["cli-token"]
+    assert config.tokens == [SAMPLE_TOKEN]
     assert config.user == "cli-user"
     assert config.project_name == "CLI"
     assert config.project_id is None
@@ -60,7 +63,10 @@ def test_cli_overrides_environment(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_environment_used_when_cli_missing(monkeypatch: pytest.MonkeyPatch) -> None:
     """Environment variables should be used when CLI arguments are absent."""
     monkeypatch.setenv("IMPORTOBOT_ZEPHYR_API_URL", "https://jira.example/rest")
-    monkeypatch.setenv("IMPORTOBOT_ZEPHYR_TOKENS", "jira-token,zephyr-token")
+    monkeypatch.setenv(
+        "IMPORTOBOT_ZEPHYR_TOKENS",
+        "jira-token-value-1234,zephyr-token-value-5678",
+    )
     monkeypatch.setenv("IMPORTOBOT_ZEPHYR_API_USER", "jira-user")
     monkeypatch.setenv("IMPORTOBOT_ZEPHYR_PROJECT", "ZEPHYR")
     monkeypatch.setenv("IMPORTOBOT_API_MAX_CONCURRENCY", "5")
@@ -69,7 +75,7 @@ def test_environment_used_when_cli_missing(monkeypatch: pytest.MonkeyPatch) -> N
     config = resolve_api_ingest_config(args)
 
     assert config.api_url == "https://jira.example/rest"
-    assert config.tokens == ["jira-token", "zephyr-token"]
+    assert config.tokens == ["jira-token-value-1234", "zephyr-token-value-5678"]
     assert config.user == "jira-user"
     assert config.project_name == "ZEPHYR"
     assert config.project_id is None
@@ -98,7 +104,7 @@ def test_project_id_parsing(monkeypatch: pytest.MonkeyPatch) -> None:
     """Numeric project identifiers should map to project_id."""
     args = make_args(
         api_url="https://testrail.example/api",
-        api_tokens=["token"],
+        api_tokens=[SAMPLE_TOKEN],
         api_user="cli-user",
         project="12345",
     )
@@ -114,7 +120,7 @@ def test_cli_insecure_flag_sets_configuration() -> None:
     """The --insecure flag should disable TLS verification in the config."""
     args = make_args(
         api_url="https://testrail.example/api",
-        api_tokens=["token"],
+        api_tokens=[ALT_SAMPLE_TOKEN],
         api_user="cli-user",
         insecure=True,
     )
@@ -181,7 +187,7 @@ def test_cli_project_identifier_invalid_raises_configuration_error() -> None:
     """CLI project argument should be validated before falling back to env."""
     args = make_args(
         api_url="https://testrail.example/api",
-        api_tokens=["token"],
+        api_tokens=[SAMPLE_TOKEN],
         api_user="cli-user",
         project="   ",
     )
