@@ -39,7 +39,7 @@ jobs:
         python-version: ["3.10", "3.11", "3.12"]
     
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     
     - name: Install uv
       uses: astral-sh/setup-uv@v7
@@ -59,7 +59,7 @@ jobs:
       run: make test-all
 
     - name: Upload test results
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       if: always()
       with:
         name: test-results-${{ matrix.python-version }}
@@ -104,7 +104,7 @@ jobs:
     needs: test
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Install uv
       uses: astral-sh/setup-uv@v7
@@ -131,7 +131,7 @@ jobs:
         cd scripts && uv run python -m importobot_scripts.benchmarks.run_bronze_benchmark --output performance-metrics/bronze_benchmark.json
 
     - name: Upload benchmark metrics
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       if: always()
       with:
         name: bronze-benchmark-metrics
