@@ -22,7 +22,6 @@ from .shared_config import (
     P_E_NOT_H_LEARNED,
     P_E_NOT_H_MODE,
 )
-from .test_case_complexity_analyzer import ComplexityMetrics
 
 logger = get_logger()
 
@@ -556,54 +555,6 @@ class IndependentBayesianScorer:
 
         # Ensure reasonable bounds
         return max(0.5, min(2.0, evidence_strength))
-
-    def apply_complexity_amplification(
-        self,
-        likelihoods: dict[str, float],
-        complexity_metrics: dict[str, ComplexityMetrics | None],
-    ) -> dict[str, float]:
-        """Apply complexity-based amplification to likelihoods.
-
-        This method enhances discriminative power for complex test cases
-        while maintaining mathematical soundness through controlled amplification.
-
-        Mathematical Principle:
-        P_enhanced = P_base * (1 + alpha * complexity_score)
-        Where alpha is the complexity amplification factor.
-
-        Args:
-            likelihoods: Base likelihoods for each format
-            complexity_metrics: Complexity metrics for each format
-
-        Returns:
-            Enhanced likelihoods with complexity amplification applied
-        """
-        enhanced_likelihoods = likelihoods.copy()
-
-        for format_name, base_likelihood in likelihoods.items():
-            complexity = complexity_metrics.get(format_name)
-
-            if complexity:
-                # Calculate complexity amplification (1.0 to 1.3 max)
-                amplification = 1.0 + min(complexity.complexity_score * 0.3, 0.3)
-
-                # Apply amplification
-                enhanced_likelihood = base_likelihood * amplification
-
-                # Cap at maximum allowed likelihood
-                enhanced_likelihood = min(enhanced_likelihood, 0.95)
-
-                enhanced_likelihoods[format_name] = enhanced_likelihood
-
-                logger.debug(
-                    "Applied %.3fx complexity amplification to %s: %.3f -> %.3f",
-                    amplification,
-                    format_name,
-                    base_likelihood,
-                    enhanced_likelihood,
-                )
-
-        return enhanced_likelihoods
 
     def calculate_discriminative_score(self, metrics: EvidenceMetrics) -> float:
         """Calculate discriminative score emphasizing unique evidence.
