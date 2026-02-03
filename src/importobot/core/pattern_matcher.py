@@ -59,18 +59,19 @@ class RobotFrameworkLibrary(str, Enum):
         }
 
     @classmethod
-    def get_conflict_prone_libraries(cls) -> set["RobotFrameworkLibrary"]:
+    @lru_cache(maxsize=1)
+    def get_conflict_prone_libraries(cls) -> frozenset["RobotFrameworkLibrary"]:
         """
         Get libraries that commonly have keyword conflicts requiring prefixes.
 
         Returns:
-            Set of libraries that need explicit prefixes for disambiguation
+            Frozenset of libraries that need explicit prefixes for disambiguation
         """
-        conflict_prone = set()
+        conflict_prone: set[RobotFrameworkLibrary] = set()
         for group in cls.get_conflict_groups().values():
             if len(group) > 1:  # Only groups with actual conflicts
                 conflict_prone.update(group)
-        return conflict_prone
+        return frozenset(conflict_prone)
 
     @classmethod
     def from_string(cls, library_name: str) -> "RobotFrameworkLibrary":
