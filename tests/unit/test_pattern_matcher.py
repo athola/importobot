@@ -8,6 +8,7 @@ from importobot.core.pattern_matcher import (
     IntentType,
     LibraryDetector,
     PatternMatcher,
+    RobotFrameworkLibrary,
 )
 
 
@@ -418,3 +419,48 @@ class TestLibraryDetectorIntegration:
         # Should detect appropriate libraries for the intent
         assert "SSHLibrary" in libraries  # For SSH upload
         assert "OperatingSystem" in libraries  # For file verification
+
+
+class TestConflictProneLibrariesCache:
+    """Tests for RobotFrameworkLibrary.get_conflict_prone_libraries caching behavior."""
+
+    def test_returns_frozenset(self) -> None:
+        """get_conflict_prone_libraries should return a frozenset, not a plain set."""
+        result = RobotFrameworkLibrary.get_conflict_prone_libraries()
+
+        assert isinstance(result, frozenset)
+
+    def test_contains_expected_conflict_prone_libraries(self) -> None:
+        """Libraries belonging to conflict groups with >1 member must be included."""
+        result = RobotFrameworkLibrary.get_conflict_prone_libraries()
+
+        # The 'web_automation' group contains SeleniumLibrary and AppiumLibrary.
+        assert RobotFrameworkLibrary.SELENIUM_LIBRARY in result
+        assert RobotFrameworkLibrary.APPIUM_LIBRARY in result
+
+    def test_cache_returns_same_object_identity(self) -> None:
+        """Calling the method twice must return the exact same object (lru_cache)."""
+        first = RobotFrameworkLibrary.get_conflict_prone_libraries()
+        second = RobotFrameworkLibrary.get_conflict_prone_libraries()
+
+        assert first is second
+
+    def test_result_is_immutable(self) -> None:
+        """frozenset must raise TypeError on attempted mutation."""
+        result = RobotFrameworkLibrary.get_conflict_prone_libraries()
+
+        try:
+            result.add(RobotFrameworkLibrary.SSH_LIBRARY)  # type: ignore[attr-defined]
+            raise AssertionError("Expected AttributeError was not raised")
+        except AttributeError:
+            pass
+
+    def test_single_member_groups_are_excluded(self) -> None:
+        """Libraries in conflict groups with only one member must not be included."""
+        conflict_groups = RobotFrameworkLibrary.get_conflict_groups()
+        result = RobotFrameworkLibrary.get_conflict_prone_libraries()
+
+        for group in conflict_groups.values():
+            if len(group) == 1:
+                lone_member = next(iter(group))
+                assert lone_member not in result

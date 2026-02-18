@@ -7,7 +7,7 @@ members = [".", "scripts"]
 
 [project]
 name = "importobot"
-version = "0.1.4"
+version = "0.1.5"
 description = "Automated test framework converter for migrating test cases from Zephyr, JIRA/Xray, and TestLink to Robot Framework format with bulk processing capabilities"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -120,6 +120,7 @@ dev = [
     "matplotlib>=3.10.7",
     "detect-secrets>=1.5.0",
     "bandit>=1.7.0",
+    "pre-commit>=4.0.0",
     "hypothesis>=6.142.4",
     "mutmut>=2.4.4",
     "pyright>=1.1.407",

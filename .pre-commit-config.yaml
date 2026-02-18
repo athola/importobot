@@ -1,0 +1,58 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-docstring-first
+      - id: debug-statements
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.4
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.18.2
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-PyYAML, types-psutil, types-requests]
+        args: [--config-file=pyproject.toml]
+        files: ^src/
+
+  - repo: https://github.com/pycqa/bandit
+    rev: 1.8.6
+    hooks:
+      - id: bandit
+        args: [-r, src/, -ll]
+        exclude: tests/
+
+  - repo: local
+    hooks:
+      - id: ty
+        name: ty
+        entry: uv run ty check
+        language: system
+        files: ^src/
+        pass_filenames: true
+
+      - id: pytest-check
+        name: pytest-check
+        entry: uv run pytest --collect-only -q
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: no-ai-attribution
+        name: block-ai-co-authored-by
+        entry: |
+          bash -c 'if git log --format="%b" -1 HEAD 2>/dev/null | grep -iqE "Co-Authored-By:.*(Claude|Opus|Sonnet|Haiku|Anthropic|GPT|OpenAI|Copilot)"; then echo "ERROR: Commit contains AI Co-Authored-By line. Remove it."; exit 1; fi'
+        language: system
+        stages: [commit-msg]
+        always_run: true

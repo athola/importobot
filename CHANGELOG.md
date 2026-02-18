@@ -5,61 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.4] - 2025-11-11
-
-### Fixed
-- **MongoDB Library Integration**: Replaced broken `robotframework-mongodblibrary` with modern `robot-mongodb-library` to resolve `ModuleNotFoundError: No module named 'mongo_connection_manager'`
-- **Type Safety**: Fixed type checking errors in `base_generator.py` and `helpers.py` by properly converting `RobotFrameworkLibrary` enums to string values
-- **Code Quality**: Fixed line length violation in `keywords_registry.py` by breaking long description string into multiple lines
-- **Multi-Step Parsing**: Fixed 5 failing tests by updating filter patterns to include `SeleniumLibrary.*` prefixes, enabling proper parsing of library-prefixed commands
-- **Unicode Compatibility**: Removed all non-ASCII characters from output messages and scripts, replacing Unicode symbols (✓, →, •, 🔬) with ASCII alternatives for maximum compatibility
-
-### Changed
-- **Library Generation**: Updated codebase generation mechanism to use `RobotMongoDBLibrary` instead of legacy `MongoDBLibrary` across pattern matcher and keyword registry
-- **Keywords Registry**: Updated MongoDB function mappings to reflect actual available functions in the new library (`InsertOne`, `FindOneByID`, `Find`, `Update`, `DeleteOne`, `DeleteOneByID`)
-- **Project Configuration**: Added `BENCHMARKS_DIR` constant to `importobot.config` for clean path management, replacing hacky `Path.parent.parent.parent.parent` patterns
-- **Documentation Standards**: Enhanced TestRail client documentation with comprehensive docstring explaining Basic authentication vs Bearer token patterns
-- **Test Data Quality**: Converted code notes to actionable TODO comments with GitHub issue references for traceability
-
-### Added
-- **Task Management**: Created GitHub issue #83 for implementing proper test data feeding system for P(E|¬H) learning pipeline
-- **Cross-Reference Links**: Added clickable link to ADR-0006 in performance validation documentation
-- **ASCII Output Standards**: Standardized all CLI output and script messages to use ASCII-only characters for cross-platform compatibility
-
 ## [Unreleased]
 
-### Added
-- **Test Suite Quality**: Improved test architecture by introducing 55 named constants across 9 categories, eliminating magic numbers.
-- **Modern Test Patterns**: Updated test patterns by replacing `tempfile` with `pytest.tmp_path`, adding type annotations to all test functions, and documenting integration tests with Arrange-Act-Assert.
-- **Consistent Type Safety**: Enforced mypy type checking across the entire test suite by removing test overrides.
+## [0.1.5] - 2026-02-18
 
 ### Changed
-- **Client Module Refactoring**: Split `importobot.integrations.clients` into focused modules (base.py, jira_xray.py, testlink.py, testrail.py, zephyr.py) to enhance maintainability while retaining full backward compatibility.
-- **Documentation Refinement**: Replaced subjective marketing language with factual, technical descriptions throughout the documentation.
-- **API Client Modularity**: Implemented lazy loading for API clients, resulting in a 3x improvement in import speed while preserving all existing import paths.
-
-### Removed
-- **Legacy Compatibility Code**: Eliminated backwards compatibility shims no longer needed (Python < 3.8 support, deprecated logging and cache APIs).
-- **Redundant Functions**: Removed `setup_logger()` and `get_cache_stats()` aliases in favor of unified APIs.
-
-### Fixed
-- **Test Infrastructure**: Fixed 24 syntax errors from incorrect type annotations and resolved environmental test failures using proper pytest fixtures.
-- **Import Organization**: Corrected missing `Any` imports and standardized import patterns across test files.
-
-### Technical Details
-- **Test Quality**: All 1541 tests passed (100% pass rate) with comprehensive type checking.
-- **Performance**: No performance regression was detected after module refactoring; lazy loading improved import times.
-- **Architecture**: ADR-0006 was added to document client module refactoring decisions and performance validation.
-
-## [Unreleased]
-
-### Changed
-- **Module Refactoring**: Split `importobot.integrations.clients` into focused modules for better maintainability
+- **Client Module Refactoring**: Split `importobot.integrations.clients` into focused modules for better maintainability
   - `base.py` - Shared API client functionality (BaseAPIClient, APISource protocol)
   - `jira_xray.py` - JIRA/Xray platform client
   - `testlink.py` - TestLink platform client
   - `testrail.py` - TestRail platform client
   - `zephyr.py` - Zephyr platform client
+- **API Client Modularity**: Implemented lazy loading for API clients, resulting in a 3x improvement in import speed while preserving all existing import paths.
 - **Test Quality Improvements**:
   - Added 55 named constants in `tests/test_constants.py` to eliminate magic numbers, organized into 9 logical categories with clear section markers
   - Replaced `tempfile` usage with pytest's `tmp_path` fixture (modern pattern)
@@ -68,12 +25,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Documented growth strategy: single-file approach until 200 constants, then split into sub-modules
 - **Type Safety**: Removed mypy test override to enforce type checking across entire test suite
 - **Documentation Cleanup**: Removed subjective marketing terms ("enterprise", "professional") in favor of factual descriptions
+- **CI/CD Modernization**: Upgraded all workflows from `actions/checkout@v5` to `@v6`, added `config/**` to trigger paths
+- **Security Workflow**: Migrated from pip to uv with top-level permissions block
+- **Lint Target**: `make lint` now runs `ruff format --check` and `pycodestyle` in addition to `ruff check` and `pydocstyle`
+- **Typecheck Target**: Removed `pyright` from `make typecheck` (mypy and ty remain)
+- **CHANGELOG**: Consolidated duplicate `[Unreleased]` sections into one
+
+### Added
+- **Coverage Delta CI Job**: New `coverage-delta` workflow job measures test coverage on modified source files during PRs (60% minimum threshold)
+- **Pre-commit**: Added `.pre-commit-config.yaml`, `pre-commit` dev dependency, and `.github/workflows/pre-commit.yml` CI workflow
+- **Validate Target**: `make validate` now runs `pre-commit run --all-files` as a final check
 
 ### Removed
 - **Backwards Compatibility Code** (0.1.x has no external users):
   - Removed `importlib_metadata` fallback for Python < 3.8 (project requires Python 3.10+)
   - Removed `setup_logger()` function - use `get_logger()` instead
   - Removed `get_cache_stats()` alias - use `get_stats()` instead
+
+### Fixed
+- Fixed 24 syntax errors from incorrect type annotation replacements in test files
+- Fixed missing `Any` import in `tests/unit/test_hash_file_example.py`
+- Fixed environmental test failure in `test_resource_manager.py` by using pytest's `tmp_path` fixture instead of `/tmp`
+- Corrected missing `Any` imports and standardized import patterns across test files
 
 ### Breaking Changes
 
@@ -154,18 +127,34 @@ stats = detection_cache.get_stats()
 
 **Migration:** Replace all `.get_cache_stats()` calls with `.get_stats()`. Return value structure is unchanged.
 
-### Fixed
-- Fixed 24 syntax errors from incorrect type annotation replacements in test files
-- Fixed missing `Any` import in `tests/unit/test_hash_file_example.py`
-- Fixed environmental test failure in `test_resource_manager.py` by using pytest's `tmp_path` fixture instead of `/tmp`
-
 ### Technical Details
 - Blueprint storage classes moved to `blueprints/storage.py` (StepPattern, SuiteSettings, etc.)
-- Test suite: **1541/1541 tests passing (100% pass rate)**
+- Test suite: **1541/1541 tests passing (100% pass rate)** at time of this work
 - Mypy enforcement now applies to tests (removed `[[tool.mypy.overrides]]` for `tests.*`)
 - Architecture Decision Record: `wiki/architecture/ADR-0006-client-module-refactoring.md`
 - Performance validation: No regression detected, lazy loading provides 3x import speed improvement
   (see `wiki/architecture/performance-validation-module-split.md`)
+
+## [0.1.4] - 2025-11-11
+
+### Fixed
+- **MongoDB Library Integration**: Replaced broken `robotframework-mongodblibrary` with modern `robot-mongodb-library` to resolve `ModuleNotFoundError: No module named 'mongo_connection_manager'`
+- **Type Safety**: Fixed type checking errors in `base_generator.py` and `helpers.py` by properly converting `RobotFrameworkLibrary` enums to string values
+- **Code Quality**: Fixed line length violation in `keywords_registry.py` by breaking long description string into multiple lines
+- **Multi-Step Parsing**: Fixed 5 failing tests by updating filter patterns to include `SeleniumLibrary.*` prefixes, enabling proper parsing of library-prefixed commands
+- **Unicode Compatibility**: Removed all non-ASCII characters from output messages and scripts, replacing Unicode symbols with ASCII alternatives for maximum compatibility
+
+### Changed
+- **Library Generation**: Updated codebase generation mechanism to use `RobotMongoDBLibrary` instead of legacy `MongoDBLibrary` across pattern matcher and keyword registry
+- **Keywords Registry**: Updated MongoDB function mappings to reflect actual available functions in the new library (`InsertOne`, `FindOneByID`, `Find`, `Update`, `DeleteOne`, `DeleteOneByID`)
+- **Project Configuration**: Added `BENCHMARKS_DIR` constant to `importobot.config` for clean path management, replacing hacky `Path.parent.parent.parent.parent` patterns
+- **Documentation Standards**: Enhanced TestRail client documentation with comprehensive docstring explaining Basic authentication vs Bearer token patterns
+- **Test Data Quality**: Converted code notes to actionable TODO comments with GitHub issue references for traceability
+
+### Added
+- **Task Management**: Created GitHub issue #83 for implementing proper test data feeding system for P(E|¬H) learning pipeline
+- **Cross-Reference Links**: Added clickable link to ADR-0006 in performance validation documentation
+- **ASCII Output Standards**: Standardized all CLI output and script messages to use ASCII-only characters for cross-platform compatibility
 
 ## [0.1.3] - 2025-10-23
 

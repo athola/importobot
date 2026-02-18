@@ -16,6 +16,7 @@ on:
       - "src/**/*.py"
       - "tests/**/*.py"
       - "examples/json/**/*.json"
+      - "config/**"
       - "pyproject.toml"
       - "Makefile"
       - ".github/workflows/test.yml"
@@ -26,6 +27,7 @@ on:
       - "src/**/*.py"
       - "tests/**/*.py"
       - "examples/json/**/*.json"
+      - "config/**"
       - "pyproject.toml"
       - "Makefile"
       - ".github/workflows/test.yml"
@@ -39,7 +41,7 @@ jobs:
         python-version: ["3.10", "3.11", "3.12"]
     
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     
     - name: Install uv
       uses: astral-sh/setup-uv@v7
@@ -104,7 +106,7 @@ jobs:
     needs: test
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Install uv
       uses: astral-sh/setup-uv@v7
@@ -137,6 +139,69 @@ jobs:
         name: bronze-benchmark-metrics
         path: performance-metrics/bronze_benchmark.json
         retention-days: 7
+
+    - name: Minimize uv cache
+      run: uv cache prune --ci
+
+  coverage-delta:
+    name: Modified File Coverage
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v7
+      with:
+        version: "latest"
+        enable-cache: true
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: uv sync --dev
+
+    - name: Get modified Python files
+      id: changed-files
+      env:
+        BASE_REF: ${{ github.base_ref }}
+      run: |
+        CHANGED=$(git diff --name-only "origin/${BASE_REF}...HEAD" -- 'src/**/*.py' | tr '\n' ',' | sed 's/,$//')
+        echo "files=$CHANGED" >> "$GITHUB_OUTPUT"
+        if [ -z "$CHANGED" ]; then
+          echo "No Python source files modified"
+          echo "skip=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "Modified files: $CHANGED"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Run coverage on modified files
+      if: steps.changed-files.outputs.skip != 'true'
+      env:
+        CHANGED_FILES: ${{ steps.changed-files.outputs.files }}
+      run: |
+        COV_ARGS=""
+        IFS=',' read -ra FILES <<< "$CHANGED_FILES"
+        for file in "${FILES[@]}"; do
+          module=$(echo "$file" | sed 's|src/||' | sed 's|\.py$||' | tr '/' '.')
+          COV_ARGS="$COV_ARGS --cov=${module%.}"
+        done
+        echo "Running: uv run pytest $COV_ARGS --cov-report=term-missing --cov-fail-under=60"
+        uv run pytest $COV_ARGS --cov-report=term-missing --cov-fail-under=60 || {
+          echo "::warning::Modified file coverage below 60%. Consider adding tests for new code."
+          exit 0
+        }
+
+    - name: Skip message
+      if: steps.changed-files.outputs.skip == 'true'
+      run: echo "No Python source files modified - skipping coverage check"
 
     - name: Minimize uv cache
       run: uv cache prune --ci

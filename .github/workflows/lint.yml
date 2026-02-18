@@ -16,6 +16,7 @@ on:
       - "tests/**/*.py"
       - "scripts/**/*.py"
       - "examples/json/**/*.json"
+      - "config/**"
       - "pyproject.toml"
       - "Makefile"
       - ".github/workflows/lint.yml"
@@ -27,6 +28,7 @@ on:
       - "tests/**/*.py"
       - "scripts/**/*.py"
       - "examples/json/**/*.json"
+      - "config/**"
       - "pyproject.toml"
       - "Makefile"
       - ".github/workflows/lint.yml"
@@ -36,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     
     - name: Install uv
       uses: astral-sh/setup-uv@v7
@@ -60,15 +62,11 @@ jobs:
     - name: Run ruff format check
       run: uv run ruff format --check .
     
-    
-    
     - name: Run pycodestyle
       run: uv run pycodestyle src/ tests/ scripts/
 
     - name: Run pydocstyle
       run: uv run pydocstyle src/ scripts/
-
-
     
     - name: Minimize uv cache
       run: uv cache prune --ci

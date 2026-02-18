@@ -20,7 +20,7 @@ The Importobot test suite is structured to provide comprehensive coverage:
 
 For a detailed breakdown of test types and their locations, see the [Test Structure](How-to-Navigate-this-Codebase.md#test-structure) section in the codebase navigation guide.
 
-Current status: 1,946 tests across modules with 0 skips.
+Current status: 2,325 tests across modules with 0 skips.
 
 ## Invariant Tests
 

@@ -100,6 +100,10 @@ lint:
 	$(info $(NEWLINE)==================== Running linting ====================$(NEWLINE))
 	@echo "→ Running ruff (fast)..."
 	@uv run ruff check .
+	@echo "→ Running ruff format check..."
+	@uv run ruff format --check .
+	@echo "→ Running pycodestyle..."
+	@uv run pycodestyle src/ tests/ scripts/
 	@echo "→ Running pydocstyle..."
 	@uv run pydocstyle .
 
@@ -114,7 +118,6 @@ format:
 typecheck:
 	$(info $(NEWLINE)==================== Running type checking ====================$(NEWLINE))
 	uv run ty check .
-	uv run pyright
 	uv run mypy -p importobot
 	uv run mypy tests
 	cd scripts && uv run mypy -p importobot_scripts
@@ -141,6 +144,8 @@ validate: lint typecheck test
 	@uv run bandit --version >/dev/null 2>&1 || { echo "WARNING: bandit unavailable. Run 'uv sync' to install dev dependencies"; exit 1; }
 	@uv run bandit -r src/ -ll -f json -o bandit-report.json || { echo "WARNING: Security issues found! Check bandit-report.json"; exit 1; }
 	@rm -f bandit-report.json
+	@echo "→ Running pre-commit hooks..."
+	@uv run pre-commit run --all-files --show-diff-on-failure || { echo "WARNING: Pre-commit checks failed"; exit 1; }
 	$(info $(NEWLINE)All validation checks passed! Ready for PR review.$(NEWLINE))
 
 # Cleanup

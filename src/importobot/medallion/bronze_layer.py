@@ -39,9 +39,7 @@ from importobot.utils.validation_models import (
 logger = get_logger()
 
 
-def _resolve_positive_config(
-    value: int | None, default: int, name: str
-) -> int:
+def _resolve_positive_config(value: int | None, default: int, name: str) -> int:
     """Resolve config with validation, falling back to default if invalid."""
     resolved = value if value is not None else default
     if resolved < 1:
