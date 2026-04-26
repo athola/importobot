@@ -4,9 +4,7 @@ import logging
 
 import pytest
 
-from importobot.medallion.bronze_layer import (
-    _resolve_positive_config,  # type: ignore[attr-defined]
-)
+from importobot.medallion.bronze_layer import _resolve_positive_config
 
 
 class TestResolvePositiveConfig:

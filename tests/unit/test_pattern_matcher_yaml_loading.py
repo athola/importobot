@@ -2,6 +2,7 @@
 
 import re
 from pathlib import Path
+from typing import Any, cast
 from unittest.mock import patch
 
 import pytest
@@ -66,27 +67,35 @@ class TestRequiredFields:
     """Verify every pattern entry contains the required fields."""
 
     @pytest.fixture(scope="class")
-    def yaml_entries(self) -> list[dict]:
+    def yaml_entries(self) -> list[dict[str, Any]]:
         with open(YAML_FILE_PATH, encoding="utf-8") as f:
             config = yaml.safe_load(f)
-        return config.get("patterns", [])
+        return cast(list[dict[str, Any]], config.get("patterns", []))
 
-    def test_every_entry_has_intent_field(self, yaml_entries: list[dict]) -> None:
+    def test_every_entry_has_intent_field(
+        self, yaml_entries: list[dict[str, Any]]
+    ) -> None:
         """Each entry must have an 'intent' field."""
         missing = [i for i, entry in enumerate(yaml_entries) if "intent" not in entry]
         assert not missing, f"Entries at indices {missing} are missing 'intent'"
 
-    def test_every_entry_has_pattern_field(self, yaml_entries: list[dict]) -> None:
+    def test_every_entry_has_pattern_field(
+        self, yaml_entries: list[dict[str, Any]]
+    ) -> None:
         """Each entry must have a 'pattern' field."""
         missing = [i for i, entry in enumerate(yaml_entries) if "pattern" not in entry]
         assert not missing, f"Entries at indices {missing} are missing 'pattern'"
 
-    def test_every_entry_has_priority_field(self, yaml_entries: list[dict]) -> None:
+    def test_every_entry_has_priority_field(
+        self, yaml_entries: list[dict[str, Any]]
+    ) -> None:
         """Each entry must have a 'priority' field."""
         missing = [i for i, entry in enumerate(yaml_entries) if "priority" not in entry]
         assert not missing, f"Entries at indices {missing} are missing 'priority'"
 
-    def test_intent_fields_are_strings(self, yaml_entries: list[dict]) -> None:
+    def test_intent_fields_are_strings(
+        self, yaml_entries: list[dict[str, Any]]
+    ) -> None:
         """All 'intent' values must be non-empty strings."""
         bad = [
             i
@@ -95,7 +104,9 @@ class TestRequiredFields:
         ]
         assert not bad, f"Entries at indices {bad} have invalid 'intent' values"
 
-    def test_pattern_fields_are_strings(self, yaml_entries: list[dict]) -> None:
+    def test_pattern_fields_are_strings(
+        self, yaml_entries: list[dict[str, Any]]
+    ) -> None:
         """All 'pattern' values must be non-empty strings."""
         bad = [
             i
@@ -104,7 +115,9 @@ class TestRequiredFields:
         ]
         assert not bad, f"Entries at indices {bad} have invalid 'pattern' values"
 
-    def test_priority_fields_are_integers(self, yaml_entries: list[dict]) -> None:
+    def test_priority_fields_are_integers(
+        self, yaml_entries: list[dict[str, Any]]
+    ) -> None:
         """All 'priority' values must be integers."""
         bad = [
             i
@@ -118,13 +131,13 @@ class TestPatternIntegrity:
     """Verify every pattern in the YAML compiles to a valid regex."""
 
     @pytest.fixture(scope="class")
-    def yaml_entries(self) -> list[dict]:
+    def yaml_entries(self) -> list[dict[str, Any]]:
         with open(YAML_FILE_PATH, encoding="utf-8") as f:
             config = yaml.safe_load(f)
-        return config.get("patterns", [])
+        return cast(list[dict[str, Any]], config.get("patterns", []))
 
     def test_all_patterns_compile_to_valid_regex(
-        self, yaml_entries: list[dict]
+        self, yaml_entries: list[dict[str, Any]]
     ) -> None:
         """Every 'pattern' string must compile without error using re.IGNORECASE."""
         invalid = []
@@ -140,7 +153,7 @@ class TestPatternIntegrity:
         )
 
     def test_all_intent_names_map_to_valid_enum_values(
-        self, yaml_entries: list[dict]
+        self, yaml_entries: list[dict[str, Any]]
     ) -> None:
         """Every 'intent' value must correspond to an IntentType enum member."""
         unknown = []

@@ -188,7 +188,7 @@ class TestGitHubWorkflows:
 
             # Check for common actions that should be pinned
             if "actions/checkout@" in content:
-                assert "@v4" in content or "@v3" in content or "@v5" in content, (
+                assert any(f"@v{v}" in content for v in ("3", "4", "5", "6")), (
                     f"checkout action in {workflow_file.name} should use pinned version"
                 )
 
@@ -197,4 +197,4 @@ class TestGitHubWorkflows:
                     f"setup-python action in {workflow_file.name} should "
                     "use pinned version"
                 )
-                assert "@v5" in content or "@v4" in content, setup_assert
+                assert any(f"@v{v}" in content for v in ("4", "5", "6")), setup_assert

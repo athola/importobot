@@ -58,10 +58,10 @@ jobs:
           uv run bandit -r src/ -f json -o bandit-report.json --exit-zero
           uv run bandit -r src/ -ll --exit-zero
 
-      - name: Run Safety (Dependency Scanner)
+      - name: Run pip-audit (Dependency Scanner)
         run: |
-          uv run safety check --output json > safety-report.json || true
-          uv run safety check
+          uvx pip-audit --format json --output pip-audit-report.json || true
+          uvx pip-audit
 
       - name: SQL Injection Pattern Check
         run: |
@@ -84,4 +84,4 @@ jobs:
           name: security-reports
           path: |
             bandit-report.json
-            safety-report.json
+            pip-audit-report.json

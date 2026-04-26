@@ -5,11 +5,15 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+      - id: check-json
+      - id: check-toml
       - id: check-added-large-files
       - id: check-merge-conflict
       - id: check-case-conflict
       - id: check-docstring-first
       - id: debug-statements
+      - id: mixed-line-ending
+        args: [--fix=lf]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.14.4
@@ -18,36 +22,49 @@ repos:
         args: [--fix, --exit-non-zero-on-fix]
       - id: ruff-format
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.18.2
-    hooks:
-      - id: mypy
-        additional_dependencies: [types-PyYAML, types-psutil, types-requests]
-        args: [--config-file=pyproject.toml]
-        files: ^src/
-
-  - repo: https://github.com/pycqa/bandit
-    rev: 1.8.6
-    hooks:
-      - id: bandit
-        args: [-r, src/, -ll]
-        exclude: tests/
-
   - repo: local
     hooks:
+      - id: mypy-src
+        name: mypy (src)
+        entry: uv run mypy -p importobot
+        language: system
+        files: ^src/.*\.py$
+        pass_filenames: false
+
+      - id: mypy-tests
+        name: mypy (tests)
+        entry: uv run mypy tests
+        language: system
+        files: ^tests/.*\.py$
+        pass_filenames: false
+
       - id: ty
         name: ty
         entry: uv run ty check
         language: system
-        files: ^src/
-        pass_filenames: true
+        files: ^src/.*\.py$
+        pass_filenames: false
 
-      - id: pytest-check
-        name: pytest-check
+      - id: bandit
+        name: bandit
+        entry: uv run bandit -r src/ -ll
+        language: system
+        files: ^src/.*\.py$
+        pass_filenames: false
+
+      - id: pytest-collect
+        name: pytest collect-only
         entry: uv run pytest --collect-only -q
         language: system
         pass_filenames: false
         always_run: true
+
+      - id: workflow-action-versions
+        name: GitHub Actions pinned versions
+        entry: uv run pytest tests/unit/test_workflows.py -q
+        language: system
+        files: ^\.github/workflows/.*\.ya?ml$|^tests/unit/test_workflows\.py$
+        pass_filenames: false
 
       - id: no-ai-attribution
         name: block-ai-co-authored-by

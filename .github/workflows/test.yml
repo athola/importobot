@@ -39,16 +39,16 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
-    
+
     steps:
     - uses: actions/checkout@v6
-    
+
     - name: Install uv
       uses: astral-sh/setup-uv@v7
       with:
         version: "latest"
         enable-cache: true
-    
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v6
       with:
@@ -56,7 +56,7 @@ jobs:
 
     - name: Install dependencies
       run: uv sync --dev
-    
+
     - name: Run full test suite via Makefile
       run: make test-all
 
@@ -67,10 +67,10 @@ jobs:
         name: test-results-${{ matrix.python-version }}
         path: test-results.xml
         retention-days: 7
-    
+
     - name: Generate coverage report
       run: uv run coverage report
-    
+
     - name: Generate coverage XML
       run: uv run coverage xml
 
@@ -79,7 +79,7 @@ jobs:
 
     - name: Minimize uv cache
       run: uv cache prune --ci
-    
+
     - name: Check for CODECOV_TOKEN
       id: codecov-check
       run: |

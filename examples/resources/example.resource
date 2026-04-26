@@ -23,4 +23,3 @@ ${IS_EMBEDDED}          ${TRUE}
 ${THIRD_MACHINE_IP}            10.0.2.51
 ${THIRD_MACHINE_USERNAME}      username
 ${THIRD_MACHINE_PASSWORD}      password
-
