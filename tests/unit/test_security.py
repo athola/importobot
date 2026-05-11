@@ -1,10 +1,10 @@
 """Tests for security utilities."""
 
+from importobot.services.security_types import SecurityPolicy
 from importobot.utils.security import (
     SecurityValidator,
     extract_security_warnings,
     get_ssh_security_guidelines,
-    validate_test_security,
 )
 from tests.shared_test_data import SSH_SECURITY_TOPICS
 
@@ -90,7 +90,8 @@ class TestCommandSanitization:
 
         result = validator.sanitize_command_parameters("safe command")
 
-        assert result == "safe command"
+        # With default BLOCK policy, non-whitelisted commands return empty
+        assert result == ""
 
     def test_sanitize_command_parameters_non_string_input(self) -> None:
         """Test command parameter sanitization with non-string input."""
@@ -98,20 +99,37 @@ class TestCommandSanitization:
 
         result = validator.sanitize_command_parameters(123)
 
-        assert result == "123"
+        # With default BLOCK policy, non-whitelisted commands return empty
+        assert result == ""
 
     def test_sanitize_command_parameters_with_dangerous_chars(self) -> None:
         """Test command parameter sanitization with dangerous characters."""
-        validator = SecurityValidator()
+
+        # Test with ESCAPE policy - dangerous commands generate warnings but pass
+        # through
+        validator = SecurityValidator(command_security_policy=SecurityPolicy.ESCAPE)
         command = "command | pipe ; semicolon `backtick` $(subshell)"
 
         result = validator.sanitize_command_parameters(command)
 
-        # Characters should be escaped
+        # With ESCAPE policy, dangerous characters get escaped
         assert "\\|" in result
         assert "\\;" in result
         assert "\\`" in result
-        # Note: $( becomes \$( but the test assertion needs adjustment
+        assert "\\$" in result
+
+        # Test with BLOCK policy - dangerous commands are rejected
+        validator_block = SecurityValidator(
+            command_security_policy=SecurityPolicy.BLOCK
+        )
+        result_blocked = validator_block.sanitize_command_parameters(command)
+        # BLOCK policy returns empty for dangerous commands
+        assert result_blocked == ""
+
+        # Test with safe command - should pass through
+        safe_command = "ls -la"
+        safe_result = validator.sanitize_command_parameters(safe_command)
+        assert safe_command == safe_result
 
 
 class TestFileOperationsValidation:
@@ -274,13 +292,14 @@ class TestSecurityRecommendations:
 
 
 class TestValidateTestSecurity:
-    """Test validate_test_security function."""
+    """Test SecurityValidator.validate_test_security method."""
 
     def test_validate_test_security_clean_test(self) -> None:
         """Test security validation for clean test case."""
         test_case = {"name": "Clean test", "steps": []}
 
-        results = validate_test_security(test_case)
+        validator = SecurityValidator()
+        results = validator.validate_test_security(test_case)
 
         assert not results["warnings"]
         assert len(results["recommendations"]) == 0
@@ -298,7 +317,8 @@ class TestValidateTestSecurity:
             ],
         }
 
-        results = validate_test_security(test_case)
+        validator = SecurityValidator()
+        results = validator.validate_test_security(test_case)
 
         assert len(results["warnings"]) >= 3
         assert len(results["recommendations"]) >= 4  # SSH recommendations
@@ -310,7 +330,8 @@ class TestValidateTestSecurity:
             "steps": [{"library": "SSHLibrary", "test_data": "password: secret"}],
         }
 
-        results = validate_test_security(test_case)
+        validator = SecurityValidator()
+        results = validator.validate_test_security(test_case)
 
         # Should have warnings
         assert len(results["warnings"]) > 0

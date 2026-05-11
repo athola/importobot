@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from importobot.services.security_types import SecurityLevel
 from importobot.utils.security import SecurityValidator
 from importobot.utils.validation import (
     ValidationError,
@@ -20,7 +21,7 @@ from importobot.utils.validation_models import (
 class FileValidationStrategy:
     """Validation strategy for file operations."""
 
-    def __init__(self, security_level: str = "standard"):
+    def __init__(self, security_level: SecurityLevel = SecurityLevel.STANDARD):
         """Initialize file validation strategy.
 
         Args:
