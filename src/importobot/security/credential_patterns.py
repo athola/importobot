@@ -150,7 +150,8 @@ class CredentialPatternRegistry:
                 CredentialPattern(
                     credential_type=CredentialType.PASSWORD,
                     regex_pattern=re.compile(
-                        r"(?i)(?:db_password|database_password|db_pass)[\s\'\":=]+([^\s\'\"<>]{6,})",
+                        r"(?i)(?:db_password|database_password|db_pass)"
+                        r"[\s\'\":=]+([^\s\'\"<>]{6,})",
                         re.IGNORECASE,
                     ),
                     confidence=0.90,
@@ -168,7 +169,8 @@ class CredentialPatternRegistry:
                 CredentialPattern(
                     credential_type=CredentialType.API_KEY,
                     regex_pattern=re.compile(
-                        r"(?i)(?:x[-_]?api[-_]?key|api[_-]?key|apikey)[\s\'\":=\-]+([a-zA-Z0-9_\-]{20,})",
+                        r"(?i)(?:x[-_]?api[-_]?key|api[_-]?key|apikey)"
+                        r"[\s\'\":=\-]+([a-zA-Z0-9_\-]{20,})",
                         re.IGNORECASE,
                     ),
                     confidence=0.95,
@@ -185,7 +187,8 @@ class CredentialPatternRegistry:
                 CredentialPattern(
                     credential_type=CredentialType.API_KEY,
                     regex_pattern=re.compile(
-                        r"(?i)(?:x[-_]?api[-_]?key|authorization[\s:]+bearer[\s]+)([a-zA-Z0-9_\-]{20,})",
+                        r"(?i)(?:x[-_]?api[-_]?key|authorization[\s:]+bearer[\s]+)"
+                        r"([a-zA-Z0-9_\-]{20,})",
                         re.IGNORECASE,
                     ),
                     confidence=0.90,
@@ -203,7 +206,8 @@ class CredentialPatternRegistry:
                 CredentialPattern(
                     credential_type=CredentialType.AWS,
                     regex_pattern=re.compile(
-                        r"(?i)(?:aws[_-]?access[_-]?key[_-]?id|aws_access_key_id)[\s\'\":=]+([A-Z0-9]{20})",
+                        r"(?i)(?:aws[_-]?access[_-]?key[_-]?id|aws_access_key_id)"
+                        r"[\s\'\":=]+([A-Z0-9]{20})",
                         re.IGNORECASE,
                     ),
                     confidence=0.95,
@@ -219,7 +223,8 @@ class CredentialPatternRegistry:
                 CredentialPattern(
                     credential_type=CredentialType.AWS,
                     regex_pattern=re.compile(
-                        r"(?i)(?:aws[_-]?secret[_-]?access[_-]?key|aws_secret_access_key)[\s\'\":=]+([a-zA-Z0-9/+]{40})",
+                        r"(?i)(?:aws[_-]?secret[_-]?access[_-]?key"
+                        r"|aws_secret_access_key)[\s\'\":=]+([a-zA-Z0-9/+]{40})",
                         re.IGNORECASE,
                     ),
                     confidence=0.95,
@@ -237,7 +242,8 @@ class CredentialPatternRegistry:
                 CredentialPattern(
                     credential_type=CredentialType.AWS,
                     regex_pattern=re.compile(
-                        r"(?i)(?:aws[_-]?session[_-]?token|aws_session_token)[\s\'\":=]*(?:\(|\s)*([a-zA-Z0-9/+]{16,})",
+                        r"(?i)(?:aws[_-]?session[_-]?token|aws_session_token)"
+                        r"[\s\'\":=]*(?:\(|\s)*([a-zA-Z0-9/+]{16,})",
                         re.IGNORECASE,
                     ),
                     confidence=0.90,
@@ -287,7 +293,8 @@ class CredentialPatternRegistry:
                 CredentialPattern(
                     credential_type=CredentialType.PRIVATE_KEY,
                     regex_pattern=re.compile(
-                        r"(?i)(?:private[_-]?key|rsa[_-]?private)[\s\'\":=]+([^\s\'\"<>]{20,})",
+                        r"(?i)(?:private[_-]?key|rsa[_-]?private)"
+                        r"[\s\'\":=]+([^\s\'\"<>]{20,})",
                         re.IGNORECASE,
                     ),
                     confidence=0.95,
@@ -296,7 +303,8 @@ class CredentialPatternRegistry:
                     remediation="Move to HSM or key management service",
                     examples=[
                         "private_key: -----BEGIN...",
-                        '"rsa_private":"MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC..."',
+                        '"rsa_private":"MIIEvgIBADANBgkqhkiG9w0BAQEFAASC'
+                        'BKgwggSkAgEAAoIBAQC..."',
                     ],
                     severity="critical",
                 ),
@@ -376,7 +384,8 @@ class CredentialPatternRegistry:
                 CredentialPattern(
                     credential_type=CredentialType.OAUTH,
                     regex_pattern=re.compile(
-                        r"(?i)(?:client[_-]?secret|oauth[_-]?secret)[\s\'\":=]+([a-zA-Z0-9_\-]{20,})",
+                        r"(?i)(?:client[_-]?secret|oauth[_-]?secret)"
+                        r"[\s\'\":=]+([a-zA-Z0-9_\-]{20,})",
                         re.IGNORECASE,
                     ),
                     confidence=0.95,
@@ -410,7 +419,8 @@ class CredentialPatternRegistry:
                 CredentialPattern(
                     credential_type=CredentialType.WEBHOOK,
                     regex_pattern=re.compile(
-                        r"(?i)(?:webhook[_-]?secret|webhook[_-]?url)[\s\'\":=]+([^\s\'\"<>]{10,})",
+                        r"(?i)(?:webhook[_-]?secret|webhook[_-]?url)"
+                        r"[\s\'\":=]+([^\s\'\"<>]{10,})",
                         re.IGNORECASE,
                     ),
                     confidence=0.85,
@@ -428,7 +438,8 @@ class CredentialPatternRegistry:
                 CredentialPattern(
                     credential_type=CredentialType.ENCRYPTION_KEY,
                     regex_pattern=re.compile(
-                        r"(?i)(?:encryption[_-]?key|encrypt[_-]?key|secret[_-]?key)[\s\'\":=]+([a-zA-Z0-9+/=]{16,})",
+                        r"(?i)(?:encryption[_-]?key|encrypt[_-]?key|secret[_-]?key)"
+                        r"[\s\'\":=]+([a-zA-Z0-9+/=]{16,})",
                         re.IGNORECASE,
                     ),
                     confidence=0.90,
@@ -446,7 +457,8 @@ class CredentialPatternRegistry:
                 CredentialPattern(
                     credential_type=CredentialType.SERVICE_ACCOUNT,
                     regex_pattern=re.compile(
-                        r"(?i)(?:service[_-]?account[_-]?key|service[_-]?account)[\s\'\":=]+([^\s\'\"<>]{50,})",
+                        r"(?i)(?:service[_-]?account[_-]?key|service[_-]?account)"
+                        r"[\s\'\":=]+([^\s\'\"<>]{50,})",
                         re.IGNORECASE,
                     ),
                     confidence=0.90,
@@ -583,7 +595,9 @@ class CredentialPatternRegistry:
                 )
 
         # Sort by confidence and position
-        matches.sort(key=lambda m: (-m["confidence"], m["start_pos"]))  # type: ignore[operator]
+        matches.sort(
+            key=lambda m: (-m["confidence"], m["start_pos"])  # type: ignore[operator]
+        )
         return matches
 
     def scan_file(
