@@ -42,6 +42,12 @@ STRIPE_TEST_KEY = "sk_live_" + "1234567890abcdef1234567890"
 class TestEnhancedSecurityIntegration:
     """Integration tests for enhanced security features."""
 
+    @pytest.fixture(autouse=True)
+    def _provide_encryption_key(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # CredentialManager mandates IMPORTOBOT_ENCRYPTION_KEY (Fernet).
+        # Use a deterministic test key so CredentialManager() succeeds.
+        monkeypatch.setenv("IMPORTOBOT_ENCRYPTION_KEY", "A" * 44)
+
     def test_end_to_end_credential_detection(self) -> None:
         """Test end-to-end credential detection pipeline."""
         # Test that all components can work together

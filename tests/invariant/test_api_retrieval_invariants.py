@@ -13,14 +13,15 @@ from importobot.config import resolve_api_ingest_config
 from importobot.exceptions import ConfigurationError
 from importobot.medallion.interfaces.enums import SupportedFormat
 
+# APIIngestConfig rejects tokens that (a) are <12 chars, (b) contain
+# insecure indicators (key/test/secret/token/...), or (c) exactly match
+# placeholder strings. All those indicators are alphabetic, so a
+# digits-only alphabet at length >=12 satisfies every hard rule and
+# lets the test exercise the precedence invariant it actually covers.
 token_strategy = st.text(
-    alphabet=st.characters(
-        blacklist_characters=[",", " ", "\t"],
-        min_codepoint=33,
-        max_codepoint=126,
-    ),
-    min_size=1,
-    max_size=12,
+    alphabet="0123456789",
+    min_size=12,
+    max_size=24,
 )
 
 
