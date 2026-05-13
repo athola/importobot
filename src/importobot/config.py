@@ -44,13 +44,6 @@ _TOKEN_INSECURE_INDICATORS = (
 )
 
 
-def _token_to_plaintext(token: TokenLike) -> str:
-    """Return the plaintext value for either SecureString or raw strings."""
-    if isinstance(token, SecureString):
-        return token.value
-    return token
-
-
 def _resolve_min_token_length() -> int:
     """Resolve the configured minimum token length with sane defaults."""
     raw_value = os.getenv("IMPORTOBOT_MIN_TOKEN_LENGTH")

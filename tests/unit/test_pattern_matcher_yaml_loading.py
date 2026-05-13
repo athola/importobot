@@ -18,7 +18,13 @@ YAML_CONFIG_PATH = (
     / "core"
     / "pattern_matcher.py"
 )
-YAML_FILE_PATH = Path(__file__).parent.parent.parent / "config" / "intent_patterns.yaml"
+YAML_FILE_PATH = (
+    Path(__file__).parent.parent.parent
+    / "src"
+    / "importobot"
+    / "data"
+    / "intent_patterns.yaml"
+)
 
 
 class TestYamlFileExists:

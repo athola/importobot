@@ -222,12 +222,17 @@ class TestErrorMessageSanitization:
 
     def test_sanitize_error_message_windows_path(self) -> None:
         """Test error message sanitization with Windows path."""
+        # Deep Windows paths now collapse to ``[PATH]`` via the same
+        # sanitization regex used for Linux/Mac, removing the
+        # separator-mismatched ``C:/Users/[USER]`` artefact that the
+        # legacy ``utils.security`` sanitizer produced (PR #90 review C6).
         validator = SecurityValidator()
         error_msg = "Error in C:\\Users\\Admin\\Documents\\file.txt"
 
         result = validator.sanitize_error_message(error_msg)
 
-        assert "C:/Users/[USER]" in result
+        assert "Admin" not in result
+        assert "[PATH]" in result or "[USER]" in result
 
     def test_sanitize_error_message_long_path(self) -> None:
         """Test error message sanitization with long absolute path."""

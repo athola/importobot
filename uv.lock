@@ -971,7 +971,6 @@ name = "importobot"
 version = "0.1.5"
 source = { editable = "." }
 dependencies = [
-    { name = "asv" },
     { name = "bleach" },
     { name = "psutil" },
     { name = "robotframework" },
@@ -1034,7 +1033,6 @@ dev = [
     { name = "pre-commit" },
     { name = "pycodestyle" },
     { name = "pydocstyle" },
-    { name = "pyright" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-xdist" },
@@ -1050,7 +1048,6 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "asv", specifier = ">=0.6.5" },
     { name = "bleach", specifier = ">=6.3.0" },
     { name = "cryptography", marker = "extra == 'security'", specifier = ">=42.0.0" },
     { name = "keyring", marker = "extra == 'security'", specifier = ">=24.3.0" },
@@ -1092,7 +1089,6 @@ dev = [
     { name = "pre-commit", specifier = ">=4.0.0" },
     { name = "pycodestyle", specifier = ">=2.11.0" },
     { name = "pydocstyle", specifier = ">=6.3.0" },
-    { name = "pyright", specifier = ">=1.1.407" },
     { name = "pytest", specifier = ">=7.0.0" },
     { name = "pytest-asyncio", specifier = ">=0.23.5" },
     { name = "pytest-xdist", specifier = ">=3.6.1" },
@@ -2221,19 +2217,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/40/ae/be6e338ea427deac5cd81a93f51ae3fb6505d99d6d5e5d5341bcc099327e/pyqt5_sip-12.17.1-cp314-cp314-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:944a4bf1e1ee18ad03a54964c1c6433fb6de582313a1f0b17673e7203e22fc83", size = 282291, upload-time = "2025-10-08T08:38:25.735Z" },
     { url = "https://files.pythonhosted.org/packages/fc/a3/8b758518bd0dd5d1581f7a6d522c9b4d9b58d05087b1d0b4dfaad5376434/pyqt5_sip-12.17.1-cp314-cp314-win32.whl", hash = "sha256:99a2935fd662a67748625b1e6ffa0a2d1f2da068b9df6db04fa59a4a5d4ee613", size = 50578, upload-time = "2025-10-08T08:38:28.72Z" },
     { url = "https://files.pythonhosted.org/packages/40/8c/e96f9877548810b1e537f46fc21ba74552dd4e8c498658114a8353bdf659/pyqt5_sip-12.17.1-cp314-cp314-win_amd64.whl", hash = "sha256:aaa33232cc80793d14fdb3b149b27eec0855612ed66aad480add5ac49b9cee63", size = 59763, upload-time = "2025-10-08T08:38:27.443Z" },
-]
-
-[[package]]
-name = "pyright"
-version = "1.1.407"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "nodeenv" },
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/a6/1b/0aa08ee42948b61745ac5b5b5ccaec4669e8884b53d31c8ec20b2fcd6b6f/pyright-1.1.407.tar.gz", hash = "sha256:099674dba5c10489832d4a4b2d302636152a9a42d317986c38474c76fe562262", size = 4122872, upload-time = "2025-10-24T23:17:15.145Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/dc/93/b69052907d032b00c40cb656d21438ec00b3a471733de137a3f65a49a0a0/pyright-1.1.407-py3-none-any.whl", hash = "sha256:6dd419f54fcc13f03b52285796d65e639786373f433e243f8b94cf93a7444d21", size = 5997008, upload-time = "2025-10-24T23:17:13.159Z" },
 ]
 
 [[package]]

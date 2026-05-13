@@ -5,8 +5,10 @@ security validation using specialized modules for audit logging, pattern
 matching, and various security checks.
 """
 
+import contextlib
 import os
 import secrets
+import subprocess
 import time
 from typing import Any
 
@@ -34,8 +36,13 @@ from importobot.security.recommendations import (
     generate_security_recommendations,
     get_ssh_security_guidelines,  # noqa: F401 - re-export for backwards compatibility
 )
-from importobot.security.test_validation import validate_test_security
-from importobot.services.security_types import SecurityLevel
+from importobot.security.test_validation import _extract_ssh_parameters
+from importobot.services.security_types import SecurityLevel, SecurityPolicy
+from importobot.utils.command_security import (
+    CommandValidationResult,
+    CommandValidator,
+)
+from importobot.utils.string_cache import data_to_lower_cached
 
 # Re-exports for backwards compatibility are handled by imports above:
 # - SSH_SECURITY_GUIDELINES
@@ -98,6 +105,7 @@ class SecurityValidator:
         security_level: SecurityLevel = SecurityLevel.STANDARD,
         enable_audit_logging: bool = True,
         credential_registry: CredentialPatternRegistry | None = None,
+        command_security_policy: SecurityPolicy = SecurityPolicy.BLOCK,
         *,
         additional_dangerous_patterns: list[str] | None = None,
         additional_sensitive_paths: list[str] | None = None,
@@ -129,6 +137,16 @@ class SecurityValidator:
             additional_sanitization_patterns: Extra (pattern, replacement) tuples
                 for error message sanitization. Use this to redact additional
                 sensitive information from error messages.
+
+        Note (encryption key fallback - PR #90 review I9):
+            If the ``IMPORTOBOT_ENCRYPTION_KEY`` environment variable is
+            **not** set when this validator is constructed, an ephemeral
+            32-byte key is generated for the lifetime of the process.
+            Credentials encrypted with that key become undecryptable on
+            process restart - this is a hard data-loss footgun for
+            callers that persist ciphertext. Set
+            ``IMPORTOBOT_ENCRYPTION_KEY`` to a stable value to enable
+            cross-process decryption.
 
         Example:
             # Replace all defaults with custom patterns:
@@ -165,7 +183,11 @@ class SecurityValidator:
             logger_name=f"{__name__}.audit",
         )
 
-        # Initialize credential manager
+        # Initialize credential manager. When IMPORTOBOT_ENCRYPTION_KEY is
+        # unset we fall back to an ephemeral 32-byte key for the lifetime
+        # of the process: encrypted credentials become undecryptable after
+        # restart (this is a hard data-loss footgun for callers that
+        # persist ciphertext — see CHANGELOG).
         env_key = os.getenv("IMPORTOBOT_ENCRYPTION_KEY")
         if env_key:
             self.credential_manager = CredentialManager()
@@ -173,10 +195,57 @@ class SecurityValidator:
             ephemeral_key = secrets.token_bytes(32)
             self.credential_manager = CredentialManager(key=ephemeral_key)
 
+        # Command-execution helpers retained for callers migrated from
+        # ``importobot.utils.security.SecurityValidator`` (now an alias).
+        self.command_security_policy = command_security_policy
+        self.command_validator = CommandValidator(
+            security_level=security_level,
+            policy=command_security_policy,
+            enable_audit_logging=enable_audit_logging,
+        )
+
+    def validate_command_for_execution(
+        self,
+        command: str,
+        args: list[str] | None = None,
+        context: dict[str, Any] | None = None,
+    ) -> tuple[bool, str, list[str]]:
+        """Run the full ``CommandValidator`` and return a structured result."""
+        if args is not None:
+            result, full_command, warnings = (
+                self.command_validator.validate_command_args(command, args)
+            )
+        else:
+            result, full_command, warnings = self.command_validator.validate_command(
+                command, context
+            )
+        is_safe = result in (
+            CommandValidationResult.ALLOWED,
+            CommandValidationResult.MODIFIED,
+        )
+        return is_safe, full_command, warnings
+
+    def create_safe_subprocess(
+        self, command: str, args: list[str] | None = None, **kwargs: Any
+    ) -> tuple[bool, subprocess.Popen[str] | None, list[str]]:
+        """Spawn a subprocess only after the command passes validation."""
+        return self.command_validator.create_safe_process(command, args, **kwargs)
+
     @property
     def audit_logger(self) -> Any:
         """Get the underlying audit logger for backwards compatibility."""
         return self._audit_logger.audit_logger
+
+    @audit_logger.setter
+    def audit_logger(self, value: Any) -> None:
+        """Replace the underlying audit logger (used by tests for mocking)."""
+        self._audit_logger.audit_logger = value
+
+    @audit_logger.deleter
+    def audit_logger(self) -> None:
+        """Reset the underlying audit logger (used by unittest.mock teardown)."""
+        with contextlib.suppress(AttributeError):
+            del self._audit_logger.audit_logger
 
     def _log_security_event(
         self,
@@ -288,7 +357,31 @@ class SecurityValidator:
         return warnings
 
     def sanitize_command_parameters(self, command: Any) -> str:
-        """Sanitize command parameters to prevent injection attacks."""
+        """Sanitize command parameters honouring ``command_security_policy``.
+
+        - ``BLOCK``: return ``""`` if the command is not safe to execute;
+          otherwise return the original string. Matches the contract
+          callers migrated from ``utils.security.SecurityValidator`` rely
+          on (PR #90 review C6).
+        - ``SANITIZE``: drop dangerous tokens (``rm``, ``&&``, …) via
+          ``CommandValidator`` and return the residue.
+        - ``ESCAPE``: escape dangerous characters and return the result.
+        - ``WARN``: log warnings via ``CommandValidator`` and pass the
+          original string through unchanged.
+        """
+        if not isinstance(command, str):
+            command = str(command)
+
+        policy = self.command_security_policy
+        if policy in (
+            SecurityPolicy.BLOCK,
+            SecurityPolicy.SANITIZE,
+            SecurityPolicy.WARN,
+        ):
+            is_safe, processed, _warnings = self.validate_command_for_execution(command)
+            if policy is SecurityPolicy.BLOCK and not is_safe:
+                return ""
+            return processed
         return sanitize_command_parameters(command)
 
     def validate_file_operations(self, file_path: str, operation: str) -> list[str]:
@@ -296,7 +389,8 @@ class SecurityValidator:
 
         Validates file operations against security threats:
         - Path traversal detection (.., // patterns)
-        - Sensitive file access based on security level patterns
+        - Sensitive file access against the sensitive paths configured
+          at construction time
         - Destructive operation warnings (delete, remove, truncate, drop)
 
         Args:
@@ -307,10 +401,11 @@ class SecurityValidator:
         Returns:
             List of security warnings found during validation
 
-        Security Level Impact:
-            strict: Checks against expanded sensitive path list
-            standard: Checks against default sensitive paths
-            permissive: Uses standard sensitive path validation (no reduction)
+        Note:
+            The sensitive-path filter is fixed at constructor time (it
+            consults ``self.sensitive_paths``). Per-call security levels
+            are not consulted here - PR #90 review I8 corrects the
+            earlier docstring claim to that effect.
         """
         return validate_file_operations(
             file_path, operation, self.sensitive_paths, self._audit_logger
@@ -347,7 +442,42 @@ class SecurityValidator:
             standard: Balanced validation suitable for most environments
             permissive: Reduced validation to minimize false positives
         """
-        return validate_test_security(test_case)
+        # Run the validation in-process so events flow through ``self``'s
+        # audit logger; the free ``_validate_test_security`` function
+        # creates its own internal validator which would not honour
+        # mocks attached to ``self``.
+        start_time = time.time()
+        self.log_validation_start(
+            "TEST_CASE_SECURITY",
+            {
+                "test_case_keys": list(test_case.keys()),
+                "has_steps": "steps" in test_case,
+                "steps_count": len(test_case.get("steps", [])),
+            },
+        )
+
+        results: dict[str, list[str]] = {
+            "warnings": [],
+            "recommendations": [],
+            "sanitized_errors": [],
+        }
+
+        if "ssh" in data_to_lower_cached(test_case):
+            for step in test_case.get("steps", []):
+                if (
+                    "ssh" in data_to_lower_cached(step)
+                    or step.get("library") == "SSHLibrary"
+                ):
+                    ssh_params = _extract_ssh_parameters(step.get("test_data", ""))
+                    results["warnings"].extend(self.validate_ssh_parameters(ssh_params))
+
+        results["recommendations"].extend(generate_security_recommendations(test_case))
+
+        duration_ms = (time.time() - start_time) * 1000
+        self.log_validation_complete(
+            "TEST_CASE_SECURITY", len(results["warnings"]), duration_ms
+        )
+        return results
 
     # Backwards compatibility: expose pattern methods
     def _get_patterns(

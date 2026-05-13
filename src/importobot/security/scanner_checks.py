@@ -21,6 +21,8 @@ def scan_for_credentials(
     credential_registry: CredentialPatternRegistry,
     safe_keywords: set[str],
     get_context_fn: Any,
+    *,
+    min_confidence: float = 0.7,
 ) -> list[SecurityIssue]:
     """Scan content for credential patterns.
 
@@ -30,12 +32,15 @@ def scan_for_credentials(
         credential_registry: Registry of credential patterns
         safe_keywords: Set of keywords indicating safe content
         get_context_fn: Function to get context around a match
+        min_confidence: Minimum confidence threshold for pattern matches
+            (PR #90 review C8 - now actually forwarded to the registry
+            search rather than ignored).
 
     Returns:
         List of SecurityIssue objects
     """
     issues = []
-    matches = credential_registry.search_text(content, min_confidence=0.7)
+    matches = credential_registry.search_text(content, min_confidence=min_confidence)
 
     for match in matches:
         # Check if this is likely a false positive (safe keywords)
@@ -201,8 +206,8 @@ def scan_for_hardcoded_patterns(
                 # Check if this is likely a false positive
                 if _is_false_positive(match.group(0), safe_keywords):
                     continue
-                if comment_text and any(
-                    keyword in comment_text for keyword in safe_keywords
+                if comment_text and _contains_safe_keywords(
+                    comment_text, safe_keywords
                 ):
                     continue
 
@@ -269,32 +274,43 @@ def scan_for_robot_framework_issues(
 # =============================================================================
 
 
+_SAFE_KEYWORD_CACHE: dict[frozenset[str], re.Pattern[str]] = {}
+
+
+def _safe_keyword_pattern(safe_keywords: set[str]) -> re.Pattern[str] | None:
+    """Compile (and cache) a whole-word regex for the safe keyword set.
+
+    Whole-word matching prevents substrings inside real credential names
+    (e.g. ``test`` inside ``testdb123``, ``foo`` inside ``foo.bar.com``)
+    from suppressing detections.
+    """
+    if not safe_keywords:
+        return None
+    key = frozenset(safe_keywords)
+    cached = _SAFE_KEYWORD_CACHE.get(key)
+    if cached is not None:
+        return cached
+    alternation = "|".join(re.escape(k) for k in sorted(safe_keywords))
+    compiled = re.compile(rf"(?<![A-Za-z0-9_])({alternation})(?![A-Za-z0-9_])", re.I)
+    _SAFE_KEYWORD_CACHE[key] = compiled
+    return compiled
+
+
 def _is_false_positive(text: str, safe_keywords: set[str]) -> bool:
     """Check if a match is likely a false positive.
 
-    Args:
-        text: Text to check
-        safe_keywords: Set of safe keywords
-
-    Returns:
-        True if likely a false positive
+    Uses whole-word matching against ``safe_keywords`` so substrings inside
+    real credential values cannot accidentally suppress findings.
     """
-    text_lower = text.lower()
-    return any(keyword in text_lower for keyword in safe_keywords)
+    pattern = _safe_keyword_pattern(safe_keywords)
+    if pattern is None:
+        return False
+    return pattern.search(text) is not None
 
 
 def _contains_safe_keywords(text: str, safe_keywords: set[str]) -> bool:
-    """Check if text contains safe keywords.
-
-    Args:
-        text: Text to check
-        safe_keywords: Set of safe keywords
-
-    Returns:
-        True if safe keywords are present
-    """
-    text_lower = text.lower()
-    return any(keyword in text_lower for keyword in safe_keywords)
+    """Check if text contains safe keywords as whole words."""
+    return _is_false_positive(text, safe_keywords)
 
 
 def _is_placeholder_context(

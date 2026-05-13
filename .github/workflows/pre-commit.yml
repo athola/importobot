@@ -60,5 +60,25 @@ jobs:
     - name: Run pre-commit on all files
       run: uv run pre-commit run --all-files --show-diff-on-failure
 
+    - name: Run commit-msg hooks against PR commits
+      # PR #90 review N2: pre-commit run --all-files only fires hooks
+      # in the ``pre-commit`` stage by default, so the
+      # ``no-ai-attribution`` hook (stage: commit-msg) was silently
+      # skipped in CI. Replay every commit in the PR's history through
+      # the commit-msg stage so AI attribution slips do not reach
+      # ``main`` unreviewed.
+      if: github.event_name == 'pull_request'
+      env:
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      run: |
+        set -e
+        git fetch --depth=1 origin "$BASE_SHA"
+        for sha in $(git rev-list "$BASE_SHA"..HEAD); do
+          msg_file=$(mktemp)
+          git log -1 --format=%B "$sha" > "$msg_file"
+          uv run pre-commit run --hook-stage commit-msg --commit-msg-filename "$msg_file"
+          rm -f "$msg_file"
+        done
+
     - name: Minimize uv cache
       run: uv cache prune --ci

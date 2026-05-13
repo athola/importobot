@@ -32,13 +32,18 @@ class SecureMemory:
 
     Security Features:
     - Multiple-pass memory zeroization (0x00, 0xFF, 0x55, 0xAA, random)
-    - Memory locking with ctypes to prevent swapping
+    - ctypes.memset-based zeroization for the underlying bytearray
+      (PR #90 review I6: this class does NOT pin pages via mlock or
+      VirtualLock - secrets can still be swapped to disk under memory
+      pressure. Use a hardware-backed key store for true unswappable
+      storage)
     - Automatic cleanup on garbage collection
-    - Thread-safe access controls
+    - Thread-safe access controls (incl. destructor / finalizer
+      acquire ``_mutex`` to prevent reader-race corruption)
     - Zeroization verification with BLAKE2b hashing
     """
 
-    def __init__(self, data: bytes):
+    def __init__(self, data: bytes | bytearray):
         """Initialize secure memory with sensitive data.
 
         Args:
@@ -246,13 +251,25 @@ class SecureMemory:
             raise SecurityError("Memory zeroization verification failed")
 
     def __del__(self) -> None:
-        """Ensure cleanup on object destruction."""
+        """Ensure cleanup on object destruction.
+
+        Acquires ``_mutex`` so concurrent ``reveal()`` /
+        ``verify_integrity()`` calls cannot race with destructor-side
+        zeroization (PR #90 review I2). Failures escalate to ERROR -
+        leftover secrets in RAM at GC time are not a DEBUG-level event
+        (PR #90 review I3).
+        """
         try:
             if hasattr(self, "_data") and not self._locked:
-                self._secure_cleanup()
+                mutex = getattr(self, "_mutex", None)
+                if mutex is not None:
+                    with mutex:
+                        self._secure_cleanup()
+                else:
+                    self._secure_cleanup()
         except Exception as exc:
             with contextlib.suppress(Exception):
-                logger.debug("SecureMemory cleanup error: %s", exc)
+                logger.error("SecureMemory cleanup error [SECMEM-DTOR]: %s", exc)
 
     def __repr__(self) -> str:
         """Return a secure representation that doesn't reveal data."""
@@ -263,11 +280,24 @@ class SecureMemory:
 
     @staticmethod
     def _finalize(self_ref: weakref.ReferenceType[SecureMemory]) -> None:
-        """Zeroize memory during garbage collection using a weak reference."""
+        """Zeroize memory during garbage collection using a weak reference.
+
+        Acquires ``_mutex`` so the finalizer cannot interleave with a
+        concurrent ``reveal()`` (PR #90 review I2).
+        """
         instance = self_ref()
-        if instance is not None:
-            with contextlib.suppress(Exception):
+        if instance is None:
+            return
+        mutex = getattr(instance, "_mutex", None)
+        try:
+            if mutex is not None:
+                with mutex:
+                    instance._secure_cleanup()
+            else:
                 instance._secure_cleanup()
+        except Exception as exc:
+            with contextlib.suppress(Exception):
+                logger.error("SecureMemory finalizer error [SECMEM-FIN]: %s", exc)
 
 
 __all__ = ["SecureMemory"]

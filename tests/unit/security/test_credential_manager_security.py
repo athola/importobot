@@ -510,3 +510,30 @@ class TestCredentialManagerIntegration:
         except Exception:
             # If it fails, that's also acceptable
             pass
+
+    def test_bit_flip_in_ciphertext_is_rejected(self) -> None:
+        """PR #90 review I11: a single mid-ciphertext bit flip must fail.
+
+        Fernet authenticates its ciphertext with an HMAC; this test
+        guards against a regression that swaps Fernet for an
+        authenticate-only-on-truncation cipher (where truncation tests
+        pass but in-place tampering does not).
+        """
+        manager = CredentialManager(key=base64.urlsafe_b64encode(b"\xab" * 32))
+        encrypted = manager.encrypt_credential("payload")
+
+        if len(encrypted.ciphertext) <= 20:
+            pytest.skip("Ciphertext too short for mid-payload bit flip")
+
+        tampered = bytearray(encrypted.ciphertext)
+        # Flip a single bit deep enough that we are inside the
+        # ciphertext body rather than at a structural prefix.
+        tampered[20] ^= 0x01
+
+        forged = EncryptedCredential(
+            ciphertext=bytes(tampered),
+            length=encrypted.length,
+            manager=manager,
+        )
+        with pytest.raises(ValueError, match="decryption failed"):
+            manager.decrypt_credential(forged)

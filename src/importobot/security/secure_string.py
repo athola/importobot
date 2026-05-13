@@ -7,7 +7,9 @@ for protecting string data with automatic zeroization and Unicode awareness.
 from __future__ import annotations
 
 import contextlib
-from typing import Any, cast
+import hmac
+import secrets
+from typing import Any, ClassVar, cast
 
 from importobot.security.memory import SecureMemory
 from importobot.security.types import (
@@ -291,19 +293,15 @@ class SecureString:
             our_normalized = normalize_unicode_string(self.value, normalization)
             their_normalized = normalize_unicode_string(other.value, normalization)
 
-            # Use constant-time comparison
-            if len(our_normalized) != len(their_normalized):
-                return False
-
-            result = 0
-            for a, b in zip(
+            # Use hmac.compare_digest for a constant-time comparison
+            # that does not leak length via early-return (PR #90 review
+            # N5). compare_digest accepts equal-length byte sequences;
+            # on mismatched lengths it returns False without leaking
+            # length information through timing.
+            return hmac.compare_digest(
                 our_normalized.encode("utf-8"),
                 their_normalized.encode("utf-8"),
-                strict=False,
-            ):
-                result |= a ^ b
-
-            return result == 0
+            )
         except SecurityError:
             # If either is locked, they can't be equal
             return False
@@ -317,8 +315,16 @@ class SecureString:
         return self._memory.is_locked()
 
     def zeroize(self) -> None:
-        """Immediately zeroize the string value."""
+        """Immediately zeroize the string value.
+
+        Also clears ``_original_value`` and ``_normalized_value`` - they
+        live in regular Python ``str`` objects that survive past
+        ``self._memory.zeroize()``, which previously left plaintext
+        accessible via attribute reads (PR #90 review I1).
+        """
         self._memory.zeroize()
+        self._original_value = ""
+        self._normalized_value = ""
 
     def __enter__(self) -> SecureString:
         """Allow SecureString to participate in context manager blocks."""
@@ -340,30 +346,30 @@ class SecureString:
         if not isinstance(other, SecureString):
             return False
 
-        # Use constant-time comparison to prevent timing attacks
+        # Use hmac.compare_digest for constant-time equality. Avoids the
+        # early-return length leak that the prior manual XOR loop had,
+        # per PR #90 review N5.
         try:
-            our_value = self._memory.reveal()
-            their_value = other._memory.reveal()
-
-            if len(our_value) != len(their_value):
-                return False
-
-            # Constant-time comparison
-            result = 0
-            for a, b in zip(our_value, their_value, strict=False):
-                result |= a ^ b
-
-            return result == 0
+            return hmac.compare_digest(self._memory.reveal(), other._memory.reveal())
         except SecurityError:
             # If either is locked, they can't be equal
             return False
 
+    # Process-local key keeps __hash__ stable for the lifetime of the
+    # interpreter while preventing the plaintext from reaching Python's
+    # interner (where its lifetime would extend past zeroize()). See
+    # PR #90 review N5.
+    _HASH_KEY: ClassVar[bytes] = secrets.token_bytes(32)
+
     def __hash__(self) -> int:
-        """Provide a hash implementation compatible with __eq__."""
+        """Provide a hash that is consistent with __eq__ without leaking plaintext."""
         if self._memory.is_locked():
             return hash(("SecureString", "locked"))
 
-        return hash(self._memory.reveal())
+        digest = hmac.new(
+            SecureString._HASH_KEY, self._memory.reveal(), digestmod="sha256"
+        ).digest()
+        return int.from_bytes(digest[:8], "big", signed=False)
 
     def __len__(self) -> int:
         """Return the length of the string."""

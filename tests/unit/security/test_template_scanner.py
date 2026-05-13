@@ -97,10 +97,12 @@ class TestTemplateSecurityScanner:
         # Should have loaded hardcoded patterns
         assert len(scanner._hardcoded_patterns) > 0
 
-        # Should have loaded safe keywords
+        # Should have loaded safe keywords. ``test`` was removed in PR #90
+        # because substring containment used to suppress real credentials;
+        # ``example`` remains as the canonical placeholder marker.
         assert len(scanner._safe_keywords) > 0
         assert "example" in scanner._safe_keywords
-        assert "test" in scanner._safe_keywords
+        assert "test" not in scanner._safe_keywords
 
     def test_scan_safe_template_file(self) -> None:
         """Test scanning a safe template file."""
@@ -278,17 +280,20 @@ class TestTemplateSecurityScanner:
         """Test that safe examples don't trigger false positives."""
         scanner = TemplateSecurityScanner()
 
-        # Content that looks like credentials but is actually safe
+        # Content that looks like credentials but is actually safe.
+        # All credential-like values are accompanied by a stand-alone
+        # ``example`` / ``placeholder`` / ``demo`` token so the
+        # whole-word safe-keyword matcher can suppress them.
         safe_content = """
         *** Variables ***
-        ${API_KEY}        your_api_key_here
-        ${PASSWORD}       replace_with_actual_password
-        ${SECRET}         use_env_variable_for_secret
+        ${API_KEY}        your_api_key_here  # example placeholder
+        ${PASSWORD}       replace_with_actual_password  # placeholder
+        ${SECRET}         use_env_variable_for_secret  # example
         ${CONNECTION}     mongodb://user:password@localhost:27017/db  # example only
 
         *** Comments ***
         # Example API key placeholder to ensure safe content
-        # Test password: test_password_123
+        # Example password: example_password_123
         # Demo connection: postgresql://demo:demo@localhost:5432/demo
         """
 

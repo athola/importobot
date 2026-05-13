@@ -585,13 +585,19 @@ class TestSecurityPolicyBehavior:
                 assert any("not in allowed commands" in w for w in warnings)
 
     def test_sanitize_policy_modification(self) -> None:
-        """Test that SANITIZE policy modifies commands."""
+        """Test that SANITIZE policy modifies commands.
+
+        Uses ``&& rm`` which is one of the specific dangerous-tail
+        patterns (PR #90 dropped the bare ``&&`` rule that previously
+        flagged benign uses like ``make && make test``).
+        """
         validator = CommandValidator(policy=SecurityPolicy.SANITIZE)
 
-        # Should modify dangerous commands
-        result, processed, warnings = validator.validate_command("ls && echo pwned")
+        result, processed, warnings = validator.validate_command(
+            "ls && rm -rf /tmp/scratch"
+        )
         assert result == CommandValidationResult.MODIFIED
-        assert "echo" not in processed
+        assert "rm" not in processed
         assert len(warnings) > 0
 
     def test_warn_policy_permissiveness(self) -> None:

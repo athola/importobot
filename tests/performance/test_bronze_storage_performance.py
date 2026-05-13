@@ -79,11 +79,14 @@ class TestBronzeStoragePerformance:
                 storage_path=Path(temp_dir) / "bronze_calibration",
                 storage_backend=calibration_backend,
             )
+            # Use a larger warm-up so per-record jitter averages out before
+            # we derive a baseline; 100 records measured ~50ms which is
+            # within noise on shared CI runners.
             calibration_throughput, calibration_elapsed = self._measure_throughput(
-                calibration_layer, test_data, record_count=100, prefix="warmup"
+                calibration_layer, test_data, record_count=200, prefix="warmup"
             )
 
-            min_calibrated = get_adaptive_thresholds().get_throughput_threshold(100)
+            min_calibrated = get_adaptive_thresholds().get_throughput_threshold(200)
             assert calibration_throughput > min_calibrated, (
                 f"Warm-up throughput too low ({calibration_throughput:.0f} rec/s); "
                 f"adaptive minimum is {min_calibrated:.0f} rec/s."
@@ -102,9 +105,10 @@ class TestBronzeStoragePerformance:
                 bronze_layer, test_data, record_count=1000, prefix="perf"
             )
 
-            # Require the large run to stay within 70% of calibrated throughput.
-            assert main_throughput >= calibration_throughput * 0.7, (
-                f"Main throughput {main_throughput:.0f} rec/s fell below 70% of "
+            # 50% of calibrated throughput catches real regressions (≥2x
+            # slowdowns) without flaking on cold-cache / CI scheduler jitter.
+            assert main_throughput >= calibration_throughput * 0.5, (
+                f"Main throughput {main_throughput:.0f} rec/s fell below 50% of "
                 f"calibrated baseline {calibration_throughput:.0f} rec/s "
                 f"(elapsed {elapsed_time:.2f}s, warm-up {calibration_elapsed:.2f}s)"
             )

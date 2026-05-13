@@ -185,9 +185,15 @@ ROBOT_FRAMEWORK_PATTERNS: list[dict[str, Any]] = [
 # Keywords that indicate safe/example content, used to reduce false positives.
 # =============================================================================
 
+#
+# Dictionary words that frequently appear inside real credential values
+# (``test`` in test environments, ``foo``/``bar`` in dotted hostnames,
+# ``xxx`` masking digit counts) were removed because the scanner uses
+# whole-word matching — ``test`` would never suppress ``testdb123`` but
+# might suppress lines mentioning "test environment" alongside a real
+# token, so we err toward detection.
 SAFE_KEYWORDS: set[str] = {
     "example",
-    "test",
     "demo",
     "sample",
     "mock",
@@ -197,13 +203,6 @@ SAFE_KEYWORDS: set[str] = {
     "fake",
     "stub",
     "your",
-    "xxx",
-    "yyy",
-    "zzz",
-    "foo",
-    "bar",
-    "baz",
-    "qux",
 }
 
 # =============================================================================

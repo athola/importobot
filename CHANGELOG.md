@@ -7,6 +7,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- `importobot.config.APIIngestConfig` now uses keyword-only construction
+  with a private `_SecureTokenListView` for `tokens`. Positional
+  construction (`APIIngestConfig(fetch_format, api_url, tokens, …)`)
+  and direct list mutation (`config.tokens.append(...)`,
+  `config.tokens[i] = "new"`) no longer work. Use the keyword form
+  (`APIIngestConfig(fetch_format=..., api_url=..., tokens=[...])`)
+  and rebuild the config when tokens change. See PR #90 review C4.
+
+### Security
+
+- Whole-word safe-keyword matching (PR #90 B2): the credential scanner
+  no longer suppresses real credential values whose names happen to
+  contain dictionary substrings like `test`, `foo`, `bar`.
+  `test`/`foo`/`bar`/`baz`/`qux`/`xxx`/`yyy`/`zzz` are removed from
+  `SAFE_KEYWORDS`; `example`/`placeholder`/`demo`/`mock`/etc. remain.
+- `SecurityError` consolidated to a single class in
+  `importobot.exceptions` (PR #90 B3/C5). Imports from
+  `importobot.security`, `importobot.security.types`, and
+  `importobot.services.security_gateway` now resolve to the same
+  class - `except SecurityError` works regardless of import path.
+- `SecurityValidator` and `CredentialManager` unified (PR #90 C6/C7).
+  `importobot.utils.security` and `importobot.utils.credential_manager`
+  remain importable but now re-export the canonical classes from
+  `importobot.security`.
+- `SecureString.__eq__` uses `hmac.compare_digest`; `__hash__` returns
+  an HMAC-SHA256 derived value under a process-local key (PR #90 N5).
+- `SecureString.zeroize()` now clears `_original_value` and
+  `_normalized_value` so plaintext does not survive zeroization
+  (PR #90 I1).
+- Failed credential encryption now redacts the parameter value and
+  raises a high-severity warning rather than leaving plaintext in the
+  output (PR #90 C11).
+
+### Added
+
+- Packaged `src/importobot/data/intent_patterns.yaml` (PR #90 C3) so
+  the YAML ships inside installed wheels. The previous
+  `<repo_root>/config/intent_patterns.yaml` location crashed
+  `PatternMatcher()` with `FileNotFoundError` in production installs.
+
+### Changed
+
+- `coverage-delta` CI job now actually fails when below the 60% gate
+  (PR #90 B1). The previous `|| exit 0` trap was removed.
+- SIEM stub connectors renamed to `LoggingSplunkSink` /
+  `LoggingElasticSink` to make the simulated nature explicit
+  (PR #90 C1). Old `SplunkHECConnector` / `ElasticConnector` names
+  remain as aliases through 0.1.x and are scheduled for removal in
+  0.2.0. Per-connector failures are now caught and logged so a single
+  broken sink no longer prevents later sinks from receiving events.
+- `SoftwareHSM` renamed to `InMemoryKeyStore` with explicit
+  "NOT A REAL HSM" guidance and per-operation mutex (PR #90 C2).
+  `SoftwareHSM` remains as an alias through 0.1.x.
+
+### Removed
+
+- `pyright` removed from dev dependencies (PR #90 N8). `make typecheck`
+  uses `ty` + `mypy`; install pyright manually if you want to run it
+  ad-hoc.
+- `asv` no longer a production install dependency (PR #90 N1). It now
+  lives only in the `dev` group.
+- `pycodestyle` removed from `make lint` (PR #90 N3). `ruff`'s `E`/`W`
+  rules cover the same checks at ~50x the speed.
+
 ## [0.1.5] - 2026-02-18
 
 ### Changed
@@ -35,6 +101,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Coverage Delta CI Job**: New `coverage-delta` workflow job measures test coverage on modified source files during PRs (60% minimum threshold)
 - **Pre-commit**: Added `.pre-commit-config.yaml`, `pre-commit` dev dependency, and `.github/workflows/pre-commit.yml` CI workflow
 - **Validate Target**: `make validate` now runs `pre-commit run --all-files` as a final check
+- **Security Subsystem (`importobot.security`)**: New dedicated package consolidating credential management, scanner checks, secure memory pools, template scanning, and security validation. Replaces ad-hoc helpers previously scattered under `utils/`. Public surface includes `CredentialManager`, `TemplateSecurityScanner`, `SecurityValidator`, and `SecureString`.
+- **Encrypted Credentials**: `CredentialManager` enforces Fernet encryption via the optional `security` extra (`pip install 'importobot[security]'`) and the `IMPORTOBOT_ENCRYPTION_KEY` environment variable. OS keyring storage supported via `IMPORTOBOT_KEYRING_SERVICE` / `IMPORTOBOT_KEYRING_USERNAME`.
+- **Command Sanitization**: New `importobot.utils.command_security` module hardens shell command construction against injection.
+- **International Token Support**: Token validation handles Unicode normalization with configurable placeholder lists (`IMPORTOBOT_TOKEN_PLACEHOLDERS`, `IMPORTOBOT_TOKEN_INDICATORS`, `IMPORTOBOT_MIN_TOKEN_LENGTH`).
+- **Enterprise Add-ons (`importobot_enterprise`)**: Optional package via `pip install 'importobot[enterprise]'` exposing `SoftwareHSM`, `SIEMManager` with Splunk/Elastic/Sentinel connectors, `EnterpriseComplianceEngine` for SOC2/ISO27001 scoring, and `rotate_credentials()` for re-wrapping ciphertexts.
+- **Wiki**: New [Key Rotation](wiki/Key-Rotation.md) and [SIEM Integration](wiki/SIEM-Integration.md) guides plus [ADR-0007](wiki/architecture/ADR-0007-secure-memory-pool-refactoring.md) covering the secure memory pool refactoring rationale.
+- **Security Test Coverage**: 23 new test modules under `tests/unit/security/` and `tests/unit/enterprise/` covering credential patterns, scanner checks, secure memory, template scanning, SIEM forwarding, key rotation, and SOC2 scoring (test suite total: 2,860).
 
 ### Removed
 - **Backwards Compatibility Code** (0.1.x has no external users):

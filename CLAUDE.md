@@ -19,7 +19,7 @@ Key principles from experience:
 Write failing test first, make it pass, then refactor. The converter touches many layers (parsing, validation, rendering), so maintain both unit and integration coverage. Use the existing fixtures in `tests/fixtures/` instead of copying setup code across test files.
 
 ### CI/CD Standards
-The full test suite (2,325 tests) runs on every change. Red builds block merges. PRs also run a coverage-delta job that measures coverage on modified source files (60% threshold). Start with simple design, then refactor once tests protect the behavior. No module ownership—leave the code cleaner than you found it.
+The full test suite (2,860 tests) runs on every change. Red builds block merges. PRs also run a coverage-delta job that measures coverage on modified source files (60% threshold). Start with simple design, then refactor once tests protect the behavior. No module ownership—leave the code cleaner than you found it.
 
 ### Error Handling
 Validate JSON immediately with `load_and_parse_json` and fail fast on missing fields. Reject bad CLI input before starting long conversions to avoid wasting time. Keep configuration validation and type hints in sync—this catches many issues during development instead of runtime.
@@ -85,7 +85,7 @@ Replaced broken `robotframework-mongodblibrary` with modern `robot-mongodb-libra
 **February 2026: CI/CD Modernization and Pre-commit (0.1.5)**
 Upgraded all GitHub Actions workflows from `actions/checkout@v5` to `actions/checkout@v6` and added `config/**` to trigger paths. Added a `coverage-delta` CI job that measures test coverage on modified source files during PRs (60% minimum). Migrated `security.yml` from pip to uv with top-level permissions. Added `pre-commit` with `.pre-commit-config.yaml` and a dedicated CI workflow. The `make lint` target now runs `ruff format --check` and `pycodestyle` in addition to `ruff check` and `pydocstyle`. The `make validate` target runs `pre-commit run --all-files`. Removed `pyright` from `make typecheck` (mypy and ty remain). Consolidated duplicate `[Unreleased]` sections in CHANGELOG.md.
 
-**Test status**: All 2,325 tests pass with 0 skips.
+**Test status**: All 2,860 tests pass with 0 skips.
 **Code quality**: Removed pylint from the project (now using ruff/mypy only) and improved test isolation.
 
 ## API Integration Enhancements

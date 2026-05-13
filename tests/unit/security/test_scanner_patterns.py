@@ -40,8 +40,18 @@ class TestPatternConstants:
 
     def test_safe_keywords_is_non_empty_set(self) -> None:
         assert isinstance(SAFE_KEYWORDS, set)
-        for required in ("example", "test", "demo", "sample"):
+        # Required markers that survive even with whole-word matching.
+        for required in ("example", "demo", "sample", "placeholder", "dummy"):
             assert required in SAFE_KEYWORDS
+
+    def test_safe_keywords_excludes_common_substrings(self) -> None:
+        # PR #90 review B2: dictionary words that appear inside real
+        # credential values must not be present, otherwise whole-word
+        # matching alone is insufficient protection (an entry that's
+        # both a substring of typical values and a stand-alone token
+        # in many code lines is too lax). See SAFE_KEYWORDS docstring.
+        for forbidden in ("test", "foo", "bar", "baz", "qux", "xxx"):
+            assert forbidden not in SAFE_KEYWORDS
 
     def test_placeholder_indicators_is_tuple(self) -> None:
         # Tuple type is important — it's hashable and immutable, suiting
@@ -160,7 +170,7 @@ class TestScannerPatternsClass:
     def test_get_hardcoded_patterns_returns_copy(self) -> None:
         # The accessor must not let callers mutate the module-level list.
         result = ScannerPatterns.get_hardcoded_patterns()
-        result.append({"name": "tampered"})  # type: ignore[arg-type]
+        result.append({"name": "tampered"})
         assert all(
             entry.get("name") != "tampered" for entry in HARDCODED_VALUE_PATTERNS
         )

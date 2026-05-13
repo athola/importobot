@@ -280,13 +280,8 @@ def worker_thread(worker_id: int, work_queue: Queue):
 
 ## Conclusion
 
-This architectural change successfully eliminates global state while providing better isolation, testability, and resource management. The thread-local pattern is consistent with other recent architectural decisions (ADR-0004 Application Context Pattern, ADR-0005 Mock Reduction) and follows dependency injection principles.
-
-The investment in proper resource management will yield significant benefits in:
--   **Reliability**: Eliminates race conditions and unpredictable behavior
--   **Testability**: Enables isolated test environments without side effects
--   **Maintainability**: Provides clear boundaries and explicit dependencies
--   **Scalability**: Supports multiple concurrent instances for different use cases
--   **Security**: Ensures memory isolation between different contexts and users
-
-The thread-local context pattern is now the standard approach for managing shared resources in Importobot, providing a solid foundation for future secure memory management needs.
+This change removes the global secure-memory pool singleton and the
+race-condition surface it created across concurrent tests. The
+thread-local pattern matches ADR-0004 (Application Context Pattern) and
+ADR-0005 (Mock Reduction) so callers wire dependencies explicitly rather
+than reaching into module state.

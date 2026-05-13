@@ -100,14 +100,14 @@ coverage:
 .PHONY: lint
 lint:
 	$(info $(NEWLINE)==================== Running linting ====================$(NEWLINE))
-	@echo "→ Running ruff (fast)..."
+	@echo "→ Running ruff check..."
 	@uv run ruff check .
 	@echo "→ Running ruff format check..."
 	@uv run ruff format --check .
-	@echo "→ Running pycodestyle..."
-	@uv run pycodestyle src/ tests/ scripts/
 	@echo "→ Running pydocstyle..."
 	@uv run pydocstyle .
+	# pycodestyle removed: ruff's E/W rules already cover its checks at
+	# roughly 50x the speed (PR #90 review N3).
 
 # Format
 .PHONY: format
@@ -127,26 +127,27 @@ typecheck:
 
 # Validate PR readiness
 # Expected timing breakdown (~5 minutes total):
-#   - lint: ~115s (ruff + pydocstyle)
-#   - typecheck: ~5s
-#   - test: ~100s (1941 tests)
+#   - lint: ~30s (ruff + pydocstyle; pycodestyle dropped in 0.1.5)
+#   - typecheck: ~5s (ty + mypy)
+#   - test: ~60s (2,860 tests, 0 skips)
 #   - detect-secrets: ~10s
 #   - bandit: ~5s
-#   - Total: ~235s (4 minutes)
+#   - pre-commit: ~20s
+#   - Total: ~130s
 .PHONY: validate
 validate: lint typecheck test
 	$(info $(NEWLINE)==================== Validating PR readiness ====================$(NEWLINE))
-	@echo "→ [4/6] Checking for exposed secrets..."
+	@echo "→ [4/7] Checking for exposed secrets..."
 	@./scripts/check-secrets.sh
-	@echo "→ [5/6] Checking dependency updates..."
+	@echo "→ [5/7] Checking dependency updates..."
 	@uv pip list --outdated || true
 	@echo "→ Checking for uncommitted changes..."
 	@git status --porcelain | head -5 || true
-	@echo "→ [6/6] Checking for security vulnerabilities..."
+	@echo "→ [6/7] Checking for security vulnerabilities..."
 	@uv run bandit --version >/dev/null 2>&1 || { echo "WARNING: bandit unavailable. Run 'uv sync' to install dev dependencies"; exit 1; }
 	@uv run bandit -r src/ -ll -f json -o bandit-report.json || { echo "WARNING: Security issues found! Check bandit-report.json"; exit 1; }
 	@rm -f bandit-report.json
-	@echo "→ Running pre-commit hooks..."
+	@echo "→ [7/7] Running pre-commit hooks..."
 	@uv run pre-commit run --all-files --show-diff-on-failure || { echo "WARNING: Pre-commit checks failed"; exit 1; }
 	$(info $(NEWLINE)All validation checks passed! Ready for PR review.$(NEWLINE))
 

@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
-from pathlib import Path
+from importlib.resources import files
 from re import Pattern
 from typing import Any, ClassVar
 
@@ -215,14 +215,14 @@ class PatternMatcher:
         return self._load_patterns_from_yaml()
 
     def _load_patterns_from_yaml(self) -> list[IntentPattern]:
-        """Load intent patterns from YAML configuration file."""
-        config_path = (
-            Path(__file__).parent.parent.parent.parent
-            / "config"
-            / "intent_patterns.yaml"
-        )
+        """Load intent patterns from packaged YAML configuration.
 
-        with open(config_path, encoding="utf-8") as f:
+        ``importlib.resources`` keeps the YAML inside the installed
+        wheel rather than relying on the repository layout (which is
+        absent in production installs).
+        """
+        resource = files("importobot.data") / "intent_patterns.yaml"
+        with resource.open(encoding="utf-8") as f:
             config = yaml.safe_load(f)
 
         patterns = []

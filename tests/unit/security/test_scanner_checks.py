@@ -52,8 +52,10 @@ class TestScanForCredentials:
 
     def test_safe_keyword_suppresses_match(self) -> None:
         registry = CredentialPatternRegistry()
-        # The match text contains "example" so safe_keywords filter it out.
-        content = "aws_access_key_id: AKIAIOSFODNN7EXAMPLE\n"
+        # Whole-word safe-keyword matching: "example" must appear as a
+        # standalone token to suppress (e.g. ``AKIAIOSFODNN7 example``
+        # with a delimiter, not concatenated into the credential value).
+        content = "aws_access_key_id: AKIAIOSFODNN7 example\n"
         issues = scan_for_credentials(
             content=content,
             file_path="/tmp/x.robot",
@@ -62,6 +64,23 @@ class TestScanForCredentials:
             get_context_fn=get_context,
         )
         assert issues == []
+
+    def test_safe_keyword_substring_does_not_suppress_real_credential(self) -> None:
+        # Regression for PR #90 review B2: substring suppression used to
+        # silently drop credentials whose values contained "test" / "foo" /
+        # other common substring tokens. Whole-word matching now keeps the
+        # detection because "TEST" is not a standalone token inside an
+        # AWS-style 20-character access key id.
+        registry = CredentialPatternRegistry()
+        content = "aws_access_key_id: AKIATESTFAKE12345678\n"
+        issues = scan_for_credentials(
+            content=content,
+            file_path="/tmp/x.robot",
+            credential_registry=registry,
+            safe_keywords={"test"},
+            get_context_fn=get_context,
+        )
+        assert any(i.issue_type == "credential" for i in issues)
 
     def test_no_matches_yields_empty(self) -> None:
         registry = CredentialPatternRegistry()
@@ -83,7 +102,7 @@ class TestScanForSuspiciousVariables:
         issues = scan_for_suspicious_variables(
             content=content,
             file_path="/tmp/x.robot",
-            lines=content.split("\n"),
+            lines=list(content.split("\n")),
             suspicious_variables={"password"},
             safe_keywords=set(),
             placeholder_indicators=(),
@@ -97,7 +116,7 @@ class TestScanForSuspiciousVariables:
         issues = scan_for_suspicious_variables(
             content=content,
             file_path="/tmp/x.robot",
-            lines=content.split("\n"),
+            lines=list(content.split("\n")),
             suspicious_variables={"password"},
             safe_keywords=set(),
             placeholder_indicators=("example", "placeholder"),
@@ -105,17 +124,35 @@ class TestScanForSuspiciousVariables:
         assert issues == []
 
     def test_safe_keyword_on_same_line_suppresses(self) -> None:
-        # Safe keyword appearing after the variable suppresses the issue.
+        # A safe keyword appearing on the same line as the variable
+        # suppresses the issue *only* when it occurs as a whole token —
+        # PR #90 review B2 hardened the matcher so substrings inside the
+        # credential value no longer silently suppress detection.
+        content = "${PASSWORD}    real_token  # example value\n"
+        issues = scan_for_suspicious_variables(
+            content=content,
+            file_path="/tmp/x.robot",
+            lines=list(content.split("\n")),
+            suspicious_variables={"password"},
+            safe_keywords={"example"},
+            placeholder_indicators=(),
+        )
+        assert issues == []
+
+    def test_safe_keyword_substring_inside_value_does_not_suppress(self) -> None:
+        # Regression: ``test`` used to suppress ``test_value`` via
+        # substring containment. Whole-word matching now keeps the
+        # detection because ``test`` is glued to the rest of the token.
         content = "${PASSWORD}    test_value\n"
         issues = scan_for_suspicious_variables(
             content=content,
             file_path="/tmp/x.robot",
-            lines=content.split("\n"),
+            lines=list(content.split("\n")),
             suspicious_variables={"password"},
             safe_keywords={"test"},
             placeholder_indicators=(),
         )
-        assert issues == []
+        assert any(i.issue_type == "suspicious_variable" for i in issues)
 
     def test_section_header_lines_are_ignored_for_placeholder_context(
         self,
@@ -126,7 +163,7 @@ class TestScanForSuspiciousVariables:
         issues = scan_for_suspicious_variables(
             content=content,
             file_path="/tmp/x.robot",
-            lines=content.split("\n"),
+            lines=list(content.split("\n")),
             suspicious_variables={"password"},
             safe_keywords=set(),
             # If headers leaked into the placeholder check, "variables"
@@ -160,7 +197,7 @@ class TestScanForHardcodedPatterns:
         issues = scan_for_hardcoded_patterns(
             content=content,
             file_path="/tmp/x.robot",
-            lines=content.split("\n"),
+            lines=list(content.split("\n")),
             hardcoded_patterns=basic_pattern,
             safe_keywords=set(),
         )
@@ -186,7 +223,7 @@ class TestScanForHardcodedPatterns:
         issues = scan_for_hardcoded_patterns(
             content=content,
             file_path="/tmp/x.robot",
-            lines=content.split("\n"),
+            lines=list(content.split("\n")),
             hardcoded_patterns=pattern,
             safe_keywords={"example"},
         )
@@ -201,7 +238,7 @@ class TestScanForHardcodedPatterns:
         issues = scan_for_hardcoded_patterns(
             content=content,
             file_path="/tmp/x.robot",
-            lines=content.split("\n"),
+            lines=list(content.split("\n")),
             hardcoded_patterns=basic_pattern,
             safe_keywords={"example"},
         )
@@ -225,7 +262,7 @@ class TestScanForRobotFrameworkIssues:
         issues = scan_for_robot_framework_issues(
             content=content,
             file_path="/tmp/x.robot",
-            lines=content.split("\n"),
+            lines=list(content.split("\n")),
             robot_patterns=patterns,
         )
         assert len(issues) == 1
@@ -253,12 +290,18 @@ class TestScanForRobotFrameworkIssues:
 class TestHelperPredicates:
     """Private helpers underpin every scan function — test them directly."""
 
-    def test_is_false_positive_matches_substring_case_insensitive(self) -> None:
-        assert _is_false_positive("EXAMPLE_KEY", {"example"}) is True
+    def test_is_false_positive_matches_whole_word_case_insensitive(self) -> None:
+        # Whole-word match (case-insensitive): "EXAMPLE KEY" matches; the
+        # concatenated "EXAMPLE_KEY" no longer matches because underscore
+        # is a word character and the regex requires a non-word boundary.
+        assert _is_false_positive("EXAMPLE KEY", {"example"}) is True
+        assert _is_false_positive("EXAMPLE_KEY", {"example"}) is False
         assert _is_false_positive("real_secret", {"example"}) is False
 
     def test_contains_safe_keywords_returns_true_on_match(self) -> None:
         assert _contains_safe_keywords("test value here", {"test"}) is True
+        # Substring no longer triggers — must be a stand-alone token.
+        assert _contains_safe_keywords("testenv value", {"test"}) is False
         assert _contains_safe_keywords("real value", {"test"}) is False
 
     def test_is_placeholder_context_with_indicator_returns_true(self) -> None:

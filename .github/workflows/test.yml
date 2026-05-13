@@ -194,10 +194,7 @@ jobs:
           COV_ARGS="$COV_ARGS --cov=${module%.}"
         done
         echo "Running: uv run pytest $COV_ARGS --cov-report=term-missing --cov-fail-under=60"
-        uv run pytest $COV_ARGS --cov-report=term-missing --cov-fail-under=60 || {
-          echo "::warning::Modified file coverage below 60%. Consider adding tests for new code."
-          exit 0
-        }
+        uv run pytest $COV_ARGS --cov-report=term-missing --cov-fail-under=60
 
     - name: Skip message
       if: steps.changed-files.outputs.skip == 'true'

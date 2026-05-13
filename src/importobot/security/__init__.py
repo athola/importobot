@@ -10,10 +10,10 @@ Enterprise-only helpers (HSM, SIEM, compliance, key rotation) now live under
 ``importobot_enterprise`` so production builds can omit them by default.
 """
 
+from importobot.exceptions import SecurityError
 from importobot.security.audit import SecuritySeverity
 from importobot.security.credential_manager import (
     CredentialManager,
-    SecurityError,
 )
 from importobot.security.credential_patterns import (
     CredentialPattern,

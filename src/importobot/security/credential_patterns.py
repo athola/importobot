@@ -16,6 +16,7 @@ from re import Pattern
 from typing import Any, TypedDict
 
 from importobot import config as importobot_config
+from importobot.exceptions import SecurityError
 from importobot.utils.logging import get_logger
 
 logger = get_logger()
@@ -614,21 +615,25 @@ class CredentialPatternRegistry:
         Returns:
             List of dictionaries with match information including file path
         """
+        # ``errors="surrogateescape"`` preserves UTF-8-invalid bytes so
+        # they can still be matched by patterns - attackers could hide
+        # credentials in raw bytes that ``errors="ignore"`` previously
+        # silently dropped (PR #90 review C9).
         try:
-            with open(file_path, encoding="utf-8", errors="ignore") as f:
+            with open(file_path, encoding="utf-8", errors="surrogateescape") as f:
                 content = f.read()
-
-            matches = self.search_text(content, min_confidence)
-
-            # Add file path to all matches
-            for match in matches:
-                match["file_path"] = file_path
-
-            return matches
-
-        except Exception as exc:
+        except (OSError, UnicodeError) as exc:
+            # Re-raise as SecurityError so callers can distinguish
+            # "scanned and clean" from "scan failed" - the previous
+            # ``except Exception: return []`` swallowed permission /
+            # missing-file / decode failures.
             logger.error("Failed to scan file %s: %s", file_path, exc)
-            return []
+            raise SecurityError(f"Could not scan {file_path}: {exc}") from exc
+
+        matches = self.search_text(content, min_confidence)
+        for match in matches:
+            match["file_path"] = file_path
+        return matches
 
     def get_statistics(self) -> CredentialStatistics:
         """Get statistics about loaded patterns.

@@ -91,8 +91,20 @@ def check_hardcoded_credentials(
                     },
                     SecuritySeverity.INFO,
                 )
-            except Exception as exc:  # pragma: no cover - encryption failed
-                logger.warning("Failed to encrypt password parameter: %s", exc)
+            except Exception as exc:
+                # PR #90 review C11: never leave the plaintext password
+                # in ``parameters`` when encryption fails - downstream
+                # code would otherwise write it straight to the Robot
+                # output file. Redact and surface a loud warning.
+                parameters["password"] = "[REDACTED - ENCRYPTION UNAVAILABLE]"
+                warnings.append(
+                    f"ERROR: Password could not be encrypted; value redacted ({exc})"
+                )
+                audit_logger.log_security_event(
+                    "PASSWORD_ENCRYPTION_FAILED",
+                    {"parameter": "password", "error": str(exc)},
+                    SecuritySeverity.ERROR,
+                )
 
     return warnings
 
@@ -220,11 +232,13 @@ def _encrypt_parameter(
         parameters[key] = credential_manager.encrypt_credential(value)
         warnings.append(warning_message)
         return True
-    except Exception as exc:  # pragma: no cover - encryption failed
-        logger.warning(
-            "Failed to encrypt credential parameter %s: %s",
-            key,
-            exc,
+    except Exception as exc:
+        # PR #90 review C11: redact and surface a high-severity warning
+        # rather than leaving the plaintext value in ``parameters``.
+        parameters[key] = "[REDACTED - ENCRYPTION UNAVAILABLE]"
+        logger.error("Failed to encrypt credential parameter %s: %s", key, exc)
+        warnings.append(
+            f"ERROR: Credential '{key}' could not be encrypted; value redacted ({exc})"
         )
         return False
 

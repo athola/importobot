@@ -14,7 +14,7 @@ try:  # Optional dependency provided via the "security" extra
 except ImportError:  # pragma: no cover - optional dependency
     keyring = None  # type: ignore[assignment]
 
-from importobot.exceptions import ImportobotError
+from importobot.exceptions import SecurityError
 from importobot.utils.logging import get_logger
 
 Fernet: Any | None
@@ -39,12 +39,6 @@ except ImportError:  # pragma: no cover - required dependency
 
 
 logger = get_logger()
-
-
-class SecurityError(ImportobotError):
-    """Raised when security requirements cannot be met."""
-
-    pass
 
 
 @dataclass
@@ -223,8 +217,12 @@ class CredentialManager:
         try:
             return Fernet(normalized_key)
         except Exception as exc:  # pragma: no cover - invalid key edge cases
+            # PR #90 review I7: the prior "using base64 instead"
+            # message described a fallback path that was removed
+            # earlier in 0.1.5. Surface the actual failure so callers
+            # know encryption is unavailable.
             logger.warning(
-                "Invalid encryption key provided; using base64 instead: %s",
+                "Invalid encryption key provided; strong encryption disabled: %s",
                 exc,
             )
             return None
@@ -303,3 +301,10 @@ _DECRYPTION_ERROR_MESSAGE = (
     "\n"
     "For security reasons, credentials cannot be accessed with weak encryption."
 )
+
+
+__all__ = [
+    "CredentialManager",
+    "EncryptedCredential",
+    "SecurityError",  # PR #90 review B3/C5: explicit re-export
+]

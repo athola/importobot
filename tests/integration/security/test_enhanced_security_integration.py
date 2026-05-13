@@ -249,7 +249,7 @@ class TestEnhancedSecurityIntegration:
 
         *** Comments ***
         # Example API key placeholder that should not trigger detections
-        # Test password: test_password_123
+        # Example password: example_password_123
         # Demo connection: postgresql://demo:demo@localhost:5432/demo
 
         *** Test Cases ***
@@ -333,16 +333,22 @@ class TestErrorHandling:
     """Test error handling in enhanced security components."""
 
     def test_scanner_handles_invalid_files(self) -> None:
-        """Test that scanner handles invalid file paths gracefully."""
+        """Test that scanner handles invalid file paths gracefully.
+
+        PR #90 review C10: a failed scan now surfaces a synthetic
+        ``scan_error`` issue so ``total_issues`` stays consistent with
+        ``is_safe``. Callers aggregating issues across files no longer
+        treat a failure as "scanned and clean".
+        """
         scanner = TemplateSecurityScanner()
 
-        # Test with non-existent file
         invalid_path = Path("/nonexistent/file.robot")
         report = scanner.scan_template_file(invalid_path)
 
-        # Should still return a report with error information
         assert isinstance(report, TemplateSecurityReport)
-        assert report.total_issues == 0
+        assert report.is_safe is False
+        assert report.total_issues == 1
+        assert report.issues[0].issue_type == "scan_error"
         assert report.file_path == str(invalid_path)
         assert "error" in report.statistics
 
@@ -361,14 +367,18 @@ class TestErrorHandling:
             pytest.fail(f"Registry search_text crashed with malformed text: {exc}")
 
     def test_convenience_function_error_handling(self) -> None:
-        """Test that convenience functions handle errors gracefully."""
-        # Test with invalid path
+        """Convenience functions surface errors as a ``scan_error`` issue."""
         invalid_path = Path("/nonexistent/file.robot")
 
         try:
             report = scan_template_file_for_security(invalid_path)
             assert isinstance(report, TemplateSecurityReport)
-            assert report.total_issues == 0
+            # PR #90 review C10: scan failures emit a synthetic
+            # ``scan_error`` issue so callers can tell the scan failed
+            # rather than treating empty results as "all clean".
+            assert report.is_safe is False
+            assert report.total_issues == 1
+            assert report.issues[0].issue_type == "scan_error"
         except Exception as exc:
             pytest.fail(
                 f"scan_template_file_for_security crashed with invalid path: {exc}"

@@ -137,17 +137,20 @@ def normalize_unicode_string(
     """
     try:
         normalized = unicodedata.normalize(normalization.value, text)
-        logger.debug(
-            "Unicode normalized from %s to %s (form: %s)",
-            len(text.encode("utf-8")),
-            len(normalized.encode("utf-8")),
-            normalization.value,
-        )
-        return normalized
-    except Exception as exc:
+    except (TypeError, ValueError) as exc:
+        # PR #90 review I4: returning the un-normalized input was a
+        # silent bypass. ``unicodedata.normalize`` only fails on input
+        # that should be treated as suspicious - propagate so the
+        # caller can decide whether to reject the value.
         logger.warning("Unicode normalization failed: %s", exc)
-        # Return original text if normalization fails
-        return text
+        raise
+    logger.debug(
+        "Unicode normalized from %s to %s (form: %s)",
+        len(text.encode("utf-8")),
+        len(normalized.encode("utf-8")),
+        normalization.value,
+    )
+    return normalized
 
 
 def validate_language_characters(

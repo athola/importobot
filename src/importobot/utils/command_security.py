@@ -144,7 +144,10 @@ class CommandWhitelist:
         re.compile(r"\|\s*sh"),
         re.compile(r"\|\s*bash"),
         re.compile(r"&&\s*(rm|dd|mkfs|chmod\s+777)"),
-        re.compile(r"&&"),
+        # PR #90 review: the bare ``&&`` regex used to live here too,
+        # but it shadowed the specific rule above (and matched benign
+        # uses like ``make && make test``). Drop the broad version -
+        # the specific dangerous-tail rule remains.
     ]
 
     # Suspicious parameter keywords and ports
@@ -529,8 +532,15 @@ class CommandValidator:
                 "text": True,
             }
             if kwargs:
-                warnings.append(
-                    "Custom subprocess options are not supported; ignoring overrides"
+                # PR #90 review: ``create_safe_process`` previously
+                # accepted ``**kwargs`` and appended a warning. Callers
+                # passing ``cwd=``, ``env=``, ``timeout=`` had no idea
+                # those keywords were silently dropped. Raise so the
+                # caller decides whether to remove the overrides or
+                # build the subprocess themselves.
+                raise TypeError(
+                    "create_safe_process does not accept custom subprocess "
+                    f"options; got {sorted(kwargs)!r}"
                 )
 
             # Create process with validated command

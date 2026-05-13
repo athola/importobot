@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from enum import Enum
 
-from importobot.exceptions import ImportobotError
+from importobot.exceptions import SecurityError
 
 
 class StringEncoding(Enum):
@@ -38,12 +38,6 @@ class UnicodeNormalization(Enum):
     NFD = "NFD"  # Canonical Decomposition
     NFKC = "NFKC"  # Compatibility Decomposition followed by Canonical Composition
     NFKD = "NFKD"  # Compatibility Decomposition
-
-
-class SecurityError(ImportobotError):
-    """Raised when security operations fail."""
-
-    pass
 
 
 __all__ = [

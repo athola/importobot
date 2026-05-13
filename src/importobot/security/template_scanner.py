@@ -161,7 +161,7 @@ class TemplateSecurityScanner:
                 content.encode("utf-8"), digest_size=32
             ).hexdigest()
 
-            issues = self._scan_content(content, str(file_path))
+            issues = self._scan_content(content, str(file_path), min_confidence)
 
             scan_duration = time.time() - start_time
 
@@ -194,15 +194,33 @@ class TemplateSecurityScanner:
             )
 
         except Exception as exc:
+            # PR #90 review C10: a failed scan still emits a synthetic
+            # ``error`` issue so callers that aggregate ``total_issues``
+            # across files see a non-zero count whenever ``is_safe`` is
+            # False. Burying the cause in ``statistics["error"]`` left
+            # downstream dashboards misleadingly clean.
             logger.error("Failed to scan template file %s: %s", file_path, exc)
+            error_issue = SecurityIssue(
+                issue_type="scan_error",
+                severity="error",
+                file_path=str(file_path),
+                line_number=0,
+                column_number=0,
+                description=f"Scan failed: {exc}",
+                match_text="",
+                confidence=1.0,
+                remediation="Re-run after fixing the underlying error",
+                context="",
+                rule_id="SCAN_ERROR",
+            )
             return TemplateSecurityReport(
                 file_path=str(file_path),
                 scan_timestamp=start_time,
                 scan_duration=time.time() - start_time,
-                issues=[],
-                total_issues=0,
-                issues_by_severity={},
-                issues_by_type={},
+                issues=[error_issue],
+                total_issues=1,
+                issues_by_severity={"error": 1},
+                issues_by_type={"scan_error": 1},
                 is_safe=False,
                 file_hash="",
                 statistics={"error": str(exc)},
@@ -241,12 +259,17 @@ class TemplateSecurityScanner:
 
         return reports
 
-    def _scan_content(self, content: str, file_path: str) -> list[SecurityIssue]:
+    def _scan_content(
+        self, content: str, file_path: str, min_confidence: float = 0.7
+    ) -> list[SecurityIssue]:
         """Scan content for security issues.
 
         Args:
             content: File content to scan
             file_path: Path to the file being scanned
+            min_confidence: Minimum confidence threshold forwarded to
+                credential pattern matching (PR #90 review C8 - prior
+                versions silently ignored the caller's value).
 
         Returns:
             List of SecurityIssue objects
@@ -261,6 +284,7 @@ class TemplateSecurityScanner:
             self.credential_registry,
             self._safe_keywords,
             get_context,
+            min_confidence=min_confidence,
         )
         issues.extend(credential_issues)
 

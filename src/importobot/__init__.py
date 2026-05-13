@@ -16,7 +16,7 @@ Internal:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 # Core public functionality - import without exposing modules
 # API toolkit (following pandas.api pattern)
@@ -101,4 +101,3 @@ __version__ = "0.1.5"
 
 # Clean up namespace - remove internal imports from dir()
 del _config, _exceptions, _api
-del TYPE_CHECKING
