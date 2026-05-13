@@ -173,7 +173,7 @@ The empirical evaluation yielded the following results:
 
 | Metric | Value | Benchmark |
 |--------|------|----------|
-| Overall Accuracy | 100% (14/14) | State-of-the-art |
+| Overall Accuracy | 100% (14/14) | n=14 fixtures |
 | Mean Confidence (Correct) | 0.891 ± 0.083 | Well-calibrated |
 | Mean Confidence (Incorrect) | 0.237 ± 0.156 | Appropriately low |
 | Inference Latency | 54.7ms ± 12.3ms | Sub-60ms target |
@@ -275,7 +275,10 @@ Our assumption of conditional independence between evidence types C, Q, and U en
 
 ### 8.1 Production Performance
 
-**Real-world Deployment**: The system processes over 50,000 test exports in production CI/CD pipelines with 99.8% uptime.
+**Real-world Deployment**: The system runs in CI/CD pipelines as part of
+the supported conversion workflow. Aggregate throughput and uptime
+figures depend on the host pipeline and are not measured here; reproduce
+locally with the `benchmarks/` ASV suite.
 
 **Error Handling**: Numerical stability measures prevent production crashes:
 - Division by zero protection is implemented through epsilon bounds.

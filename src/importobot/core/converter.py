@@ -124,14 +124,6 @@ def apply_conversion_suggestions(
         return json_data, []
 
 
-def apply_conversion_suggestions_simple(
-    json_data: dict[str, Any] | list[Any],
-) -> dict[str, Any] | list[Any]:
-    """Apply improvements to JSON test data, returning only the modified data."""
-    improved_data, _ = apply_conversion_suggestions(json_data)
-    return improved_data
-
-
 def save_robot_file(content: str, file_path: str) -> None:
     """Save Robot Framework content to a specified file."""
     validate_string_content(content)

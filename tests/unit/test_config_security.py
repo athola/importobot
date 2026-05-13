@@ -1,0 +1,765 @@
+"""Tests for enhanced APIIngestConfig security features."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+
+from importobot.config import APIIngestConfig, _mask
+from importobot.medallion.interfaces.enums import SupportedFormat
+from importobot.security.secure_memory import SecureString, SecurityError
+
+VALID_TOKEN_A = "token_value_alpha_1234"
+VALID_TOKEN_B = "token_value_beta_5678"
+VALID_TOKEN_C = "token_value_gamma_9012"
+STRIPE_TEST_KEY = "sk_live_" + "51H1234567890abcdef1234567890abcdef12345678"
+SERVICE_TOKEN_A = "ghp_" + "1234567890abcdef1234567890abcdef12345678"
+SERVICE_TOKEN_B = "xoxb-" + "1234567890-1234567890-abcd1234abcd1234"
+AWS_TEST_KEY = "AKIA" + "IOSFODNN7Z9PQLR"
+
+
+class TestAPIIngestConfigSecurity:
+    """Test security enhancements to APIIngestConfig."""
+
+    def test_init_with_secure_strings(self) -> None:
+        """Test initialization with SecureString tokens."""
+        tokens = [SecureString(VALID_TOKEN_A), SecureString(VALID_TOKEN_B)]
+
+        config = APIIngestConfig(
+            fetch_format=SupportedFormat.ZEPHYR,
+            api_url="https://example.com",
+            tokens=tokens,
+            user=None,
+            project_name=None,
+            project_id=None,
+            output_dir=Path("/tmp"),
+            max_concurrency=None,
+            insecure=False,
+        )
+
+        assert len(config.tokens) == 2
+        assert config.tokens[0].value == VALID_TOKEN_A
+        assert config.tokens[1].value == VALID_TOKEN_B
+
+    def test_init_with_string_tokens_conversion(self) -> None:
+        """Test automatic conversion of string tokens to SecureString."""
+        tokens = [VALID_TOKEN_A, VALID_TOKEN_B]
+
+        config = APIIngestConfig(
+            fetch_format=SupportedFormat.ZEPHYR,
+            api_url="https://example.com",
+            tokens=tokens,  # Type: list[str]
+            user=None,
+            project_name=None,
+            project_id=None,
+            output_dir=Path("/tmp"),
+            max_concurrency=None,
+            insecure=False,
+        )
+
+        # Should be converted to SecureString
+        assert all(isinstance(token, SecureString) for token in config.tokens)
+        assert isinstance(config.tokens[0], SecureString)
+        assert isinstance(config.tokens[1], SecureString)
+        assert config.tokens[0].value == VALID_TOKEN_A
+        assert config.tokens[1].value == VALID_TOKEN_B
+
+    def test_plaintext_tokens_view_emits_warning(self) -> None:
+        """Accessing plaintext tokens should warn and return strings."""
+        config = APIIngestConfig(
+            fetch_format=SupportedFormat.ZEPHYR,
+            api_url="https://example.com",
+            tokens=[VALID_TOKEN_A, VALID_TOKEN_B],
+            user=None,
+            project_name=None,
+            project_id=None,
+            output_dir=Path("/tmp"),
+            max_concurrency=None,
+            insecure=False,
+        )
+
+        with pytest.warns(DeprecationWarning, match="plaintext_tokens"):
+            plaintext_view = config.plaintext_tokens
+
+        assert plaintext_view[0] == VALID_TOKEN_A
+        assert plaintext_view[1] == VALID_TOKEN_B
+
+        assert isinstance(config.tokens[0], SecureString)
+
+    def test_plaintext_tokens_assignment_updates_secure_tokens(self) -> None:
+        """Plaintext token mutations propagate back to secure storage."""
+        config = APIIngestConfig(
+            fetch_format=SupportedFormat.ZEPHYR,
+            api_url="https://example.com",
+            tokens=[VALID_TOKEN_A],
+            user=None,
+            project_name=None,
+            project_id=None,
+            output_dir=Path("/tmp"),
+            max_concurrency=None,
+            insecure=False,
+        )
+
+        replacement = "migrateAlpha012345"
+        with pytest.warns(DeprecationWarning, match="plaintext_tokens"):
+            plaintext_view = config.plaintext_tokens
+
+        plaintext_view[0] = replacement
+
+        assert config.get_token(0) == replacement
+
+    def test_token_security_validation_length(self) -> None:
+        """Test token validation rejects short tokens.
+
+        Changed: Minimum length reduced from 16 to 12 chars (configurable via
+        IMPORTOBOT_MIN_TOKEN_LENGTH env var, with 8-char absolute minimum).
+        """
+        tokens = [SecureString("short")]  # Less than 12 chars
+
+        with pytest.raises(SecurityError, match=r"Token 1 too short.*min 12 chars"):
+            APIIngestConfig(
+                fetch_format=SupportedFormat.ZEPHYR,
+                api_url="https://example.com",
+                tokens=tokens,
+                user=None,
+                project_name=None,
+                project_id=None,
+                output_dir=Path("/tmp"),
+                max_concurrency=None,
+                insecure=False,
+            )
+
+    def test_token_security_validation_insecure_patterns(self) -> None:
+        """Test token validation rejects insecure patterns."""
+        insecure_tokens = [
+            "password_secret_value_123",  # Contains "password"
+            "api_key_value_secure_456",  # Contains "key"
+            "test_auth_token_active",  # Contains "test"
+            "demo_access_code_secure",  # Contains "demo"
+            "example_secret_payload",  # Contains "example"
+        ]
+
+        for insecure_token in insecure_tokens:
+            with pytest.raises(
+                SecurityError, match="Token 1 contains insecure indicator"
+            ):
+                APIIngestConfig(
+                    fetch_format=SupportedFormat.ZEPHYR,
+                    api_url="https://example.com",
+                    tokens=[SecureString(insecure_token)],
+                    user=None,
+                    project_name=None,
+                    project_id=None,
+                    output_dir=Path("/tmp"),
+                    max_concurrency=None,
+                    insecure=False,
+                )
+
+    def test_placeholder_tokens_rejected(self) -> None:
+        """Exact placeholder matches should be rejected.
+
+        Changed: Only EXACT matches are rejected. Tokens containing "token"
+        as a substring (e.g., "cli-token-abc123") are now allowed.
+        """
+        placeholder_values = ["token", "api-token", "bearer_token", "your_token"]
+
+        for placeholder in placeholder_values:
+            with pytest.raises(SecurityError, match="exact placeholder match"):
+                APIIngestConfig(
+                    fetch_format=SupportedFormat.ZEPHYR,
+                    api_url="https://example.com",
+                    tokens=[SecureString(placeholder)],
+                    user=None,
+                    project_name=None,
+                    project_id=None,
+                    output_dir=Path("/tmp"),
+                    max_concurrency=None,
+                    insecure=False,
+                )
+
+    def test_tokens_with_token_substring_allowed(self) -> None:
+        """Legitimate tokens that include the word 'token' should pass validation."""
+        token_value = "cli-token-abcdef1234567890"
+
+        config = APIIngestConfig(
+            fetch_format=SupportedFormat.ZEPHYR,
+            api_url="https://example.com",
+            tokens=[SecureString(token_value)],
+            user=None,
+            project_name=None,
+            project_id=None,
+            output_dir=Path("/tmp"),
+            max_concurrency=None,
+            insecure=False,
+        )
+
+        assert isinstance(config.tokens[0], SecureString)
+        assert config.tokens[0].value == token_value
+
+    def test_token_security_validation_insufficient_entropy(self) -> None:
+        """Test that low-entropy tokens generate warnings instead of errors.
+
+        Changed: Low entropy now generates WARNING instead of SecurityError.
+        This allows tokens like "AAAA1234567890BB" while still alerting users.
+        Entropy check: unique_chars must be >= max(4, len(token) // 4).
+        """
+        low_entropy_tokens = [
+            "aaaaaaaaaaaaaaaa",  # 1/16 = 6% unique (needs 25%)
+            "1111111111111111",  # 1/16 = 6% unique (needs 25%)
+            "abababababababab",  # 2/16 = 12% unique (needs 25%)
+        ]
+
+        # These should now SUCCEED but log warnings
+        for low_entropy_token in low_entropy_tokens:
+            config = APIIngestConfig(
+                fetch_format=SupportedFormat.ZEPHYR,
+                api_url="https://example.com",
+                tokens=[SecureString(low_entropy_token)],
+                user=None,
+                project_name=None,
+                project_id=None,
+                output_dir=Path("/tmp"),
+                max_concurrency=None,
+                insecure=False,
+            )
+            # Verify token was accepted
+            assert isinstance(config.tokens[0], SecureString)
+            assert config.tokens[0].value == low_entropy_token
+
+    def test_token_security_validation_multiple_tokens(self) -> None:
+        """Test token validation with multiple tokens."""
+        # Mix of valid and invalid tokens
+        tokens = [
+            SecureString("valid_secure_token_12345"),  # Valid
+            SecureString("short"),  # Invalid - too short
+        ]
+
+        with pytest.raises(SecurityError, match="Token 2 too short"):
+            APIIngestConfig(
+                fetch_format=SupportedFormat.ZEPHYR,
+                api_url="https://example.com",
+                tokens=tokens,
+                user=None,
+                project_name=None,
+                project_id=None,
+                output_dir=Path("/tmp"),
+                max_concurrency=None,
+                insecure=False,
+            )
+
+    def test_get_token_by_index(self) -> None:
+        """Test retrieving token by index."""
+        # Use valid tokens that pass security validation
+        tokens = [
+            SecureString("sk_live_" + "1234567890abcdef12"),
+            SecureString(SERVICE_TOKEN_A),
+            SecureString(SERVICE_TOKEN_B),
+        ]
+
+        config = APIIngestConfig(
+            fetch_format=SupportedFormat.ZEPHYR,
+            api_url="https://example.com",
+            tokens=tokens,
+            user=None,
+            project_name=None,
+            project_id=None,
+            output_dir=Path("/tmp"),
+            max_concurrency=None,
+            insecure=False,
+        )
+
+        assert config.get_token(0) == "sk_live_" + "1234567890abcdef12"
+        assert config.get_token(1) == SERVICE_TOKEN_A
+        assert config.get_token(2) == SERVICE_TOKEN_B
+
+    def test_get_token_index_out_of_range(self) -> None:
+        """Test retrieving token with invalid index."""
+        tokens = [SecureString(VALID_TOKEN_A)]
+
+        config = APIIngestConfig(
+            fetch_format=SupportedFormat.ZEPHYR,
+            api_url="https://example.com",
+            tokens=tokens,
+            user=None,
+            project_name=None,
+            project_id=None,
+            output_dir=Path("/tmp"),
+            max_concurrency=None,
+            insecure=False,
+        )
+
+        with pytest.raises(IndexError, match="Token index 5 out of range"):
+            config.get_token(5)
+
+    def test_get_all_tokens(self) -> None:
+        """Test retrieving all tokens."""
+        tokens = [SecureString(VALID_TOKEN_A), SecureString(VALID_TOKEN_B)]
+
+        config = APIIngestConfig(
+            fetch_format=SupportedFormat.ZEPHYR,
+            api_url="https://example.com",
+            tokens=tokens,
+            user=None,
+            project_name=None,
+            project_id=None,
+            output_dir=Path("/tmp"),
+            max_concurrency=None,
+            insecure=False,
+        )
+
+        all_tokens = config.get_all_tokens()
+        assert all_tokens == [VALID_TOKEN_A, VALID_TOKEN_B]
+        assert isinstance(all_tokens, list)
+        assert all(isinstance(token, str) for token in all_tokens)
+
+    def test_add_token(self) -> None:
+        """Test adding a new token."""
+        initial_tokens = [SecureString("initial_token_value_123")]
+
+        config = APIIngestConfig(
+            fetch_format=SupportedFormat.ZEPHYR,
+            api_url="https://example.com",
+            tokens=initial_tokens,
+            user=None,
+            project_name=None,
+            project_id=None,
+            output_dir=Path("/tmp"),
+            max_concurrency=None,
+            insecure=False,
+        )
+
+        assert len(config.tokens) == 1
+
+        # Add a valid new token
+        config.add_token("new_secure_token_12345")
+
+        assert len(config.tokens) == 2
+        token = config.tokens[1]
+        assert isinstance(token, SecureString)
+        assert token.value == "new_secure_token_12345"
+        assert not token.is_locked()
+
+    def test_mixed_token_conversion_preserves_secure_strings(self) -> None:
+        """Ensure legacy strings convert without corrupting SecureString entries."""
+        legacy_token = "legacycred_abcdefghijkl"
+        secure_token = SecureString("alreadysecurecredentialvalue")
+
+        config = APIIngestConfig(
+            fetch_format=SupportedFormat.ZEPHYR,
+            api_url="https://example.com",
+            tokens=[legacy_token, secure_token],
+            user=None,
+            project_name=None,
+            project_id=None,
+            output_dir=Path("/tmp"),
+            max_concurrency=None,
+            insecure=False,
+        )
+
+        assert len(config.tokens) == 2
+        # Legacy string should be converted into a SecureString with the same value
+        assert config.tokens[0].value == legacy_token
+        # Pre-existing SecureString should retain its original secret
+        assert config.tokens[1].value == secure_token.value
+
+    def test_add_invalid_token(self) -> None:
+        """Test adding an invalid token fails."""
+        initial_tokens = [SecureString("valid_token_123456")]
+
+        config = APIIngestConfig(
+            fetch_format=SupportedFormat.ZEPHYR,
+            api_url="https://example.com",
+            tokens=initial_tokens,
+            user=None,
+            project_name=None,
+            project_id=None,
+            output_dir=Path("/tmp"),
+            max_concurrency=None,
+            insecure=False,
+        )
+
+        # Try to add invalid token
+        with pytest.raises(SecurityError):
+            config.add_token("short")  # Too short
+
+        # Original token should still be there
+        assert len(config.tokens) == 1
+        assert config.tokens[0].value == "valid_token_123456"
+
+    def test_explicit_cleanup(self) -> None:
+        """Test explicit cleanup() method zeroizes tokens."""
+        token_value = "explicit_cleanup_alpha_secure_123"
+        config = APIIngestConfig(
+            fetch_format=SupportedFormat.ZEPHYR,
+            api_url="https://example.com",
+            tokens=[SecureString(token_value)],
+            user=None,
+            project_name=None,
+            project_id=None,
+            output_dir=Path("/tmp"),
+            max_concurrency=None,
+            insecure=False,
+        )
+
+        # Token should be accessible before cleanup
+        assert isinstance(config.tokens[0], SecureString)
+        assert config.tokens[0].value == token_value
+
+        # Explicit cleanup
+        config.cleanup()
+
+        # After cleanup, token should be zeroized (empty/locked)
+        # Note: We can't easily verify the memory is zeroed without
+        # accessing internal SecureString state, but we verify no errors
+
+    def test_context_manager_cleanup(self) -> None:
+        """Test context manager automatically cleans up tokens."""
+        token_value = "context_manager_alpha_secure_456"
+
+        # Use context manager
+        with APIIngestConfig(
+            fetch_format=SupportedFormat.ZEPHYR,
+            api_url="https://example.com",
+            tokens=[SecureString(token_value)],
+            user=None,
+            project_name=None,
+            project_id=None,
+            output_dir=Path("/tmp"),
+            max_concurrency=None,
+            insecure=False,
+        ) as config:
+            # Token should be accessible inside context
+            assert isinstance(config.tokens[0], SecureString)
+            assert config.tokens[0].value == token_value
+
+        # After exiting context, cleanup() was called automatically
+        # Verify no exceptions during cleanup
+
+    def test_cleanup_on_destruction(self) -> None:
+        """Test that __del__ provides best-effort cleanup.
+
+        WARNING: This test verifies __del__ doesn't crash, but __del__ is
+        NOT guaranteed to run. Production code should use context managers
+        or explicit cleanup() calls for secure memory cleanup.
+        """
+        tokens = [SecureString("cleanup_alpha_value_01")]
+
+        config = APIIngestConfig(
+            fetch_format=SupportedFormat.ZEPHYR,
+            api_url="https://example.com",
+            tokens=tokens,
+            user=None,
+            project_name=None,
+            project_id=None,
+            output_dir=Path("/tmp"),
+            max_concurrency=None,
+            insecure=False,
+        )
+
+        # Tokens should not be locked initially
+        assert not config.tokens[0].is_locked()
+
+        # Delete the config (trigger __del__)
+        del config
+
+        # Note: We can't reliably test that __del__ actually ran or that
+        # cleanup happened, since __del__ is not guaranteed to run.
+        # This is a smoke test to ensure no exceptions if it does run.
+
+    def test_config_with_no_tokens(self) -> None:
+        """Test config with empty token list."""
+        config = APIIngestConfig(
+            fetch_format=SupportedFormat.ZEPHYR,
+            api_url="https://example.com",
+            tokens=[],
+            user=None,
+            project_name=None,
+            project_id=None,
+            output_dir=Path("/tmp"),
+            max_concurrency=None,
+            insecure=False,
+        )
+
+        assert config.tokens == []
+        assert config.get_all_tokens() == []
+
+        with pytest.raises(IndexError):
+            config.get_token(0)
+
+
+class TestMaskingFunction:
+    """Test the updated _mask function."""
+
+    def test_mask_string_tokens(self) -> None:
+        """Test masking regular string tokens."""
+        tokens = [VALID_TOKEN_A, VALID_TOKEN_B, VALID_TOKEN_C]
+        masked = _mask(tokens)
+
+        assert masked == "***, ***, ***"
+
+    def test_mask_secure_string_tokens(self) -> None:
+        """Test masking SecureString tokens."""
+        tokens = [SecureString("secret1"), SecureString("secret2")]
+        masked = _mask(tokens)
+
+        assert masked == "***, ***"
+
+    def test_mask_mixed_tokens(self) -> None:
+        """Test masking mixed token types."""
+        tokens: list[str | SecureString] = [
+            SecureString("secret_value_one_123"),
+            VALID_TOKEN_B,
+            SecureString("secret_value_three_789"),
+        ]
+        masked = _mask(tokens)
+
+        # Should count all tokens regardless of type
+        assert masked == "***, ***, ***"
+
+    def test_mask_empty_tokens(self) -> None:
+        """Test masking empty token list."""
+        assert _mask([]) == "***"
+        assert _mask(None) == "***"
+
+    def test_mask_single_token(self) -> None:
+        """Test masking single token."""
+        secure_tokens = [SecureString("single_secret")]
+        masked = _mask(secure_tokens)
+
+        assert masked == "***"
+
+        string_tokens = ["single_string"]
+        masked = _mask(string_tokens)
+        assert masked == "***"
+
+
+class TestTokenSecurityValidation:
+    """Detailed tests for token security validation."""
+
+    def test_case_insensitive_pattern_detection(self) -> None:
+        """Test that insecure pattern detection is case-insensitive."""
+        insecure_variations = [
+            "MyTOKEN1234567890",
+            "PASSWORD_secret_alpha",
+            "Api_Key_Value_guard99",
+            "TEST_ACCESS_MODE999",
+            "DEMO_MODE_PROFILE77",
+            "EXAMPLE_VALUE_ALPHA",
+            "SAMPLE_DATA_BUFFER",
+            "DEFAULT_CONFIG_ZONE",
+            "TEMP_SECRET_ACCESS",
+            "TEMPORARY_ACCESS_ZONE",
+        ]
+
+        for insecure_token in insecure_variations:
+            with pytest.raises(SecurityError, match="contains insecure indicator"):
+                APIIngestConfig(
+                    fetch_format=SupportedFormat.ZEPHYR,
+                    api_url="https://example.com",
+                    tokens=[SecureString(insecure_token)],
+                    user=None,
+                    project_name=None,
+                    project_id=None,
+                    output_dir=Path("/tmp"),
+                    max_concurrency=None,
+                    insecure=False,
+                )
+
+    def test_valid_tokens_acceptance(self) -> None:
+        """Test that valid tokens are accepted."""
+        valid_tokens = [
+            STRIPE_TEST_KEY,
+            SERVICE_TOKEN_A,
+            SERVICE_TOKEN_B,
+            "random_string_12345_abcd",  # Generic but valid
+            "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",  # Hex-like
+        ]
+
+        for valid_token in valid_tokens:
+            # Should not raise any exceptions
+            config = APIIngestConfig(
+                fetch_format=SupportedFormat.ZEPHYR,
+                api_url="https://example.com",
+                tokens=[SecureString(valid_token)],
+                user=None,
+                project_name=None,
+                project_id=None,
+                output_dir=Path("/tmp"),
+                max_concurrency=None,
+                insecure=False,
+            )
+            token = config.tokens[0]
+            assert isinstance(token, SecureString)
+            assert token.value == valid_token
+
+    def test_unicode_token_validation(self) -> None:
+        """Test token validation with Unicode characters."""
+        unicode_token = "unîcode_token_12345_测试"  # Contains Unicode
+
+        # Should be accepted if long enough and doesn't contain insecure patterns
+        config = APIIngestConfig(
+            fetch_format=SupportedFormat.ZEPHYR,
+            api_url="https://example.com",
+            tokens=[SecureString(unicode_token)],
+            user=None,
+            project_name=None,
+            project_id=None,
+            output_dir=Path("/tmp"),
+            max_concurrency=None,
+            insecure=False,
+        )
+        token = config.tokens[0]
+        assert isinstance(token, SecureString)
+        assert token.value == unicode_token
+
+    def test_minimum_unique_characters(self) -> None:
+        """Test entropy warning for tokens with low character diversity.
+
+        Changed behavior: Low entropy now generates a WARNING instead of raising
+        SecurityError. This allows legitimate tokens with repeated characters
+        (e.g., "AAAA1234567890BB") while still alerting users to potential issues.
+        """
+        # Token with good entropy (4/16 = 25%) should pass without warning
+        token_with_4_unique = "abcdabcdabcdabcd"
+        config = APIIngestConfig(
+            fetch_format=SupportedFormat.ZEPHYR,
+            api_url="https://example.com",
+            tokens=[SecureString(token_with_4_unique)],
+            user=None,
+            project_name=None,
+            project_id=None,
+            output_dir=Path("/tmp"),
+            max_concurrency=None,
+            insecure=False,
+        )
+        token = config.tokens[0]
+        assert isinstance(token, SecureString)
+        assert token.value == token_with_4_unique
+
+        # Token with low entropy (3/18 = 16% < 25%) should now WARN instead of fail
+        token_with_3_unique = "aaabbbcccaaabbbccc"
+        # This should succeed but log a warning
+        config_low_entropy = APIIngestConfig(
+            fetch_format=SupportedFormat.ZEPHYR,
+            api_url="https://example.com",
+            tokens=[SecureString(token_with_3_unique)],
+            user=None,
+            project_name=None,
+            project_id=None,
+            output_dir=Path("/tmp"),
+            max_concurrency=None,
+            insecure=False,
+        )
+        # Verify it was accepted despite low entropy
+        assert isinstance(config_low_entropy.tokens[0], SecureString)
+        assert config_low_entropy.tokens[0].value == token_with_3_unique
+
+
+class TestAPIIngestConfigIntegration:
+    """Integration tests for APIIngestConfig with security features."""
+
+    def test_real_world_token_scenarios(self) -> None:
+        """Test real-world token scenarios."""
+        real_tokens = {
+            "stripe": STRIPE_TEST_KEY,
+            "service_a": SERVICE_TOKEN_A,
+            "service_b": SERVICE_TOKEN_B,
+            "aws": AWS_TEST_KEY,  # AWS access key format
+        }
+
+        for service, token in real_tokens.items():
+            config = APIIngestConfig(
+                fetch_format=SupportedFormat.ZEPHYR,
+                api_url=f"https://{service}.example.com",
+                tokens=[SecureString(token)],
+                user=None,
+                project_name=None,
+                project_id=None,
+                output_dir=Path("/tmp"),
+                max_concurrency=None,
+                insecure=False,
+            )
+            token_obj = config.tokens[0]
+            assert isinstance(token_obj, SecureString)
+            assert token_obj.value == token
+
+    def test_multiple_service_tokens(self) -> None:
+        """Test config with multiple service tokens."""
+        tokens = [
+            STRIPE_TEST_KEY,
+            SERVICE_TOKEN_A,
+            SERVICE_TOKEN_B,
+        ]
+
+        config = APIIngestConfig(
+            fetch_format=SupportedFormat.ZEPHYR,
+            api_url="https://api.example.com",
+            tokens=[SecureString(token) for token in tokens],
+            user=None,
+            project_name=None,
+            project_id=None,
+            output_dir=Path("/tmp"),
+            max_concurrency=None,
+            insecure=False,
+        )
+
+        retrieved_tokens = config.get_all_tokens()
+        assert retrieved_tokens == tokens
+
+    def test_config_lifecycle_with_tokens(self) -> None:
+        """Test complete config lifecycle with secure token handling."""
+        initial_token = "initial_secure_token_12345678"
+
+        # Create config
+        config = APIIngestConfig(
+            fetch_format=SupportedFormat.ZEPHYR,
+            api_url="https://api.example.com",
+            tokens=[SecureString(initial_token)],
+            user=None,
+            project_name=None,
+            project_id=None,
+            output_dir=Path("/tmp"),
+            max_concurrency=None,
+            insecure=False,
+        )
+
+        # Add more tokens
+        config.add_token("second_token_12345678")
+        config.add_token("third_token_12345678")
+
+        # Retrieve tokens
+        all_tokens = config.get_all_tokens()
+        assert len(all_tokens) == 3
+        assert all_tokens[0] == initial_token
+
+        # Access individual tokens
+        assert config.get_token(1) == "second_token_12345678"
+        assert config.get_token(2) == "third_token_12345678"
+
+        # Verify all tokens are still secure
+        for token in config.tokens:
+            assert isinstance(token, SecureString)
+            assert not token.is_locked()
+
+    def test_error_handling_in_validation(self) -> None:
+        """Test error handling during token validation."""
+
+        # Create a token that will cause an exception during validation
+        class ProblematicSecureString(SecureString):
+            @property
+            def value(self) -> str:
+                raise RuntimeError("Simulated access error")
+
+        with pytest.raises(SecurityError, match="Failed to validate token 1"):
+            APIIngestConfig(
+                fetch_format=SupportedFormat.ZEPHYR,
+                api_url="https://example.com",
+                tokens=[ProblematicSecureString("token")],
+                user=None,
+                project_name=None,
+                project_id=None,
+                output_dir=Path("/tmp"),
+                max_concurrency=None,
+                insecure=False,
+            )

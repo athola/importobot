@@ -2,7 +2,7 @@
   "name": "User API Integration Test",
   "description": "Test database and API integration functionality",
   "testScript": {
-    "type": "STEP_BY_STEP", 
+    "type": "STEP_BY_STEP",
     "steps": [
       {
         "description": "Connect to user database",

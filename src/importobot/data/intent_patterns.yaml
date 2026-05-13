@@ -1,0 +1,392 @@
+# Intent patterns for pattern matching engine
+# Each pattern maps to an IntentType enum value with regex and priority
+
+patterns:
+  # Command execution (highest priority for specific commands)
+  - intent: FILE_STAT
+    pattern: '\bstat\b'
+    priority: 10
+
+  - intent: COMMAND_EXECUTION
+    pattern: '\b(?:initiate.*download|execute.*curl|run.*wget|curl|wget)\b'
+    priority: 10
+
+  - intent: COMMAND_EXECUTION
+    pattern: '\b(?:echo|hash|blake2bsum)\b'
+    priority: 9
+
+  - intent: COMMAND_EXECUTION
+    pattern: '\b(?:chmod|chown|stat|truncate|cp|rm|mkdir|rmdir|touch|ls|cat)\b'
+    priority: 9
+
+  # File operations (most specific patterns first)
+  - intent: FILE_EXISTS
+    pattern: '\b(?:verify|check|ensure).*file.*exists?\b'
+    priority: 8
+
+  - intent: FILE_REMOVE
+    pattern: '\b(?:remove|delete|clean).*file\b'
+    priority: 7
+
+  - intent: FILE_TRANSFER
+    pattern: '\b(?:get|retrieve|transfer).*file\b'
+    priority: 7
+
+  - intent: FILE_CREATION
+    pattern: '\b(?:create|write).*file\b'
+    priority: 7
+
+  - intent: FILE_TRANSFER
+    pattern: '\b(?:copy|move).*file\b'
+    priority: 6
+
+  - intent: FILE_EXISTS
+    pattern: '\b(?:file.*should.*exist|file.*exists)\b'
+    priority: 6
+
+  - intent: FILE_REMOVE
+    pattern: '\b(?:file.*should.*not.*exist|remove.*file)\b'
+    priority: 6
+
+  # Database operations (more specific patterns first)
+  - intent: DATABASE_CONNECT
+    pattern: '\b(?:connect|establish|open).*(?:database|db connection)\b'
+    priority: 8
+
+  - intent: DATABASE_EXECUTE
+    pattern: '\b(?:execute|run).*(?:sql|query)\b'
+    priority: 7
+
+  - intent: DATABASE_DISCONNECT
+    pattern: '\b(?:disconnect|close|terminate).*(?:database|db)\b'
+    priority: 6
+
+  - intent: DATABASE_MODIFY
+    pattern: '\b(?:insert|update|delete).*(?:record|row)\b'
+    priority: 6
+
+  - intent: DATABASE_ROW_COUNT
+    pattern: '\b(?:verify|check|validate).*(?:row|record).*count\b'
+    priority: 5
+
+  # SSH operations
+  - intent: SSH_CONNECT
+    pattern: '\b(?:open|establish|create|connect).*(?:ssh|connection|remote|server)\b'
+    priority: 7
+
+  - intent: SSH_CONNECT
+    pattern: '\bconnect.*to.*server\b'
+    priority: 7
+
+  - intent: SSH_CONNECT
+    pattern: '\bconnect.*to.*staging\b'
+    priority: 7
+
+  - intent: SSH_CONNECT
+    pattern: '\bconnect.*to.*production\b'
+    priority: 7
+
+  - intent: SSH_CONNECT
+    pattern: '\bconnect\b'
+    priority: 6
+
+  - intent: SSH_DISCONNECT
+    pattern: '\b(?:close|disconnect|terminate).*(?:connection|ssh|remote)\b'
+    priority: 6
+
+  - intent: SSH_EXECUTE
+    pattern: '\b(?:execute|run).*(?:command|ssh)\b'
+    priority: 7
+
+  - intent: SSH_EXECUTE
+    pattern: '\bstart.*extraction\b'
+    priority: 7
+
+  - intent: SSH_EXECUTE
+    pattern: '\bstart.*command\b'
+    priority: 7
+
+  - intent: SSH_LOGIN
+    pattern: '\blogin.*ssh\b'
+    priority: 7
+
+  - intent: SSH_LOGIN
+    pattern: '\bssh.*login\b'
+    priority: 7
+
+  - intent: SSH_LOGIN
+    pattern: '\blogin.*with.*key\b'
+    priority: 7
+
+  - intent: SSH_LOGIN
+    pattern: '\blogin.*with.*public.*key\b'
+    priority: 7
+
+  - intent: SSH_CONFIGURATION
+    pattern: '\bset.*ssh.*client.*configuration\b'
+    priority: 7
+
+  - intent: SSH_FILE_UPLOAD
+    pattern: '\bupload.*file\b'
+    priority: 7
+
+  - intent: SSH_FILE_UPLOAD
+    pattern: '\bput.*file\b'
+    priority: 7
+
+  - intent: SSH_FILE_DOWNLOAD
+    pattern: '\bdownload.*file\b'
+    priority: 7
+
+  - intent: SSH_FILE_DOWNLOAD
+    pattern: '\bget.*file\b'
+    priority: 7
+
+  - intent: SSH_DIRECTORY_CREATE
+    pattern: '\bcreate.*directory\b'
+    priority: 8
+
+  - intent: SSH_DIRECTORY_LIST
+    pattern: '\blist.*directory\b'
+    priority: 7
+
+  - intent: SSH_READ_UNTIL
+    pattern: '\bread.*until\b'
+    priority: 7
+
+  - intent: SSH_WRITE
+    pattern: '\bwrite\b'
+    priority: 7
+
+  - intent: SSH_ENABLE_LOGGING
+    pattern: '\benable.*logging\b'
+    priority: 7
+
+  - intent: SSH_SWITCH_CONNECTION
+    pattern: '\bswitch.*connection\b'
+    priority: 7
+
+  # More flexible SSH patterns that don't explicitly contain "ssh"
+  - intent: SSH_FILE_UPLOAD
+    pattern: '\bupload.*configuration.*file\b'
+    priority: 6
+
+  - intent: SSH_FILE_UPLOAD
+    pattern: '\bupload.*application.*archive\b'
+    priority: 6
+
+  - intent: SSH_READ_UNTIL
+    pattern: '\bwait.*for.*extraction\b'
+    priority: 6
+
+  - intent: SSH_READ_UNTIL
+    pattern: '\bwait.*for.*completion\b'
+    priority: 6
+
+  - intent: SSH_WRITE
+    pattern: '\bwrite.*deployment.*script\b'
+    priority: 6
+
+  - intent: SSH_READ_UNTIL
+    pattern: '\bread.*deployment.*output\b'
+    priority: 6
+
+  - intent: FILE_VERIFICATION
+    pattern: '\bverify.*file.*exists\b'
+    priority: 6
+
+  - intent: SSH_DIRECTORY_CREATE
+    pattern: '\blist.*deployment.*contents\b'
+    priority: 6
+
+  # Browser operations (higher priority than SSH patterns)
+  - intent: BROWSER_OPEN
+    pattern: '\b(?:open|navigate|visit|launch).*(?:browser|page|url|application)\b'
+    priority: 8
+
+  - intent: BROWSER_NAVIGATE
+    pattern: '\b(?:go to|navigate(?:\s+to)?)\b.*\b(?:url|page|site|screen|login|portal|dashboard|home)\b'
+    priority: 8
+
+  - intent: BROWSER_NAVIGATE
+    pattern: '\bnavigate(?:\s+to)?\s+(?:login|home|dashboard|portal|application|app)(?:\s+page|\s+screen)?\b'
+    priority: 6
+
+  - intent: INPUT_USERNAME
+    pattern: '\b(?:enter|input|type|fill).*(?:username|user\s*name|email|e-mail|email\s+address)\b'
+    priority: 5
+
+  - intent: INPUT_PASSWORD
+    pattern: '\b(?:enter|input|type|fill).*password\b'
+    priority: 5
+
+  - intent: CREDENTIAL_INPUT
+    pattern: '\b(?:enter|input|type|fill|provide).*(?:credentials?|login\s+(?:details|info))\b'
+    priority: 6
+
+  - intent: CLICK_ACTION
+    pattern: '\b(?:click|press|tap).*(?:button|element)\b'
+    priority: 4
+
+  - intent: CLICK_ACTION
+    pattern: '\bsubmit\b.*\b(?:form|button|login|request)\b'
+    priority: 5
+
+  - intent: CLICK_ACTION
+    pattern: '\b(?:click|press|tap)\b'
+    priority: 3
+
+  # Specific patterns for builtin assertions
+  - intent: VERIFY_CONTENT
+    pattern: '\bassert.*page.*contains?\b'
+    priority: 5
+
+  - intent: ASSERTION_CONTAINS
+    pattern: '\bassert.*contains?\b'
+    priority: 4
+
+  # Content verification
+  - intent: CONTENT_VERIFICATION
+    pattern: '\b(?:verify|check|ensure|assert|validate).*(?:content|contains|displays)\b'
+    priority: 3
+
+  - intent: CONTENT_VERIFICATION
+    pattern: '\b(?:validate|verify|check|ensure|assert)\b'
+    priority: 2
+
+  - intent: CONTENT_VERIFICATION
+    pattern: 'verify\s*:'
+    priority: 3
+
+  - intent: ELEMENT_VERIFICATION
+    pattern: 'element\s*:'
+    priority: 3
+
+  # API operations
+  - intent: API_REQUEST
+    pattern: '\b(?:make|send|perform).*(?:get|post|put|delete).*(?:request|api)\b'
+    priority: 5
+
+  - intent: API_SESSION
+    pattern: '\b(?:create|establish).*(?:session|api connection)\b'
+    priority: 4
+
+  - intent: API_RESPONSE
+    pattern: '\b(?:verify|check|validate).*(?:response|status)\b'
+    priority: 3
+
+  # Monitoring and performance
+  - intent: PERFORMANCE_MONITORING
+    pattern: '\b(?:monitor|measure|track).*(?:performance|metrics|load)\b'
+    priority: 3
+
+  - intent: PERFORMANCE_TESTING
+    pattern: '\b(?:test|execute).*(?:performance|load|stress)\b'
+    priority: 3
+
+  # Security operations
+  - intent: SECURITY_TESTING
+    pattern: '\b(?:security|authenticate|authorization|vulnerability)\b'
+    priority: 3
+
+  - intent: SECURITY_SCANNING
+    pattern: '\b(?:scan|penetration|security.*test)\b'
+    priority: 3
+
+  # BuiltIn conversion operations
+  - intent: CONVERT_TO_INTEGER
+    pattern: '\bconvert.*to.*integer\b'
+    priority: 4
+
+  - intent: CONVERT_TO_STRING
+    pattern: '\bconvert.*to.*string\b'
+    priority: 4
+
+  - intent: CONVERT_TO_BOOLEAN
+    pattern: '\bconvert.*to.*boolean\b'
+    priority: 4
+
+  - intent: CONVERT_TO_NUMBER
+    pattern: '\bconvert.*to.*number\b'
+    priority: 4
+
+  # BuiltIn variable operations
+  - intent: SET_VARIABLE
+    pattern: '\bset.*variable\b'
+    priority: 4
+
+  - intent: GET_VARIABLE
+    pattern: '\bget.*variable\b'
+    priority: 4
+
+  # BuiltIn collection operations
+  - intent: CREATE_LIST
+    pattern: '\bcreate.*list\b'
+    priority: 4
+
+  - intent: CREATE_DICTIONARY
+    pattern: '\bcreate.*dictionary\b'
+    priority: 4
+
+  - intent: GET_LENGTH
+    pattern: '\bget.*length\b'
+    priority: 4
+
+  - intent: LENGTH_SHOULD_BE
+    pattern: '\blength.*should.*be\b'
+    priority: 4
+
+  - intent: LENGTH_SHOULD_BE
+    pattern: '\bcheck.*length.*of.*collection\b'
+    priority: 4
+
+  - intent: SHOULD_START_WITH
+    pattern: '\bshould.*start.*with\b'
+    priority: 4
+
+  - intent: SHOULD_END_WITH
+    pattern: '\bshould.*end.*with\b'
+    priority: 4
+
+  - intent: SHOULD_MATCH
+    pattern: '\bshould.*match\b'
+    priority: 4
+
+  # BuiltIn evaluation and control flow
+  - intent: EVALUATE_EXPRESSION
+    pattern: '\bevaluate\b'
+    priority: 4
+
+  - intent: RUN_KEYWORD_IF
+    pattern: '\brun.*keyword.*if\b'
+    priority: 4
+
+  - intent: RUN_KEYWORD_IF
+    pattern: '\brun.*keyword.*conditionally\b'
+    priority: 4
+
+  - intent: REPEAT_KEYWORD
+    pattern: '\brepeat.*keyword\b'
+    priority: 4
+
+  - intent: FAIL_TEST
+    pattern: '\bfail\b'
+    priority: 4
+
+  - intent: GET_COUNT
+    pattern: '\bget.*count\b'
+    priority: 4
+
+  # BuiltIn logging
+  - intent: LOG_MESSAGE
+    pattern: '\blog.*message\b'
+    priority: 4
+
+  # BuiltIn string operations
+  - intent: SHOULD_START_WITH
+    pattern: '\bverify.*string.*starts.*with\b'
+    priority: 4
+
+  - intent: SHOULD_MATCH
+    pattern: '\bcheck.*string.*matches.*pattern\b'
+    priority: 4

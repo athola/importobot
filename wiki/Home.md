@@ -26,9 +26,13 @@ If you are new to the project, see the [Getting Started](Getting-Started.md) gui
 **Development**
 - [Contributing](Contributing.md)
 - [Deployment Guide](Deployment-Guide.md)
-- [Security Standards](Security-Standards.md)
 - [Testing](Testing.md)
 - [Roadmap](Roadmap.md)
+
+**Security**
+- [Security Standards](Security-Standards.md)
+- [Key Rotation](Key-Rotation.md)
+- [SIEM Integration](SIEM-Integration.md)
 
 
 ## Quick Start
@@ -48,6 +52,6 @@ print(result)
 [![Lint](https://github.com/athola/importobot/actions/workflows/lint.yml/badge.svg)](https://github.com/athola/importobot/actions/workflows/lint.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
-- **Tests**: 2,105 tests passing
+- **Tests**: 2,860 tests passing
 - **Code quality**: ruff & mypy clean
 - **Performance**: ~6s to convert 1000 tests (see [Benchmarks](Performance-Benchmarks.md))

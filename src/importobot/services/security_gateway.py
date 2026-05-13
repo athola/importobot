@@ -22,6 +22,7 @@ from typing import (
     TypedDict,
 )
 
+from importobot.exceptions import SecurityError
 from importobot.services.security_types import SecurityLevel
 from importobot.services.validation_service import ValidationService
 from importobot.utils.logging import get_logger
@@ -184,9 +185,7 @@ class SecurityGateway:
             self.security_level = SecurityLevel.from_string(security_level)
         else:
             self.security_level = security_level
-        self.security_validator = SecurityValidator(
-            security_level=self.security_level.value
-        )
+        self.security_validator = SecurityValidator(security_level=self.security_level)
         self.validation_service = ValidationService(
             security_level=self.security_level.value
         )
@@ -400,7 +399,12 @@ class SecurityGateway:
                 "input_type": input_type,
                 "correlation_id": correlation_id,
             }
-        except Exception as e:
+        except (ValueError, OSError, TypeError, SecurityError) as e:
+            # PR #90 review I10: catching ``Exception`` here hid
+            # programming bugs (``AttributeError`` after refactors,
+            # ``KeyError`` from upstream changes) as soft validation
+            # failures. The narrower set covers parse/IO/security
+            # contract violations only; let everything else propagate.
             logger.error("Security gateway error: %s", e, extra=log_extra)
             raise SecurityError(f"Security validation failed: {e}") from e
 
@@ -634,5 +638,9 @@ class SecurityGateway:
         return {}
 
 
-class SecurityError(Exception):
-    """Exception raised for security validation failures."""
+__all__ = [
+    "FileOperationResult",
+    "SanitizationResult",
+    "SecurityError",  # PR #90 review B3/C5: explicit re-export
+    "SecurityGateway",
+]

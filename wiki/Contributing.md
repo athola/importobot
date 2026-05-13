@@ -33,6 +33,20 @@ Importobot follows Test-Driven Development (TDD) and Extreme Programming (XP) pr
 2. **Green**: Implement the minimum code to pass the test.
 3. **Refactor**: Improve the code while keeping tests green.
 
+### Pre-Commit Hooks
+
+The project uses `pre-commit` to run checks automatically before each commit. Install the hooks after cloning:
+
+```bash
+uv run pre-commit install
+```
+
+To run all hooks manually:
+
+```bash
+uv run pre-commit run --all-files
+```
+
 ### Pre-Commit Checklist
 
 Before committing, ensure your changes meet the following criteria:
@@ -40,6 +54,7 @@ Before committing, ensure your changes meet the following criteria:
 - All tests pass (`uv run pytest`).
 - Code coverage has not decreased.
 - All linting and formatting checks pass (`make lint`).
+- Pre-commit hooks pass (`uv run pre-commit run --all-files`).
 - Relevant documentation has been updated if behavior was changed.
 
 ### Running Tests

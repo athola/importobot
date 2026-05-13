@@ -9,4 +9,3 @@ Sample
     Switch Connection    REMOTE_HOST
     ${setconfig_remote}=    Execute Command    ps -ely | grep ${proc_name}
     Log    Expected: process found
-

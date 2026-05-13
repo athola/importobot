@@ -19,7 +19,7 @@ Key principles from experience:
 Write failing test first, make it pass, then refactor. The converter touches many layers (parsing, validation, rendering), so maintain both unit and integration coverage. Use the existing fixtures in `tests/fixtures/` instead of copying setup code across test files.
 
 ### CI/CD Standards
-The full test suite (1,946 tests) runs on every change. Red builds block merges. Start with simple design, then refactor once tests protect the behavior. No module ownership—leave the code cleaner than you found it.
+The full test suite (2,860 tests) runs on every change. Red builds block merges. PRs also run a coverage-delta job that measures coverage on modified source files (60% threshold). Start with simple design, then refactor once tests protect the behavior. No module ownership—leave the code cleaner than you found it.
 
 ### Error Handling
 Validate JSON immediately with `load_and_parse_json` and fail fast on missing fields. Reject bad CLI input before starting long conversions to avoid wasting time. Keep configuration validation and type hints in sync—this catches many issues during development instead of runtime.
@@ -82,7 +82,10 @@ Added `scripts/interactive_demo.py` for customer demonstrations. It shares code 
 **November 2025: MongoDB Library Integration**
 Replaced broken `robotframework-mongodblibrary` with modern `robot-mongodb-library`. Fixed import errors and updated generation mechanism across codebase to use `RobotMongoDBLibrary` instead of legacy `MongoDBLibrary`. Updated pattern matcher and keyword registry with correct function mappings. Created comprehensive TODO and GitHub issue (#82) for building proper Robot Framework-compatible MongoDB library. Fixed all linting issues including line length violations.
 
-**Test status**: All 2,105+ tests pass with 0 skips.
+**February 2026: CI/CD Modernization and Pre-commit (0.1.5)**
+Upgraded all GitHub Actions workflows from `actions/checkout@v5` to `actions/checkout@v6` and added `config/**` to trigger paths. Added a `coverage-delta` CI job that measures test coverage on modified source files during PRs (60% minimum). Migrated `security.yml` from pip to uv with top-level permissions. Added `pre-commit` with `.pre-commit-config.yaml` and a dedicated CI workflow. The `make lint` target now runs `ruff format --check` and `pycodestyle` in addition to `ruff check` and `pydocstyle`. The `make validate` target runs `pre-commit run --all-files`. Removed `pyright` from `make typecheck` (mypy and ty remain). Consolidated duplicate `[Unreleased]` sections in CHANGELOG.md.
+
+**Test status**: All 2,860 tests pass with 0 skips.
 **Code quality**: Removed pylint from the project (now using ruff/mypy only) and improved test isolation.
 
 ## API Integration Enhancements
@@ -92,7 +95,7 @@ The `ZephyrClient` adapts to different server configurations with automatic API 
 
 ## CI/CD
 
-Importobot works in CI/CD pipelines and supports headless environments with headless Chrome.
+Importobot works in CI/CD pipelines and supports headless environments with headless Chrome. Pre-commit hooks run locally via `pre-commit run --all-files` and in CI via `.github/workflows/pre-commit.yml`. The `make validate` target includes pre-commit as a final check.
 
 ## MCP agent usage
 
@@ -183,7 +186,7 @@ Following pandas model:
 
 ### Before Making Changes
 1. Run existing tests: `make test`
-2. Check code quality: `make lint` (runs ruff and mypy)
+2. Check code quality: `make lint` (runs ruff, ruff format check, pycodestyle, and pydocstyle)
 3. Understand existing architecture and patterns
 4. Review public API impact if changing exposed functionality
 
@@ -196,7 +199,7 @@ Following pandas model:
 
 ### After Changes
 1. Run all tests: `make test`
-2. Check code quality: `make lint` (runs ruff and mypy for linting and type checking)
+2. Check code quality: `make lint` (runs ruff, ruff format check, pycodestyle, and pydocstyle)
 3. Format code: `make format`
 4. Clean artifacts: `make clean` or `make deep-clean`
 5. Verify no regressions were introduced

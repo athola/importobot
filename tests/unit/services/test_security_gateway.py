@@ -669,14 +669,34 @@ class TestEdgeCases:
     def test_sanitize_api_input_exception_handling(
         self, standard_security_gateway: SecurityGateway
     ) -> None:
-        """Test exception handling in sanitize_api_input."""
+        """Validation-shaped exceptions surface as SecurityError.
+
+        PR #90 review I10: the gateway used to translate ``Exception``
+        into ``SecurityError`` - that hid programming bugs as soft
+        failures. We now only translate ``ValueError`` / ``OSError`` /
+        ``TypeError`` / ``SecurityError``. Everything else propagates.
+        """
         with (
             patch.object(
                 standard_security_gateway,
                 "_sanitize_json_input",
-                side_effect=Exception("Test error"),
+                side_effect=ValueError("Test error"),
             ),
             pytest.raises(SecurityError),
+        ):
+            standard_security_gateway.sanitize_api_input({"test": "data"}, "json")
+
+    def test_sanitize_api_input_lets_programming_bugs_propagate(
+        self, standard_security_gateway: SecurityGateway
+    ) -> None:
+        """Unexpected exception types (e.g. AttributeError) bubble up."""
+        with (
+            patch.object(
+                standard_security_gateway,
+                "_sanitize_json_input",
+                side_effect=AttributeError("Programming bug"),
+            ),
+            pytest.raises(AttributeError),
         ):
             standard_security_gateway.sanitize_api_input({"test": "data"}, "json")
 

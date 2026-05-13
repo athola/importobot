@@ -5,61 +5,84 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.4] - 2025-11-11
-
-### Fixed
-- **MongoDB Library Integration**: Replaced broken `robotframework-mongodblibrary` with modern `robot-mongodb-library` to resolve `ModuleNotFoundError: No module named 'mongo_connection_manager'`
-- **Type Safety**: Fixed type checking errors in `base_generator.py` and `helpers.py` by properly converting `RobotFrameworkLibrary` enums to string values
-- **Code Quality**: Fixed line length violation in `keywords_registry.py` by breaking long description string into multiple lines
-- **Multi-Step Parsing**: Fixed 5 failing tests by updating filter patterns to include `SeleniumLibrary.*` prefixes, enabling proper parsing of library-prefixed commands
-- **Unicode Compatibility**: Removed all non-ASCII characters from output messages and scripts, replacing Unicode symbols (✓, →, •, 🔬) with ASCII alternatives for maximum compatibility
-
-### Changed
-- **Library Generation**: Updated codebase generation mechanism to use `RobotMongoDBLibrary` instead of legacy `MongoDBLibrary` across pattern matcher and keyword registry
-- **Keywords Registry**: Updated MongoDB function mappings to reflect actual available functions in the new library (`InsertOne`, `FindOneByID`, `Find`, `Update`, `DeleteOne`, `DeleteOneByID`)
-- **Project Configuration**: Added `BENCHMARKS_DIR` constant to `importobot.config` for clean path management, replacing hacky `Path.parent.parent.parent.parent` patterns
-- **Documentation Standards**: Enhanced TestRail client documentation with comprehensive docstring explaining Basic authentication vs Bearer token patterns
-- **Test Data Quality**: Converted code notes to actionable TODO comments with GitHub issue references for traceability
-
-### Added
-- **Task Management**: Created GitHub issue #83 for implementing proper test data feeding system for P(E|¬H) learning pipeline
-- **Cross-Reference Links**: Added clickable link to ADR-0006 in performance validation documentation
-- **ASCII Output Standards**: Standardized all CLI output and script messages to use ASCII-only characters for cross-platform compatibility
-
 ## [Unreleased]
 
+### Breaking Changes
+
+- `importobot.config.APIIngestConfig` now uses keyword-only construction
+  with a private `_SecureTokenListView` for `tokens`. Positional
+  construction (`APIIngestConfig(fetch_format, api_url, tokens, …)`)
+  and direct list mutation (`config.tokens.append(...)`,
+  `config.tokens[i] = "new"`) no longer work. Use the keyword form
+  (`APIIngestConfig(fetch_format=..., api_url=..., tokens=[...])`)
+  and rebuild the config when tokens change. See PR #90 review C4.
+
+### Security
+
+- Whole-word safe-keyword matching (PR #90 B2): the credential scanner
+  no longer suppresses real credential values whose names happen to
+  contain dictionary substrings like `test`, `foo`, `bar`.
+  `test`/`foo`/`bar`/`baz`/`qux`/`xxx`/`yyy`/`zzz` are removed from
+  `SAFE_KEYWORDS`; `example`/`placeholder`/`demo`/`mock`/etc. remain.
+- `SecurityError` consolidated to a single class in
+  `importobot.exceptions` (PR #90 B3/C5). Imports from
+  `importobot.security`, `importobot.security.types`, and
+  `importobot.services.security_gateway` now resolve to the same
+  class - `except SecurityError` works regardless of import path.
+- `SecurityValidator` and `CredentialManager` unified (PR #90 C6/C7).
+  `importobot.utils.security` and `importobot.utils.credential_manager`
+  remain importable but now re-export the canonical classes from
+  `importobot.security`.
+- `SecureString.__eq__` uses `hmac.compare_digest`; `__hash__` returns
+  an HMAC-SHA256 derived value under a process-local key (PR #90 N5).
+- `SecureString.zeroize()` now clears `_original_value` and
+  `_normalized_value` so plaintext does not survive zeroization
+  (PR #90 I1).
+- Failed credential encryption now redacts the parameter value and
+  raises a high-severity warning rather than leaving plaintext in the
+  output (PR #90 C11).
+
 ### Added
-- **Test Suite Quality**: Improved test architecture by introducing 55 named constants across 9 categories, eliminating magic numbers.
-- **Modern Test Patterns**: Updated test patterns by replacing `tempfile` with `pytest.tmp_path`, adding type annotations to all test functions, and documenting integration tests with Arrange-Act-Assert.
-- **Consistent Type Safety**: Enforced mypy type checking across the entire test suite by removing test overrides.
+
+- Packaged `src/importobot/data/intent_patterns.yaml` (PR #90 C3) so
+  the YAML ships inside installed wheels. The previous
+  `<repo_root>/config/intent_patterns.yaml` location crashed
+  `PatternMatcher()` with `FileNotFoundError` in production installs.
 
 ### Changed
-- **Client Module Refactoring**: Split `importobot.integrations.clients` into focused modules (base.py, jira_xray.py, testlink.py, testrail.py, zephyr.py) to enhance maintainability while retaining full backward compatibility.
-- **Documentation Refinement**: Replaced subjective marketing language with factual, technical descriptions throughout the documentation.
-- **API Client Modularity**: Implemented lazy loading for API clients, resulting in a 3x improvement in import speed while preserving all existing import paths.
+
+- `coverage-delta` CI job now actually fails when below the 60% gate
+  (PR #90 B1). The previous `|| exit 0` trap was removed.
+- SIEM stub connectors renamed to `LoggingSplunkSink` /
+  `LoggingElasticSink` to make the simulated nature explicit
+  (PR #90 C1). Old `SplunkHECConnector` / `ElasticConnector` names
+  remain as aliases through 0.1.x and are scheduled for removal in
+  0.2.0. Per-connector failures are now caught and logged so a single
+  broken sink no longer prevents later sinks from receiving events.
+- `SoftwareHSM` renamed to `InMemoryKeyStore` with explicit
+  "NOT A REAL HSM" guidance and per-operation mutex (PR #90 C2).
+  `SoftwareHSM` remains as an alias through 0.1.x.
 
 ### Removed
-- **Legacy Compatibility Code**: Eliminated backwards compatibility shims no longer needed (Python < 3.8 support, deprecated logging and cache APIs).
-- **Redundant Functions**: Removed `setup_logger()` and `get_cache_stats()` aliases in favor of unified APIs.
 
-### Fixed
-- **Test Infrastructure**: Fixed 24 syntax errors from incorrect type annotations and resolved environmental test failures using proper pytest fixtures.
-- **Import Organization**: Corrected missing `Any` imports and standardized import patterns across test files.
+- `pyright` removed from dev dependencies (PR #90 N8). `make typecheck`
+  uses `ty` + `mypy`; install pyright manually if you want to run it
+  ad-hoc.
+- `asv` no longer a production install dependency (PR #90 N1). It now
+  lives only in the `dev` group.
+- `pycodestyle` removed from `make lint` (PR #90 N3). `ruff`'s `E`/`W`
+  rules cover the same checks at ~50x the speed.
 
-### Technical Details
-- **Test Quality**: All 1541 tests passed (100% pass rate) with comprehensive type checking.
-- **Performance**: No performance regression was detected after module refactoring; lazy loading improved import times.
-- **Architecture**: ADR-0006 was added to document client module refactoring decisions and performance validation.
-
-## [Unreleased]
+## [0.1.5] - 2026-02-18
 
 ### Changed
-- **Module Refactoring**: Split `importobot.integrations.clients` into focused modules for better maintainability
+- **Client Module Refactoring**: Split `importobot.integrations.clients` into focused modules for better maintainability
   - `base.py` - Shared API client functionality (BaseAPIClient, APISource protocol)
   - `jira_xray.py` - JIRA/Xray platform client
   - `testlink.py` - TestLink platform client
   - `testrail.py` - TestRail platform client
   - `zephyr.py` - Zephyr platform client
+- **API Client Modularity**: Implemented lazy loading for API clients, resulting in a 3x improvement in import speed while preserving all existing import paths.
 - **Test Quality Improvements**:
   - Added 55 named constants in `tests/test_constants.py` to eliminate magic numbers, organized into 9 logical categories with clear section markers
   - Replaced `tempfile` usage with pytest's `tmp_path` fixture (modern pattern)
@@ -68,12 +91,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Documented growth strategy: single-file approach until 200 constants, then split into sub-modules
 - **Type Safety**: Removed mypy test override to enforce type checking across entire test suite
 - **Documentation Cleanup**: Removed subjective marketing terms ("enterprise", "professional") in favor of factual descriptions
+- **CI/CD Modernization**: Upgraded all workflows from `actions/checkout@v5` to `@v6`, added `config/**` to trigger paths
+- **Security Workflow**: Migrated from pip to uv with top-level permissions block
+- **Lint Target**: `make lint` now runs `ruff format --check` and `pycodestyle` in addition to `ruff check` and `pydocstyle`
+- **Typecheck Target**: Removed `pyright` from `make typecheck` (mypy and ty remain)
+- **CHANGELOG**: Consolidated duplicate `[Unreleased]` sections into one
+
+### Added
+- **Coverage Delta CI Job**: New `coverage-delta` workflow job measures test coverage on modified source files during PRs (60% minimum threshold)
+- **Pre-commit**: Added `.pre-commit-config.yaml`, `pre-commit` dev dependency, and `.github/workflows/pre-commit.yml` CI workflow
+- **Validate Target**: `make validate` now runs `pre-commit run --all-files` as a final check
+- **Security Subsystem (`importobot.security`)**: New dedicated package consolidating credential management, scanner checks, secure memory pools, template scanning, and security validation. Replaces ad-hoc helpers previously scattered under `utils/`. Public surface includes `CredentialManager`, `TemplateSecurityScanner`, `SecurityValidator`, and `SecureString`.
+- **Encrypted Credentials**: `CredentialManager` enforces Fernet encryption via the optional `security` extra (`pip install 'importobot[security]'`) and the `IMPORTOBOT_ENCRYPTION_KEY` environment variable. OS keyring storage supported via `IMPORTOBOT_KEYRING_SERVICE` / `IMPORTOBOT_KEYRING_USERNAME`.
+- **Command Sanitization**: New `importobot.utils.command_security` module hardens shell command construction against injection.
+- **International Token Support**: Token validation handles Unicode normalization with configurable placeholder lists (`IMPORTOBOT_TOKEN_PLACEHOLDERS`, `IMPORTOBOT_TOKEN_INDICATORS`, `IMPORTOBOT_MIN_TOKEN_LENGTH`).
+- **Enterprise Add-ons (`importobot_enterprise`)**: Optional package via `pip install 'importobot[enterprise]'` exposing `SoftwareHSM`, `SIEMManager` with Splunk/Elastic/Sentinel connectors, `EnterpriseComplianceEngine` for SOC2/ISO27001 scoring, and `rotate_credentials()` for re-wrapping ciphertexts.
+- **Wiki**: New [Key Rotation](wiki/Key-Rotation.md) and [SIEM Integration](wiki/SIEM-Integration.md) guides plus [ADR-0007](wiki/architecture/ADR-0007-secure-memory-pool-refactoring.md) covering the secure memory pool refactoring rationale.
+- **Security Test Coverage**: 23 new test modules under `tests/unit/security/` and `tests/unit/enterprise/` covering credential patterns, scanner checks, secure memory, template scanning, SIEM forwarding, key rotation, and SOC2 scoring (test suite total: 2,860).
 
 ### Removed
 - **Backwards Compatibility Code** (0.1.x has no external users):
   - Removed `importlib_metadata` fallback for Python < 3.8 (project requires Python 3.10+)
   - Removed `setup_logger()` function - use `get_logger()` instead
   - Removed `get_cache_stats()` alias - use `get_stats()` instead
+
+### Fixed
+- Fixed 24 syntax errors from incorrect type annotation replacements in test files
+- Fixed missing `Any` import in `tests/unit/test_hash_file_example.py`
+- Fixed environmental test failure in `test_resource_manager.py` by using pytest's `tmp_path` fixture instead of `/tmp`
+- Corrected missing `Any` imports and standardized import patterns across test files
 
 ### Breaking Changes
 
@@ -154,18 +200,34 @@ stats = detection_cache.get_stats()
 
 **Migration:** Replace all `.get_cache_stats()` calls with `.get_stats()`. Return value structure is unchanged.
 
-### Fixed
-- Fixed 24 syntax errors from incorrect type annotation replacements in test files
-- Fixed missing `Any` import in `tests/unit/test_hash_file_example.py`
-- Fixed environmental test failure in `test_resource_manager.py` by using pytest's `tmp_path` fixture instead of `/tmp`
-
 ### Technical Details
 - Blueprint storage classes moved to `blueprints/storage.py` (StepPattern, SuiteSettings, etc.)
-- Test suite: **1541/1541 tests passing (100% pass rate)**
+- Test suite: **1541/1541 tests passing (100% pass rate)** at time of this work
 - Mypy enforcement now applies to tests (removed `[[tool.mypy.overrides]]` for `tests.*`)
 - Architecture Decision Record: `wiki/architecture/ADR-0006-client-module-refactoring.md`
 - Performance validation: No regression detected, lazy loading provides 3x import speed improvement
   (see `wiki/architecture/performance-validation-module-split.md`)
+
+## [0.1.4] - 2025-11-11
+
+### Fixed
+- **MongoDB Library Integration**: Replaced broken `robotframework-mongodblibrary` with modern `robot-mongodb-library` to resolve `ModuleNotFoundError: No module named 'mongo_connection_manager'`
+- **Type Safety**: Fixed type checking errors in `base_generator.py` and `helpers.py` by properly converting `RobotFrameworkLibrary` enums to string values
+- **Code Quality**: Fixed line length violation in `keywords_registry.py` by breaking long description string into multiple lines
+- **Multi-Step Parsing**: Fixed 5 failing tests by updating filter patterns to include `SeleniumLibrary.*` prefixes, enabling proper parsing of library-prefixed commands
+- **Unicode Compatibility**: Removed all non-ASCII characters from output messages and scripts, replacing Unicode symbols with ASCII alternatives for maximum compatibility
+
+### Changed
+- **Library Generation**: Updated codebase generation mechanism to use `RobotMongoDBLibrary` instead of legacy `MongoDBLibrary` across pattern matcher and keyword registry
+- **Keywords Registry**: Updated MongoDB function mappings to reflect actual available functions in the new library (`InsertOne`, `FindOneByID`, `Find`, `Update`, `DeleteOne`, `DeleteOneByID`)
+- **Project Configuration**: Added `BENCHMARKS_DIR` constant to `importobot.config` for clean path management, replacing hacky `Path.parent.parent.parent.parent` patterns
+- **Documentation Standards**: Enhanced TestRail client documentation with comprehensive docstring explaining Basic authentication vs Bearer token patterns
+- **Test Data Quality**: Converted code notes to actionable TODO comments with GitHub issue references for traceability
+
+### Added
+- **Task Management**: Created GitHub issue #83 for implementing proper test data feeding system for P(E|¬H) learning pipeline
+- **Cross-Reference Links**: Added clickable link to ADR-0006 in performance validation documentation
+- **ASCII Output Standards**: Standardized all CLI output and script messages to use ASCII-only characters for cross-platform compatibility
 
 ## [0.1.3] - 2025-10-23
 

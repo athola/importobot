@@ -39,6 +39,15 @@ from importobot.utils.validation_models import (
 logger = get_logger()
 
 
+def _resolve_positive_config(value: int | None, default: int, name: str) -> int:
+    """Resolve config with validation, falling back to default if invalid."""
+    resolved = value if value is not None else default
+    if resolved < 1:
+        logger.warning("%s %d must be >= 1; using default %d", name, resolved, default)
+        return default
+    return resolved
+
+
 @dataclass(slots=True)
 class _FilterContext:
     """Container for record attributes used during filter evaluation."""
@@ -79,23 +88,15 @@ class BronzeLayer(BaseMedallionLayer):
         """
         super().__init__("bronze", storage_path)
         self.storage_backend = storage_backend
-        resolved_max = (
-            max_in_memory_records
-            if max_in_memory_records is not None
-            else BRONZE_LAYER_MAX_IN_MEMORY_RECORDS
+        self._max_in_memory_records = _resolve_positive_config(
+            max_in_memory_records,
+            BRONZE_LAYER_MAX_IN_MEMORY_RECORDS,
+            "BronzeLayer max_in_memory_records",
         )
-        if resolved_max < 1:
-            logger.warning(
-                "BronzeLayer max_in_memory_records %d must be >= 1; using default %d",
-                resolved_max,
-                BRONZE_LAYER_MAX_IN_MEMORY_RECORDS,
-            )
-            resolved_max = BRONZE_LAYER_MAX_IN_MEMORY_RECORDS
-        self._max_in_memory_records = resolved_max
-        resolved_ttl = (
-            in_memory_ttl_seconds
-            if in_memory_ttl_seconds is not None
-            else BRONZE_LAYER_IN_MEMORY_TTL_SECONDS
+        resolved_ttl = _resolve_positive_config(
+            in_memory_ttl_seconds,
+            BRONZE_LAYER_IN_MEMORY_TTL_SECONDS,
+            "BronzeLayer in_memory_ttl_seconds",
         )
         self._in_memory_ttl_seconds: int | None = (
             resolved_ttl if resolved_ttl > 0 else None

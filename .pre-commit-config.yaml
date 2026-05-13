@@ -1,0 +1,75 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-docstring-first
+      - id: debug-statements
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.4
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: mypy-src
+        name: mypy (src)
+        entry: uv run mypy -p importobot
+        language: system
+        files: ^src/.*\.py$
+        pass_filenames: false
+
+      - id: mypy-tests
+        name: mypy (tests)
+        entry: uv run mypy tests
+        language: system
+        files: ^tests/.*\.py$
+        pass_filenames: false
+
+      - id: ty
+        name: ty
+        entry: uv run ty check
+        language: system
+        files: ^src/.*\.py$
+        pass_filenames: false
+
+      - id: bandit
+        name: bandit
+        entry: uv run bandit -r src/ -ll
+        language: system
+        files: ^src/.*\.py$
+        pass_filenames: false
+
+      - id: pytest-collect
+        name: pytest collect-only
+        entry: uv run pytest --collect-only -q
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: workflow-action-versions
+        name: GitHub Actions pinned versions
+        entry: uv run pytest tests/unit/test_workflows.py -q
+        language: system
+        files: ^\.github/workflows/.*\.ya?ml$|^tests/unit/test_workflows\.py$
+        pass_filenames: false
+
+      - id: no-ai-attribution
+        name: block-ai-co-authored-by
+        entry: |
+          bash -c 'if git log --format="%b" -1 HEAD 2>/dev/null | grep -iqE "Co-Authored-By:.*(Claude|Opus|Sonnet|Haiku|Anthropic|GPT|OpenAI|Copilot)"; then echo "ERROR: Commit contains AI Co-Authored-By line. Remove it."; exit 1; fi'
+        language: system
+        stages: [commit-msg]
+        always_run: true

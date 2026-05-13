@@ -10,53 +10,154 @@
 
 </div>
 
-Importobot is a Python package for converting test case exports from Zephyr, TestRail, Xray, and TestLink into runnable Robot Framework suites. It was built to automate the tedious process of manually migrating large test libraries.
+Convert Zephyr, TestRail, Xray, and TestLink test case exports into runnable Robot Framework suites — without manually rebuilding each test.
 
-## What's new
+[Documentation](https://github.com/athola/importobot/wiki) · [Changelog](CHANGELOG.md) · [Issues](https://github.com/athola/importobot/issues)
 
-**Recent Improvements:**
-- **MongoDB Library Support**: Fixed MongoDB library integration by replacing broken `robotframework-mongodblibrary` with modern `robot-mongodb-library`
-- **Type Safety**: Enhanced type checking and fixed enum conversion issues
-- **Code Quality**: Improved linting compliance and code organization
+## Highlights
 
-See the [changelog](CHANGELOG.md) for a full list of changes.
+- **Bulk conversion**: process entire directories of exports in one command (~6s for 1,000 tests, see [benchmarks](https://github.com/athola/importobot/wiki/Performance-Benchmarks))
+- **Source-readable output**: preserves test names, priorities, and comments so reviewers can trace generated steps back to the original case
+- **Multiple input formats**: Zephyr (JSON), TestRail, Xray, TestLink, plus direct API ingest via `--fetch-format`
+- **Encrypted credentials**: optional Fernet encryption for API tokens via `importobot[security]`, with OS keyring support
+- **Enterprise observability**: optional `importobot[enterprise]` ships SOC2/ISO27001 scoring, HSM adapters, and SIEM connectors (Splunk, Elastic, Sentinel)
+- **Library or CLI**: drive conversions from Python via `JsonToRobotConverter`, or from the shell via the `importobot` command
+- **Fail-fast validation**: schema and security checks run before long conversions; bad input never silently produces broken Robot output
 
 ## Installation
 
-For end-users, install from PyPI:
+From PyPI:
+
 ```sh
 pip install importobot
+# or with uv
+uv add importobot
 ```
-For developers contributing to the project, see the [Project Setup](https://github.com/athola/importobot/wiki/Getting-Started#project-setup) instructions.
+
+Optional extras for security and enterprise features:
+
+```sh
+pip install 'importobot[security]'    # Fernet encryption + keyring support
+pip install 'importobot[enterprise]'  # HSM, SIEM connectors, compliance scoring
+```
+
+For local development, see the [Getting Started](https://github.com/athola/importobot/wiki/Getting-Started#project-setup) guide in the wiki.
 
 ## Quick Start
+
+### Command line
+
+```sh
+# Convert a single Zephyr export
+importobot zephyr_export.json output.robot
+
+# Convert an entire directory in bulk
+importobot --directory ./exports --output ./converted
+
+# Fetch from a TestRail instance and convert in one step
+importobot --fetch-format testrail --api-url https://example.testrail.io \
+  --tokens "$TESTRAIL_TOKEN" --project 12 --output ./converted
+```
+
+### Python API
 
 ```python
 import importobot
 
-# Convert a single file from Zephyr JSON to a Robot Framework file
 converter = importobot.JsonToRobotConverter()
+
+# Single file
 summary = converter.convert_file("zephyr_export.json", "output.robot")
 
-# Convert an entire directory of exports
+# Whole directory
 result = converter.convert_directory("./exports", "./converted")
 ```
 
+See the [User Guide](https://github.com/athola/importobot/wiki/User-Guide) for field mapping, schema overrides (`--input-schema`), and template learning (`--robot-template`).
+
+## Security
+
+Importobot's security features are opt-in via the `security` and `enterprise` extras. The CLI scans Robot templates automatically when `--robot-template` is passed and aborts on credential leaks.
+
+```sh
+pip install 'importobot[security]'
+export IMPORTOBOT_ENCRYPTION_KEY="$(openssl rand -base64 32)"
+```
+
+```python
+import os
+
+from importobot.security import CredentialManager, TemplateSecurityScanner
+
+# Encrypt API tokens at rest
+manager = CredentialManager()
+encrypted = manager.encrypt_credential(os.environ["ZEPHYR_TOKEN"])
+plain = manager.decrypt_credential(encrypted)
+
+# Block credential leaks in Robot templates before conversion
+report = TemplateSecurityScanner().scan_template_file("templates/login.robot")
+assert report.is_safe, report.issues
+```
+
+Common environment variables:
+
+| Variable | Purpose |
+| --- | --- |
+| `IMPORTOBOT_ENCRYPTION_KEY` | Fernet key (32-byte base64) for credential encryption |
+| `IMPORTOBOT_KEYRING_SERVICE` / `IMPORTOBOT_KEYRING_USERNAME` | Load the encryption key from the OS keyring |
+| `IMPORTOBOT_MIN_TOKEN_LENGTH` | Token length floor (default 12, hard floor 8) |
+| `IMPORTOBOT_TOKEN_PLACEHOLDERS` | Comma-separated tokens to reject as placeholders |
+| `IMPORTOBOT_SKIP_TOKEN_VALIDATION` | Set to `1` for trusted benchmarks only |
+
+Deeper guides:
+
+- [Key Rotation](https://github.com/athola/importobot/wiki/Key-Rotation): rotate `IMPORTOBOT_ENCRYPTION_KEY` and re-wrap stored ciphertexts
+- [SIEM Integration](https://github.com/athola/importobot/wiki/SIEM-Integration): Splunk, Elastic, and Microsoft Sentinel connectors
+- [Security Standards](https://github.com/athola/importobot/wiki/Security-Standards): coding standards and review process
+
 ## Documentation
 
-All documentation is in the [project wiki](https://github.com/athola/importobot/wiki).
+The full wiki lives at [github.com/athola/importobot/wiki](https://github.com/athola/importobot/wiki). Common entry points:
 
-- **[Getting Started](https://github.com/athola/importobot/wiki/Getting-Started)**: Install the tool and run your first conversion.
-- **[User Guide](https://github.com/athola/importobot/wiki/User-Guide)**: See detailed examples and usage patterns.
-- **[How to Navigate this Codebase](https://github.com/athola/importobot/wiki/How-to-Navigate-this-Codebase)**: For developers who want to understand the architecture.
+**Users**
 
-## Community
+- [Getting Started](https://github.com/athola/importobot/wiki/Getting-Started): install and run a first conversion
+- [User Guide](https://github.com/athola/importobot/wiki/User-Guide): CLI reference, API ingest, schema overrides
+- [Blueprint Tutorial](https://github.com/athola/importobot/wiki/Blueprint-Tutorial): end-to-end migration walkthrough
+- [Migration Guide](https://github.com/athola/importobot/wiki/Migration-Guide): version-to-version upgrade notes
 
-For questions and discussions, please use the [GitHub issue tracker](https://github.com/athola/importobot/issues).
+**Developers**
+
+- [How to Navigate this Codebase](https://github.com/athola/importobot/wiki/How-to-Navigate-this-Codebase): architecture and module map
+- [API Reference](https://github.com/athola/importobot/wiki/API-Reference): public API surface
+- [Contributing](https://github.com/athola/importobot/wiki/Contributing): development workflow and branch model
+- [Architecture Decision Records](https://github.com/athola/importobot/blob/main/wiki/architecture/): design rationale (ADR-0001 through ADR-0007)
+
+## Performance
+
+Numbers from the in-tree benchmark suite ([wiki/Performance-Benchmarks](https://github.com/athola/importobot/wiki/Performance-Benchmarks)):
+
+- **Conversion throughput**: ~6 seconds for 1,000 Zephyr test cases
+- **Format detection**: ~55 ms average across the supported input formats
+- **Import time**: ~56 ms for `import importobot` (target: <100 ms)
+- **Token validation**: ~18 µs per `APIIngestConfig` creation
+
+ASV charts publish on tagged releases; the workflow is in `.github/workflows/`.
+
+## What's new
+
+**0.1.5** (Feb 2026):
+
+- New `importobot.security` subsystem with `CredentialManager`, `TemplateSecurityScanner`, and `SecurityValidator`
+- New `importobot[enterprise]` extra: HSM, SIEM connectors, SOC2/ISO27001 scoring
+- CI: `actions/checkout@v6`, PR coverage-delta gate (60% on modified files), pre-commit workflow
+- Test suite: 2,860 tests including 23 new security/enterprise modules
+
+See the [changelog](CHANGELOG.md) for the full history.
 
 ## Contributing
 
-Contributions are welcome. Please see the [Contributing Guide](https://github.com/athola/importobot/wiki/Contributing) for more information.
+Issues and pull requests are welcome. Start with the [Contributing Guide](https://github.com/athola/importobot/wiki/Contributing) for the branch model (`feature → development → main`) and local dev setup.
 
 ## License
 
